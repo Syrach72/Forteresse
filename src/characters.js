@@ -1,0 +1,77 @@
+export const CHARACTER_CLASSES = [
+  ["legende", "Légende"],
+  ["guerrier", "Guerrier"],
+  ["roublard", "Roublard"],
+  ["rodeur", "Rôdeur"],
+  ["pretre", "Prêtre"],
+  ["druide", "Druide"],
+  ["incantateur", "Incantateur"],
+  ["paladin", "Paladin"],
+];
+export const WARRIORS = [
+  {
+    id: "gnaeus",
+    name: "Gnaeus Gnaru",
+    role: "Guerrier · Duelliste",
+    crop: [18, 63, 115, 160],
+    portrait: [44, 72, 70, 101],
+    veterancy: 0,
+    attack: 2,
+    defense: 2,
+    mind: 1,
+    movement: 6,
+    mana: 2,
+    health: 11,
+    armor: "Cuir souple (Lgr) · 3/2/0",
+    parry: "Parade 1",
+    known: true,
+    notes: "",
+  },
+  {
+    id: "hetamon",
+    name: "Hetamon Haace",
+    role: "Guerrier · Protecteur",
+    crop: [146, 63, 114, 160],
+    portrait: [173, 72, 69, 101],
+    veterancy: 0,
+    notes: "",
+  },
+  {
+    id: "tavoul",
+    name: "Tavoul Abramos",
+    role: "Guerrier · Deux-Mains",
+    crop: [272, 63, 113, 160],
+    portrait: [284, 76, 89, 95],
+    veterancy: 0,
+    notes: "",
+  },
+  {
+    id: "orik",
+    name: "Orik Vancaskerkin",
+    role: "Guerrier · Défenseur",
+    crop: [397, 63, 112, 160],
+    portrait: [411, 74, 84, 95],
+    veterancy: 0,
+    notes: "",
+  },
+];
+export const WEAPONS = [
+  {
+    name: "Épée longue",
+    text: "Arme de base, n’ajoute ni ne retire aucun effet particulier.",
+    crop: [176, 67, 33, 99],
+  },
+  {
+    name: "Emplacement d’arme",
+    text: "Aucune description renseignée sur la capture.",
+    crop: [203, 187, 155, 28],
+    empty: true,
+  },
+  {
+    name: "Arc long",
+    text: "Attaque plafonnée à 5. +1 contre les créatures sans armure ou en armure légère ; −1 contre les armures lourdes.",
+    range: "Portée : 30/90c",
+    crop: [176, 286, 27, 66],
+  },
+];
+export const LEVELS = [0, 1, 2, 3, 5, 7, 9, 10, 12, 14, 16, 18, 20];

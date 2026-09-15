@@ -1,0 +1,56 @@
+import { ITEMS, INITIAL } from "./data.js";
+import { initialAlchemy } from "./alchemy.js";
+import { initialMage } from "./mage.js";
+export function initialGame() {
+  return { ...structuredClone(INITIAL), alchemy: initialAlchemy(), mage: initialMage() };
+}
+export function transact(state, action) {
+  const item = ITEMS.find((i) => i.id === action.id);
+  const next = structuredClone(state);
+  let message = "";
+  const add = () => {
+    const own = next.inventory.find((i) => i.id === item.id);
+    if (own) own.quantity++;
+    else next.inventory.push({ id: item.id, quantity: 1, equipped: false });
+  };
+  if (action.type === "buy") {
+    if (!item || !next.stock[item.id])
+      return { error: "Cet objet est épuisé." };
+    if (next.gold < item.price)
+      return { error: "Vous n’avez pas assez de pièces d’or." };
+    next.gold -= item.price;
+    next.stock[item.id]--;
+    add();
+    message = `${item.name} acheté : −${item.price} Po.`;
+  } else if (action.type === "craft") {
+    if (!item?.metal) return { error: "Cette recette n’existe pas." };
+    if (["metal", "leather", "wood"].some((k) => next.resources[k] < item[k]))
+      return { error: "Ressources insuffisantes pour cette fabrication." };
+    for (const k of ["metal", "leather", "wood"]) next.resources[k] -= item[k];
+    add();
+    message = `${item.name} fabriqué et ajouté au stock.`;
+  } else if (action.type === "equip") {
+    const own = next.inventory.find((i) => i.id === action.id);
+    if (!own || !item || item.type === "Potions") return { error: "Cet objet ne peut pas être équipé." };
+    own.equipped = !own.equipped;
+    message = `${item.name} ${own.equipped ? "équipé" : "rangé"}.`;
+  } else if (action.type === "use") {
+    const own = next.inventory.find((i) => i.id === action.id);
+    if (!own || own.quantity < 1 || item?.type !== "Potions") return { error: "Aucune potion disponible." };
+    own.quantity--;
+    next.inventory = next.inventory.filter((i) => i.quantity > 0);
+    message =
+      "Potion utilisée. Appliquez ses effets manuellement sur la fiche.";
+  } else if (action.type === "quest") {
+    next.quest = true;
+    message = "Quête acceptée : Les ombres du col.";
+  } else return { error: "Action inconnue." };
+  next.log.unshift({
+    id: crypto.randomUUID(),
+    message,
+    date: new Date().toISOString(),
+    amount: action.type === "buy" ? -item.price : 0,
+  });
+  next.log = next.log.slice(0, 50);
+  return { state: next, message };
+}

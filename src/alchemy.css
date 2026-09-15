@@ -1,0 +1,70 @@
+.alchemy-workspace { padding: 12px 0 0; }
+.alchemy-intro { color: #fff3d2; text-shadow: 0 2px 4px #000; margin-bottom: 12px; }
+.alchemy-intro p { font-size: 17px; margin: 0 0 3px; }
+.alchemy-intro > span { font-size: 14px; color: #e2d0ab; }
+.alchemy-table { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 24px; align-items: end; }
+.alchemy-circle-panel { min-width: 0; color: #fff1d0; }
+.alchemy-circle-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.alchemy-circle-heading h2 { font: 700 17px Aniron, Georgia, serif; margin: 0; text-shadow: 0 2px 4px #000; }
+.alchemy-circle-heading button { color: #ffebbd; font-size: 15px; padding: 8px 10px; background: #271e14d9; border: 1px solid #9f8558; }
+.alchemy-selection { min-height: 22px; font-size: 15px; margin: 5px 0; text-shadow: 0 2px 3px #000; }
+.alchemy-sigil { position: relative; aspect-ratio: 384 / 360; width: min(100%, 410px); margin: 0 auto; isolation: isolate; }
+.sigil-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: -1; border-radius: 18%; }
+.sigil-art img { position: absolute; width: 327.083%; max-width: none; left: 0; top: -125%; filter: brightness(1.55); }
+.sigil-branch { position: absolute; width: 17%; aspect-ratio: 1; transform: translate(-50%, -50%); }
+.sigil-target { width: 100%; height: 100%; padding: 5px; border-radius: 50%; border: 3px ridge #bba36b; background: radial-gradient(circle, #f2e4bf, #b39c68); color: #665634; display: grid; place-items: center; box-shadow: inset 0 0 10px #44341b66, 0 2px 8px #0008; cursor: pointer; font: 21px Georgia, serif; }
+.sigil-target.filled { background: radial-gradient(circle, #4c5b31, #242a1c); }
+.sigil-target.filled, .ingredient-tile:not(:disabled) { cursor: grab; }
+.sigil-target.drop-active, .sigil-target.selected { outline: 3px solid #dafa92; outline-offset: 3px; box-shadow: 0 0 24px #b8ed8977; }
+.sigil-remove { position: absolute; right: -7px; top: -8px; width: 26px; height: 26px; padding: 0; border: 1px solid #d5c69b; border-radius: 50%; background: #32241a; color: #fff; font: 22px/1 Georgia, serif; cursor: pointer; }
+.sigil-center { position: absolute; left: 50%; top: 57%; transform: translate(-50%, -50%); width: 17%; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: #20271ee8; border: 2px ridge #998b60; font: 35px Georgia, serif; color: var(--potion-color); pointer-events: none; }
+.recipe-ready .sigil-center { box-shadow: 0 0 25px var(--potion-color); }
+.alchemy-result { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; background: #241e16ef; padding: 14px; border: 1px solid #a9905b; margin-top: 8px; border-radius: 3px; }
+.alchemy-result-label { font-size: 13px; color: #dbc394; }
+.alchemy-result h3 { font-size: 23px; margin: 4px 0; color: #fff1cc; }
+.alchemy-result p { font-size: 15px; margin: 0; }
+.alchemy-result .alchemy-brew { min-height: 42px; }
+.alchemy-error { background: var(--paper); padding: 10px; }
+.alchemy-inventory { min-width: 0; padding: 14px; border: 4px ridge #907347; background: #e2d3aeee; }
+.alchemy-inventory > header { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 12px; }
+.alchemy-inventory h2 { font: 700 16px Aniron, Georgia, serif; margin: 0; }
+.alchemy-inventory > header > span { font-size: 13px; text-align: right; max-width: 85px; }
+.ingredient-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.ingredient-tile { min-width: 0; min-height: 67px; position: relative; padding: 5px 3px; display: flex; flex-direction: column; align-items: center; gap: 3px; background: linear-gradient(#49331d, #241b12); border: 2px ridge #ab8952; border-radius: 5px; color: #f5e4bd; }
+.ingredient-tile.selected { outline: 3px solid #467746; outline-offset: 0; background: #35462b; }
+.ingredient-tile:disabled { opacity: .45; cursor: not-allowed; }
+.ingredient-tile b { position: absolute; right: 4px; top: 3px; font: 14px Georgia, serif; background: #211609; border-radius: 8px; padding: 2px 4px; color: #ffe9ab; }
+.ingredient-art { display: block; width: 40px; aspect-ratio: 1; position: relative; overflow: hidden; pointer-events: none; }
+.ingredient-art img { width: 100%; height: 100%; object-fit: contain; }
+.ingredient-crop img { position: absolute; max-width: none; height: auto; }
+.ingredient-name { font-size: 14px; line-height: 1.1; overflow-wrap: anywhere; }
+.sigil-target .ingredient-art { width: 85%; }
+.alchemy-recipes { margin-top: 14px; border-top: 1px solid #a58c5f; padding-top: 10px; }
+.alchemy-recipes summary { font-size: 17px; font-weight: 700; cursor: pointer; }
+.alchemy-recipe-card { display: block; width: 100%; border: 0; border-top: 1px solid #b8a783; background: transparent; padding: 7px 6px; margin-top: 7px; text-align: left; font-family: inherit; cursor: pointer; border-radius: 4px; }
+.alchemy-recipe-card:hover, .alchemy-recipe-card:focus-visible { background: #e9dcb844; }
+.alchemy-recipes h3 { font-size: 17px; margin: 0 0 3px; }
+.alchemy-recipes h3 small { font-size: 12px; font-weight: 400; color: #665c43; white-space: nowrap; }
+.alchemy-recipes p { font-size: 14px; line-height: 1.25; margin: 0; }
+.alchimie .interior-backdrop { background-position: 66% bottom; }
+@media (max-width: 930px) and (min-width: 681px) { .alchemy-table { grid-template-columns: minmax(0,1fr) 300px; gap: 12px; } .alchemy-inventory { padding: 10px; } .alchemy-circle-heading { align-items: start; } .alchemy-circle-heading h2 { font-size: 14px; } }
+@media (max-width: 680px) {
+  .alchemy-table { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .alchemy-circle-panel { display: contents; }
+  .alchemy-circle-heading { grid-row: 1; }
+  .alchemy-selection { grid-row: 2; margin: -10px 0; }
+  .alchemy-sigil { grid-row: 3; max-width: 340px; }
+  .alchemy-inventory { grid-row: 5; }
+  .alchemy-result { grid-row: 4; }
+  .alchemy-intro p { font-size: 16px; }
+  .alchemy-intro > span { font-size: 13px; }
+  .sigil-remove { width: 28px; height: 28px; }
+  .ingredient-tile { min-height: 74px; }
+  .ingredient-name { font-size: 14px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sigil-target, .ingredient-tile { transition: background 150ms ease, outline-color 150ms ease, box-shadow 150ms ease; }
+  .ingredient-tile:hover:not(:disabled) { box-shadow: 0 0 10px #d2b57188; }
+  .brew-success { animation: brew-flash 450ms ease-out; }
+  @keyframes brew-flash { from { box-shadow: 0 0 28px #b4e59099; } to { box-shadow: none; } }
+}

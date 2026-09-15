@@ -1,0 +1,30 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": [
+    "src"
+  ],
+  "locale": "fr-FR",
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": [
+    "Form",
+    "Scrollbar",
+    "Toast",
+    "CRUD",
+    "Select/Listbox"
+  ],
+  "requiredCommands": [
+    "build",
+    "domain"
+  ],
+  "commands": {
+    "build": "npm run build",
+    "domain": "npm run test:domain"
+  },
+  "evidence": {
+    "crudFullFlow": "work/final-check.cjs",
+    "failurePaths": "tests/game.test.mjs"
+  },
+  "ownership": {
+    "Select/Listbox": "native"
+  }
+}
