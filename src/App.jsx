@@ -25,6 +25,7 @@ import {
 } from "./dormitory";
 import { WARRIORS, CHARACTER_CLASSES } from "./characters";
 import { Admin } from "./Admin.jsx";
+import { supabase } from "./supabaseClient";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
 function Sprite({ location, className = "" }) {
   const l =
@@ -265,6 +266,12 @@ export function App() {
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState("");
   const [selection, setSelection] = useState("maille");
+  // Arme réellement choisie dans le catalogue Supabase (rubrique Armes) :
+  // quand elle est définie, la Forge affiche ses vraies infos à la place
+  // de la démo locale (epée/ITEMS). null tant qu'aucune n'est sélectionnée.
+  const [selectedArme, setSelectedArme] = useState(null);
+  const [armeCatalogue, setArmeCatalogue] = useState(null);
+  const [armeCatalogueError, setArmeCatalogueError] = useState("");
   const [filter, setFilter] = useState("Tout");
   const [search, setSearch] = useState("");
   const [character, setCharacter] = useState("Guerrier");
@@ -291,6 +298,7 @@ export function App() {
   useEffect(() => {
     if (route === "forge") setSelection("epee");
     if (route === "armurerie") setSelection("maille");
+    if (route !== "forge") setSelectedArme(null);
     document.title = `${place?.name || (auth ? (route === "inscription" ? "Créer un compte" : "Connexion") : "Forteresse")} · La Compagnie`;
     titleRef.current?.focus({ preventScroll: true });
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -657,6 +665,54 @@ export function App() {
     }
     location.hash = l.id;
   }
+  // Charge le catalogue Supabase (rubrique Armes + recette forge associée,
+  // avec ses ingrédients) à la demande, une seule fois. Contrairement à
+  // ITEMS (démo locale), ces objets viennent réellement de l'admin.
+  async function loadArmesCatalogue() {
+    if (armeCatalogue || armeCatalogueError) return;
+    const [
+      { data: categories, error: catErr },
+      { data: objets, error: objErr },
+      { data: recettes, error: recErr },
+      { data: ingredients, error: ingErr },
+    ] = await Promise.all([
+      supabase.from("categorie").select("id, nom, parent_id"),
+      supabase.from("objet_catalogue").select("*"),
+      supabase.from("recette").select("*").eq("atelier", "forge"),
+      supabase.from("ingredient_recette").select("*"),
+    ]);
+    const err = catErr || objErr || recErr || ingErr;
+    if (err) {
+      setArmeCatalogueError(err.message);
+      return;
+    }
+    const isArme = (categorieId) => {
+      let current = categories.find((c) => c.id === categorieId);
+      while (current) {
+        if (current.nom.trim().toLowerCase().startsWith("arme")) return true;
+        current = categories.find((c) => c.id === current.parent_id);
+      }
+      return false;
+    };
+    const objetById = new Map(objets.map((o) => [o.id, o]));
+    const armes = objets
+      .filter((o) => o.actif !== false && isArme(o.categorie_id))
+      .map((o) => {
+        const recette = recettes.find(
+          (r) => r.resultat_objet_id === o.id && r.actif !== false,
+        );
+        const ingredientsList = recette
+          ? ingredients
+              .filter((i) => i.recette_id === recette.id)
+              .map((i) => ({
+                nom: objetById.get(i.objet_id)?.nom || "Ingrédient inconnu",
+                quantite: i.quantite_requise,
+              }))
+          : [];
+        return { ...o, ingredientsList };
+      });
+    setArmeCatalogue(armes);
+  }
   const openCatalog = () => {
     setFilter("Tout");
     setSearch("");
@@ -916,74 +972,145 @@ export function App() {
                       ? "Le feu donne forme"
                       : "À l’abri de l’acier"}
                   </p>
-                  <ItemArt item={item} />
-                  <h2>{item.name}</h2>
-                  <p>{item.description}</p>
-                  <div className="stat-line">
-                    <span>
-                      {item.type === "Armes" ? "Attaque" : "Protection"}
-                    </span>
-                    <strong>{item.defense}</strong>
-                  </div>
-                  <div className="workshop-duration">
-                    <label htmlFor="workshop-duration">Durée d’instance</label>
-                    <select
-                      id="workshop-duration"
-                      value={
-                        game.durations?.[route] ?? (route === "forge" ? 5 : 3)
-                      }
-                      onChange={(e) =>
-                        setWorkshopDuration(route, e.target.value)
-                      }
-                    >
-                      {[0, 1, 2, 3, 4, 5].map((n) => (
-                        <option key={n} value={n}>
-                          {n}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <h3>Ressources nécessaires</h3>
-                  <div className="materials">
-                    {[
-                      ["metal", "Métal"],
-                      ["leather", "Cuir"],
-                      ["wood", "Bois"],
-                    ].map(([k, label]) => (
-                      <div key={k}>
-                        <span>{label}</span>
-                        <strong>{item[k]}</strong>
-                        <small>Stock : {game.resources[k]}</small>
+                  {route === "forge" && selectedArme ? (
+                    <>
+                      {selectedArme.icone ? (
+                        <img
+                          className="db-item-art"
+                          src={selectedArme.icone}
+                          alt={selectedArme.nom}
+                        />
+                      ) : (
+                        <ItemArt item={item} />
+                      )}
+                      <h2>{selectedArme.nom}</h2>
+                      <p>{selectedArme.description || "Description à définir."}</p>
+                      <div className="stat-line">
+                        <span>Vétérance requise</span>
+                        <strong>{selectedArme.veterance_requise ?? "à définir"}</strong>
                       </div>
-                    ))}
-                  </div>
-                  <button
-                    className="primary"
-                    disabled={
-                      busy ||
-                      ["metal", "leather", "wood"].some(
+                      <div className="stat-line">
+                        <span>Portée</span>
+                        <strong>{selectedArme.portee || "à définir"}</strong>
+                      </div>
+                      <div className="workshop-duration">
+                        <label>Temps de fabrication (instances)</label>
+                        <strong>
+                          {selectedArme.duree_fabrication_instances ?? "à définir"}
+                        </strong>
+                      </div>
+                      <h3>Ressources nécessaires</h3>
+                      {selectedArme.ingredientsList.length ? (
+                        <div className="materials">
+                          {selectedArme.ingredientsList.map((ing) => (
+                            <div key={ing.nom}>
+                              <span>{ing.nom}</span>
+                              <strong>{ing.quantite}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="muted">Recette à définir.</p>
+                      )}
+                      <button
+                        className="primary"
+                        type="button"
+                        disabled
+                        title="La fabrication réelle sera branchée une fois l’inventaire de compagnie relié à la base."
+                      >
+                        Fabriquer (à connecter)
+                      </button>
+                      <p className="muted">
+                        Aperçu du catalogue : la fabrication de cet objet n’est
+                        pas encore reliée à l’arsenal.
+                      </p>
+                      <button
+                        type="button"
+                        className="text-button"
+                        onClick={() => setSelectedArme(null)}
+                      >
+                        ‹ Revenir à la démonstration locale
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <ItemArt item={item} />
+                      <h2>{item.name}</h2>
+                      <p>{item.description}</p>
+                      <div className="stat-line">
+                        <span>
+                          {item.type === "Armes" ? "Attaque" : "Protection"}
+                        </span>
+                        <strong>{item.defense}</strong>
+                      </div>
+                      <div className="workshop-duration">
+                        <label htmlFor="workshop-duration">Durée d’instance</label>
+                        <select
+                          id="workshop-duration"
+                          value={
+                            game.durations?.[route] ?? (route === "forge" ? 5 : 3)
+                          }
+                          onChange={(e) =>
+                            setWorkshopDuration(route, e.target.value)
+                          }
+                        >
+                          {[0, 1, 2, 3, 4, 5].map((n) => (
+                            <option key={n} value={n}>
+                              {n}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <h3>Ressources nécessaires</h3>
+                      <div className="materials">
+                        {[
+                          ["metal", "Métal"],
+                          ["leather", "Cuir"],
+                          ["wood", "Bois"],
+                        ].map(([k, label]) => (
+                          <div key={k}>
+                            <span>{label}</span>
+                            <strong>{item[k]}</strong>
+                            <small>Stock : {game.resources[k]}</small>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        className="primary"
+                        disabled={
+                          busy ||
+                          ["metal", "leather", "wood"].some(
+                            (k) => game.resources[k] < item[k],
+                          )
+                        }
+                        onClick={() => act("craft", item.id)}
+                      >
+                        {busy ? "Fabrication…" : "Fabriquer"}
+                      </button>
+                      {["metal", "leather", "wood"].some(
                         (k) => game.resources[k] < item[k],
-                      )
-                    }
-                    onClick={() => act("craft", item.id)}
-                  >
-                    {busy ? "Fabrication…" : "Fabriquer"}
-                  </button>
-                  {["metal", "leather", "wood"].some(
-                    (k) => game.resources[k] < item[k],
-                  ) && <p className="error">Ressources insuffisantes.</p>}
-                  {actionError && (
-                    <p role="alert" className="error">
-                      {actionError}
-                    </p>
+                      ) && <p className="error">Ressources insuffisantes.</p>}
+                      {actionError && (
+                        <p role="alert" className="error">
+                          {actionError}
+                        </p>
+                      )}
+                      <p className="muted">
+                        L’objet fabriqué rejoint votre inventaire.
+                      </p>
+                    </>
                   )}
-                  <p className="muted">
-                    L’objet fabriqué rejoint votre inventaire.
-                  </p>
                 </section>
                 <button
                   className="catalog-button wood-button"
-                  onClick={openCatalog}
+                  onClick={() => {
+                    if (route === "forge") {
+                      loadArmesCatalogue();
+                      setModal({ type: "armes-catalogue" });
+                    } else {
+                      openCatalog();
+                    }
+                  }}
                 >
                   {route === "forge"
                     ? "Catalogue des armes"
@@ -1206,7 +1333,9 @@ export function App() {
           title={
             modal.type === "catalog"
               ? "Catalogue"
-              : modal.type === "inventory"
+              : modal.type === "armes-catalogue"
+                ? "Catalogue des armes"
+                : modal.type === "inventory"
                 ? "Inventaire de la compagnie"
                 : modal.type === "locked"
                   ? modal.place.name
@@ -1287,6 +1416,37 @@ export function App() {
                 }}
               />
             </>
+          ) : modal.type === "armes-catalogue" ? (
+            <div className="db-item-list">
+              {armeCatalogueError ? (
+                <p className="admin-error">{armeCatalogueError}</p>
+              ) : !armeCatalogue ? (
+                <p>Chargement…</p>
+              ) : armeCatalogue.length === 0 ? (
+                <p className="muted">
+                  Aucune arme dans le catalogue pour le moment.
+                </p>
+              ) : (
+                armeCatalogue.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    className="db-item-row"
+                    onClick={() => {
+                      setSelectedArme(a);
+                      setModal(null);
+                    }}
+                  >
+                    {a.icone ? (
+                      <img className="db-item-icon" src={a.icone} alt="" />
+                    ) : (
+                      <span className="db-item-icon" aria-hidden="true" />
+                    )}
+                    <span>{a.nom}</span>
+                  </button>
+                ))
+              )}
+            </div>
           ) : modal.type === "inventory" ? (
             <>
               <p className="muted">Arsenal commun · {money(game.gold)} Po</p>
