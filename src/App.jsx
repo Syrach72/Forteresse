@@ -315,6 +315,7 @@ export function App() {
   const [selectedArme, setSelectedArme] = useState(null);
   const [armeCatalogue, setArmeCatalogue] = useState(null);
   const [armeCatalogueError, setArmeCatalogueError] = useState("");
+  const [armeCatalogueTab, setArmeCatalogueTab] = useState("");
   const [filter, setFilter] = useState("Tout");
   const [search, setSearch] = useState("");
   const [character, setCharacter] = useState("Guerrier");
@@ -778,6 +779,24 @@ export function App() {
       }
       return false;
     };
+    // Sous-onglets du catalogue = les catégories de niveau 2 sous « Armes »
+    // (Armes courantes / Armes de guerre / Armes de moine / Objets, telles
+    // que créées dans l'admin), quelle que soit la profondeur réelle de la
+    // catégorie de l'objet (une arme catégorisée plus finement, ex. « Arme
+    // à une main » sous « Armes courantes », remonte dans l'onglet Armes
+    // courantes). Un objet directement rattaché à la racine « Armes »
+    // (pas encore reclassé dans l'admin) tombe dans un onglet « Autres ».
+    const armesRoot = categories.find(
+      (c) => c.nom.trim().toLowerCase() === "armes" && !c.parent_id,
+    );
+    const armeGroupName = (categorieId) => {
+      let node = categories.find((c) => c.id === categorieId);
+      if (!node || (armesRoot && node.id === armesRoot.id)) return "Autres";
+      while (node && armesRoot && node.parent_id !== armesRoot.id) {
+        node = categories.find((c) => c.id === node.parent_id);
+      }
+      return node?.nom || "Autres";
+    };
     const objetById = new Map(objets.map((o) => [o.id, o]));
     const armes = objets
       .filter((o) => o.actif !== false && isArme(o.categorie_id))
@@ -793,7 +812,7 @@ export function App() {
                 quantite: i.quantite_requise,
               }))
           : [];
-        return { ...o, ingredientsList };
+        return { ...o, ingredientsList, groupe: armeGroupName(o.categorie_id) };
       });
     setArmeCatalogue(armes);
   }
@@ -1587,36 +1606,74 @@ export function App() {
               />
             </>
           ) : modal.type === "armes-catalogue" ? (
-            <div className="db-item-list">
-              {armeCatalogueError ? (
-                <p className="admin-error">{armeCatalogueError}</p>
-              ) : !armeCatalogue ? (
-                <p>Chargement…</p>
-              ) : armeCatalogue.length === 0 ? (
-                <p className="muted">
-                  Aucune arme dans le catalogue pour le moment.
-                </p>
-              ) : (
-                armeCatalogue.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    className="db-item-row"
-                    onClick={() => {
-                      setSelectedArme(a);
-                      setModal(null);
-                    }}
-                  >
-                    {a.icone ? (
-                      <img className="db-item-icon" src={a.icone} alt="" />
-                    ) : (
-                      <span className="db-item-icon" aria-hidden="true" />
-                    )}
-                    <span>{a.nom}</span>
-                  </button>
-                ))
-              )}
-            </div>
+            armeCatalogueError ? (
+              <p className="admin-error">{armeCatalogueError}</p>
+            ) : !armeCatalogue ? (
+              <p>Chargement…</p>
+            ) : armeCatalogue.length === 0 ? (
+              <p className="muted">
+                Aucune arme dans le catalogue pour le moment.
+              </p>
+            ) : (
+              (() => {
+                const preferredOrder = [
+                  "Armes courantes",
+                  "Armes de guerre",
+                  "Armes de moine",
+                  "Objets",
+                ];
+                const groups = [...new Set(armeCatalogue.map((a) => a.groupe))];
+                groups.sort((a, b) => {
+                  const ia = preferredOrder.indexOf(a);
+                  const ib = preferredOrder.indexOf(b);
+                  if (ia !== -1 || ib !== -1)
+                    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+                  return a.localeCompare(b, "fr");
+                });
+                const activeTab = groups.includes(armeCatalogueTab)
+                  ? armeCatalogueTab
+                  : groups[0];
+                const shown = armeCatalogue
+                  .filter((a) => a.groupe === activeTab)
+                  .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+                return (
+                  <>
+                    <div className="db-item-tabs">
+                      {groups.map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          className={g === activeTab ? "active" : ""}
+                          onClick={() => setArmeCatalogueTab(g)}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="db-item-list">
+                      {shown.map((a) => (
+                        <button
+                          key={a.id}
+                          type="button"
+                          className="db-item-row"
+                          onClick={() => {
+                            setSelectedArme(a);
+                            setModal(null);
+                          }}
+                        >
+                          {a.icone ? (
+                            <img className="db-item-icon" src={a.icone} alt="" />
+                          ) : (
+                            <span className="db-item-icon" aria-hidden="true" />
+                          )}
+                          <span>{a.nom}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()
+            )
           ) : modal.type === "inventory" ? (
             <>
               <p className="muted">Arsenal commun · {money(game.gold)} Po</p>

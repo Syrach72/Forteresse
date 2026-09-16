@@ -446,6 +446,27 @@ img {
   border-radius: 8px;
   background: #ded0b5;
 }
+.db-item-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.db-item-tabs button {
+  font: 14px Georgia, serif;
+  padding: 7px 14px;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  opacity: 0.7;
+  cursor: pointer;
+}
+.db-item-tabs button.active {
+  opacity: 1;
+  background: var(--gold);
+  font-weight: 600;
+}
 .db-item-list {
   display: flex;
   flex-direction: column;
