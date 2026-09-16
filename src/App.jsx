@@ -835,6 +835,9 @@ export function App() {
           >
             Forteresse
           </a>
+          {session?.user?.email?.toLowerCase() === "btestart@aol.com" && (
+            <a href="#admin">Administration</a>
+          )}
           <a
             href="#connexion"
             onClick={(e) => {
