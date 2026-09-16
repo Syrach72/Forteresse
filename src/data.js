@@ -58,7 +58,7 @@ export const LOCATIONS = [
   {
     id: "stock",
     name: "Arsenal",
-    x: 28,
+    x: 38,
     y: 57.5,
     w: 15.6,
     h: 21,
@@ -68,7 +68,7 @@ export const LOCATIONS = [
   {
     id: "armurerie",
     name: "Armurerie",
-    x: 47,
+    x: 51.35,
     y: 57.5,
     w: 15.6,
     h: 21,
