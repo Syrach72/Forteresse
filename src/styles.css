@@ -150,22 +150,23 @@ img {
 .interior .parchment strong,
 .interior .parchment small,
 .interior .parchment label {
-  /* Halo flou insuffisant sur un fond de decor variable : une veritable
-     bordure (4 offsets + leger flou pour lisser les diagonales) reste
-     lisible quel que soit ce qu'il y a derriere. */
+  /* Contour net (4 offsets, zero flou) plutot qu'un halo : lisible sur
+     n'importe quel fond de decor, sans effet d'ombrage. */
   text-shadow:
-    -1.5px -1.5px 1px #fff,
-    1.5px -1.5px 1px #fff,
-    -1.5px 1.5px 1px #fff,
-    1.5px 1.5px 1px #fff,
-    0 0 3px #fff;
+    -1.5px -1.5px 0 #000,
+    1.5px -1.5px 0 #000,
+    -1.5px 1.5px 0 #000,
+    1.5px 1.5px 0 #000;
 }
 .interior .parchment h1,
 .interior .parchment h2,
 .interior .parchment h3,
 .interior .parchment p,
+.interior .parchment span,
+.interior .parchment strong,
+.interior .parchment small,
 .interior .parchment label {
-  color: #140e08;
+  color: #fff;
 }
 .game-header {
   display: flex;
