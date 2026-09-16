@@ -1156,7 +1156,7 @@ export function App() {
                               className="primary"
                               type="button"
                               disabled={
-                                busy || !!unmapped.length || lacking
+                                busy || !needs.length || !!unmapped.length || lacking
                               }
                               onClick={() => actCatalogue(selectedArme)}
                             >
