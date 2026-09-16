@@ -168,6 +168,15 @@ img {
 .interior .parchment label {
   color: #fff;
 }
+/* Triptyque Metal/Cuir/Bois : fond propre (carte claire, pas le fond de
+   decor), donc texte simplement noir sans contour, comme avant l'effet
+   verre depoli. */
+.interior .parchment .materials span,
+.interior .parchment .materials strong,
+.interior .parchment .materials small {
+  color: var(--ink);
+  text-shadow: none;
+}
 .game-header {
   display: flex;
   gap: 5px;
