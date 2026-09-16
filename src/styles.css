@@ -172,6 +172,14 @@ img {
   backdrop-filter: blur(7px);
   -webkit-backdrop-filter: blur(7px);
 }
+.class-nav a.nav-logout {
+  background: rgba(155, 30, 30, 0.75);
+  border-color: #6e1414;
+  color: #fff4da;
+}
+.class-nav a.nav-logout:hover {
+  background: rgba(190, 40, 40, 0.85);
+}
 .gold-counter {
   background: var(--wood);
   border: 4px ridge #96703b;

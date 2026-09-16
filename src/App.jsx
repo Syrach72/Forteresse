@@ -931,6 +931,16 @@ export function App() {
       </a>
       <header className="game-header">
         <nav className="class-nav" aria-label="Personnages">
+          <a
+            className="nav-logout"
+            href="#connexion"
+            onClick={(e) => {
+              e.preventDefault();
+              supabase.auth.signOut();
+            }}
+          >
+            Se déconnecter
+          </a>
           {CHARACTER_CLASSES.map(([id, label]) => (
             <a
               key={id}
@@ -953,15 +963,6 @@ export function App() {
           {session?.user?.email?.toLowerCase() === "btestart@aol.com" && (
             <a href="#admin">Administration</a>
           )}
-          <a
-            href="#connexion"
-            onClick={(e) => {
-              e.preventDefault();
-              supabase.auth.signOut();
-            }}
-          >
-            Se déconnecter
-          </a>
         </nav>
         <div className="header-treasury">
         <a
