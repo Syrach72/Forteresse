@@ -395,6 +395,26 @@
   font-size: 14px;
   margin-bottom: 17px;
 }
+.admin-checkbox-row {
+  display: flex;
+  gap: 28px;
+  margin: 2px 0 20px;
+}
+.admin-checkbox-row .admin-checkbox {
+  margin-bottom: 0;
+}
+.admin-section-label {
+  margin: 4px 0 10px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(143, 122, 86, 0.35);
+}
+.field-hint {
+  display: block;
+  font-family: Georgia, serif;
+  font-size: 11px;
+  font-weight: normal;
+  color: var(--muted);
+}
 .admin-form-actions {
   display: flex;
   align-items: center;

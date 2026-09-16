@@ -519,6 +519,8 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
             {categoryTreeOptions(null, 0)}
           </select>
         </div>
+      </div>
+      <div className="admin-checkbox-row">
         <label className="admin-checkbox">
           <input
             type="checkbox"
@@ -547,6 +549,8 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
           ]);
         if (!craftable) return null;
         return (
+          <>
+          <p className="eyebrow admin-section-label">Fabrication</p>
           <div className="admin-form-grid">
             {arme && (
               <div className="field">
@@ -581,7 +585,10 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
               </div>
             </div>
             <div className="field field-narrow">
-              <label htmlFor="cat-cout-or">Coût d’achat (pièces d’or)</label>
+              <label htmlFor="cat-cout-or">
+                Coût d’achat (pièces d’or)
+                <span className="field-hint">Prix au marché</span>
+              </label>
               <div className="input-wrap">
                 <input
                   id="cat-cout-or"
@@ -591,7 +598,6 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
                   onChange={(e) => setForm({ ...form, cout_achat_or: e.target.value })}
                 />
               </div>
-              <p className="muted">Prix au marché</p>
             </div>
             {arme && (
               <div className="field">
@@ -607,6 +613,7 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
               </div>
             )}
           </div>
+          </>
         );
       })()}
       <div className="field">
