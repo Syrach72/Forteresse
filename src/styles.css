@@ -173,6 +173,7 @@ img {
   -webkit-backdrop-filter: blur(7px);
 }
 .class-nav a.nav-logout {
+  grid-column: span 2;
   background: rgba(155, 30, 30, 0.75);
   border-color: #6e1414;
   color: #fff4da;
