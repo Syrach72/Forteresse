@@ -165,6 +165,31 @@ function isDescendant(rows, ancestorId, id) {
   }
   return false;
 }
+// Confirmation de suppression en ligne (Confirmer/Annuler), plutot que la
+// boite confirm() native du navigateur : elle est facile a manquer, et
+// Chrome desactive silencieusement tous les confirm() suivants sur une page
+// des qu'on en a declenche plusieurs rapprochees (case a cocher "Empecher
+// cette page de creer d'autres boites de dialogue") — le bouton Supprimer
+// semble alors ne plus rien faire du tout, sans aucune erreur visible.
+function DeleteButton({ id, label = "Supprimer", confirmingId, onAskConfirm, onCancel, onConfirm }) {
+  if (confirmingId === id) {
+    return (
+      <>
+        <button type="button" className="text-button text-button-danger" onClick={onConfirm}>
+          Confirmer
+        </button>
+        <button type="button" className="text-button" onClick={onCancel}>
+          Annuler
+        </button>
+      </>
+    );
+  }
+  return (
+    <button type="button" className="text-button" onClick={onAskConfirm}>
+      {label}
+    </button>
+  );
+}
 function NamedListSection({ table, singular, blockedBy, hierarchical = false }) {
   const { rows, error, insert, update, remove } = useTable(table, {
     order: "nom",
@@ -173,6 +198,7 @@ function NamedListSection({ table, singular, blockedBy, hierarchical = false }) 
   const [nom, setNom] = useState("");
   const [parentId, setParentId] = useState("");
   const [msg, setMsg] = useState("");
+  const [confirmingId, setConfirmingId] = useState(null);
 
   function startEdit(row) {
     setEditing(row.id);
@@ -199,7 +225,6 @@ function NamedListSection({ table, singular, blockedBy, hierarchical = false }) 
     else cancel();
   }
   async function del(id) {
-    if (!confirm(`Supprimer cette ${singular} ?`)) return;
     const err = await remove(id);
     if (err)
       setMsg(`Suppression impossible (${blockedBy} l’utilisent encore) : ${err}`);
@@ -224,9 +249,16 @@ function NamedListSection({ table, singular, blockedBy, hierarchical = false }) 
           <button type="button" className="text-button" onClick={() => startEdit(r)}>
             Modifier
           </button>
-          <button type="button" className="text-button" onClick={() => del(r.id)}>
-            Supprimer
-          </button>
+          <DeleteButton
+            id={r.id}
+            confirmingId={confirmingId}
+            onAskConfirm={() => setConfirmingId(r.id)}
+            onCancel={() => setConfirmingId(null)}
+            onConfirm={() => {
+              setConfirmingId(null);
+              del(r.id);
+            }}
+          />
         </td>
       </tr>
     );
@@ -331,6 +363,7 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
   const [filterCategorie, setFilterCategorie] = useState("");
+  const [confirmingId, setConfirmingId] = useState(null);
   // Rouvre automatiquement la fiche d'un objet quand on revient depuis sa
   // recette (bouton « Retour ») : appliqué une seule fois par demande, pour
   // ne pas écraser une saisie en cours si les lignes se rechargent ensuite.
@@ -467,7 +500,6 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
     else cancel();
   }
   async function del(id) {
-    if (!confirm("Supprimer cet objet du catalogue ?")) return;
     const err = await remove(id);
     if (err)
       setMsg(
@@ -741,9 +773,16 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
                     <button type="button" className="text-button" onClick={() => startEdit(r)}>
                       Modifier
                     </button>
-                    <button type="button" className="text-button" onClick={() => del(r.id)}>
-                      Supprimer
-                    </button>
+                    <DeleteButton
+                      id={r.id}
+                      confirmingId={confirmingId}
+                      onAskConfirm={() => setConfirmingId(r.id)}
+                      onCancel={() => setConfirmingId(null)}
+                      onConfirm={() => {
+                        setConfirmingId(null);
+                        del(r.id);
+                      }}
+                    />
                   </td>
                 </tr>
                 {editing === r.id && (
@@ -839,6 +878,7 @@ function RecettesSection({ onCraftItem, onBack, focusObjetId }) {
   const [msg, setMsg] = useState("");
   const [ingredientForm, setIngredientForm] = useState({});
   const [ingredientQty, setIngredientQty] = useState({});
+  const [confirmingId, setConfirmingId] = useState(null);
   // Fait défiler jusqu'à la recette de l'objet dont on vient (bouton
   // « Voir la recette » côté catalogue), une seule fois par demande.
   const recetteRefs = useRef({});
@@ -883,7 +923,6 @@ function RecettesSection({ onCraftItem, onBack, focusObjetId }) {
     else cancelEdit();
   }
   async function delRecette(id) {
-    if (!confirm("Supprimer cette recette (et ses ingrédients) ?")) return;
     const err = await recettes.remove(id);
     if (err) setMsg(err);
     else ingredients.reload();
@@ -1032,9 +1071,16 @@ function RecettesSection({ onCraftItem, onBack, focusObjetId }) {
             <button type="button" className="text-button" onClick={() => startEdit(r)}>
               Modifier
             </button>
-            <button type="button" className="text-button" onClick={() => delRecette(r.id)}>
-              Supprimer
-            </button>
+            <DeleteButton
+              id={r.id}
+              confirmingId={confirmingId}
+              onAskConfirm={() => setConfirmingId(r.id)}
+              onCancel={() => setConfirmingId(null)}
+              onConfirm={() => {
+                setConfirmingId(null);
+                delRecette(r.id);
+              }}
+            />
             <button
               type="button"
               className="text-button"
@@ -1331,6 +1377,7 @@ function MercenairesSection() {
   const [cropSource, setCropSource] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
+  const [confirmingId, setConfirmingId] = useState(null);
 
   async function recropCurrent() {
     if (portraitFile) {
@@ -1407,7 +1454,6 @@ function MercenairesSection() {
     else cancel();
   }
   async function del(id) {
-    if (!confirm("Supprimer ce mercenaire ?")) return;
     const err = await mercenaires.remove(id);
     if (err) setMsg(err);
   }
@@ -1575,9 +1621,16 @@ function MercenairesSection() {
                     <button type="button" className="text-button" onClick={() => startEdit(m)}>
                       Modifier
                     </button>
-                    <button type="button" className="text-button" onClick={() => del(m.id)}>
-                      Supprimer
-                    </button>
+                    <DeleteButton
+                      id={m.id}
+                      confirmingId={confirmingId}
+                      onAskConfirm={() => setConfirmingId(m.id)}
+                      onCancel={() => setConfirmingId(null)}
+                      onConfirm={() => {
+                        setConfirmingId(null);
+                        del(m.id);
+                      }}
+                    />
                   </td>
                 </tr>
                 {editing === m.id && (
@@ -1602,6 +1655,7 @@ function ArsenalSection() {
   const [objetId, setObjetId] = useState("");
   const [quantite, setQuantite] = useState("");
   const [msg, setMsg] = useState("");
+  const [confirmingId, setConfirmingId] = useState(null);
 
   if (inventaires.error || lignes.error || catalogue.error)
     return <p className="admin-error">{inventaires.error || lignes.error || catalogue.error}</p>;
@@ -1631,7 +1685,6 @@ function ArsenalSection() {
     }
   }
   async function del(id) {
-    if (!confirm("Retirer cet objet de l’arsenal ?")) return;
     const err = await lignes.remove(id);
     if (err) setMsg(err);
   }
@@ -1653,9 +1706,17 @@ function ArsenalSection() {
                 <td>{nomObjet(l.objet_id)}</td>
                 <td>{l.quantite}</td>
                 <td className="admin-row-actions">
-                  <button type="button" className="text-button" onClick={() => del(l.id)}>
-                    Retirer
-                  </button>
+                  <DeleteButton
+                    id={l.id}
+                    label="Retirer"
+                    confirmingId={confirmingId}
+                    onAskConfirm={() => setConfirmingId(l.id)}
+                    onCancel={() => setConfirmingId(null)}
+                    onConfirm={() => {
+                      setConfirmingId(null);
+                      del(l.id);
+                    }}
+                  />
                 </td>
               </tr>
             ))}

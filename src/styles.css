@@ -829,6 +829,13 @@ img {
 .text-button:hover {
   color: #8b4915;
 }
+.text-button-danger {
+  color: var(--danger);
+  font-weight: 600;
+}
+.text-button-danger:hover {
+  color: #6e1414;
+}
 .catalog-list {
   display: flex;
   flex-direction: column;
