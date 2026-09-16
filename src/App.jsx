@@ -391,6 +391,10 @@ export function App() {
   // recharger qu'une fois par atelier consulté. { [atelier]: { items, error } }
   const [catalogueByAtelier, setCatalogueByAtelier] = useState({});
   const [catalogueTabByAtelier, setCatalogueTabByAtelier] = useState({});
+  // Objet visé depuis l'admin (bouton « Placer dans la forge » d'une
+  // recette) : mémorise quel objet sélectionner une fois arrivé sur la
+  // bonne page et son catalogue chargé, avant de s'effacer lui-même.
+  const [pendingCraftTarget, setPendingCraftTarget] = useState(null);
   const [filter, setFilter] = useState("Tout");
   const [search, setSearch] = useState("");
   const [character, setCharacter] = useState("Guerrier");
@@ -458,6 +462,38 @@ export function App() {
     },
     [],
   );
+  // Route de jeu et catégorie racine du catalogue pour chaque atelier
+  // (valeurs de l'enum recette.atelier) : sert à faire atterrir le
+  // bouton admin « Placer dans la forge » sur la bonne page.
+  const ATELIER_ROUTE = { forge: "forge", armurerie: "armurerie", alchimie: "alchimie", magie: "mage" };
+  const ATELIER_RACINE = { forge: "Armes", armurerie: "Armures", alchimie: "Produits Alchimiques", magie: "Gemmes" };
+  function sendToForge(objetId, atelier) {
+    const targetRoute = ATELIER_ROUTE[atelier];
+    if (!targetRoute) return;
+    setPendingCraftTarget({ atelier, objetId });
+    location.hash = targetRoute;
+  }
+  useEffect(() => {
+    if (!pendingCraftTarget) return;
+    const { atelier } = pendingCraftTarget;
+    if (route !== ATELIER_ROUTE[atelier]) return;
+    loadCatalogue(atelier, ATELIER_RACINE[atelier]);
+  }, [pendingCraftTarget, route]);
+  useEffect(() => {
+    if (!pendingCraftTarget) return;
+    const { atelier, objetId } = pendingCraftTarget;
+    const targetRoute = ATELIER_ROUTE[atelier];
+    if (route !== targetRoute) return;
+    const entry = catalogueByAtelier[atelier];
+    if (!entry) return;
+    const found = entry.items?.find((i) => i.id === objetId) || null;
+    if (targetRoute === "forge" || targetRoute === "armurerie") {
+      setSelectedArme(found);
+    } else {
+      setModal({ type: "db-catalogue", atelier, racine: ATELIER_RACINE[atelier], detailId: objetId });
+    }
+    setPendingCraftTarget(null);
+  }, [pendingCraftTarget, route, catalogueByAtelier]);
   function updateAlchemy(action) {
     const result = changeAlchemy(gameRef.current, action);
     if (result.error) return result;
@@ -900,7 +936,7 @@ export function App() {
     setCatalogueByAtelier((prev) => ({ ...prev, [atelier]: { items, error: "" } }));
   }
   const item = ITEMS.find((i) => i.id === selection) || ITEMS[0];
-  if (route === "admin") return <Admin />;
+  if (route === "admin") return <Admin onCraftItem={sendToForge} />;
   if (session === undefined) {
     return (
       <main

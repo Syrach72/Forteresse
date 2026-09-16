@@ -9,6 +9,15 @@ const ATELIER_LABELS = {
   armurerie: "Forgeage d’armure",
   magie: "Formule (magie)",
 };
+// Libellé du bouton qui envoie réellement l'objet vers son atelier de jeu
+// (App.jsx, prop onCraftItem) : reprend le vocabulaire déjà utilisé côté
+// joueur (« Envoyer à la forge »/« … à l’armurerie ») pour rester cohérent.
+const CRAFT_BUTTON_LABELS = {
+  forge: "Placer dans la forge",
+  armurerie: "Placer dans l’armurerie",
+  alchimie: "Placer au laboratoire",
+  magie: "Placer à la tour du mage",
+};
 
 function useSession() {
   const [session, setSession] = useState(undefined);
@@ -311,7 +320,7 @@ function NamedListSection({ table, singular, blockedBy, hierarchical = false }) 
   );
 }
 
-function CatalogueSection() {
+function CatalogueSection({ onViewRecette, focusObjetId }) {
   const { rows, error, insert, update, remove } = useTable("objet_catalogue", {
     order: "nom",
   });
@@ -322,6 +331,10 @@ function CatalogueSection() {
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
   const [filterCategorie, setFilterCategorie] = useState("");
+  // Rouvre automatiquement la fiche d'un objet quand on revient depuis sa
+  // recette (bouton « Retour ») : appliqué une seule fois par demande, pour
+  // ne pas écraser une saisie en cours si les lignes se rechargent ensuite.
+  const focusAppliedRef = useRef(null);
 
   function nomCategorie(id) {
     return categories.rows?.find((c) => c.id === id)?.nom || "?";
@@ -394,6 +407,14 @@ function CatalogueSection() {
     setIconFile(null);
     setMsg("");
   }
+  useEffect(() => {
+    if (!focusObjetId || !rows || focusAppliedRef.current === focusObjetId) return;
+    const row = rows.find((r) => r.id === focusObjetId);
+    if (row) {
+      startEdit(row);
+      focusAppliedRef.current = focusObjetId;
+    }
+  }, [focusObjetId, rows]);
   function cancel() {
     setEditing(null);
     setForm(emptyCatalogueItem(categories.rows?.[0]?.id || ""));
@@ -647,6 +668,15 @@ function CatalogueSection() {
             Annuler
           </button>
         )}
+        {editing && (
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => onViewRecette(editing)}
+          >
+            Voir la recette ›
+          </button>
+        )}
       </div>
     </form>
   );
@@ -793,7 +823,7 @@ function ObjectIconPicker({ objet, onUpload }) {
   );
 }
 
-function RecettesSection() {
+function RecettesSection({ onCraftItem, onBack, focusObjetId }) {
   const catalogue = useTable("objet_catalogue", { order: "nom" });
   const recettes = useTable("recette", { order: "nom" });
   const ingredients = useTable("ingredient_recette", { order: "id" });
@@ -802,6 +832,18 @@ function RecettesSection() {
   const [msg, setMsg] = useState("");
   const [ingredientForm, setIngredientForm] = useState({});
   const [ingredientQty, setIngredientQty] = useState({});
+  // Fait défiler jusqu'à la recette de l'objet dont on vient (bouton
+  // « Voir la recette » côté catalogue), une seule fois par demande.
+  const recetteRefs = useRef({});
+  const scrollAppliedRef = useRef(null);
+  useEffect(() => {
+    if (!focusObjetId || !recettes.rows || scrollAppliedRef.current === focusObjetId) return;
+    const r = recettes.rows.find((r) => r.resultat_objet_id === focusObjetId);
+    if (r) {
+      recetteRefs.current[r.id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      scrollAppliedRef.current = focusObjetId;
+    }
+  }, [focusObjetId, recettes.rows]);
 
   function nomObjet(id) {
     return catalogue.rows?.find((o) => o.id === id)?.nom || "?";
@@ -963,7 +1005,13 @@ function RecettesSection() {
       {recettes.rows.map((r) => {
         const resultObjet = catalogue.rows.find((o) => o.id === r.resultat_objet_id);
         return (
-        <div className="admin-recette" key={r.id}>
+        <div
+          className="admin-recette"
+          key={r.id}
+          ref={(el) => {
+            recetteRefs.current[r.id] = el;
+          }}
+        >
           <div className="admin-recette-header">
             {resultObjet && (
               <ObjectIconPicker
@@ -979,6 +1027,16 @@ function RecettesSection() {
             </button>
             <button type="button" className="text-button" onClick={() => delRecette(r.id)}>
               Supprimer
+            </button>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => onCraftItem(r.resultat_objet_id, r.atelier)}
+            >
+              {CRAFT_BUTTON_LABELS[r.atelier] || "Placer en fabrication"}
+            </button>
+            <button type="button" className="text-button" onClick={() => onBack(r.resultat_objet_id)}>
+              ‹ Retour
             </button>
           </div>
           {editing === r.id && formEl}
@@ -1626,9 +1684,21 @@ function ArsenalSection() {
   );
 }
 
-export function Admin() {
+export function Admin({ onCraftItem = () => {} }) {
   const session = useSession();
   const [tab, setTab] = useState("catalogue");
+  // Aller-retour entre la fiche d'un objet et sa recette : quel objet
+  // rouvrir côté catalogue, quelle recette rejoindre côté recettes.
+  const [recetteFocusId, setRecetteFocusId] = useState(null);
+  const [catalogueFocusId, setCatalogueFocusId] = useState(null);
+  function viewRecette(objetId) {
+    setRecetteFocusId(objetId);
+    setTab("recettes");
+  }
+  function backToCatalogue(objetId) {
+    setCatalogueFocusId(objetId);
+    setTab("catalogue");
+  }
 
   if (session === undefined)
     return (
@@ -1678,7 +1748,9 @@ export function Admin() {
         </button>
       </nav>
       <div className="admin-content parchment">
-        {tab === "catalogue" && <CatalogueSection />}
+        {tab === "catalogue" && (
+          <CatalogueSection onViewRecette={viewRecette} focusObjetId={catalogueFocusId} />
+        )}
         {tab === "categories" && (
           <NamedListSection
             table="categorie"
@@ -1687,7 +1759,13 @@ export function Admin() {
             hierarchical
           />
         )}
-        {tab === "recettes" && <RecettesSection />}
+        {tab === "recettes" && (
+          <RecettesSection
+            onCraftItem={onCraftItem}
+            onBack={backToCatalogue}
+            focusObjetId={recetteFocusId}
+          />
+        )}
         {tab === "classes" && (
           <NamedListSection table="classe" singular="classe" blockedBy="des mercenaires" />
         )}
