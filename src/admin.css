@@ -131,6 +131,21 @@
   gap: 4px 16px;
   align-items: end;
 }
+.admin-form-grid .field-narrow {
+  max-width: 100px;
+}
+.admin-form textarea {
+  width: 100%;
+  min-height: 45px;
+  resize: none;
+  overflow: hidden;
+  border: 1px solid #8b7b61;
+  border-radius: 2px;
+  background: rgba(255, 253, 245, 0.35);
+  font: 16px Georgia, serif;
+  color: var(--ink);
+  padding: 10px 12px;
+}
 .admin-form-grid select,
 .admin-catalogue-filter select {
   min-height: 45px;

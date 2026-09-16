@@ -544,7 +544,7 @@ function CatalogueSection() {
                 </div>
               </div>
             )}
-            <div className="field">
+            <div className="field field-narrow">
               <label htmlFor="cat-duree-fab">Temps de fabrication (instances)</label>
               <div className="input-wrap">
                 <input
@@ -559,7 +559,7 @@ function CatalogueSection() {
                 />
               </div>
             </div>
-            <div className="field">
+            <div className="field field-narrow">
               <label htmlFor="cat-cout-or">Coût d’achat (pièces d’or)</label>
               <div className="input-wrap">
                 <input
@@ -570,10 +570,7 @@ function CatalogueSection() {
                   onChange={(e) => setForm({ ...form, cout_achat_or: e.target.value })}
                 />
               </div>
-              <p className="muted">
-                Pour acheter l’objet directement au lieu de le fabriquer. Pas de plafond ;
-                sera indexé sur le marché plus tard.
-              </p>
+              <p className="muted">Prix au marché</p>
             </div>
             {arme && (
               <div className="field">
@@ -594,10 +591,19 @@ function CatalogueSection() {
       <div className="field">
         <label htmlFor="cat-desc">Description</label>
         <div className="input-wrap">
-          <input
+          <textarea
             id="cat-desc"
+            rows={2}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
+            ref={(el) => {
+              // Hauteur ajustee au contenu a chaque rendu (saisie ou
+              // ouverture d'une fiche existante avec une longue description).
+              if (el) {
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }
+            }}
           />
         </div>
       </div>
