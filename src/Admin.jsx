@@ -367,6 +367,19 @@ function CatalogueSection() {
     }
     return false;
   }
+  // Meme principe que isCategorieArme, mais par correspondance exacte de
+  // nom (pas de prefixe) : sert a reconnaitre Produits Alchimiques / Gemmes
+  // / Armures, qui doivent avoir un cout d'achat et un temps de fabrication
+  // comme les Armes, sans pour autant avoir vetérance/portee (des stats de
+  // combat qui n'ont pas de sens pour une potion ou une gemme).
+  function isCategorieParmi(categorieId, nomsRacines) {
+    let current = categories.rows?.find((c) => c.id === categorieId);
+    while (current) {
+      if (nomsRacines.includes(current.nom.trim().toLowerCase())) return true;
+      current = categories.rows.find((c) => c.id === current.parent_id);
+    }
+    return false;
+  }
   function startEdit(row) {
     setEditing(row.id);
     setForm({
@@ -405,18 +418,27 @@ function CatalogueSection() {
       icone = result.url;
     }
     const arme = isCategorieArme(form.categorie_id);
+    const craftable =
+      arme ||
+      isCategorieParmi(form.categorie_id, [
+        "produits alchimiques",
+        "gemmes",
+        "armures",
+      ]);
     const values = {
       ...form,
       description: form.description || null,
       icone,
-      // Champs propres aux armes : effaces si l'objet ne fait plus partie
-      // de cette rubrique, pour ne pas laisser trainer une veterance ou un
-      // cout d'achat sur un ingredient ou un materiau.
+      // Vetérance et portee : uniquement les Armes (stats de combat sans
+      // sens pour une potion ou une gemme). Cout d'achat et temps de
+      // fabrication : Armes + Produits Alchimiques/Gemmes/Armures. Effaces
+      // si l'objet ne fait plus partie de la rubrique concernee, pour ne
+      // pas laisser trainer une valeur sur un ingredient ou un materiau.
       veterance_requise: arme ? toIntOrNull(form.veterance_requise) : null,
-      duree_fabrication_instances: arme
+      duree_fabrication_instances: craftable
         ? toIntOrNull(form.duree_fabrication_instances)
         : null,
-      cout_achat_or: arme ? toIntOrNull(form.cout_achat_or) : null,
+      cout_achat_or: craftable ? toIntOrNull(form.cout_achat_or) : null,
       portee: arme ? form.portee || null : null,
     };
     const err = editing ? await update(editing, values) : await insert(values);
@@ -493,65 +515,82 @@ function CatalogueSection() {
           Utilisable
         </label>
       </div>
-      {isCategorieArme(form.categorie_id) && (
-        <div className="admin-form-grid">
-          <div className="field">
-            <label htmlFor="cat-veterance">Vétérance requise</label>
-            <div className="input-wrap">
-              <input
-                id="cat-veterance"
-                type="number"
-                min="1"
-                max="20"
-                value={form.veterance_requise}
-                onChange={(e) => setForm({ ...form, veterance_requise: e.target.value })}
-              />
+      {(() => {
+        const arme = isCategorieArme(form.categorie_id);
+        const craftable =
+          arme ||
+          isCategorieParmi(form.categorie_id, [
+            "produits alchimiques",
+            "gemmes",
+            "armures",
+          ]);
+        if (!craftable) return null;
+        return (
+          <div className="admin-form-grid">
+            {arme && (
+              <div className="field">
+                <label htmlFor="cat-veterance">Vétérance requise</label>
+                <div className="input-wrap">
+                  <input
+                    id="cat-veterance"
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={form.veterance_requise}
+                    onChange={(e) =>
+                      setForm({ ...form, veterance_requise: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            )}
+            <div className="field">
+              <label htmlFor="cat-duree-fab">Temps de fabrication (instances)</label>
+              <div className="input-wrap">
+                <input
+                  id="cat-duree-fab"
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={form.duree_fabrication_instances}
+                  onChange={(e) =>
+                    setForm({ ...form, duree_fabrication_instances: e.target.value })
+                  }
+                />
+              </div>
             </div>
-          </div>
-          <div className="field">
-            <label htmlFor="cat-duree-fab">Temps de fabrication (instances)</label>
-            <div className="input-wrap">
-              <input
-                id="cat-duree-fab"
-                type="number"
-                min="1"
-                max="5"
-                value={form.duree_fabrication_instances}
-                onChange={(e) =>
-                  setForm({ ...form, duree_fabrication_instances: e.target.value })
-                }
-              />
+            <div className="field">
+              <label htmlFor="cat-cout-or">Coût d’achat (pièces d’or)</label>
+              <div className="input-wrap">
+                <input
+                  id="cat-cout-or"
+                  type="number"
+                  min="0"
+                  value={form.cout_achat_or}
+                  onChange={(e) => setForm({ ...form, cout_achat_or: e.target.value })}
+                />
+              </div>
+              <p className="muted">
+                Pour acheter l’objet directement au lieu de le fabriquer. Pas de plafond ;
+                sera indexé sur le marché plus tard.
+              </p>
             </div>
+            {arme && (
+              <div className="field">
+                <label htmlFor="cat-portee">Portée</label>
+                <div className="input-wrap">
+                  <input
+                    id="cat-portee"
+                    placeholder="ex. 30/90c, ou vide pour une arme de corps à corps"
+                    value={form.portee}
+                    onChange={(e) => setForm({ ...form, portee: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-          <div className="field">
-            <label htmlFor="cat-cout-or">Coût d’achat (pièces d’or)</label>
-            <div className="input-wrap">
-              <input
-                id="cat-cout-or"
-                type="number"
-                min="0"
-                value={form.cout_achat_or}
-                onChange={(e) => setForm({ ...form, cout_achat_or: e.target.value })}
-              />
-            </div>
-            <p className="muted">
-              Pour acheter l’objet directement au lieu de le fabriquer. Pas de plafond ;
-              sera indexé sur le marché plus tard.
-            </p>
-          </div>
-          <div className="field">
-            <label htmlFor="cat-portee">Portée</label>
-            <div className="input-wrap">
-              <input
-                id="cat-portee"
-                placeholder="ex. 30/90c, ou vide pour une arme de corps à corps"
-                value={form.portee}
-                onChange={(e) => setForm({ ...form, portee: e.target.value })}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+        );
+      })()}
       <div className="field">
         <label htmlFor="cat-desc">Description</label>
         <div className="input-wrap">
