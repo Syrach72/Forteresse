@@ -120,38 +120,82 @@ function Auth({ signup, onEnter }) {
   const [errors, setErrors] = useState({});
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
-  function submit(e) {
+  const [serverError, setServerError] = useState("");
+  const [pendingConfirmation, setPendingConfirmation] = useState(false);
+  async function submit(e) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
+    const email = String(f.get("email")).trim();
+    const password = String(f.get("password"));
+    const pseudo = signup ? String(f.get("pseudo")).trim() : "";
     const invalid = {};
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.get("email")))
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       invalid.email = "Saisissez une adresse e-mail valide.";
-    if (String(f.get("password")).length < 8)
+    if (password.length < 8)
       invalid.password = "Utilisez au moins 8 caractères.";
-    if (signup && String(f.get("pseudo")).trim().length < 2)
+    if (signup && pseudo.length < 2)
       invalid.pseudo = "Saisissez au moins 2 caractères.";
     setErrors(invalid);
+    setServerError("");
     if (Object.keys(invalid).length) {
       document.getElementById(Object.keys(invalid)[0]).focus();
       return;
     }
     setBusy(true);
-    onEnter(signup ? String(f.get("pseudo")).trim() : "Aldric");
+    const { data, error } = signup
+      ? await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { pseudo } },
+        })
+      : await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (error) {
+      setServerError(
+        error.message === "Invalid login credentials"
+          ? "E-mail ou mot de passe incorrect."
+          : error.message === "User already registered"
+            ? "Un compte existe déjà avec cet e-mail."
+            : error.message,
+      );
+      return;
+    }
+    if (signup && !data.session) {
+      setPendingConfirmation(true);
+      return;
+    }
+    onEnter(
+      data.user?.user_metadata?.pseudo ||
+        data.user?.email?.split("@")[0] ||
+        "Aventurier",
+    );
+  }
+  if (pendingConfirmation) {
+    return (
+      <main
+        className="auth-page"
+        style={{ backgroundImage: `url(${ASSETS.login})` }}
+      >
+        <div className="auth-card parchment">
+          <h1>Vérifiez vos e-mails</h1>
+          <p className="auth-intro">
+            Un lien de confirmation vient de vous être envoyé. Cliquez dessus
+            pour activer votre compte, puis connectez-vous.
+          </p>
+          <a className="primary" href="#connexion">
+            Retour à la connexion
+          </a>
+        </div>
+      </main>
+    );
   }
   return (
     <main
       className="auth-page"
       style={{ backgroundImage: `url(${ASSETS.login})` }}
     >
-      <a className="auth-back" href="#forteresse">
-        Explorer la démo
-      </a>
       <form className="auth-card parchment" onSubmit={submit} noValidate>
-        <p className="eyebrow">Bienvenue à la forteresse</p>
         <h1>{signup ? "Créer un compte" : "Connexion"}</h1>
-        <p className="auth-intro">
-          Retrouvez votre compagnie. Préparez l’aventure.
-        </p>
         {["email", "password", ...(signup ? ["pseudo"] : [])].map((name) => (
           <div className="field" key={name}>
             <label htmlFor={name}>
@@ -208,9 +252,7 @@ function Auth({ signup, onEnter }) {
               )}
             </div>
             {name === "password" && !errors[name] && (
-              <small id="password-help">
-                8 caractères minimum pour cette démo.
-              </small>
+              <small id="password-help">8 caractères minimum.</small>
             )}
             {errors[name] && (
               <small className="error" id={`${name}-error`}>
@@ -219,6 +261,11 @@ function Auth({ signup, onEnter }) {
             )}
           </div>
         ))}
+        {serverError && (
+          <p className="admin-error" role="alert">
+            {serverError}
+          </p>
+        )}
         <button className="primary" disabled={busy}>
           {busy
             ? "Entrée en cours…"
@@ -231,10 +278,6 @@ function Auth({ signup, onEnter }) {
           <a href={signup ? "#connexion" : "#inscription"}>
             {signup ? "Se connecter" : "Créer un compte"}
           </a>
-        </p>
-        <p className="demo-note">
-          Prototype : connexion simulée. Aucun compte créé, aucun mot de passe
-          enregistré.
         </p>
       </form>
     </main>
@@ -285,6 +328,28 @@ export function App() {
   const titleRef = useRef();
   const place = LOCATIONS.find((l) => l.id === route);
   const auth = route === "connexion" || route === "inscription";
+  // undefined tant que la session n'a pas encore été vérifiée auprès de
+  // Supabase ; null si personne n'est connecté ; l'objet session sinon.
+  const [session, setSession] = useState(undefined);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) =>
+      setSession(s),
+    );
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  useEffect(() => {
+    if (session === undefined || route === "admin") return;
+    if (!session && !auth) location.hash = "connexion";
+    if (session && auth) location.hash = "forteresse";
+  }, [session, auth, route]);
+  useEffect(() => {
+    if (session?.user) {
+      const pseudo =
+        session.user.user_metadata?.pseudo || session.user.email?.split("@")[0];
+      if (pseudo) setName(pseudo);
+    }
+  }, [session]);
   useEffect(() => {
     const handler = () => {
       setRoute(location.hash.slice(1) || "forteresse");
@@ -721,7 +786,16 @@ export function App() {
   };
   const item = ITEMS.find((i) => i.id === selection) || ITEMS[0];
   if (route === "admin") return <Admin />;
-  if (auth)
+  if (session === undefined) {
+    return (
+      <main
+        className="auth-page"
+        style={{ backgroundImage: `url(${ASSETS.login})` }}
+      />
+    );
+  }
+  if (auth) {
+    if (session) return null; // redirection vers #forteresse en cours (effet ci-dessus)
     return (
       <Auth
         key={route}
@@ -733,6 +807,8 @@ export function App() {
         }}
       />
     );
+  }
+  if (!session) return null; // redirection vers #connexion en cours (effet ci-dessus)
   return (
     <div className={`app${route === "forteresse" ? " app-fullwidth" : ""}`}>
       <a className="skip" href="#main">
@@ -758,6 +834,15 @@ export function App() {
             aria-current={route === "forteresse" ? "page" : undefined}
           >
             Forteresse
+          </a>
+          <a
+            href="#connexion"
+            onClick={(e) => {
+              e.preventDefault();
+              supabase.auth.signOut();
+            }}
+          >
+            Se déconnecter
           </a>
         </nav>
         <div className="header-treasury">
