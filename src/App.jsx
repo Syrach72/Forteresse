@@ -4,7 +4,7 @@ import { changeAlchemy, initialAlchemy } from "./alchemy.js";
 import { Mage } from "./Mage.jsx";
 import { changeMage, initialMage } from "./mage.js";
 import { ASSETS, LOCATIONS, CLASSES, ITEMS } from "./data";
-import { initialGame, transact } from "./game";
+import { initialGame, transact, RESOURCE_ALIASES } from "./game";
 import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
@@ -82,6 +82,80 @@ function ItemArt({ item }) {
         }}
       />
     </span>
+  );
+}
+// Fiche d'un objet réel du catalogue Supabase (Forge/Armurerie/Laboratoire/
+// Tour du Mage) : image, description, recette si elle existe, et tentative
+// de fabrication via les ressources locales déjà suivies (game.resources).
+// Un ingrédient de recette non reconnu (tout ce qui n'est pas Fer/Métal,
+// Cuir ou Bois) désactive proprement le bouton plutôt que de fabriquer
+// gratuitement ou de planter : la plupart des recettes Alchimie/Magie
+// utilisent des ingrédients qu'aucun système local ne suit encore.
+function CatalogueItemDetail({ item, game, busy, actionLabel = "Fabriquer", onCraft }) {
+  const needs = item.ingredientsList.map((ing) => [
+    ing.nom,
+    RESOURCE_ALIASES[ing.nom.trim().toLowerCase()],
+    ing.quantite,
+  ]);
+  const unmapped = needs.filter(([, key]) => !key);
+  const lacking = needs.some(([, key, q]) => key && game.resources[key] < q);
+  return (
+    <>
+      {item.icone && (
+        <img className="db-item-art" src={item.icone} alt={item.nom} />
+      )}
+      <h2>{item.nom}</h2>
+      <p>{item.description || "Description à définir."}</p>
+      <div className="stat-line">
+        <span>Vétérance requise</span>
+        <strong>{item.veterance_requise ?? "à définir"}</strong>
+      </div>
+      <div className="stat-line">
+        <span>Portée</span>
+        <strong>{item.portee || "à définir"}</strong>
+      </div>
+      <div className="workshop-duration">
+        <label>Temps de fabrication (instances)</label>
+        <strong>{item.duree_fabrication_instances ?? "à définir"}</strong>
+      </div>
+      <h3>Ressources nécessaires</h3>
+      {item.ingredientsList.length ? (
+        <div className="materials">
+          {item.ingredientsList.map((ing) => {
+            const key = RESOURCE_ALIASES[ing.nom.trim().toLowerCase()];
+            return (
+              <div key={ing.nom}>
+                <span>{ing.nom}</span>
+                <strong>{ing.quantite}</strong>
+                <small>
+                  {key ? `Stock : ${game.resources[key]}` : "Ressource non suivie"}
+                </small>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="muted">Recette à définir.</p>
+      )}
+      <button
+        className="primary"
+        type="button"
+        disabled={busy || !needs.length || !!unmapped.length || lacking}
+        onClick={() => onCraft(item)}
+      >
+        {busy ? "Fabrication…" : actionLabel}
+      </button>
+      {unmapped.length > 0 ? (
+        <p className="error">
+          « {unmapped[0][0]} » n’est pas encore une ressource suivie par le jeu.
+        </p>
+      ) : (
+        lacking && (
+          <p className="error">Ressources insuffisantes pour cette fabrication.</p>
+        )
+      )}
+      <p className="muted">L’objet fabriqué rejoint votre inventaire.</p>
+    </>
   );
 }
 function Modal({ title, children, onClose }) {
@@ -309,13 +383,14 @@ export function App() {
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState("");
   const [selection, setSelection] = useState("maille");
-  // Arme réellement choisie dans le catalogue Supabase (rubrique Armes) :
-  // quand elle est définie, la Forge affiche ses vraies infos à la place
-  // de la démo locale (epée/ITEMS). null tant qu'aucune n'est sélectionnée.
+  // Objet du catalogue Supabase réellement choisi (Forge/Armurerie) : quand
+  // il est défini, la page affiche ses vraies infos à la place de la démo
+  // locale (epée-maille/ITEMS). null tant qu'aucun n'est sélectionné.
   const [selectedArme, setSelectedArme] = useState(null);
-  const [armeCatalogue, setArmeCatalogue] = useState(null);
-  const [armeCatalogueError, setArmeCatalogueError] = useState("");
-  const [armeCatalogueTab, setArmeCatalogueTab] = useState("");
+  // Catalogue chargé par atelier (forge/armurerie/alchimie/magie), pour ne
+  // recharger qu'une fois par atelier consulté. { [atelier]: { items, error } }
+  const [catalogueByAtelier, setCatalogueByAtelier] = useState({});
+  const [catalogueTabByAtelier, setCatalogueTabByAtelier] = useState({});
   const [filter, setFilter] = useState("Tout");
   const [search, setSearch] = useState("");
   const [character, setCharacter] = useState("Guerrier");
@@ -735,6 +810,7 @@ export function App() {
         gameRef.current = result.state;
         setGame(result.state);
         setSelectedArme(null);
+        setModal(null);
         notify(result.message);
       }
       busyRef.current = false;
@@ -750,11 +826,12 @@ export function App() {
     }
     location.hash = l.id;
   }
-  // Charge le catalogue Supabase (rubrique Armes + recette forge associée,
-  // avec ses ingrédients) à la demande, une seule fois. Contrairement à
+  // Charge le catalogue Supabase d'un atelier (objets rattachés à la
+  // catégorie racine donnée + recette de cet atelier associée, avec ses
+  // ingrédients) à la demande, une seule fois par atelier. Contrairement à
   // ITEMS (démo locale), ces objets viennent réellement de l'admin.
-  async function loadArmesCatalogue() {
-    if (armeCatalogue || armeCatalogueError) return;
+  async function loadCatalogue(atelier, racineNom) {
+    if (catalogueByAtelier[atelier]) return;
     const [
       { data: categories, error: catErr },
       { data: objets, error: objErr },
@@ -763,43 +840,49 @@ export function App() {
     ] = await Promise.all([
       supabase.from("categorie").select("id, nom, parent_id"),
       supabase.from("objet_catalogue").select("*"),
-      supabase.from("recette").select("*").eq("atelier", "forge"),
+      supabase.from("recette").select("*").eq("atelier", atelier),
       supabase.from("ingredient_recette").select("*"),
     ]);
     const err = catErr || objErr || recErr || ingErr;
     if (err) {
-      setArmeCatalogueError(err.message);
+      setCatalogueByAtelier((prev) => ({
+        ...prev,
+        [atelier]: { items: null, error: err.message },
+      }));
       return;
     }
-    const isArme = (categorieId) => {
+    const racine = categories.find(
+      (c) =>
+        c.nom.trim().toLowerCase() === racineNom.trim().toLowerCase() &&
+        !c.parent_id,
+    );
+    const isUnderRacine = (categorieId) => {
       let current = categories.find((c) => c.id === categorieId);
       while (current) {
-        if (current.nom.trim().toLowerCase().startsWith("arme")) return true;
+        if (racine && current.id === racine.id) return true;
         current = categories.find((c) => c.id === current.parent_id);
       }
       return false;
     };
-    // Sous-onglets du catalogue = les catégories de niveau 2 sous « Armes »
-    // (Armes courantes / Armes de guerre / Armes de moine / Objets, telles
-    // que créées dans l'admin), quelle que soit la profondeur réelle de la
-    // catégorie de l'objet (une arme catégorisée plus finement, ex. « Arme
-    // à une main » sous « Armes courantes », remonte dans l'onglet Armes
-    // courantes). Un objet directement rattaché à la racine « Armes »
-    // (pas encore reclassé dans l'admin) tombe dans un onglet « Autres ».
-    const armesRoot = categories.find(
-      (c) => c.nom.trim().toLowerCase() === "armes" && !c.parent_id,
-    );
-    const armeGroupName = (categorieId) => {
+    // Sous-onglets du catalogue = les catégories de niveau 2 sous la racine
+    // (ex. Armes courantes / Armes de guerre sous Armes), quelle que soit la
+    // profondeur réelle de la catégorie de l'objet (un objet catégorisé plus
+    // finement remonte dans le bon onglet de niveau 2). Un objet directement
+    // rattaché à la racine (pas encore reclassé, ou racine sans sous-
+    // catégories comme Gemmes/Produits Alchimiques) prend le nom de la
+    // racine elle-même comme groupe.
+    const groupName = (categorieId) => {
       let node = categories.find((c) => c.id === categorieId);
-      if (!node || (armesRoot && node.id === armesRoot.id)) return "Autres";
-      while (node && armesRoot && node.parent_id !== armesRoot.id) {
+      if (!node) return racineNom;
+      if (racine && node.id === racine.id) return racine.nom;
+      while (node && racine && node.parent_id !== racine.id) {
         node = categories.find((c) => c.id === node.parent_id);
       }
-      return node?.nom || "Autres";
+      return node?.nom || racineNom;
     };
     const objetById = new Map(objets.map((o) => [o.id, o]));
-    const armes = objets
-      .filter((o) => o.actif !== false && isArme(o.categorie_id))
+    const items = objets
+      .filter((o) => o.actif !== false && isUnderRacine(o.categorie_id))
       .map((o) => {
         const recette = recettes.find(
           (r) => r.resultat_objet_id === o.id && r.actif !== false,
@@ -812,16 +895,10 @@ export function App() {
                 quantite: i.quantite_requise,
               }))
           : [];
-        return { ...o, ingredientsList, groupe: armeGroupName(o.categorie_id) };
+        return { ...o, ingredientsList, groupe: groupName(o.categorie_id) };
       });
-    setArmeCatalogue(armes);
+    setCatalogueByAtelier((prev) => ({ ...prev, [atelier]: { items, error: "" } }));
   }
-  const openCatalog = () => {
-    setFilter("Tout");
-    setSearch("");
-    setActionError("");
-    setModal({ type: "catalog" });
-  };
   const item = ITEMS.find((i) => i.id === selection) || ITEMS[0];
   if (route === "admin") return <Admin />;
   if (session === undefined) {
@@ -1016,6 +1093,22 @@ export function App() {
             <h1 ref={titleRef} tabIndex="-1">
               {place?.name || "Lieu introuvable"}
             </h1>
+            {route === "alchimie" || route === "mage" ? (
+              <button
+                className="wood-button"
+                onClick={() => {
+                  // La route s'appelle "mage" mais l'atelier stocké en base
+                  // est "magie" (recette.atelier) : ne pas confondre les deux.
+                  const atelier = route === "alchimie" ? "alchimie" : "magie";
+                  const racine =
+                    route === "alchimie" ? "Produits Alchimiques" : "Gemmes";
+                  loadCatalogue(atelier, racine);
+                  setModal({ type: "db-catalogue", atelier, racine });
+                }}
+              >
+                Catalogue ›
+              </button>
+            ) : null}
             <button
               className="wood-button"
               onClick={() => setModal({ type: "inventory" })}
@@ -1098,112 +1191,24 @@ export function App() {
                       ? "Le feu donne forme"
                       : "À l’abri de l’acier"}
                   </p>
-                  {route === "forge" && selectedArme ? (
+                  {["forge", "armurerie"].includes(route) && selectedArme ? (
                     <>
-                      {selectedArme.icone ? (
-                        <img
-                          className="db-item-art"
-                          src={selectedArme.icone}
-                          alt={selectedArme.nom}
-                        />
-                      ) : (
-                        <ItemArt item={item} />
+                      <CatalogueItemDetail
+                        item={selectedArme}
+                        game={game}
+                        busy={busy}
+                        actionLabel={
+                          route === "forge"
+                            ? "Envoyer à la forge"
+                            : "Envoyer à l’armurerie"
+                        }
+                        onCraft={actCatalogue}
+                      />
+                      {actionError && (
+                        <p role="alert" className="error">
+                          {actionError}
+                        </p>
                       )}
-                      <h2>{selectedArme.nom}</h2>
-                      <p>{selectedArme.description || "Description à définir."}</p>
-                      <div className="stat-line">
-                        <span>Vétérance requise</span>
-                        <strong>{selectedArme.veterance_requise ?? "à définir"}</strong>
-                      </div>
-                      <div className="stat-line">
-                        <span>Portée</span>
-                        <strong>{selectedArme.portee || "à définir"}</strong>
-                      </div>
-                      <div className="workshop-duration">
-                        <label>Temps de fabrication (instances)</label>
-                        <strong>
-                          {selectedArme.duree_fabrication_instances ?? "à définir"}
-                        </strong>
-                      </div>
-                      <h3>Ressources nécessaires</h3>
-                      {selectedArme.ingredientsList.length ? (
-                        <div className="materials">
-                          {selectedArme.ingredientsList.map((ing) => {
-                            const key = {
-                              fer: "metal",
-                              métal: "metal",
-                              metal: "metal",
-                              cuir: "leather",
-                              bois: "wood",
-                            }[ing.nom.trim().toLowerCase()];
-                            return (
-                              <div key={ing.nom}>
-                                <span>{ing.nom}</span>
-                                <strong>{ing.quantite}</strong>
-                                <small>
-                                  {key
-                                    ? `Stock : ${game.resources[key]}`
-                                    : "Ressource non suivie"}
-                                </small>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="muted">Recette à définir.</p>
-                      )}
-                      {(() => {
-                        const RESOURCE_ALIASES = {
-                          fer: "metal",
-                          métal: "metal",
-                          metal: "metal",
-                          cuir: "leather",
-                          bois: "wood",
-                        };
-                        const needs = selectedArme.ingredientsList.map((ing) => [
-                          ing.nom,
-                          RESOURCE_ALIASES[ing.nom.trim().toLowerCase()],
-                          ing.quantite,
-                        ]);
-                        const unmapped = needs.filter(([, key]) => !key);
-                        const lacking = needs.some(
-                          ([, key, q]) => key && game.resources[key] < q,
-                        );
-                        return (
-                          <>
-                            <button
-                              className="primary"
-                              type="button"
-                              disabled={
-                                busy || !needs.length || !!unmapped.length || lacking
-                              }
-                              onClick={() => actCatalogue(selectedArme)}
-                            >
-                              {busy ? "Fabrication…" : "Envoyer à la forge"}
-                            </button>
-                            {unmapped.length > 0 ? (
-                              <p className="error">
-                                « {unmapped[0][0]} » n’est pas encore une
-                                ressource suivie par le jeu.
-                              </p>
-                            ) : lacking ? (
-                              <p className="error">
-                                Ressources insuffisantes pour cette
-                                fabrication.
-                              </p>
-                            ) : (
-                              actionError && (
-                                <p role="alert" className="error">
-                                  {actionError}
-                                </p>
-                              )
-                            )}
-                          </>
-                        );
-                      })()}
-                      <p className="muted">
-                        L’objet fabriqué rejoint votre inventaire.
-                      </p>
                       <button
                         type="button"
                         className="text-button"
@@ -1284,17 +1289,12 @@ export function App() {
                 <button
                   className="catalog-button wood-button"
                   onClick={() => {
-                    if (route === "forge") {
-                      loadArmesCatalogue();
-                      setModal({ type: "armes-catalogue" });
-                    } else {
-                      openCatalog();
-                    }
+                    const racine = route === "forge" ? "Armes" : "Armures";
+                    loadCatalogue(route, racine);
+                    setModal({ type: "db-catalogue", atelier: route, racine });
                   }}
                 >
-                  {route === "forge"
-                    ? "Catalogue des armes"
-                    : "Modèles d’armures"}{" "}
+                  {route === "forge" ? "Catalogue des armes" : "Catalogue des armures"}{" "}
                   ›
                 </button>
                 <div className="room-caption">
@@ -1520,8 +1520,12 @@ export function App() {
           title={
             modal.type === "catalog"
               ? "Catalogue"
-              : modal.type === "armes-catalogue"
-                ? "Catalogue des armes"
+              : modal.type === "db-catalogue"
+                ? modal.detailId
+                  ? catalogueByAtelier[modal.atelier]?.items?.find(
+                      (i) => i.id === modal.detailId,
+                    )?.nom || modal.racine
+                  : `Catalogue : ${modal.racine}`
                 : modal.type === "inventory"
                 ? "Inventaire de la compagnie"
                 : modal.type === "locked"
@@ -1605,75 +1609,126 @@ export function App() {
                 }}
               />
             </>
-          ) : modal.type === "armes-catalogue" ? (
-            armeCatalogueError ? (
-              <p className="admin-error">{armeCatalogueError}</p>
-            ) : !armeCatalogue ? (
-              <p>Chargement…</p>
-            ) : armeCatalogue.length === 0 ? (
-              <p className="muted">
-                Aucune arme dans le catalogue pour le moment.
-              </p>
-            ) : (
-              (() => {
-                const preferredOrder = [
-                  "Armes courantes",
-                  "Armes de guerre",
-                  "Armes de moine",
-                  "Objets",
-                ];
-                const groups = [...new Set(armeCatalogue.map((a) => a.groupe))];
-                groups.sort((a, b) => {
-                  const ia = preferredOrder.indexOf(a);
-                  const ib = preferredOrder.indexOf(b);
-                  if (ia !== -1 || ib !== -1)
-                    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-                  return a.localeCompare(b, "fr");
-                });
-                const activeTab = groups.includes(armeCatalogueTab)
-                  ? armeCatalogueTab
-                  : groups[0];
-                const shown = armeCatalogue
-                  .filter((a) => a.groupe === activeTab)
-                  .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+          ) : modal.type === "db-catalogue" ? (
+            (() => {
+              const entry = catalogueByAtelier[modal.atelier];
+              const inPage = ["forge", "armurerie"].includes(modal.atelier);
+              const detailItem =
+                modal.detailId &&
+                entry?.items?.find((i) => i.id === modal.detailId);
+              if (detailItem) {
+                // Laboratoire / Tour du Mage : pas de panneau de page dédié,
+                // la fiche s'affiche dans la modale elle-même.
                 return (
                   <>
-                    <div className="db-item-tabs">
-                      {groups.map((g) => (
-                        <button
-                          key={g}
-                          type="button"
-                          className={g === activeTab ? "active" : ""}
-                          onClick={() => setArmeCatalogueTab(g)}
-                        >
-                          {g}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="db-item-list">
-                      {shown.map((a) => (
-                        <button
-                          key={a.id}
-                          type="button"
-                          className="db-item-row"
-                          onClick={() => {
-                            setSelectedArme(a);
-                            setModal(null);
-                          }}
-                        >
-                          {a.icone ? (
-                            <img className="db-item-icon" src={a.icone} alt="" />
-                          ) : (
-                            <span className="db-item-icon" aria-hidden="true" />
-                          )}
-                          <span>{a.nom}</span>
-                        </button>
-                      ))}
-                    </div>
+                    <CatalogueItemDetail
+                      item={detailItem}
+                      game={game}
+                      busy={busy}
+                      onCraft={actCatalogue}
+                    />
+                    {actionError && (
+                      <p role="alert" className="error">
+                        {actionError}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() =>
+                        setModal({ ...modal, detailId: null })
+                      }
+                    >
+                      ‹ Retour à la liste
+                    </button>
                   </>
                 );
-              })()
-            )
+              }
+              return entry?.error ? (
+                <p className="admin-error">{entry.error}</p>
+              ) : !entry ? (
+                <p>Chargement…</p>
+              ) : entry.items.length === 0 ? (
+                <p className="muted">
+                  Aucun objet dans cette catégorie pour le moment.
+                </p>
+              ) : (
+                (() => {
+                  const preferredOrder = [
+                    "Armes courantes",
+                    "Armes de guerre",
+                    "Armes de moine",
+                    "Armure légère",
+                    "Armure intermédiaire",
+                    "Armure lourde",
+                    "Objets",
+                  ];
+                  const groups = [...new Set(entry.items.map((a) => a.groupe))];
+                  groups.sort((a, b) => {
+                    const ia = preferredOrder.indexOf(a);
+                    const ib = preferredOrder.indexOf(b);
+                    if (ia !== -1 || ib !== -1)
+                      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+                    return a.localeCompare(b, "fr");
+                  });
+                  const activeTab = groups.includes(
+                    catalogueTabByAtelier[modal.atelier],
+                  )
+                    ? catalogueTabByAtelier[modal.atelier]
+                    : groups[0];
+                  const shown = entry.items
+                    .filter((a) => a.groupe === activeTab)
+                    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+                  return (
+                    <>
+                      {groups.length > 1 && (
+                        <div className="db-item-tabs">
+                          {groups.map((g) => (
+                            <button
+                              key={g}
+                              type="button"
+                              className={g === activeTab ? "active" : ""}
+                              onClick={() =>
+                                setCatalogueTabByAtelier((prev) => ({
+                                  ...prev,
+                                  [modal.atelier]: g,
+                                }))
+                              }
+                            >
+                              {g}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="db-item-list">
+                        {shown.map((a) => (
+                          <button
+                            key={a.id}
+                            type="button"
+                            className="db-item-row"
+                            onClick={() => {
+                              if (inPage) {
+                                setSelectedArme(a);
+                                setModal(null);
+                              } else {
+                                setModal({ ...modal, detailId: a.id });
+                              }
+                            }}
+                          >
+                            {a.icone ? (
+                              <img className="db-item-icon" src={a.icone} alt="" />
+                            ) : (
+                              <span className="db-item-icon" aria-hidden="true" />
+                            )}
+                            <span>{a.nom}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()
+              );
+            })()
           ) : modal.type === "inventory" ? (
             <>
               <p className="muted">Arsenal commun · {money(game.gold)} Po</p>

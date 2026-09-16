@@ -1,6 +1,18 @@
 import { ITEMS, INITIAL } from "./data.js";
 import { initialAlchemy } from "./alchemy.js";
 import { initialMage } from "./mage.js";
+// Noms d'ingrédients du catalogue Supabase (ingredient_recette) reconnus
+// comme correspondant aux ressources locales suivies dans game.resources.
+// Utilisée à la fois par transact() (craft-catalogue) et par l'UI (App.jsx)
+// pour afficher le stock et activer/désactiver le bouton de fabrication :
+// une seule source pour éviter que les deux se contredisent.
+export const RESOURCE_ALIASES = {
+  fer: "metal",
+  métal: "metal",
+  metal: "metal",
+  cuir: "leather",
+  bois: "wood",
+};
 export function initialGame() {
   return { ...structuredClone(INITIAL), alchemy: initialAlchemy(), mage: initialMage() };
 }
@@ -49,7 +61,6 @@ export function transact(state, action) {
     // Bois) ; toute autre ingrédient bloque la fabrication avec un message
     // clair plutôt que de l'ignorer silencieusement.
     const arme = action.arme;
-    const RESOURCE_ALIASES = { fer: "metal", métal: "metal", metal: "metal", cuir: "leather", bois: "wood" };
     if (!arme?.ingredientsList?.length)
       return { error: "Cette recette n’a pas encore d’ingrédients définis." };
     const needs = [];
