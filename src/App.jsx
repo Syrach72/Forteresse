@@ -721,6 +721,25 @@ export function App() {
       setBusy(false);
     }, 280);
   }
+  function actCatalogue(arme) {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    setActionError("");
+    timer.current = setTimeout(() => {
+      const result = transact(gameRef.current, { type: "craft-catalogue", arme });
+      if (result.error) {
+        setActionError(result.error);
+      } else {
+        gameRef.current = result.state;
+        setGame(result.state);
+        setSelectedArme(null);
+        notify(result.message);
+      }
+      busyRef.current = false;
+      setBusy(false);
+    }, 280);
+  }
   function go(l) {
     if (l.id === "forge") setSelection("epee");
     if (l.id === "armurerie") setSelection("maille");
@@ -1090,27 +1109,81 @@ export function App() {
                       <h3>Ressources nécessaires</h3>
                       {selectedArme.ingredientsList.length ? (
                         <div className="materials">
-                          {selectedArme.ingredientsList.map((ing) => (
-                            <div key={ing.nom}>
-                              <span>{ing.nom}</span>
-                              <strong>{ing.quantite}</strong>
-                            </div>
-                          ))}
+                          {selectedArme.ingredientsList.map((ing) => {
+                            const key = {
+                              fer: "metal",
+                              métal: "metal",
+                              metal: "metal",
+                              cuir: "leather",
+                              bois: "wood",
+                            }[ing.nom.trim().toLowerCase()];
+                            return (
+                              <div key={ing.nom}>
+                                <span>{ing.nom}</span>
+                                <strong>{ing.quantite}</strong>
+                                <small>
+                                  {key
+                                    ? `Stock : ${game.resources[key]}`
+                                    : "Ressource non suivie"}
+                                </small>
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="muted">Recette à définir.</p>
                       )}
-                      <button
-                        className="primary"
-                        type="button"
-                        disabled
-                        title="La fabrication réelle sera branchée une fois l’inventaire de compagnie relié à la base."
-                      >
-                        Fabriquer (à connecter)
-                      </button>
+                      {(() => {
+                        const RESOURCE_ALIASES = {
+                          fer: "metal",
+                          métal: "metal",
+                          metal: "metal",
+                          cuir: "leather",
+                          bois: "wood",
+                        };
+                        const needs = selectedArme.ingredientsList.map((ing) => [
+                          ing.nom,
+                          RESOURCE_ALIASES[ing.nom.trim().toLowerCase()],
+                          ing.quantite,
+                        ]);
+                        const unmapped = needs.filter(([, key]) => !key);
+                        const lacking = needs.some(
+                          ([, key, q]) => key && game.resources[key] < q,
+                        );
+                        return (
+                          <>
+                            <button
+                              className="primary"
+                              type="button"
+                              disabled={
+                                busy || !!unmapped.length || lacking
+                              }
+                              onClick={() => actCatalogue(selectedArme)}
+                            >
+                              {busy ? "Fabrication…" : "Envoyer à la forge"}
+                            </button>
+                            {unmapped.length > 0 ? (
+                              <p className="error">
+                                « {unmapped[0][0]} » n’est pas encore une
+                                ressource suivie par le jeu.
+                              </p>
+                            ) : lacking ? (
+                              <p className="error">
+                                Ressources insuffisantes pour cette
+                                fabrication.
+                              </p>
+                            ) : (
+                              actionError && (
+                                <p role="alert" className="error">
+                                  {actionError}
+                                </p>
+                              )
+                            )}
+                          </>
+                        );
+                      })()}
                       <p className="muted">
-                        Aperçu du catalogue : la fabrication de cet objet n’est
-                        pas encore reliée à l’arsenal.
+                        L’objet fabriqué rejoint votre inventaire.
                       </p>
                       <button
                         type="button"
@@ -1226,6 +1299,7 @@ export function App() {
                 {Array.from({ length: 24 }, (_, i) => {
                   const own = game.inventory[i];
                   const it = own && ITEMS.find((x) => x.id === own.id);
+                  const displayName = it?.name || own?.nom || "Objet";
                   return own ? (
                     <button
                       key={own.id}
@@ -1234,9 +1308,15 @@ export function App() {
                         setActionError("");
                         setModal({ type: "item", id: own.id });
                       }}
-                      aria-label={`${it.name}, quantité ${own.quantity}`}
+                      aria-label={`${displayName}, quantité ${own.quantity}`}
                     >
-                      <ItemArt item={it} />
+                      {it ? (
+                        <ItemArt item={it} />
+                      ) : (
+                        <span className="item-art">
+                          {own.icone && <img src={own.icone} alt={own.nom} />}
+                        </span>
+                      )}
                       <b>{own.quantity}</b>
                       {own.equipped && <small>Équipé</small>}
                     </button>
@@ -1429,7 +1509,9 @@ export function App() {
                   ? modal.place.name
                   : modal.type === "character"
                     ? character
-                    : ITEMS.find((i) => i.id === modal.id)?.name || "Objet"
+                    : ITEMS.find((i) => i.id === modal.id)?.name ||
+                      game.inventory.find((i) => i.id === modal.id)?.nom ||
+                      "Objet"
           }
           onClose={() => {
             setModal(null);

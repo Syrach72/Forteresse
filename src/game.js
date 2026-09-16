@@ -41,6 +41,41 @@ export function transact(state, action) {
     next.inventory = next.inventory.filter((i) => i.quantity > 0);
     message =
       "Potion utilisée. Appliquez ses effets manuellement sur la fiche.";
+  } else if (action.type === "craft-catalogue") {
+    // Fabrication d'un objet du catalogue Supabase (Forge), distinct du
+    // catalogue local ITEMS : la recette vient de ingredient_recette (noms
+    // libres), pas des trois champs metal/leather/wood fixes. On ne sait
+    // consommer que les ressources déjà suivies localement (Fer/Métal, Cuir,
+    // Bois) ; toute autre ingrédient bloque la fabrication avec un message
+    // clair plutôt que de l'ignorer silencieusement.
+    const arme = action.arme;
+    const RESOURCE_ALIASES = { fer: "metal", métal: "metal", metal: "metal", cuir: "leather", bois: "wood" };
+    if (!arme?.ingredientsList?.length)
+      return { error: "Cette recette n’a pas encore d’ingrédients définis." };
+    const needs = [];
+    for (const ing of arme.ingredientsList) {
+      const key = RESOURCE_ALIASES[ing.nom.trim().toLowerCase()];
+      if (!key)
+        return {
+          error: `« ${ing.nom} » n’est pas encore une ressource suivie par le jeu.`,
+        };
+      needs.push([key, ing.quantite]);
+    }
+    if (needs.some(([k, q]) => next.resources[k] < q))
+      return { error: "Ressources insuffisantes pour cette fabrication." };
+    for (const [k, q] of needs) next.resources[k] -= q;
+    const invId = `catalogue:${arme.id}`;
+    const own = next.inventory.find((i) => i.id === invId);
+    if (own) own.quantity++;
+    else
+      next.inventory.push({
+        id: invId,
+        quantity: 1,
+        equipped: false,
+        nom: arme.nom,
+        icone: arme.icone,
+      });
+    message = `${arme.nom} fabriqué et ajouté au stock.`;
   } else if (action.type === "quest") {
     next.quest = true;
     message = "Quête acceptée : Les ombres du col.";

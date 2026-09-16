@@ -52,6 +52,53 @@ test("équiper puis ranger un objet possédé", () => {
     false,
   );
 });
+test("fabrication d'une arme du catalogue Supabase (Forge) : consomme les ressources nommées, ajoute au stock", () => {
+  const arme = {
+    id: "11111111-1111-1111-1111-111111111111",
+    nom: "Épée longue",
+    icone: "https://example.com/epee.png",
+    ingredientsList: [
+      { nom: "Fer", quantite: 10 },
+      { nom: "Cuir", quantite: 5 },
+      { nom: "Bois", quantite: 2 },
+    ],
+  };
+  const r = transact(initialGame(), { type: "craft-catalogue", arme }).state;
+  assert.deepEqual(r.resources, { metal: 35, leather: 13, wood: 38 });
+  const own = r.inventory.find((i) => i.id === "catalogue:11111111-1111-1111-1111-111111111111");
+  assert.equal(own.quantity, 1);
+  assert.equal(own.nom, "Épée longue");
+  // Une deuxième fabrication incrémente la même ligne au lieu d'en créer une autre.
+  const r2 = transact(r, { type: "craft-catalogue", arme }).state;
+  assert.equal(
+    r2.inventory.find((i) => i.id === "catalogue:11111111-1111-1111-1111-111111111111").quantity,
+    2,
+  );
+  assert.equal(r2.inventory.length, r.inventory.length);
+});
+test("fabrication catalogue : ressource non reconnue ou insuffisante refuse sans muter l'état", () => {
+  const s = initialGame();
+  const snapshot = JSON.stringify(s);
+  const inconnue = {
+    id: "x",
+    nom: "Amulette",
+    ingredientsList: [{ nom: "Essence solaire", quantite: 1 }],
+  };
+  assert.match(
+    transact(s, { type: "craft-catalogue", arme: inconnue }).error,
+    /pas encore une ressource/,
+  );
+  const troploin = {
+    id: "y",
+    nom: "Masse gigantesque",
+    ingredientsList: [{ nom: "Fer", quantite: 9999 }],
+  };
+  assert.match(
+    transact(s, { type: "craft-catalogue", arme: troploin }).error,
+    /Ressources insuffisantes/,
+  );
+  assert.equal(JSON.stringify(s), snapshot);
+});
 import {
   INITIAL_DORMITORY,
   updateDormitory,
@@ -74,7 +121,7 @@ test("durées : bornes 0–5, incrément global, aucune sortie automatique", () 
     updateDormitory(area, { type: "duration", slot: 0, remaining: 6 }).error,
     /0 à 5/,
   );
-  assert.equal(stepTraining(INITIAL_TRAINING).instructor.remaining, 3);
+  assert.equal(stepTraining(INITIAL_TRAINING, 1).instructor.remaining, 3);
 });
 test("repos : pas de doublon ni de placement sur un lit verrouillé", () => {
   assert.match(
