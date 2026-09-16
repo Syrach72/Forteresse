@@ -127,6 +127,33 @@ img {
     0 4px 12px #0004;
   backdrop-filter: blur(5px);
 }
+/* Panneaux des pages de jeu (forge, armurerie, laboratoire, tour du mage,
+   dortoirs, entrainement, tresorerie, marche, quetes, arsenal...) : meme
+   effet verre depoli que les boutons de la page Forteresse (.location,
+   .class-nav a) au lieu du parchemin presque opaque utilise ailleurs
+   (modales, admin, connexion). Le halo clair sur le texte compense la
+   perte de contraste du fond devenu transparent. */
+.interior .parchment {
+  background: rgba(240, 233, 219, 0.42);
+  border: 2px ridge #a99f8e;
+  box-shadow:
+    0 4px 14px #0008,
+    inset 0 0 18px #fff6;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.interior .parchment h1,
+.interior .parchment h2,
+.interior .parchment h3,
+.interior .parchment p,
+.interior .parchment span,
+.interior .parchment strong,
+.interior .parchment small,
+.interior .parchment label {
+  text-shadow:
+    0 0 3px rgba(255, 255, 255, 0.9),
+    0 0 7px rgba(255, 255, 255, 0.55);
+}
 .game-header {
   display: flex;
   gap: 5px;
