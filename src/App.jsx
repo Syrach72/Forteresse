@@ -4,7 +4,7 @@ import { changeAlchemy, initialAlchemy } from "./alchemy.js";
 import { Mage } from "./Mage.jsx";
 import { changeMage, initialMage } from "./mage.js";
 import { ASSETS, LOCATIONS, CLASSES, ITEMS } from "./data";
-import { initialGame, transact, RESOURCE_ALIASES } from "./game";
+import { initialGame, transact, RESOURCE_ALIASES, resolveCraftingQueue } from "./game";
 import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
@@ -707,7 +707,10 @@ export function App() {
       dorm: dormRef.current,
       infirm: infirmRef.current,
       training: trainingRef.current,
-      durations: gameRef.current.durations || defaultDurations,
+      // Snapshot complet (et non les seules durees) : une fabrication en
+      // attente peut etre livree par ce meme clic (cf. resolveCraftingQueue
+      // plus bas), ce qui touche aussi inventory/craftingQueue.
+      game: gameRef.current,
     });
     const d = stepDurations(dormRef.current, -1);
     const i = stepDurations(infirmRef.current, -1);
@@ -719,7 +722,7 @@ export function App() {
     setInfirm(i);
     setTraining(t);
     setInstanceTicks((v) => v + 1);
-    const next = {
+    const decremented = {
       ...gameRef.current,
       durations: Object.fromEntries(
         Object.entries(gameRef.current.durations || defaultDurations).map(([k, v]) => [
@@ -728,9 +731,14 @@ export function App() {
         ]),
       ),
     };
+    const { state: next, delivered } = resolveCraftingQueue(decremented);
     gameRef.current = next;
     setGame(next);
-    notify("+1 Instance : toutes les Durées d’Instance diminuent de 1, minimum 0.");
+    notify(
+      delivered.length
+        ? `+1 Instance : ${delivered.join(", ")} rejoint l’arsenal. Les autres Durées d’Instance diminuent de 1, minimum 0.`
+        : "+1 Instance : toutes les Durées d’Instance diminuent de 1, minimum 0.",
+    );
   }
   function undoInstanceStep() {
     if (!instanceUndo) return;
@@ -740,7 +748,7 @@ export function App() {
     setDorm(instanceUndo.dorm);
     setInfirm(instanceUndo.infirm);
     setTraining(instanceUndo.training);
-    const next = { ...gameRef.current, durations: instanceUndo.durations };
+    const next = instanceUndo.game;
     gameRef.current = next;
     setGame(next);
     setInstanceTicks((v) => Math.max(0, v - 1));
@@ -925,13 +933,13 @@ export function App() {
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(""), 5000);
   }
-  function act(type, id) {
+  function act(type, id, extra) {
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
     setActionError("");
     timer.current = setTimeout(() => {
-      const result = transact(gameRef.current, { type, id });
+      const result = transact(gameRef.current, { type, id, ...extra });
       if (result.error) {
         setActionError(result.error);
       } else {
@@ -1384,6 +1392,7 @@ export function App() {
                         <label htmlFor="workshop-duration">Durée d’instance</label>
                         <select
                           id="workshop-duration"
+                          disabled={!!game.craftingQueue?.[route]}
                           value={
                             game.durations?.[route] ?? (route === "forge" ? 5 : 3)
                           }
@@ -1416,13 +1425,24 @@ export function App() {
                         className="primary"
                         disabled={
                           busy ||
+                          !!game.craftingQueue?.[route] ||
                           ["metal", "leather", "wood"].some(
                             (k) => game.resources[k] < item[k],
                           )
                         }
-                        onClick={() => act("craft", item.id)}
+                        onClick={() => {
+                          const duree =
+                            game.durations?.[route] ??
+                            (route === "forge" ? 5 : 3);
+                          if (duree > 0) act("craft-queue", item.id, { route });
+                          else act("craft", item.id);
+                        }}
                       >
-                        {busy ? "Fabrication…" : "Fabriquer"}
+                        {busy
+                          ? "Fabrication…"
+                          : game.craftingQueue?.[route]
+                            ? "Fabrication en cours…"
+                            : "Fabriquer"}
                       </button>
                       {["metal", "leather", "wood"].some(
                         (k) => game.resources[k] < item[k],
@@ -1432,9 +1452,19 @@ export function App() {
                           {actionError}
                         </p>
                       )}
-                      <p className="muted">
-                        L’objet fabriqué rejoint votre inventaire.
-                      </p>
+                      {game.craftingQueue?.[route] ? (
+                        <p className="muted">
+                          Fabrication en cours : encore{" "}
+                          {game.durations?.[route] ??
+                            (route === "forge" ? 5 : 3)}{" "}
+                          instance(s) avant que l’objet ne rejoigne l’arsenal.
+                        </p>
+                      ) : (
+                        <p className="muted">
+                          L’objet fabriqué rejoint votre inventaire une fois la
+                          durée d’instance à 0.
+                        </p>
+                      )}
                     </>
                   )}
                 </section>

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { initialGame, transact } from "../src/game.js";
+import { initialGame, transact, resolveCraftingQueue } from "../src/game.js";
 test("achat : débit, stock et inventaire cohérents sans modifier la source", () => {
   const s = initialGame();
   const r = transact(s, { type: "buy", id: "maille" }).state;
@@ -98,6 +98,40 @@ test("fabrication catalogue : ressource non reconnue ou insuffisante refuse sans
     /Ressources insuffisantes/,
   );
   assert.equal(JSON.stringify(s), snapshot);
+});
+test("fabrication en attente : ressources debitees tout de suite, objet livre seulement quand la duree d'instance atteint 0", () => {
+  const s = initialGame();
+  const queued = transact(s, {
+    type: "craft-queue",
+    id: "maille",
+    route: "armurerie",
+  }).state;
+  assert.deepEqual(queued.resources, { metal: 15, leather: 10, wood: 10 });
+  assert.equal(queued.craftingQueue.armurerie, "maille");
+  assert.ok(!queued.inventory.some((i) => i.id === "maille"));
+  assert.match(
+    transact(queued, {
+      type: "craft-queue",
+      id: "maille",
+      route: "armurerie",
+    }).error,
+    /déjà en cours/,
+  );
+  // Duree encore a 3 (valeur par defaut de la demo) : rien ne se livre.
+  const tooEarly = resolveCraftingQueue({
+    ...queued,
+    durations: { armurerie: 3 },
+  });
+  assert.equal(tooEarly.delivered.length, 0);
+  assert.ok(!tooEarly.state.inventory.some((i) => i.id === "maille"));
+  // Duree tombee a 0 : l'objet rejoint l'inventaire et la file se vide.
+  const delivered = resolveCraftingQueue({
+    ...queued,
+    durations: { armurerie: 0 },
+  });
+  assert.deepEqual(delivered.delivered, ["Cotte de mailles"]);
+  assert.equal(delivered.state.inventory.find((i) => i.id === "maille").quantity, 1);
+  assert.equal(delivered.state.craftingQueue.armurerie, null);
 });
 import {
   INITIAL_DORMITORY,

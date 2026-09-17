@@ -14,7 +14,15 @@ export const RESOURCE_ALIASES = {
   bois: "wood",
 };
 export function initialGame() {
-  return { ...structuredClone(INITIAL), alchemy: initialAlchemy(), mage: initialMage() };
+  return {
+    ...structuredClone(INITIAL),
+    alchemy: initialAlchemy(),
+    mage: initialMage(),
+    // Fabrications locales (forge/armurerie) lancees mais pas encore
+    // livrees : { [route]: idObjetITEMS | null }. Voir "craft-queue" et
+    // resolveCraftingQueue ci-dessous.
+    craftingQueue: {},
+  };
 }
 export function transact(state, action) {
   const item = ITEMS.find((i) => i.id === action.id);
@@ -41,6 +49,19 @@ export function transact(state, action) {
     for (const k of ["metal", "leather", "wood"]) next.resources[k] -= item[k];
     add();
     message = `${item.name} fabriqué et ajouté au stock.`;
+  } else if (action.type === "craft-queue") {
+    // Meme recette que "craft" (ITEMS.metal/leather/wood), mais l'objet ne
+    // rejoint pas l'inventaire tout de suite : il attend que la Duree
+    // d'instance de cet atelier retombe a 0 (bouton +1 Instance), livre par
+    // resolveCraftingQueue ci-dessous plutot que par cette action.
+    if (!item?.metal) return { error: "Cette recette n’existe pas." };
+    if (next.craftingQueue?.[action.route])
+      return { error: "Une fabrication est déjà en cours dans cet atelier." };
+    if (["metal", "leather", "wood"].some((k) => next.resources[k] < item[k]))
+      return { error: "Ressources insuffisantes pour cette fabrication." };
+    for (const k of ["metal", "leather", "wood"]) next.resources[k] -= item[k];
+    next.craftingQueue = { ...next.craftingQueue, [action.route]: item.id };
+    message = `${item.name} : fabrication lancée. Elle rejoindra l’arsenal une fois la durée d’instance à 0.`;
   } else if (action.type === "equip") {
     const own = next.inventory.find((i) => i.id === action.id);
     if (!own || !item || item.type === "Potions") return { error: "Cet objet ne peut pas être équipé." };
@@ -104,4 +125,25 @@ export function transact(state, action) {
   });
   next.log = next.log.slice(0, 50);
   return { state: next, message };
+}
+// Livre dans l'inventaire tout objet en attente (game.craftingQueue) dont
+// l'atelier vient d'atteindre une Duree d'instance de 0. Appelee par
+// App.jsx juste apres avoir decremente ces durees (+1 Instance), jamais
+// directement par un bouton du joueur.
+export function resolveCraftingQueue(state) {
+  const queue = state.craftingQueue || {};
+  const pending = Object.entries(queue).filter(([, id]) => id);
+  if (!pending.length) return { state, delivered: [] };
+  const next = structuredClone(state);
+  const delivered = [];
+  for (const [route, id] of pending) {
+    if ((next.durations?.[route] ?? 0) > 0) continue;
+    const item = ITEMS.find((i) => i.id === id);
+    const own = next.inventory.find((i) => i.id === id);
+    if (own) own.quantity++;
+    else next.inventory.push({ id, quantity: 1, equipped: false });
+    next.craftingQueue[route] = null;
+    delivered.push(item?.name || "Objet");
+  }
+  return { state: next, delivered };
 }
