@@ -82,8 +82,11 @@ export function transact(state, action) {
     // Bois) ; toute autre ingrédient bloque la fabrication avec un message
     // clair plutôt que de l'ignorer silencieusement.
     const arme = action.arme;
+    const route = action.route;
     if (!arme?.ingredientsList?.length)
       return { error: "Cette recette n’a pas encore d’ingrédients définis." };
+    if (route && next.craftingQueue?.[route])
+      return { error: "Une fabrication est déjà en cours dans cet atelier." };
     const needs = [];
     for (const ing of arme.ingredientsList) {
       const key = RESOURCE_ALIASES[ing.nom.trim().toLowerCase()];
@@ -96,23 +99,37 @@ export function transact(state, action) {
     if (needs.some(([k, q]) => next.resources[k] < q))
       return { error: "Ressources insuffisantes pour cette fabrication." };
     for (const [k, q] of needs) next.resources[k] -= q;
-    const invId = `catalogue:${arme.id}`;
-    const own = next.inventory.find((i) => i.id === invId);
-    if (own) own.quantity++;
-    else
-      next.inventory.push({
-        id: invId,
-        quantity: 1,
-        equipped: false,
-        nom: arme.nom,
-        icone: arme.icone,
-        // Categorie racine (Armes/Armures/Produits Alchimiques/Gemmes) telle
-        // que chargee par loadCatalogue (App.jsx) pour l'atelier concerne :
-        // sert aux onglets de l'Arsenal, sans dependre d'un second appel a
-        // Supabase depuis la page Arsenal.
-        categorie: arme.racine || null,
-      });
-    message = `${arme.nom} fabriqué et ajouté au stock.`;
+    // Categorie racine (Armes/Armures/Produits Alchimiques/Gemmes) telle
+    // que chargee par loadCatalogue (App.jsx) pour l'atelier concerne : sert
+    // aux onglets de l'Arsenal, sans dependre d'un second appel a Supabase
+    // depuis la page Arsenal.
+    const categorie = arme.racine || null;
+    const duree = Number(arme.duree_fabrication_instances) || 0;
+    if (route && duree > 0) {
+      // Duree de fabrication definie par l'admin : mise en attente, comme
+      // "craft-queue", jusqu'a ce que la Duree d'instance de cet atelier
+      // retombe a 0 (bouton +1 Instance). Voir resolveCraftingQueue.
+      next.durations = { ...next.durations, [route]: duree };
+      next.craftingQueue = {
+        ...next.craftingQueue,
+        [route]: { id: arme.id, nom: arme.nom, icone: arme.icone, categorie },
+      };
+      message = `${arme.nom} : fabrication lancée. Elle rejoindra l’arsenal une fois la durée d’instance à 0.`;
+    } else {
+      const invId = `catalogue:${arme.id}`;
+      const own = next.inventory.find((i) => i.id === invId);
+      if (own) own.quantity++;
+      else
+        next.inventory.push({
+          id: invId,
+          quantity: 1,
+          equipped: false,
+          nom: arme.nom,
+          icone: arme.icone,
+          categorie,
+        });
+      message = `${arme.nom} fabriqué et ajouté au stock.`;
+    }
   } else if (action.type === "quest") {
     next.quest = true;
     message = "Quête acceptée : Les ombres du col.";
@@ -132,18 +149,36 @@ export function transact(state, action) {
 // directement par un bouton du joueur.
 export function resolveCraftingQueue(state) {
   const queue = state.craftingQueue || {};
-  const pending = Object.entries(queue).filter(([, id]) => id);
+  const pending = Object.entries(queue).filter(([, v]) => v);
   if (!pending.length) return { state, delivered: [] };
   const next = structuredClone(state);
   const delivered = [];
-  for (const [route, id] of pending) {
+  for (const [route, value] of pending) {
     if ((next.durations?.[route] ?? 0) > 0) continue;
-    const item = ITEMS.find((i) => i.id === id);
-    const own = next.inventory.find((i) => i.id === id);
-    if (own) own.quantity++;
-    else next.inventory.push({ id, quantity: 1, equipped: false });
+    if (typeof value === "string") {
+      // Objet du catalogue local de demonstration (ITEMS).
+      const item = ITEMS.find((i) => i.id === value);
+      const own = next.inventory.find((i) => i.id === value);
+      if (own) own.quantity++;
+      else next.inventory.push({ id: value, quantity: 1, equipped: false });
+      delivered.push(item?.name || "Objet");
+    } else {
+      // Objet reel du catalogue Supabase (craft-catalogue en attente).
+      const invId = `catalogue:${value.id}`;
+      const own = next.inventory.find((i) => i.id === invId);
+      if (own) own.quantity++;
+      else
+        next.inventory.push({
+          id: invId,
+          quantity: 1,
+          equipped: false,
+          nom: value.nom,
+          icone: value.icone,
+          categorie: value.categorie || null,
+        });
+      delivered.push(value.nom);
+    }
     next.craftingQueue[route] = null;
-    delivered.push(item?.name || "Objet");
   }
   return { state: next, delivered };
 }

@@ -200,7 +200,14 @@ function ItemActionPanel({ game, id }) {
 // Cuir ou Bois) désactive proprement le bouton plutôt que de fabriquer
 // gratuitement ou de planter : la plupart des recettes Alchimie/Magie
 // utilisent des ingrédients qu'aucun système local ne suit encore.
-function CatalogueItemDetail({ item, game, busy, actionLabel = "Fabriquer", onCraft }) {
+function CatalogueItemDetail({
+  item,
+  game,
+  busy,
+  actionLabel = "Fabriquer",
+  onCraft,
+  route,
+}) {
   const needs = item.ingredientsList.map((ing) => [
     ing.nom,
     RESOURCE_ALIASES[ing.nom.trim().toLowerCase()],
@@ -208,6 +215,12 @@ function CatalogueItemDetail({ item, game, busy, actionLabel = "Fabriquer", onCr
   ]);
   const unmapped = needs.filter(([, key]) => !key);
   const lacking = needs.some(([, key, q]) => key && game.resources[key] < q);
+  // Fabrication en attente pour CET atelier (peu importe l'objet) : la
+  // Duree d'instance definie par l'admin (item.duree_fabrication_instances)
+  // decompte via le bouton +1 Instance, comme pour la demo locale forge/
+  // armurerie. Voir craft-catalogue et resolveCraftingQueue (game.js).
+  const queuedHere = game.craftingQueue?.[route];
+  const remaining = game.durations?.[route] ?? item.duree_fabrication_instances ?? 0;
   return (
     <>
       {item.icone && (
@@ -225,7 +238,11 @@ function CatalogueItemDetail({ item, game, busy, actionLabel = "Fabriquer", onCr
       </div>
       <div className="workshop-duration">
         <label>Temps de fabrication (instances)</label>
-        <strong>{item.duree_fabrication_instances ?? "à définir"}</strong>
+        <strong>
+          {queuedHere
+            ? remaining
+            : (item.duree_fabrication_instances ?? "à définir")}
+        </strong>
       </div>
       <h3>Ressources nécessaires</h3>
       {item.ingredientsList.length ? (
@@ -249,10 +266,16 @@ function CatalogueItemDetail({ item, game, busy, actionLabel = "Fabriquer", onCr
       <button
         className="primary"
         type="button"
-        disabled={busy || !needs.length || !!unmapped.length || lacking}
+        disabled={
+          busy || !!queuedHere || !needs.length || !!unmapped.length || lacking
+        }
         onClick={() => onCraft(item)}
       >
-        {busy ? "Fabrication…" : actionLabel}
+        {busy
+          ? "Fabrication…"
+          : queuedHere
+            ? "Fabrication en cours…"
+            : actionLabel}
       </button>
       {unmapped.length > 0 ? (
         <p className="error">
@@ -263,7 +286,17 @@ function CatalogueItemDetail({ item, game, busy, actionLabel = "Fabriquer", onCr
           <p className="error">Ressources insuffisantes pour cette fabrication.</p>
         )
       )}
-      <p className="muted">L’objet fabriqué rejoint votre inventaire.</p>
+      {queuedHere ? (
+        <p className="muted">
+          Fabrication en cours : encore {remaining} instance(s) avant que
+          l’objet ne rejoigne l’arsenal.
+        </p>
+      ) : (
+        <p className="muted">
+          L’objet fabriqué rejoint votre inventaire une fois la durée
+          d’instance à 0.
+        </p>
+      )}
     </>
   );
 }
@@ -951,20 +984,29 @@ export function App() {
       setBusy(false);
     }, 280);
   }
-  function actCatalogue(arme) {
+  function actCatalogue(arme, route) {
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
     setActionError("");
     timer.current = setTimeout(() => {
-      const result = transact(gameRef.current, { type: "craft-catalogue", arme });
+      const result = transact(gameRef.current, {
+        type: "craft-catalogue",
+        arme,
+        route,
+      });
       if (result.error) {
         setActionError(result.error);
       } else {
         gameRef.current = result.state;
         setGame(result.state);
-        setSelectedArme(null);
-        setModal(null);
+        // Livraison immediate (duree 0) : fermer comme avant. Fabrication
+        // mise en attente : garder la fiche ouverte pour voir le compte a
+        // rebours (cf. CatalogueItemDetail).
+        if (!result.state.craftingQueue?.[route]) {
+          setSelectedArme(null);
+          setModal(null);
+        }
         notify(result.message);
       }
       busyRef.current = false;
@@ -1357,12 +1399,13 @@ export function App() {
                         item={selectedArme}
                         game={game}
                         busy={busy}
+                        route={route}
                         actionLabel={
                           route === "forge"
                             ? "Envoyer à la forge"
                             : "Envoyer à l’armurerie"
                         }
-                        onCraft={actCatalogue}
+                        onCraft={(a) => actCatalogue(a, route)}
                       />
                       {actionError && (
                         <p role="alert" className="error">
@@ -1823,7 +1866,8 @@ export function App() {
                       item={detailItem}
                       game={game}
                       busy={busy}
-                      onCraft={actCatalogue}
+                      route={ATELIER_ROUTE[modal.atelier]}
+                      onCraft={(a) => actCatalogue(a, ATELIER_ROUTE[modal.atelier])}
                     />
                     {actionError && (
                       <p role="alert" className="error">

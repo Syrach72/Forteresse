@@ -76,6 +76,42 @@ test("fabrication d'une arme du catalogue Supabase (Forge) : consomme les ressou
   );
   assert.equal(r2.inventory.length, r.inventory.length);
 });
+test("fabrication catalogue avec route et duree_fabrication_instances : mise en attente puis livraison via resolveCraftingQueue", () => {
+  const arme = {
+    id: "22222222-2222-2222-2222-222222222222",
+    nom: "Arbalète légère",
+    icone: "https://example.com/arbalete.png",
+    racine: "Armes",
+    duree_fabrication_instances: 2,
+    ingredientsList: [{ nom: "Fer", quantite: 10 }],
+  };
+  const queued = transact(initialGame(), {
+    type: "craft-catalogue",
+    arme,
+    route: "forge",
+  }).state;
+  assert.equal(queued.resources.metal, 35);
+  assert.equal(queued.durations.forge, 2);
+  assert.deepEqual(queued.craftingQueue.forge, {
+    id: arme.id,
+    nom: "Arbalète légère",
+    icone: arme.icone,
+    categorie: "Armes",
+  });
+  assert.ok(!queued.inventory.some((i) => i.id === `catalogue:${arme.id}`));
+  assert.match(
+    transact(queued, { type: "craft-catalogue", arme, route: "forge" }).error,
+    /déjà en cours/,
+  );
+  const tooEarly = resolveCraftingQueue({ ...queued, durations: { forge: 1 } });
+  assert.equal(tooEarly.delivered.length, 0);
+  const done = resolveCraftingQueue({ ...queued, durations: { forge: 0 } });
+  assert.deepEqual(done.delivered, ["Arbalète légère"]);
+  const delivered = done.state.inventory.find((i) => i.id === `catalogue:${arme.id}`);
+  assert.equal(delivered.quantity, 1);
+  assert.equal(delivered.categorie, "Armes");
+  assert.equal(done.state.craftingQueue.forge, null);
+});
 test("fabrication catalogue : ressource non reconnue ou insuffisante refuse sans muter l'état", () => {
   const s = initialGame();
   const snapshot = JSON.stringify(s);
