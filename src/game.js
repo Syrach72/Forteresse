@@ -164,6 +164,14 @@ export function transact(state, action) {
       message = `${value.nom} rejoint l’arsenal.`;
     }
     next.craftingQueue = { ...next.craftingQueue, [route]: null };
+    // Vide aussi la Duree d'instance de cet atelier (retombee a 0) : sans
+    // ca, la fiche rouverte affiche encore "0" au lieu de repartir sur la
+    // valeur par defaut, et une nouvelle fabrication se livrerait donc
+    // instantanement au lieu d'attendre.
+    if (next.durations) {
+      const { [route]: _cleared, ...rest } = next.durations;
+      next.durations = rest;
+    }
   } else if (action.type === "quest") {
     next.quest = true;
     message = "Quête acceptée : Les ombres du col.";

@@ -118,6 +118,9 @@ test("fabrication catalogue avec route et duree_fabrication_instances : mise en 
   assert.equal(delivered.quantity, 1);
   assert.equal(delivered.categorie, "Armes");
   assert.equal(done.craftingQueue.forge, null);
+  // La Duree d'instance de l'atelier est videe (repart sur la valeur par
+  // defaut), pas laissee a 0.
+  assert.ok(!("forge" in done.durations));
   // Une fois recupere, plus rien a recuperer dans cet atelier.
   assert.match(
     transact(done, { type: "collect-craft", route: "forge" }).error,
@@ -182,6 +185,7 @@ test("fabrication en attente : ressources debitees tout de suite, objet livre se
   }).state;
   assert.equal(done.inventory.find((i) => i.id === "maille").quantity, 1);
   assert.equal(done.craftingQueue.armurerie, null);
+  assert.ok(!("armurerie" in done.durations));
 });
 import {
   INITIAL_DORMITORY,
