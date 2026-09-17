@@ -570,6 +570,72 @@ export function App() {
     );
     return () => sub.subscription.unsubscribe();
   }, []);
+  // Charge une seule fois, au demarrage, le stock de l'Arsenal saisi cote
+  // admin (Administration > Arsenal, table ligne_inventaire) et le fusionne
+  // dans game.inventory : c'est ce qui permet au MJ d'ajouter "a la main"
+  // les materiaux/composants gagnes en mission, pour que les joueurs les
+  // retrouvent dans leur Arsenal (au prochain chargement de la page, comme
+  // le reste de la demo). Fusion additive avec l'inventaire local existant
+  // (potions de depart, objets deja fabriques cette session) via le meme id
+  // `catalogue:<uuid>` que craft-catalogue/collect-craft, pour ne pas creer
+  // une seconde ligne pour le meme objet.
+  const arsenalDbLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!session?.user || arsenalDbLoadedRef.current) return;
+    arsenalDbLoadedRef.current = true;
+    (async () => {
+      const [
+        { data: inventaires, error: invErr },
+        { data: lignes, error: ligErr },
+        { data: objets, error: objErr },
+        { data: categories, error: catErr },
+      ] = await Promise.all([
+        supabase.from("inventaire").select("id, type"),
+        supabase.from("ligne_inventaire").select("*"),
+        supabase.from("objet_catalogue").select("id, nom, icone, categorie_id"),
+        supabase.from("categorie").select("id, nom, parent_id"),
+      ]);
+      // Table absente ou hors-ligne : l'Arsenal reste sur la demo locale,
+      // sans bloquer le reste du jeu.
+      if (invErr || ligErr || objErr || catErr) return;
+      const arsenal = inventaires.find((i) => i.type === "arsenal");
+      if (!arsenal) return;
+      const objetById = new Map(objets.map((o) => [o.id, o]));
+      const topCategoryName = (categorieId) => {
+        let current = categories.find((c) => c.id === categorieId);
+        while (current?.parent_id)
+          current = categories.find((c) => c.id === current.parent_id);
+        return current?.nom || null;
+      };
+      const dbItems = lignes
+        .filter((l) => l.inventaire_id === arsenal.id && l.quantite > 0)
+        .map((l) => {
+          const o = objetById.get(l.objet_id);
+          return {
+            id: `catalogue:${l.objet_id}`,
+            quantity: l.quantite,
+            equipped: false,
+            nom: o?.nom || "Objet",
+            icone: o?.icone || null,
+            categorie: o ? topCategoryName(o.categorie_id) : null,
+          };
+        });
+      if (!dbItems.length) return;
+      setGame((g) => {
+        let inventory = g.inventory.map((x) => ({ ...x }));
+        for (const it of dbItems) {
+          const idx = inventory.findIndex((x) => x.id === it.id);
+          if (idx >= 0)
+            inventory[idx] = {
+              ...inventory[idx],
+              quantity: inventory[idx].quantity + it.quantity,
+            };
+          else inventory = [...inventory, it];
+        }
+        return { ...g, inventory };
+      });
+    })();
+  }, [session]);
   useEffect(() => {
     if (session === undefined || route === "admin") return;
     if (!session && !auth) location.hash = "connexion";
