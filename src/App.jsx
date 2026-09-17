@@ -84,6 +84,77 @@ function ItemArt({ item }) {
     </span>
   );
 }
+// Affichage d'une ligne d'inventaire (game.inventory), qu'elle vienne de la
+// démo locale (ITEMS) ou d'un objet du catalogue Supabase fabriqué via
+// craft-catalogue (id "catalogue:<uuid>", nom/icone stockés directement sur
+// la ligne car absents de ITEMS) : une seule source pour l'Arsenal, la
+// modale Inventaire et la fiche d'un objet, pour ne pas laisser l'un d'eux
+// planter ou afficher un objet vide faute de correspondance dans ITEMS.
+function inventoryItemInfo(own) {
+  const legacy = ITEMS.find((x) => x.id === own.id);
+  return {
+    legacy,
+    name: legacy?.name || own.nom || "Objet",
+    art: legacy ? (
+      <ItemArt item={legacy} />
+    ) : (
+      <span className="item-art">
+        {own.icone && <img src={own.icone} alt="" />}
+      </span>
+    ),
+  };
+}
+// Fiche d'un objet de l'arsenal (bouton « Inventaire », ou case cliquée
+// dans la grille Arsenal) : image, quantité, et les 3 actions à venir
+// (équiper/vendre/détruire, cf. commentaire plus bas). Composant à part,
+// avec son propre état de quantité à prélever, pour que ce champ reparte
+// à 1 à chaque nouvel objet ouvert (clé = id de l'objet côté appelant).
+function ItemActionPanel({ game, id }) {
+  const [qty, setQty] = useState(1);
+  const own = game.inventory.find((i) => i.id === id);
+  if (!own) return <p>Cet objet n’est plus dans l’arsenal.</p>;
+  const { art } = inventoryItemInfo(own);
+  return (
+    <>
+      <div className="item-detail-art">{art}</div>
+      <p>
+        Quantité : {own.quantity}
+        {own.equipped ? " · Équipé" : ""}
+      </p>
+      {/* Boutons volontairement inertes : Bruno donnera les règles (prix de
+          vente, emplacement d'équipement, confirmation de destruction)
+          avant de les brancher. */}
+      <div className="item-detail-actions">
+        <div className="item-detail-equip">
+          <button className="wood-button" disabled title="Bientôt disponible">
+            Équiper
+          </button>
+          <label className="item-detail-qty">
+            Nombre à prélever
+            <input
+              type="number"
+              min="1"
+              max={own.quantity}
+              value={qty}
+              onChange={(e) => {
+                const n = Math.round(Number(e.target.value));
+                setQty(
+                  Number.isFinite(n) ? Math.min(Math.max(n, 1), own.quantity) : 1,
+                );
+              }}
+            />
+          </label>
+        </div>
+        <button className="wood-button" disabled title="Bientôt disponible">
+          Vendre
+        </button>
+        <button className="wood-button" disabled title="Bientôt disponible">
+          Détruire
+        </button>
+      </div>
+    </>
+  );
+}
 // Fiche d'un objet réel du catalogue Supabase (Forge/Armurerie/Laboratoire/
 // Tour du Mage) : image, description, recette si elle existe, et tentative
 // de fabrication via les ressources locales déjà suivies (game.resources).
@@ -1352,38 +1423,31 @@ export function App() {
                 objet pour agir.
               </p>
               <div className="inventory-grid">
-                {Array.from({ length: 24 }, (_, i) => {
-                  const own = game.inventory[i];
-                  const it = own && ITEMS.find((x) => x.id === own.id);
-                  const displayName = it?.name || own?.nom || "Objet";
-                  return own ? (
-                    <button
-                      key={own.id}
-                      className="inventory-slot"
-                      onClick={() => {
-                        setActionError("");
-                        setModal({ type: "item", id: own.id });
-                      }}
-                      aria-label={`${displayName}, quantité ${own.quantity}`}
-                    >
-                      {it ? (
-                        <ItemArt item={it} />
-                      ) : (
-                        <span className="item-art">
-                          {own.icone && <img src={own.icone} alt={own.nom} />}
-                        </span>
-                      )}
-                      <b>{own.quantity}</b>
-                      {own.equipped && <small>Équipé</small>}
-                    </button>
-                  ) : (
-                    <div
-                      className="inventory-slot empty"
-                      key={`empty-${i}`}
-                      aria-hidden="true"
-                    />
-                  );
-                })}
+                {game.inventory.length ? (
+                  game.inventory.map((own) => {
+                    const { name, art } = inventoryItemInfo(own);
+                    return (
+                      <button
+                        key={own.id}
+                        className="inventory-slot"
+                        onClick={() => {
+                          setActionError("");
+                          setModal({ type: "item", id: own.id });
+                        }}
+                        aria-label={`${name}, quantité ${own.quantity}`}
+                      >
+                        {art}
+                        <b>{own.quantity}</b>
+                        {own.equipped && <small>Équipé</small>}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <p className="muted">
+                    L’arsenal est vide. Les objets achetés ou fabriqués s’y
+                    ajoutent automatiquement.
+                  </p>
+                )}
               </div>
             </section>
           ) : route === "tresorerie" ? (
@@ -1771,31 +1835,26 @@ export function App() {
               <p className="muted">Arsenal commun · {money(game.gold)} Po</p>
               {game.inventory.length ? (
                 game.inventory.map((own) => {
-                  const i = ITEMS.find((x) => x.id === own.id);
+                  const { name, art } = inventoryItemInfo(own);
                   return (
-                    <div key={own.id} className="inventory-row">
-                      <ItemArt item={i} />
+                    <button
+                      key={own.id}
+                      type="button"
+                      className="inventory-row inventory-row-button"
+                      onClick={() => {
+                        setActionError("");
+                        setModal({ type: "item", id: own.id });
+                      }}
+                    >
+                      {art}
                       <div>
-                        <h3>{i.name}</h3>
+                        <h3>{name}</h3>
                         <small>
                           Quantité : {own.quantity}
                           {own.equipped ? " · Équipé" : ""}
                         </small>
                       </div>
-                      <button
-                        className="wood-button"
-                        disabled={busy}
-                        onClick={() =>
-                          act(i.type === "Potions" ? "use" : "equip", own.id)
-                        }
-                      >
-                        {i.type === "Potions"
-                          ? "Utiliser"
-                          : own.equipped
-                            ? "Ranger"
-                            : "Équiper"}
-                      </button>
-                    </div>
+                    </button>
                   );
                 })
               ) : (
@@ -1837,27 +1896,7 @@ export function App() {
               </button>
             </>
           ) : (
-            <>
-              <p>
-                Quantité :{" "}
-                {game.inventory.find((i) => i.id === modal.id)?.quantity || 0}
-              </p>
-              <button
-                className="primary"
-                disabled={
-                  busy || !game.inventory.some((i) => i.id === modal.id)
-                }
-                onClick={() =>
-                  act(ITEMS.find(i => i.id === modal.id)?.type === "Potions" ? "use" : "equip", modal.id)
-                }
-              >
-                {ITEMS.find(i => i.id === modal.id)?.type === "Potions"
-                  ? "Utiliser la potion"
-                  : game.inventory.find((i) => i.id === modal.id)?.equipped
-                    ? "Ranger"
-                    : "Équiper"}
-              </button>
-            </>
+            <ItemActionPanel key={modal.id} game={game} id={modal.id} />
           )}
           {actionError && (
             <p className="error" role="alert">

@@ -936,6 +936,67 @@ img {
 .inventory-row h3 {
   font-size: 23px;
 }
+.inventory-row-button {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #b1a184;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.inventory-row-button:hover {
+  background: rgba(225, 188, 85, 0.15);
+}
+.item-detail-art {
+  width: 120px;
+  margin: 0 auto 16px;
+}
+.item-detail-art .item-art,
+.item-detail-art .sprite {
+  width: 100%;
+}
+.item-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.item-detail-actions > button {
+  flex: 1;
+  min-width: 100px;
+}
+.item-detail-equip {
+  display: flex;
+  flex: 2;
+  min-width: 220px;
+  gap: 10px;
+  align-items: stretch;
+}
+.item-detail-equip .wood-button {
+  flex: 1;
+}
+.item-detail-qty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  font-family: Georgia, serif;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+.item-detail-qty input {
+  width: 64px;
+  min-height: 40px;
+  border: 1px solid #8b7b61;
+  border-radius: 2px;
+  background: rgba(255, 253, 245, 0.6);
+  font: 16px Georgia, serif;
+  color: var(--ink);
+  text-align: center;
+}
 .inline-link {
   display: block;
   margin-top: 20px;
