@@ -1526,12 +1526,18 @@ export function App() {
                     // metal-leather-wood), donc on affiche seulement la
                     // progression partagee, pas la fiche complete.
                     if (!item) {
-                      const queuedNom =
-                        queued && typeof queued === "object"
-                          ? queued.nom
-                          : "Fabrication en cours";
+                      const queuedObj =
+                        queued && typeof queued === "object" ? queued : null;
+                      const queuedNom = queuedObj?.nom || "Fabrication en cours";
                       return (
                         <>
+                          {queuedObj?.icone && (
+                            <img
+                              className="db-item-art"
+                              src={queuedObj.icone}
+                              alt={queuedNom}
+                            />
+                          )}
                           <h2>{queuedNom}</h2>
                           <div className="workshop-duration">
                             <label>Durée d’instance restante</label>
