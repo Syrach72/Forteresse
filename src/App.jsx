@@ -4,7 +4,7 @@ import { changeAlchemy, initialAlchemy } from "./alchemy.js";
 import { Mage } from "./Mage.jsx";
 import { changeMage, initialMage } from "./mage.js";
 import { ASSETS, LOCATIONS, CLASSES, ITEMS } from "./data";
-import { initialGame, transact, RESOURCE_ALIASES } from "./game";
+import { initialGame, transact, RESOURCE_ALIASES, materialQuantity } from "./game";
 import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
@@ -195,8 +195,8 @@ function ItemActionPanel({ game, id }) {
 }
 // Fiche d'un objet réel du catalogue Supabase (Forge/Armurerie/Laboratoire/
 // Tour du Mage) : image, description, recette si elle existe, et tentative
-// de fabrication via les ressources locales déjà suivies (game.resources).
-// Un ingrédient de recette non reconnu (tout ce qui n'est pas Fer/Métal,
+// de fabrication via les trois matériaux suivis dans game.inventory (voir
+// materialQuantity, game.js). Un ingrédient de recette non reconnu (tout ce qui n'est pas Fer/Métal,
 // Cuir ou Bois) désactive proprement le bouton plutôt que de fabriquer
 // gratuitement ou de planter : la plupart des recettes Alchimie/Magie
 // utilisent des ingrédients qu'aucun système local ne suit encore.
@@ -215,7 +215,7 @@ function CatalogueItemDetail({
     ing.quantite,
   ]);
   const unmapped = needs.filter(([, key]) => !key);
-  const lacking = needs.some(([, key, q]) => key && game.resources[key] < q);
+  const lacking = needs.some(([, key, q]) => key && materialQuantity(game.inventory, key) < q);
   // Fabrication en attente pour CET atelier (peu importe l'objet) : la
   // Duree d'instance definie par l'admin (item.duree_fabrication_instances)
   // decompte via le bouton +1 Instance, comme pour la demo locale forge/
@@ -258,7 +258,7 @@ function CatalogueItemDetail({
                 <span>{ing.nom}</span>
                 <strong>{ing.quantite}</strong>
                 <small>
-                  {key ? `Stock : ${game.resources[key]}` : "Ressource non suivie"}
+                  {key ? `Stock : ${materialQuantity(game.inventory, key)}` : "Ressource non suivie"}
                 </small>
               </div>
             );
@@ -578,7 +578,9 @@ export function App() {
   // le reste de la demo). Fusion additive avec l'inventaire local existant
   // (potions de depart, objets deja fabriques cette session) via le meme id
   // `catalogue:<uuid>` que craft-catalogue/collect-craft, pour ne pas creer
-  // une seconde ligne pour le meme objet.
+  // une seconde ligne pour le meme objet. Un seul compteur par objet : pas
+  // de compteur separe pour Fer/Cuir/Bois (voir plus bas, remplacement des
+  // lignes `material:<cle>` de demo par l'objet reel de l'admin).
   const arsenalDbLoadedRef = useRef(false);
   useEffect(() => {
     if (!session?.user || arsenalDbLoadedRef.current) return;
@@ -624,6 +626,13 @@ export function App() {
       setGame((g) => {
         let inventory = g.inventory.map((x) => ({ ...x }));
         for (const it of dbItems) {
+          // Fer/Métal, Cuir ou Bois : remplace la ligne de démonstration
+          // locale (`material:<clé>`, data.js) au lieu de s'y ajouter — un
+          // seul compteur par matériau, celui de l'admin devient la
+          // référence dès qu'il existe (voir materialQuantity, game.js).
+          const materialKey = RESOURCE_ALIASES[(it.nom || "").trim().toLowerCase()];
+          if (materialKey)
+            inventory = inventory.filter((x) => x.id !== `material:${materialKey}`);
           const idx = inventory.findIndex((x) => x.id === it.id);
           if (idx >= 0)
             inventory[idx] = {
@@ -1516,7 +1525,7 @@ export function App() {
                           <div key={k}>
                             <span>{label}</span>
                             <strong>{item[k]}</strong>
-                            <small>Stock : {game.resources[k]}</small>
+                            <small>Stock : {materialQuantity(game.inventory, k)}</small>
                           </div>
                         ))}
                       </div>
@@ -1534,7 +1543,7 @@ export function App() {
                                 (queued && !ready) ||
                                 (!queued &&
                                   ["metal", "leather", "wood"].some(
-                                    (k) => game.resources[k] < item[k],
+                                    (k) => materialQuantity(game.inventory, k) < item[k],
                                   ))
                               }
                               onClick={() => {
@@ -1557,7 +1566,7 @@ export function App() {
                             </button>
                             {!queued &&
                               ["metal", "leather", "wood"].some(
-                                (k) => game.resources[k] < item[k],
+                                (k) => materialQuantity(game.inventory, k) < item[k],
                               ) && <p className="error">Ressources insuffisantes.</p>}
                             {actionError && (
                               <p role="alert" className="error">

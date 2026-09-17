@@ -2,10 +2,11 @@ import { ITEMS, INITIAL } from "./data.js";
 import { initialAlchemy } from "./alchemy.js";
 import { initialMage } from "./mage.js";
 // Noms d'ingrédients du catalogue Supabase (ingredient_recette) reconnus
-// comme correspondant aux ressources locales suivies dans game.resources.
-// Utilisée à la fois par transact() (craft-catalogue) et par l'UI (App.jsx)
-// pour afficher le stock et activer/désactiver le bouton de fabrication :
-// une seule source pour éviter que les deux se contredisent.
+// comme correspondant aux trois matériaux de fabrication (Métal, Cuir,
+// Bois). Utilisée à la fois par transact() (craft/craft-queue/craft-
+// catalogue) et par l'UI (App.jsx) pour afficher le stock et activer/
+// désactiver le bouton de fabrication : une seule source pour éviter que
+// les deux se contredisent.
 export const RESOURCE_ALIASES = {
   fer: "metal",
   métal: "metal",
@@ -13,6 +14,26 @@ export const RESOURCE_ALIASES = {
   cuir: "leather",
   bois: "wood",
 };
+// Métal/Cuir/Bois ne sont plus un compteur séparé (ex game.resources) :
+// ce sont des lignes ordinaires de game.inventory, comme n'importe quel
+// autre objet (démo locale au démarrage, remplacées par l'objet réel du
+// catalogue admin dès qu'il existe — voir App.jsx). Un seul compteur par
+// matériau, qu'il vienne de la démo ou de l'Arsenal admin : le trouver par
+// son id de secours local `material:<clé>`, ou par son nom (Fer/Métal/
+// Cuir/Bois) via RESOURCE_ALIASES si c'est une ligne venue du catalogue.
+export function findMaterialLine(inventory, key) {
+  return inventory.find((i) => {
+    if (i.id === `material:${key}`) return true;
+    return RESOURCE_ALIASES[(i.nom || "").trim().toLowerCase()] === key;
+  });
+}
+export function materialQuantity(inventory, key) {
+  return findMaterialLine(inventory, key)?.quantity ?? 0;
+}
+function spendMaterial(next, key, amount) {
+  const line = findMaterialLine(next.inventory, key);
+  if (line) line.quantity -= amount;
+}
 export function initialGame() {
   return {
     ...structuredClone(INITIAL),
@@ -45,9 +66,9 @@ export function transact(state, action) {
     message = `${item.name} acheté : −${item.price} Po.`;
   } else if (action.type === "craft") {
     if (!item?.metal) return { error: "Cette recette n’existe pas." };
-    if (["metal", "leather", "wood"].some((k) => next.resources[k] < item[k]))
+    if (["metal", "leather", "wood"].some((k) => materialQuantity(next.inventory, k) < item[k]))
       return { error: "Ressources insuffisantes pour cette fabrication." };
-    for (const k of ["metal", "leather", "wood"]) next.resources[k] -= item[k];
+    for (const k of ["metal", "leather", "wood"]) spendMaterial(next, k, item[k]);
     add();
     message = `${item.name} fabriqué et ajouté au stock.`;
   } else if (action.type === "craft-queue") {
@@ -58,9 +79,9 @@ export function transact(state, action) {
     if (!item?.metal) return { error: "Cette recette n’existe pas." };
     if (next.craftingQueue?.[action.route])
       return { error: "Une fabrication est déjà en cours dans cet atelier." };
-    if (["metal", "leather", "wood"].some((k) => next.resources[k] < item[k]))
+    if (["metal", "leather", "wood"].some((k) => materialQuantity(next.inventory, k) < item[k]))
       return { error: "Ressources insuffisantes pour cette fabrication." };
-    for (const k of ["metal", "leather", "wood"]) next.resources[k] -= item[k];
+    for (const k of ["metal", "leather", "wood"]) spendMaterial(next, k, item[k]);
     next.craftingQueue = { ...next.craftingQueue, [action.route]: item.id };
     message = `${item.name} : fabrication lancée. Elle rejoindra l’arsenal une fois la durée d’instance à 0.`;
   } else if (action.type === "equip") {
@@ -97,9 +118,9 @@ export function transact(state, action) {
         };
       needs.push([key, ing.quantite]);
     }
-    if (needs.some(([k, q]) => next.resources[k] < q))
+    if (needs.some(([k, q]) => materialQuantity(next.inventory, k) < q))
       return { error: "Ressources insuffisantes pour cette fabrication." };
-    for (const [k, q] of needs) next.resources[k] -= q;
+    for (const [k, q] of needs) spendMaterial(next, k, q);
     // Categorie racine (Armes/Armures/Produits Alchimiques/Gemmes) telle
     // que chargee par loadCatalogue (App.jsx) pour l'atelier concerne : sert
     // aux onglets de l'Arsenal, sans dependre d'un second appel a Supabase

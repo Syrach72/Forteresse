@@ -178,8 +178,18 @@ export const ITEMS = [
 ];
 export const INITIAL = {
   gold: 905,
-  resources: { metal: 45, leather: 18, wood: 40 },
-  inventory: [{ id: "potion", quantity: 4, equipped: false }],
+  // Métal/Cuir/Bois : lignes ordinaires de l'inventaire (comme n'importe
+  // quel autre objet), pas un compteur séparé. Ces valeurs ne servent que
+  // de démonstration locale ; dès qu'un objet Fer/Métal/Cuir/Bois existe
+  // dans le catalogue admin, la fusion au démarrage (App.jsx) remplace ces
+  // lignes par la quantité réelle saisie par l'admin — un seul compteur par
+  // matériau, qu'il vienne de la démo ou de l'Arsenal admin.
+  inventory: [
+    { id: "potion", quantity: 4, equipped: false },
+    { id: "material:metal", quantity: 45, equipped: false, nom: "Métal", categorie: "Matériaux" },
+    { id: "material:leather", quantity: 18, equipped: false, nom: "Cuir", categorie: "Matériaux" },
+    { id: "material:wood", quantity: 40, equipped: false, nom: "Bois", categorie: "Matériaux" },
+  ],
   stock: { maille: 3, epee: 5, potion: 8 },
   log: [],
   health: 2,

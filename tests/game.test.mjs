@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { initialGame, transact } from "../src/game.js";
+import { initialGame, transact, materialQuantity } from "../src/game.js";
 test("achat : débit, stock et inventaire cohérents sans modifier la source", () => {
   const s = initialGame();
   const r = transact(s, { type: "buy", id: "maille" }).state;
@@ -23,7 +23,9 @@ test("stock épuisé et solde insuffisant : aucune mutation", () => {
 test("fabrication consomme toutes les ressources, puis refuse la répétition impossible", () => {
   const s = initialGame();
   const r = transact(s, { type: "craft", id: "maille" }).state;
-  assert.deepEqual(r.resources, { metal: 15, leather: 10, wood: 10 });
+  assert.equal(materialQuantity(r.inventory, "metal"), 15);
+  assert.equal(materialQuantity(r.inventory, "leather"), 10);
+  assert.equal(materialQuantity(r.inventory, "wood"), 10);
   assert.equal(r.gold, 905);
   assert.match(
     transact(r, { type: "craft", id: "maille" }).error,
@@ -36,7 +38,7 @@ test("potions : consommation sans modifier les caractéristiques", () => {
   s.inventory[0].quantity = 1;
   const r = transact(s, { type: "use", id: "potion" }).state;
   assert.equal(r.health, 2);
-  assert.equal(r.inventory.length, 0);
+  assert.ok(!r.inventory.some((i) => i.id === "potion"));
   const full = initialGame();
   full.health = 3;
   assert.equal(transact(full, { type: "use", id: "potion" }).state.health, 3);
@@ -64,7 +66,9 @@ test("fabrication d'une arme du catalogue Supabase (Forge) : consomme les ressou
     ],
   };
   const r = transact(initialGame(), { type: "craft-catalogue", arme }).state;
-  assert.deepEqual(r.resources, { metal: 35, leather: 13, wood: 38 });
+  assert.equal(materialQuantity(r.inventory, "metal"), 35);
+  assert.equal(materialQuantity(r.inventory, "leather"), 13);
+  assert.equal(materialQuantity(r.inventory, "wood"), 38);
   const own = r.inventory.find((i) => i.id === "catalogue:11111111-1111-1111-1111-111111111111");
   assert.equal(own.quantity, 1);
   assert.equal(own.nom, "Épée longue");
@@ -90,7 +94,7 @@ test("fabrication catalogue avec route et duree_fabrication_instances : mise en 
     arme,
     route: "forge",
   }).state;
-  assert.equal(queued.resources.metal, 35);
+  assert.equal(materialQuantity(queued.inventory, "metal"), 35);
   assert.equal(queued.durations.forge, 2);
   assert.deepEqual(queued.craftingQueue.forge, {
     id: arme.id,
@@ -127,6 +131,28 @@ test("fabrication catalogue avec route et duree_fabrication_instances : mise en 
     /Aucune fabrication à récupérer/,
   );
 });
+test("un seul compteur par matériau : un objet du catalogue nommé Fer/Cuir/Bois remplace la démo locale, la fabrication le débite directement (pas de second compteur)", () => {
+  const s = initialGame();
+  // Simule la fusion au démarrage (App.jsx) : la ligne de démo locale
+  // "material:metal" est remplacée par l'objet réel du catalogue admin.
+  s.inventory = s.inventory.filter((i) => i.id !== "material:metal");
+  s.inventory.push({
+    id: "catalogue:fer-uuid",
+    quantity: 100,
+    equipped: false,
+    nom: "Fer",
+    categorie: "Matériaux",
+  });
+  const arme = {
+    id: "33333333-3333-3333-3333-333333333333",
+    nom: "Dague",
+    ingredientsList: [{ nom: "Fer", quantite: 10 }],
+  };
+  const r = transact(s, { type: "craft-catalogue", arme }).state;
+  assert.equal(r.inventory.find((i) => i.id === "catalogue:fer-uuid").quantity, 90);
+  assert.equal(materialQuantity(r.inventory, "metal"), 90);
+  assert.ok(!r.inventory.some((i) => i.id === "material:metal"));
+});
 test("fabrication catalogue : ressource non reconnue ou insuffisante refuse sans muter l'état", () => {
   const s = initialGame();
   const snapshot = JSON.stringify(s);
@@ -157,7 +183,9 @@ test("fabrication en attente : ressources debitees tout de suite, objet livre se
     id: "maille",
     route: "armurerie",
   }).state;
-  assert.deepEqual(queued.resources, { metal: 15, leather: 10, wood: 10 });
+  assert.equal(materialQuantity(queued.inventory, "metal"), 15);
+  assert.equal(materialQuantity(queued.inventory, "leather"), 10);
+  assert.equal(materialQuantity(queued.inventory, "wood"), 10);
   assert.equal(queued.craftingQueue.armurerie, "maille");
   assert.ok(!queued.inventory.some((i) => i.id === "maille"));
   assert.match(
