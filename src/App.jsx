@@ -623,26 +623,33 @@ export function App() {
           };
         });
       if (!dbItems.length) return;
-      setGame((g) => {
-        let inventory = g.inventory.map((x) => ({ ...x }));
-        for (const it of dbItems) {
-          // Fer/Métal, Cuir ou Bois : remplace la ligne de démonstration
-          // locale (`material:<clé>`, data.js) au lieu de s'y ajouter — un
-          // seul compteur par matériau, celui de l'admin devient la
-          // référence dès qu'il existe (voir materialQuantity, game.js).
-          const materialKey = RESOURCE_ALIASES[(it.nom || "").trim().toLowerCase()];
-          if (materialKey)
-            inventory = inventory.filter((x) => x.id !== `material:${materialKey}`);
-          const idx = inventory.findIndex((x) => x.id === it.id);
-          if (idx >= 0)
-            inventory[idx] = {
-              ...inventory[idx],
-              quantity: inventory[idx].quantity + it.quantity,
-            };
-          else inventory = [...inventory, it];
-        }
-        return { ...g, inventory };
-      });
+      // Construit a partir de gameRef.current (source lue par act()), pas
+      // d'un callback setGame(g => ...) : act() ecrit dans gameRef.current
+      // sans jamais relire l'etat React `game`, donc une fusion qui ne
+      // mettrait a jour que setGame serait ecrasee au premier clic (le
+      // craft suivant repartirait de l'etat pre-fusion et l'ecraserait a
+      // son tour) — cf. le meme motif gameRef.current = g; setGame(g); que
+      // les autres actions de ce fichier (transferCampaign, etc.).
+      let inventory = gameRef.current.inventory.map((x) => ({ ...x }));
+      for (const it of dbItems) {
+        // Fer/Métal, Cuir ou Bois : remplace la ligne de démonstration
+        // locale (`material:<clé>`, data.js) au lieu de s'y ajouter — un
+        // seul compteur par matériau, celui de l'admin devient la
+        // référence dès qu'il existe (voir materialQuantity, game.js).
+        const materialKey = RESOURCE_ALIASES[(it.nom || "").trim().toLowerCase()];
+        if (materialKey)
+          inventory = inventory.filter((x) => x.id !== `material:${materialKey}`);
+        const idx = inventory.findIndex((x) => x.id === it.id);
+        if (idx >= 0)
+          inventory[idx] = {
+            ...inventory[idx],
+            quantity: inventory[idx].quantity + it.quantity,
+          };
+        else inventory = [...inventory, it];
+      }
+      const g = { ...gameRef.current, inventory };
+      gameRef.current = g;
+      setGame(g);
     })();
   }, [session]);
   useEffect(() => {
