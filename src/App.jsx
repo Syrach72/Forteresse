@@ -104,6 +104,44 @@ function inventoryItemInfo(own) {
     ),
   };
 }
+// Onglets de l'Arsenal : reprennent les categories racines du catalogue
+// admin (Armes, Armures, Gemmes, Ingredients, Materiaux, Objet divers,
+// Produits Alchimiques), avec les libelles demandes par Bruno. "Divers"
+// recoit aussi tout objet dont la categorie n'est pas encore reconnue,
+// plutot que de le faire disparaitre silencieusement d'un onglet.
+const ARSENAL_TABS = [
+  "Général",
+  "Armes",
+  "Armures",
+  "Composants",
+  "Matériaux",
+  "Produits Alchimiques",
+  "Gemmes",
+  "Divers",
+];
+const CATEGORY_TAB_LABELS = {
+  Armes: "Armes",
+  Armures: "Armures",
+  Gemmes: "Gemmes",
+  Ingrédients: "Composants",
+  Matériaux: "Matériaux",
+  "Objet divers": "Divers",
+  "Produits Alchimiques": "Produits Alchimiques",
+};
+// Types du catalogue local de demonstration (data.js) : les « Formules »
+// (sorts de demo, jamais reellement produites par le jeu actuel) n'ont pas
+// d'equivalent parmi les categories du catalogue admin, d'ou Divers.
+const LEGACY_TYPE_TAB_LABELS = {
+  Armes: "Armes",
+  Armures: "Armures",
+  Potions: "Produits Alchimiques",
+  Formules: "Divers",
+};
+function arsenalCategoryOf(own) {
+  const legacy = ITEMS.find((x) => x.id === own.id);
+  if (legacy) return LEGACY_TYPE_TAB_LABELS[legacy.type] || "Divers";
+  return CATEGORY_TAB_LABELS[own.categorie] || "Divers";
+}
 // Fiche d'un objet de l'arsenal (bouton « Inventaire », ou case cliquée
 // dans la grille Arsenal) : image, quantité, et les 3 actions à venir
 // (équiper/vendre/détruire, cf. commentaire plus bas). Composant à part,
@@ -467,6 +505,7 @@ export function App() {
   // bonne page et son catalogue chargé, avant de s'effacer lui-même.
   const [pendingCraftTarget, setPendingCraftTarget] = useState(null);
   const [filter, setFilter] = useState("Tout");
+  const [arsenalTab, setArsenalTab] = useState("Général");
   const [search, setSearch] = useState("");
   const [character, setCharacter] = useState("Guerrier");
   const [actionError, setActionError] = useState("");
@@ -1002,7 +1041,12 @@ export function App() {
                 quantite: i.quantite_requise,
               }))
           : [];
-        return { ...o, ingredientsList, groupe: groupName(o.categorie_id) };
+        return {
+          ...o,
+          ingredientsList,
+          groupe: groupName(o.categorie_id),
+          racine: racineNom,
+        };
       });
     setCatalogueByAtelier((prev) => ({ ...prev, [atelier]: { items, error: "" } }));
   }
@@ -1422,33 +1466,56 @@ export function App() {
                 Équipements et consommables de la compagnie. Sélectionnez un
                 objet pour agir.
               </p>
-              <div className="inventory-grid">
-                {game.inventory.length ? (
-                  game.inventory.map((own) => {
-                    const { name, art } = inventoryItemInfo(own);
-                    return (
-                      <button
-                        key={own.id}
-                        className="inventory-slot"
-                        onClick={() => {
-                          setActionError("");
-                          setModal({ type: "item", id: own.id });
-                        }}
-                        aria-label={`${name}, quantité ${own.quantity}`}
-                      >
-                        {art}
-                        <b>{own.quantity}</b>
-                        {own.equipped && <small>Équipé</small>}
-                      </button>
-                    );
-                  })
-                ) : (
-                  <p className="muted">
-                    L’arsenal est vide. Les objets achetés ou fabriqués s’y
-                    ajoutent automatiquement.
-                  </p>
-                )}
+              <div className="arsenal-tabs">
+                {ARSENAL_TABS.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    className={t === arsenalTab ? "active" : ""}
+                    onClick={() => setArsenalTab(t)}
+                  >
+                    {t}
+                  </button>
+                ))}
               </div>
+              {(() => {
+                const shown =
+                  arsenalTab === "Général"
+                    ? game.inventory
+                    : game.inventory.filter(
+                        (own) => arsenalCategoryOf(own) === arsenalTab,
+                      );
+                return (
+                  <div className="inventory-grid">
+                    {shown.length ? (
+                      shown.map((own) => {
+                        const { name, art } = inventoryItemInfo(own);
+                        return (
+                          <button
+                            key={own.id}
+                            className="inventory-slot"
+                            onClick={() => {
+                              setActionError("");
+                              setModal({ type: "item", id: own.id });
+                            }}
+                            aria-label={`${name}, quantité ${own.quantity}`}
+                          >
+                            {art}
+                            <b>{own.quantity}</b>
+                            {own.equipped && <small>Équipé</small>}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <p className="muted">
+                        {game.inventory.length
+                          ? "Aucun objet dans cette catégorie pour le moment."
+                          : "L’arsenal est vide. Les objets achetés ou fabriqués s’y ajoutent automatiquement."}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
             </section>
           ) : route === "tresorerie" ? (
             <section className="ledger parchment">

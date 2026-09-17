@@ -85,6 +85,11 @@ export function transact(state, action) {
         equipped: false,
         nom: arme.nom,
         icone: arme.icone,
+        // Categorie racine (Armes/Armures/Produits Alchimiques/Gemmes) telle
+        // que chargee par loadCatalogue (App.jsx) pour l'atelier concerne :
+        // sert aux onglets de l'Arsenal, sans dependre d'un second appel a
+        // Supabase depuis la page Arsenal.
+        categorie: arme.racine || null,
       });
     message = `${arme.nom} fabriqué et ajouté au stock.`;
   } else if (action.type === "quest") {

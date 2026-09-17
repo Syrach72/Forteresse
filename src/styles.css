@@ -505,13 +505,15 @@ img {
   border-radius: 8px;
   background: #ded0b5;
 }
-.db-item-tabs {
+.db-item-tabs,
+.arsenal-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 12px;
 }
-.db-item-tabs button {
+.db-item-tabs button,
+.arsenal-tabs button {
   font: 14px Georgia, serif;
   padding: 7px 14px;
   border: 1px solid var(--edge);
@@ -521,7 +523,8 @@ img {
   opacity: 0.7;
   cursor: pointer;
 }
-.db-item-tabs button.active {
+.db-item-tabs button.active,
+.arsenal-tabs button.active {
   opacity: 1;
   background: var(--gold);
   font-weight: 600;
