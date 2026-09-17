@@ -1678,14 +1678,6 @@ export function App() {
                   {route === "forge" ? "Catalogue des armes" : "Catalogue des armures"}{" "}
                   ›
                 </button>
-                <div className="room-caption">
-                  <p>{route === "forge" ? "La Forge" : "L’Armurerie"}</p>
-                  <span>
-                    {route === "forge"
-                      ? "Chaque lame raconte une histoire."
-                      : "Préparez-vous à la prochaine aventure."}
-                  </span>
-                </div>
               </div>
             </>
           ) : route === "stock" ? (
