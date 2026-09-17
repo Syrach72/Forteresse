@@ -538,10 +538,6 @@ export function App() {
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState("");
   const [selection, setSelection] = useState("maille");
-  // Objet du catalogue Supabase réellement choisi (Forge/Armurerie) : quand
-  // il est défini, la page affiche ses vraies infos à la place de la démo
-  // locale (epée-maille/ITEMS). null tant qu'aucun n'est sélectionné.
-  const [selectedArme, setSelectedArme] = useState(null);
   // Catalogue chargé par atelier (forge/armurerie/alchimie/magie), pour ne
   // recharger qu'une fois par atelier consulté. { [atelier]: { items, error } }
   const [catalogueByAtelier, setCatalogueByAtelier] = useState({});
@@ -599,7 +595,6 @@ export function App() {
   useEffect(() => {
     if (route === "forge") setSelection("epee");
     if (route === "armurerie") setSelection("maille");
-    if (route !== "forge") setSelectedArme(null);
     document.title = `${place?.name || (auth ? (route === "inscription" ? "Créer un compte" : "Connexion") : "Forteresse")} · La Compagnie`;
     titleRef.current?.focus({ preventScroll: true });
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -642,12 +637,7 @@ export function App() {
     if (route !== targetRoute) return;
     const entry = catalogueByAtelier[atelier];
     if (!entry) return;
-    const found = entry.items?.find((i) => i.id === objetId) || null;
-    if (targetRoute === "forge" || targetRoute === "armurerie") {
-      setSelectedArme(found);
-    } else {
-      setModal({ type: "db-catalogue", atelier, racine: ATELIER_RACINE[atelier], detailId: objetId });
-    }
+    setModal({ type: "db-catalogue", atelier, racine: ATELIER_RACINE[atelier], detailId: objetId });
     setPendingCraftTarget(null);
   }, [pendingCraftTarget, route, catalogueByAtelier]);
   function updateAlchemy(action) {
@@ -1005,13 +995,11 @@ export function App() {
       } else {
         gameRef.current = result.state;
         setGame(result.state);
-        // Livraison immediate (duree 0) : fermer comme avant. Fabrication
-        // mise en attente : garder la fiche ouverte pour voir le compte a
-        // rebours (cf. CatalogueItemDetail).
-        if (!result.state.craftingQueue?.[route]) {
-          setSelectedArme(null);
-          setModal(null);
-        }
+        // Toujours refermer la fenetre (fabrication lancee ou livree tout
+        // de suite) : la modale native bloque le reste de la page pendant
+        // qu'elle est ouverte, notamment le bouton +1 Instance necessaire
+        // pour faire avancer une fabrication mise en attente.
+        setModal(null);
         notify(result.message);
       }
       busyRef.current = false;
@@ -1036,7 +1024,6 @@ export function App() {
       } else {
         gameRef.current = result.state;
         setGame(result.state);
-        setSelectedArme(null);
         setModal(null);
         notify(result.message);
       }
@@ -1424,36 +1411,7 @@ export function App() {
                       ? "Le feu donne forme"
                       : "À l’abri de l’acier"}
                   </p>
-                  {["forge", "armurerie"].includes(route) && selectedArme ? (
-                    <>
-                      <CatalogueItemDetail
-                        item={selectedArme}
-                        game={game}
-                        busy={busy}
-                        route={route}
-                        actionLabel={
-                          route === "forge"
-                            ? "Envoyer à la forge"
-                            : "Envoyer à l’armurerie"
-                        }
-                        onCraft={(a) => actCatalogue(a, route)}
-                        onCollect={() => actCollect(route)}
-                      />
-                      {actionError && (
-                        <p role="alert" className="error">
-                          {actionError}
-                        </p>
-                      )}
-                      <button
-                        type="button"
-                        className="text-button"
-                        onClick={() => setSelectedArme(null)}
-                      >
-                        ‹ Revenir à la démonstration locale
-                      </button>
-                    </>
-                  ) : (
-                    <>
+                  <>
                       <ItemArt item={item} />
                       <h2>{item.name}</h2>
                       <p>{item.description}</p>
@@ -1560,8 +1518,7 @@ export function App() {
                           </>
                         );
                       })()}
-                    </>
-                  )}
+                  </>
                 </section>
                 <button
                   className="catalog-button wood-button"
@@ -1905,13 +1862,14 @@ export function App() {
           ) : modal.type === "db-catalogue" ? (
             (() => {
               const entry = catalogueByAtelier[modal.atelier];
-              const inPage = ["forge", "armurerie"].includes(modal.atelier);
               const detailItem =
                 modal.detailId &&
                 entry?.items?.find((i) => i.id === modal.detailId);
               if (detailItem) {
-                // Laboratoire / Tour du Mage : pas de panneau de page dédié,
-                // la fiche s'affiche dans la modale elle-même.
+                // Fiche de l'objet affichee dans la modale elle-meme (pas de
+                // panneau de page dedie), pour les 4 ateliers : le joueur
+                // peut la fermer et revenir a la liste, ou lancer la
+                // fabrication depuis cette meme fenetre.
                 return (
                   <>
                     <CatalogueItemDetail
@@ -1919,6 +1877,13 @@ export function App() {
                       game={game}
                       busy={busy}
                       route={ATELIER_ROUTE[modal.atelier]}
+                      actionLabel={
+                        modal.atelier === "forge"
+                          ? "Envoyer à la forge"
+                          : modal.atelier === "armurerie"
+                            ? "Envoyer à l’armurerie"
+                            : "Fabriquer"
+                      }
                       onCraft={(a) => actCatalogue(a, ATELIER_ROUTE[modal.atelier])}
                       onCollect={() => actCollect(ATELIER_ROUTE[modal.atelier])}
                     />
@@ -2001,14 +1966,9 @@ export function App() {
                             key={a.id}
                             type="button"
                             className="db-item-row"
-                            onClick={() => {
-                              if (inPage) {
-                                setSelectedArme(a);
-                                setModal(null);
-                              } else {
-                                setModal({ ...modal, detailId: a.id });
-                              }
-                            }}
+                            onClick={() =>
+                              setModal({ ...modal, detailId: a.id })
+                            }
                           >
                             {a.icone ? (
                               <img className="db-item-icon" src={a.icone} alt="" />
