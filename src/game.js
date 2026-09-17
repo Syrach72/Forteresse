@@ -18,9 +18,10 @@ export function initialGame() {
     ...structuredClone(INITIAL),
     alchemy: initialAlchemy(),
     mage: initialMage(),
-    // Fabrications locales (forge/armurerie) lancees mais pas encore
-    // livrees : { [route]: idObjetITEMS | null }. Voir "craft-queue" et
-    // resolveCraftingQueue ci-dessous.
+    // Fabrications locales (forge/armurerie) ou du catalogue lancees mais
+    // pas encore recuperees : { [route]: idObjetITEMS | {id,nom,icone,
+    // categorie} | null }. Voir "craft-queue"/"craft-catalogue" (mise en
+    // attente) et "collect-craft" (recuperation manuelle) ci-dessous.
     craftingQueue: {},
   };
 }
@@ -52,8 +53,8 @@ export function transact(state, action) {
   } else if (action.type === "craft-queue") {
     // Meme recette que "craft" (ITEMS.metal/leather/wood), mais l'objet ne
     // rejoint pas l'inventaire tout de suite : il attend que la Duree
-    // d'instance de cet atelier retombe a 0 (bouton +1 Instance), livre par
-    // resolveCraftingQueue ci-dessous plutot que par cette action.
+    // d'instance de cet atelier retombe a 0 (bouton +1 Instance), PUIS que
+    // le joueur clique "Envoyer à l'Arsenal" (action "collect-craft").
     if (!item?.metal) return { error: "Cette recette n’existe pas." };
     if (next.craftingQueue?.[action.route])
       return { error: "Une fabrication est déjà en cours dans cet atelier." };
@@ -108,7 +109,7 @@ export function transact(state, action) {
     if (route && duree > 0) {
       // Duree de fabrication definie par l'admin : mise en attente, comme
       // "craft-queue", jusqu'a ce que la Duree d'instance de cet atelier
-      // retombe a 0 (bouton +1 Instance). Voir resolveCraftingQueue.
+      // retombe a 0 (bouton +1 Instance) PUIS "collect-craft".
       next.durations = { ...next.durations, [route]: duree };
       next.craftingQueue = {
         ...next.craftingQueue,
@@ -130,40 +131,24 @@ export function transact(state, action) {
         });
       message = `${arme.nom} fabriqué et ajouté au stock.`;
     }
-  } else if (action.type === "quest") {
-    next.quest = true;
-    message = "Quête acceptée : Les ombres du col.";
-  } else return { error: "Action inconnue." };
-  next.log.unshift({
-    id: crypto.randomUUID(),
-    message,
-    date: new Date().toISOString(),
-    amount: action.type === "buy" ? -item.price : 0,
-  });
-  next.log = next.log.slice(0, 50);
-  return { state: next, message };
-}
-// Livre dans l'inventaire tout objet en attente (game.craftingQueue) dont
-// l'atelier vient d'atteindre une Duree d'instance de 0. Appelee par
-// App.jsx juste apres avoir decremente ces durees (+1 Instance), jamais
-// directement par un bouton du joueur.
-export function resolveCraftingQueue(state) {
-  const queue = state.craftingQueue || {};
-  const pending = Object.entries(queue).filter(([, v]) => v);
-  if (!pending.length) return { state, delivered: [] };
-  const next = structuredClone(state);
-  const delivered = [];
-  for (const [route, value] of pending) {
-    if ((next.durations?.[route] ?? 0) > 0) continue;
+  } else if (action.type === "collect-craft") {
+    // Recuperation manuelle d'une fabrication (locale ou catalogue) une fois
+    // sa Duree d'instance a 0 : contrairement a une livraison automatique,
+    // le joueur doit cliquer "Envoyer à l’Arsenal" pour liberer l'atelier et
+    // permettre une nouvelle fabrication.
+    const route = action.route;
+    const value = next.craftingQueue?.[route];
+    if (!value)
+      return { error: "Aucune fabrication à récupérer dans cet atelier." };
+    if ((next.durations?.[route] ?? 0) > 0)
+      return { error: "La fabrication n’est pas encore terminée." };
     if (typeof value === "string") {
-      // Objet du catalogue local de demonstration (ITEMS).
-      const item = ITEMS.find((i) => i.id === value);
+      const it = ITEMS.find((i) => i.id === value);
       const own = next.inventory.find((i) => i.id === value);
       if (own) own.quantity++;
       else next.inventory.push({ id: value, quantity: 1, equipped: false });
-      delivered.push(item?.name || "Objet");
+      message = `${it?.name || "Objet"} rejoint l’arsenal.`;
     } else {
-      // Objet reel du catalogue Supabase (craft-catalogue en attente).
       const invId = `catalogue:${value.id}`;
       const own = next.inventory.find((i) => i.id === invId);
       if (own) own.quantity++;
@@ -176,9 +161,19 @@ export function resolveCraftingQueue(state) {
           icone: value.icone,
           categorie: value.categorie || null,
         });
-      delivered.push(value.nom);
+      message = `${value.nom} rejoint l’arsenal.`;
     }
-    next.craftingQueue[route] = null;
-  }
-  return { state: next, delivered };
+    next.craftingQueue = { ...next.craftingQueue, [route]: null };
+  } else if (action.type === "quest") {
+    next.quest = true;
+    message = "Quête acceptée : Les ombres du col.";
+  } else return { error: "Action inconnue." };
+  next.log.unshift({
+    id: crypto.randomUUID(),
+    message,
+    date: new Date().toISOString(),
+    amount: action.type === "buy" ? -item.price : 0,
+  });
+  next.log = next.log.slice(0, 50);
+  return { state: next, message };
 }

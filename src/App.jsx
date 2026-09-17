@@ -4,7 +4,7 @@ import { changeAlchemy, initialAlchemy } from "./alchemy.js";
 import { Mage } from "./Mage.jsx";
 import { changeMage, initialMage } from "./mage.js";
 import { ASSETS, LOCATIONS, CLASSES, ITEMS } from "./data";
-import { initialGame, transact, RESOURCE_ALIASES, resolveCraftingQueue } from "./game";
+import { initialGame, transact, RESOURCE_ALIASES } from "./game";
 import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
@@ -206,6 +206,7 @@ function CatalogueItemDetail({
   busy,
   actionLabel = "Fabriquer",
   onCraft,
+  onCollect,
   route,
 }) {
   const needs = item.ingredientsList.map((ing) => [
@@ -218,9 +219,12 @@ function CatalogueItemDetail({
   // Fabrication en attente pour CET atelier (peu importe l'objet) : la
   // Duree d'instance definie par l'admin (item.duree_fabrication_instances)
   // decompte via le bouton +1 Instance, comme pour la demo locale forge/
-  // armurerie. Voir craft-catalogue et resolveCraftingQueue (game.js).
+  // armurerie. A 0, elle n'est PAS livree automatiquement : il faut cliquer
+  // "Envoyer à l'Arsenal" (action "collect-craft", game.js) pour liberer
+  // l'atelier et permettre une nouvelle fabrication.
   const queuedHere = game.craftingQueue?.[route];
   const remaining = game.durations?.[route] ?? item.duree_fabrication_instances ?? 0;
+  const readyHere = !!queuedHere && remaining === 0;
   return (
     <>
       {item.icone && (
@@ -267,15 +271,19 @@ function CatalogueItemDetail({
         className="primary"
         type="button"
         disabled={
-          busy || !!queuedHere || !needs.length || !!unmapped.length || lacking
+          busy ||
+          (queuedHere && !readyHere) ||
+          (!queuedHere && (!needs.length || !!unmapped.length || lacking))
         }
-        onClick={() => onCraft(item)}
+        onClick={() => (readyHere ? onCollect() : onCraft(item))}
       >
         {busy
           ? "Fabrication…"
-          : queuedHere
-            ? "Fabrication en cours…"
-            : actionLabel}
+          : readyHere
+            ? "Envoyer à l’Arsenal"
+            : queuedHere
+              ? "Fabrication en cours…"
+              : actionLabel}
       </button>
       {unmapped.length > 0 ? (
         <p className="error">
@@ -286,10 +294,15 @@ function CatalogueItemDetail({
           <p className="error">Ressources insuffisantes pour cette fabrication.</p>
         )
       )}
-      {queuedHere ? (
+      {readyHere ? (
         <p className="muted">
-          Fabrication en cours : encore {remaining} instance(s) avant que
-          l’objet ne rejoigne l’arsenal.
+          Fabrication terminée : cliquez sur « Envoyer à l’Arsenal » pour
+          libérer l’atelier.
+        </p>
+      ) : queuedHere ? (
+        <p className="muted">
+          Fabrication en cours : encore {remaining} instance(s) avant de
+          pouvoir l’envoyer à l’arsenal.
         </p>
       ) : (
         <p className="muted">
@@ -740,9 +753,6 @@ export function App() {
       dorm: dormRef.current,
       infirm: infirmRef.current,
       training: trainingRef.current,
-      // Snapshot complet (et non les seules durees) : une fabrication en
-      // attente peut etre livree par ce meme clic (cf. resolveCraftingQueue
-      // plus bas), ce qui touche aussi inventory/craftingQueue.
       game: gameRef.current,
     });
     const d = stepDurations(dormRef.current, -1);
@@ -755,7 +765,7 @@ export function App() {
     setInfirm(i);
     setTraining(t);
     setInstanceTicks((v) => v + 1);
-    const decremented = {
+    const next = {
       ...gameRef.current,
       durations: Object.fromEntries(
         Object.entries(gameRef.current.durations || defaultDurations).map(([k, v]) => [
@@ -764,14 +774,9 @@ export function App() {
         ]),
       ),
     };
-    const { state: next, delivered } = resolveCraftingQueue(decremented);
     gameRef.current = next;
     setGame(next);
-    notify(
-      delivered.length
-        ? `+1 Instance : ${delivered.join(", ")} rejoint l’arsenal. Les autres Durées d’Instance diminuent de 1, minimum 0.`
-        : "+1 Instance : toutes les Durées d’Instance diminuent de 1, minimum 0.",
-    );
+    notify("+1 Instance : toutes les Durées d’Instance diminuent de 1, minimum 0.");
   }
   function undoInstanceStep() {
     if (!instanceUndo) return;
@@ -1007,6 +1012,28 @@ export function App() {
           setSelectedArme(null);
           setModal(null);
         }
+        notify(result.message);
+      }
+      busyRef.current = false;
+      setBusy(false);
+    }, 280);
+  }
+  // Recupere manuellement une fabrication (locale ou catalogue) une fois sa
+  // Duree d'instance a 0 : libere l'atelier pour une nouvelle fabrication.
+  // Ne ferme jamais la fiche/modale : le bouton doit simplement redevenir
+  // "Fabriquer"/"Envoyer à la forge" sur place.
+  function actCollect(route) {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    setActionError("");
+    timer.current = setTimeout(() => {
+      const result = transact(gameRef.current, { type: "collect-craft", route });
+      if (result.error) {
+        setActionError(result.error);
+      } else {
+        gameRef.current = result.state;
+        setGame(result.state);
         notify(result.message);
       }
       busyRef.current = false;
@@ -1406,6 +1433,7 @@ export function App() {
                             : "Envoyer à l’armurerie"
                         }
                         onCraft={(a) => actCatalogue(a, route)}
+                        onCollect={() => actCollect(route)}
                       />
                       {actionError && (
                         <p role="alert" className="error">
@@ -1464,50 +1492,70 @@ export function App() {
                           </div>
                         ))}
                       </div>
-                      <button
-                        className="primary"
-                        disabled={
-                          busy ||
-                          !!game.craftingQueue?.[route] ||
-                          ["metal", "leather", "wood"].some(
-                            (k) => game.resources[k] < item[k],
-                          )
-                        }
-                        onClick={() => {
-                          const duree =
-                            game.durations?.[route] ??
-                            (route === "forge" ? 5 : 3);
-                          if (duree > 0) act("craft-queue", item.id, { route });
-                          else act("craft", item.id);
-                        }}
-                      >
-                        {busy
-                          ? "Fabrication…"
-                          : game.craftingQueue?.[route]
-                            ? "Fabrication en cours…"
-                            : "Fabriquer"}
-                      </button>
-                      {["metal", "leather", "wood"].some(
-                        (k) => game.resources[k] < item[k],
-                      ) && <p className="error">Ressources insuffisantes.</p>}
-                      {actionError && (
-                        <p role="alert" className="error">
-                          {actionError}
-                        </p>
-                      )}
-                      {game.craftingQueue?.[route] ? (
-                        <p className="muted">
-                          Fabrication en cours : encore{" "}
-                          {game.durations?.[route] ??
-                            (route === "forge" ? 5 : 3)}{" "}
-                          instance(s) avant que l’objet ne rejoigne l’arsenal.
-                        </p>
-                      ) : (
-                        <p className="muted">
-                          L’objet fabriqué rejoint votre inventaire une fois la
-                          durée d’instance à 0.
-                        </p>
-                      )}
+                      {(() => {
+                        const queued = game.craftingQueue?.[route];
+                        const remaining =
+                          game.durations?.[route] ?? (route === "forge" ? 5 : 3);
+                        const ready = !!queued && remaining === 0;
+                        return (
+                          <>
+                            <button
+                              className="primary"
+                              disabled={
+                                busy ||
+                                (queued && !ready) ||
+                                (!queued &&
+                                  ["metal", "leather", "wood"].some(
+                                    (k) => game.resources[k] < item[k],
+                                  ))
+                              }
+                              onClick={() => {
+                                if (ready) {
+                                  actCollect(route);
+                                  return;
+                                }
+                                if (remaining > 0)
+                                  act("craft-queue", item.id, { route });
+                                else act("craft", item.id);
+                              }}
+                            >
+                              {busy
+                                ? "Fabrication…"
+                                : ready
+                                  ? "Envoyer à l’Arsenal"
+                                  : queued
+                                    ? "Fabrication en cours…"
+                                    : "Fabriquer"}
+                            </button>
+                            {!queued &&
+                              ["metal", "leather", "wood"].some(
+                                (k) => game.resources[k] < item[k],
+                              ) && <p className="error">Ressources insuffisantes.</p>}
+                            {actionError && (
+                              <p role="alert" className="error">
+                                {actionError}
+                              </p>
+                            )}
+                            {ready ? (
+                              <p className="muted">
+                                Fabrication terminée : cliquez sur « Envoyer à
+                                l’Arsenal » pour libérer l’atelier.
+                              </p>
+                            ) : queued ? (
+                              <p className="muted">
+                                Fabrication en cours : encore {remaining}{" "}
+                                instance(s) avant de pouvoir l’envoyer à
+                                l’arsenal.
+                              </p>
+                            ) : (
+                              <p className="muted">
+                                L’objet fabriqué rejoint votre inventaire une
+                                fois la durée d’instance à 0.
+                              </p>
+                            )}
+                          </>
+                        );
+                      })()}
                     </>
                   )}
                 </section>
@@ -1868,6 +1916,7 @@ export function App() {
                       busy={busy}
                       route={ATELIER_ROUTE[modal.atelier]}
                       onCraft={(a) => actCatalogue(a, ATELIER_ROUTE[modal.atelier])}
+                      onCollect={() => actCollect(ATELIER_ROUTE[modal.atelier])}
                     />
                     {actionError && (
                       <p role="alert" className="error">

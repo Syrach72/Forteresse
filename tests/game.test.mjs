@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { initialGame, transact, resolveCraftingQueue } from "../src/game.js";
+import { initialGame, transact } from "../src/game.js";
 test("achat : débit, stock et inventaire cohérents sans modifier la source", () => {
   const s = initialGame();
   const r = transact(s, { type: "buy", id: "maille" }).state;
@@ -76,7 +76,7 @@ test("fabrication d'une arme du catalogue Supabase (Forge) : consomme les ressou
   );
   assert.equal(r2.inventory.length, r.inventory.length);
 });
-test("fabrication catalogue avec route et duree_fabrication_instances : mise en attente puis livraison via resolveCraftingQueue", () => {
+test("fabrication catalogue avec route et duree_fabrication_instances : mise en attente puis recuperation manuelle via collect-craft", () => {
   const arme = {
     id: "22222222-2222-2222-2222-222222222222",
     nom: "Arbalète légère",
@@ -103,14 +103,26 @@ test("fabrication catalogue avec route et duree_fabrication_instances : mise en 
     transact(queued, { type: "craft-catalogue", arme, route: "forge" }).error,
     /déjà en cours/,
   );
-  const tooEarly = resolveCraftingQueue({ ...queued, durations: { forge: 1 } });
-  assert.equal(tooEarly.delivered.length, 0);
-  const done = resolveCraftingQueue({ ...queued, durations: { forge: 0 } });
-  assert.deepEqual(done.delivered, ["Arbalète légère"]);
-  const delivered = done.state.inventory.find((i) => i.id === `catalogue:${arme.id}`);
+  // Duree encore a 1 : la recuperation est refusee, rien n'est livre.
+  const tooEarly = { ...queued, durations: { forge: 1 } };
+  assert.match(
+    transact(tooEarly, { type: "collect-craft", route: "forge" }).error,
+    /n’est pas encore terminée/,
+  );
+  // Duree tombee a 0 : reste en attente tant qu'on ne clique pas
+  // "Envoyer à l'Arsenal" (pas de livraison automatique).
+  const ready = { ...queued, durations: { forge: 0 } };
+  assert.ok(!ready.inventory.some((i) => i.id === `catalogue:${arme.id}`));
+  const done = transact(ready, { type: "collect-craft", route: "forge" }).state;
+  const delivered = done.inventory.find((i) => i.id === `catalogue:${arme.id}`);
   assert.equal(delivered.quantity, 1);
   assert.equal(delivered.categorie, "Armes");
-  assert.equal(done.state.craftingQueue.forge, null);
+  assert.equal(done.craftingQueue.forge, null);
+  // Une fois recupere, plus rien a recuperer dans cet atelier.
+  assert.match(
+    transact(done, { type: "collect-craft", route: "forge" }).error,
+    /Aucune fabrication à récupérer/,
+  );
 });
 test("fabrication catalogue : ressource non reconnue ou insuffisante refuse sans muter l'état", () => {
   const s = initialGame();
@@ -153,21 +165,23 @@ test("fabrication en attente : ressources debitees tout de suite, objet livre se
     }).error,
     /déjà en cours/,
   );
-  // Duree encore a 3 (valeur par defaut de la demo) : rien ne se livre.
-  const tooEarly = resolveCraftingQueue({
-    ...queued,
-    durations: { armurerie: 3 },
-  });
-  assert.equal(tooEarly.delivered.length, 0);
-  assert.ok(!tooEarly.state.inventory.some((i) => i.id === "maille"));
-  // Duree tombee a 0 : l'objet rejoint l'inventaire et la file se vide.
-  const delivered = resolveCraftingQueue({
-    ...queued,
-    durations: { armurerie: 0 },
-  });
-  assert.deepEqual(delivered.delivered, ["Cotte de mailles"]);
-  assert.equal(delivered.state.inventory.find((i) => i.id === "maille").quantity, 1);
-  assert.equal(delivered.state.craftingQueue.armurerie, null);
+  // Duree encore a 3 (valeur par defaut de la demo) : la recuperation
+  // manuelle est refusee tant que ce n'est pas termine.
+  const tooEarly = { ...queued, durations: { armurerie: 3 } };
+  assert.match(
+    transact(tooEarly, { type: "collect-craft", route: "armurerie" }).error,
+    /n’est pas encore terminée/,
+  );
+  // Duree tombee a 0 : reste en attente tant qu'on ne clique pas
+  // "Envoyer à l'Arsenal" (pas de livraison automatique).
+  const ready = { ...queued, durations: { armurerie: 0 } };
+  assert.ok(!ready.inventory.some((i) => i.id === "maille"));
+  const done = transact(ready, {
+    type: "collect-craft",
+    route: "armurerie",
+  }).state;
+  assert.equal(done.inventory.find((i) => i.id === "maille").quantity, 1);
+  assert.equal(done.craftingQueue.armurerie, null);
 });
 import {
   INITIAL_DORMITORY,
