@@ -537,7 +537,12 @@ export function App() {
   const [name, setName] = useState("Aldric");
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState("");
-  const [selection, setSelection] = useState("maille");
+  // null tant qu'aucun joueur n'a explicitement choisi de fabriquer l'objet
+  // de demonstration local (Épée longue/Cotte de mailles) : ne se met plus
+  // en place tout seul a la simple navigation vers Forge/Armurerie, pour
+  // que la case reste vide jusqu'a une veritable commande (cf. actCollect
+  // et le rendu du panneau Forge/Armurerie plus bas).
+  const [selection, setSelection] = useState(null);
   // Catalogue chargé par atelier (forge/armurerie/alchimie/magie), pour ne
   // recharger qu'une fois par atelier consulté. { [atelier]: { items, error } }
   const [catalogueByAtelier, setCatalogueByAtelier] = useState({});
@@ -675,8 +680,6 @@ export function App() {
     return () => window.removeEventListener("hashchange", handler);
   }, []);
   useEffect(() => {
-    if (route === "forge") setSelection("epee");
-    if (route === "armurerie") setSelection("maille");
     document.title = `${place?.name || (auth ? (route === "inscription" ? "Créer un compte" : "Connexion") : "Forteresse")} · La Compagnie`;
     titleRef.current?.focus({ preventScroll: true });
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -1107,6 +1110,11 @@ export function App() {
         gameRef.current = result.state;
         setGame(result.state);
         setModal(null);
+        // Vide la case locale (Épée longue/Cotte de mailles) : elle ne doit
+        // pas se remettre prête à refabriquer toute seule apres la
+        // livraison, mais rester vide jusqu'a une nouvelle commande
+        // explicite (Marché > Voir la recette, ou le Catalogue).
+        setSelection(null);
         notify(result.message);
       }
       busyRef.current = false;
@@ -1114,8 +1122,6 @@ export function App() {
     }, 280);
   }
   function go(l) {
-    if (l.id === "forge") setSelection("epee");
-    if (l.id === "armurerie") setSelection("maille");
     if (l.locked) {
       setModal({ type: "locked", place: l });
       return;
@@ -1200,7 +1206,10 @@ export function App() {
       });
     setCatalogueByAtelier((prev) => ({ ...prev, [atelier]: { items, error: "" } }));
   }
-  const item = ITEMS.find((i) => i.id === selection) || ITEMS[0];
+  // null si aucune commande locale n'est en cours pour Forge/Armurerie (cf.
+  // useState(null) plus haut) : pas de repli sur ITEMS[0], sinon la case
+  // réafficherait toujours un objet par défaut au lieu de rester vide.
+  const item = ITEMS.find((i) => i.id === selection) || null;
   if (route === "admin") return <Admin onCraftItem={sendToForge} />;
   if (session === undefined) {
     return (
@@ -1493,114 +1502,164 @@ export function App() {
                       ? "Le feu donne forme"
                       : "À l’abri de l’acier"}
                   </p>
-                  <>
-                      <ItemArt item={item} />
-                      <h2>{item.name}</h2>
-                      <p>{item.description}</p>
-                      <div className="stat-line">
-                        <span>
-                          {item.type === "Armes" ? "Attaque" : "Protection"}
-                        </span>
-                        <strong>{item.defense}</strong>
-                      </div>
-                      <div className="workshop-duration">
-                        <label htmlFor="workshop-duration">Durée d’instance</label>
-                        <select
-                          id="workshop-duration"
-                          disabled={!!game.craftingQueue?.[route]}
-                          value={
-                            game.durations?.[route] ?? (route === "forge" ? 5 : 3)
-                          }
-                          onChange={(e) =>
-                            setWorkshopDuration(route, e.target.value)
-                          }
-                        >
-                          {[0, 1, 2, 3, 4, 5].map((n) => (
-                            <option key={n} value={n}>
-                              {n}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <h3>Ressources nécessaires</h3>
-                      <div className="materials">
-                        {[
-                          ["metal", "Métal"],
-                          ["leather", "Cuir"],
-                          ["wood", "Bois"],
-                        ].map(([k, label]) => (
-                          <div key={k}>
-                            <span>{label}</span>
-                            <strong>{item[k]}</strong>
-                            <small>Stock : {materialQuantity(game.inventory, k)}</small>
+                  {(() => {
+                    const queued = game.craftingQueue?.[route];
+                    const remaining =
+                      game.durations?.[route] ?? (route === "forge" ? 5 : 3);
+                    const ready = !!queued && remaining === 0;
+                    // Case vide tant qu'aucune commande n'a ete passee (ni
+                    // objet local choisi via le Marche, ni fabrication
+                    // catalogue en cours) : pas d'objet pret a fabriquer par
+                    // defaut, il faut une veritable commande d'un joueur.
+                    if (!item && !queued) {
+                      return (
+                        <p className="muted">
+                          Aucune fabrication en cours. Consultez le catalogue
+                          pour choisir un objet à envoyer{" "}
+                          {route === "forge" ? "à la forge" : "à l’armurerie"}.
+                        </p>
+                      );
+                    }
+                    // Fabrication du catalogue en cours/prete sans commande
+                    // locale selectionnee : on ne connait que id/nom/icone
+                    // (pas les champs de ITEMS comme description/defense/
+                    // metal-leather-wood), donc on affiche seulement la
+                    // progression partagee, pas la fiche complete.
+                    if (!item) {
+                      const queuedNom =
+                        queued && typeof queued === "object"
+                          ? queued.nom
+                          : "Fabrication en cours";
+                      return (
+                        <>
+                          <h2>{queuedNom}</h2>
+                          <div className="workshop-duration">
+                            <label>Durée d’instance restante</label>
+                            <strong>{remaining}</strong>
                           </div>
-                        ))}
-                      </div>
-                      {(() => {
-                        const queued = game.craftingQueue?.[route];
-                        const remaining =
-                          game.durations?.[route] ?? (route === "forge" ? 5 : 3);
-                        const ready = !!queued && remaining === 0;
-                        return (
-                          <>
-                            <button
-                              className="primary"
-                              disabled={
-                                busy ||
-                                (queued && !ready) ||
-                                (!queued &&
-                                  ["metal", "leather", "wood"].some(
-                                    (k) => materialQuantity(game.inventory, k) < item[k],
-                                  ))
-                              }
-                              onClick={() => {
-                                if (ready) {
-                                  actCollect(route);
-                                  return;
-                                }
-                                if (remaining > 0)
-                                  act("craft-queue", item.id, { route });
-                                else act("craft", item.id);
-                              }}
-                            >
-                              {busy
-                                ? "Fabrication…"
-                                : ready
-                                  ? "Envoyer à l’Arsenal"
-                                  : queued
-                                    ? "Fabrication en cours…"
-                                    : "Fabriquer"}
-                            </button>
-                            {!queued &&
+                          <button
+                            className="primary"
+                            disabled={busy || !ready}
+                            onClick={() => actCollect(route)}
+                          >
+                            {busy
+                              ? "Fabrication…"
+                              : ready
+                                ? "Envoyer à l’Arsenal"
+                                : "Fabrication en cours…"}
+                          </button>
+                          {actionError && (
+                            <p role="alert" className="error">
+                              {actionError}
+                            </p>
+                          )}
+                          <p className="muted">
+                            {ready
+                              ? "Fabrication terminée : cliquez sur « Envoyer à l’Arsenal » pour libérer l’atelier."
+                              : `Fabrication en cours : encore ${remaining} instance(s) avant de pouvoir l’envoyer à l’arsenal.`}
+                          </p>
+                        </>
+                      );
+                    }
+                    return (
+                      <>
+                        <ItemArt item={item} />
+                        <h2>{item.name}</h2>
+                        <p>{item.description}</p>
+                        <div className="stat-line">
+                          <span>
+                            {item.type === "Armes" ? "Attaque" : "Protection"}
+                          </span>
+                          <strong>{item.defense}</strong>
+                        </div>
+                        <div className="workshop-duration">
+                          <label htmlFor="workshop-duration">Durée d’instance</label>
+                          <select
+                            id="workshop-duration"
+                            disabled={!!queued}
+                            value={remaining}
+                            onChange={(e) =>
+                              setWorkshopDuration(route, e.target.value)
+                            }
+                          >
+                            {[0, 1, 2, 3, 4, 5].map((n) => (
+                              <option key={n} value={n}>
+                                {n}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <h3>Ressources nécessaires</h3>
+                        <div className="materials">
+                          {[
+                            ["metal", "Métal"],
+                            ["leather", "Cuir"],
+                            ["wood", "Bois"],
+                          ].map(([k, label]) => (
+                            <div key={k}>
+                              <span>{label}</span>
+                              <strong>{item[k]}</strong>
+                              <small>Stock : {materialQuantity(game.inventory, k)}</small>
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          className="primary"
+                          disabled={
+                            busy ||
+                            (queued && !ready) ||
+                            (!queued &&
                               ["metal", "leather", "wood"].some(
                                 (k) => materialQuantity(game.inventory, k) < item[k],
-                              ) && <p className="error">Ressources insuffisantes.</p>}
-                            {actionError && (
-                              <p role="alert" className="error">
-                                {actionError}
-                              </p>
-                            )}
-                            {ready ? (
-                              <p className="muted">
-                                Fabrication terminée : cliquez sur « Envoyer à
-                                l’Arsenal » pour libérer l’atelier.
-                              </p>
-                            ) : queued ? (
-                              <p className="muted">
-                                Fabrication en cours : encore {remaining}{" "}
-                                instance(s) avant de pouvoir l’envoyer à
-                                l’arsenal.
-                              </p>
-                            ) : (
-                              <p className="muted">
-                                L’objet fabriqué rejoint votre inventaire une
-                                fois la durée d’instance à 0.
-                              </p>
-                            )}
-                          </>
-                        );
-                      })()}
-                  </>
+                              ))
+                          }
+                          onClick={() => {
+                            if (ready) {
+                              actCollect(route);
+                              return;
+                            }
+                            if (remaining > 0)
+                              act("craft-queue", item.id, { route });
+                            else act("craft", item.id);
+                          }}
+                        >
+                          {busy
+                            ? "Fabrication…"
+                            : ready
+                              ? "Envoyer à l’Arsenal"
+                              : queued
+                                ? "Fabrication en cours…"
+                                : "Fabriquer"}
+                        </button>
+                        {!queued &&
+                          ["metal", "leather", "wood"].some(
+                            (k) => materialQuantity(game.inventory, k) < item[k],
+                          ) && <p className="error">Ressources insuffisantes.</p>}
+                        {actionError && (
+                          <p role="alert" className="error">
+                            {actionError}
+                          </p>
+                        )}
+                        {ready ? (
+                          <p className="muted">
+                            Fabrication terminée : cliquez sur « Envoyer à
+                            l’Arsenal » pour libérer l’atelier.
+                          </p>
+                        ) : queued ? (
+                          <p className="muted">
+                            Fabrication en cours : encore {remaining}{" "}
+                            instance(s) avant de pouvoir l’envoyer à
+                            l’arsenal.
+                          </p>
+                        ) : (
+                          <p className="muted">
+                            L’objet fabriqué rejoint votre inventaire une
+                            fois la durée d’instance à 0.
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </section>
                 <button
                   className="catalog-button wood-button"
@@ -1823,11 +1882,7 @@ export function App() {
                 aria-label={l.name}
                 aria-current={l.id === route ? "page" : undefined}
                 className={l.id === route ? "active" : ""}
-                onClick={() => {
-                  if (l.id === "forge") setSelection("epee");
-                  if (l.id === "armurerie") setSelection("maille");
-                  go(l);
-                }}
+                onClick={() => go(l)}
               >
                 {l.id === "quetes" ? (
                   <span className="sprite asset-sprite" aria-hidden="true">
