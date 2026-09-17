@@ -1020,8 +1020,10 @@ export function App() {
   }
   // Recupere manuellement une fabrication (locale ou catalogue) une fois sa
   // Duree d'instance a 0 : libere l'atelier pour une nouvelle fabrication.
-  // Ne ferme jamais la fiche/modale : le bouton doit simplement redevenir
-  // "Fabriquer"/"Envoyer à la forge" sur place.
+  // Referme la fiche de l'objet catalogue tout juste livre (vide les
+  // cellules Temps de fabrication/Ressources) au lieu de la laisser prete
+  // a relancer immediatement le meme objet : il faut retourner au
+  // catalogue pour en choisir un (comme apres une livraison immediate).
   function actCollect(route) {
     if (busyRef.current) return;
     busyRef.current = true;
@@ -1034,6 +1036,8 @@ export function App() {
       } else {
         gameRef.current = result.state;
         setGame(result.state);
+        setSelectedArme(null);
+        setModal(null);
         notify(result.message);
       }
       busyRef.current = false;
