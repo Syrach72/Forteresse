@@ -6,30 +6,11 @@
 .alchemy-circle-heading button { color: #ffebbd; font-size: 15px; padding: 8px 10px; background: #271e14d9; border: 1px solid #9f8558; }
 .alchemy-selection { min-height: 22px; font-size: 15px; margin: 5px 0; text-shadow: 0 2px 3px #000; }
 .alchemy-sigil { position: relative; aspect-ratio: 384 / 360; width: min(100%, 690px); margin: 0 auto; isolation: isolate; }
-.sigil-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: -1; }
+.sigil-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .sigil-art img { width: 100%; height: 100%; object-fit: contain; }
-.sigil-branch { position: absolute; width: 17%; aspect-ratio: 1; transform: translate(-50%, -50%); }
-.sigil-target { width: 100%; height: 100%; padding: 5px; border-radius: 50%; border: 3px ridge #bba36b; background: radial-gradient(circle, #f2e4bf, #b39c68); color: #665634; display: grid; place-items: center; box-shadow: inset 0 0 10px #44341b66, 0 2px 8px #0008; cursor: pointer; font: 21px Georgia, serif; }
-.sigil-target.filled { background: radial-gradient(circle, #4c5b31, #242a1c); }
-.sigil-target.filled { cursor: grab; }
-.sigil-target.drop-active, .sigil-target.selected { outline: 3px solid #dafa92; outline-offset: 3px; box-shadow: 0 0 24px #b8ed8977; }
-.sigil-remove { position: absolute; right: -7px; top: -8px; width: 26px; height: 26px; padding: 0; border: 1px solid #d5c69b; border-radius: 50%; background: #32241a; color: #fff; font: 22px/1 Georgia, serif; cursor: pointer; }
-.sigil-center { position: absolute; left: 50%; top: 57%; transform: translate(-50%, -50%); width: 17%; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: #20271ee8; border: 2px ridge #998b60; font: 35px Georgia, serif; color: var(--potion-color); pointer-events: none; }
-.recipe-ready .sigil-center { box-shadow: 0 0 25px var(--potion-color); }
 .alchemy-error { background: var(--paper); padding: 10px; }
-.ingredient-art { display: block; width: 40px; aspect-ratio: 1; position: relative; overflow: hidden; pointer-events: none; }
-.ingredient-art img { width: 100%; height: 100%; object-fit: contain; }
-.ingredient-crop img { position: absolute; max-width: none; height: auto; }
-.sigil-target .ingredient-art { width: 85%; }
 .alchimie .interior-backdrop { background-position: 66% bottom; }
 @media (max-width: 930px) and (min-width: 681px) { .alchemy-circle-heading { align-items: start; } .alchemy-circle-heading h2 { font-size: 14px; } }
 @media (max-width: 680px) {
   .alchemy-sigil { max-width: 340px; }
-  .sigil-remove { width: 28px; height: 28px; }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .sigil-target, .ingredient-tile { transition: background 150ms ease, outline-color 150ms ease, box-shadow 150ms ease; }
-  .ingredient-tile:hover:not(:disabled) { box-shadow: 0 0 10px #d2b57188; }
-  .brew-success { animation: brew-flash 450ms ease-out; }
-  @keyframes brew-flash { from { box-shadow: 0 0 28px #b4e59099; } to { box-shadow: none; } }
 }

@@ -1490,7 +1490,7 @@ export function App() {
               ]}
             />
           ) : route === "alchimie" ? (
-            <Alchemy alchemy={game.alchemy || initialAlchemy()} inventory={game.inventory} onChange={updateAlchemy} />
+            <Alchemy alchemy={game.alchemy || initialAlchemy()} onChange={updateAlchemy} />
           ) : route === "mage" ? (
             <Mage mage={game.mage || initialMage()} inventory={game.inventory} onChange={updateMage} />
           ) : ["armurerie", "forge"].includes(route) ? (
