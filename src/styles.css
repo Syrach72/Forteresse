@@ -2265,18 +2265,33 @@ video.interior-backdrop-boxed {
   display: flex;
   flex-direction: column;
   border: 3px ridge #987a45;
-  background: #2d2113;
+  background: transparent;
 }
 .dorm-named .bed-cell > .bed-slot {
   border: 0;
   aspect-ratio: 1.2;
+  background: transparent;
+}
+/* Fonds opaques retirés : le décor de la page reste visible derrière l'encart
+   et les lits (bordures conservées, ombres légères pour la lisibilité). */
+.dorm-board.dorm-named {
+  background: transparent;
+  box-shadow: none;
+}
+.dorm-named .bed-frame {
+  display: none;
+}
+.dorm-named .dorm-title h2,
+.dorm-named .dorm-title > span {
+  text-shadow: 0 1px 4px #000, 0 0 8px #000a;
 }
 .bed-player {
   box-sizing: border-box;
   min-height: 40px;
   border-top: 2px solid #987a45;
-  background: #1f150b;
+  background: transparent;
   color: #f6e3ae;
+  text-shadow: 0 1px 4px #000, 0 0 8px #000;
   font: 600 16px/1.2 "Cormorant Garamond", Georgia, serif;
   text-align: center;
   padding: 10px 8px;
