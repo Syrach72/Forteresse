@@ -1,7 +1,7 @@
 export const INITIAL_DORMITORY = {
   capacity: 6,
   beds: [
-    { heroId: "tavoul", remaining: 3 },
+    null,
     null,
     null,
     null,
@@ -62,7 +62,7 @@ export function updateDormitory(dorm, action) {
 
 export const INITIAL_INFIRMARY = {
   capacity: 2,
-  beds: [{ heroId: "orik", remaining: 3 }, null, null, null, null, null],
+  beds: [null, null, null, null, null, null],
 };
 export function stepDurations(area, delta) {
   return {

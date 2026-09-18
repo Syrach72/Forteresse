@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { ASSETS, LOCATIONS, CLASSES, ITEMS } from "./data";
 import { initialGame, transact, RESOURCE_ALIASES, materialQuantity, ingredientQuantity, sellableValue } from "./game";
 import { Market } from "./Market.jsx";
@@ -19,7 +19,7 @@ import {
   stepDurations,
   updateDormitory,
 } from "./dormitory";
-import { WARRIORS, CHARACTER_CLASSES } from "./characters";
+import { CHARACTER_CLASSES } from "./characters";
 import { Admin } from "./Admin.jsx";
 import { supabase } from "./supabaseClient";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
@@ -711,7 +711,31 @@ export function App() {
   const infirmRef = useRef(infirm);
   const [dorm, setDorm] = useState(() => structuredClone(INITIAL_DORMITORY));
   const dormRef = useRef(dorm);
-  const [warriors, setWarriors] = useState(() => structuredClone(WARRIORS));
+  // Mercenaires créés dans Administration > Mercenaires (tables mercenaire et
+  // classe) et recrutements (table recrutement). Seuls les mercenaires
+  // recrutés par le joueur connecté sont disponibles au Dortoir, à
+  // l'Infirmerie et à l'Entraînement (liste `warriors` ci-dessous).
+  const [mercenaires, setMercenaires] = useState([]);
+  const [mesRecrutes, setMesRecrutes] = useState(() => new Set());
+  const [recrutesServeur, setRecrutesServeur] = useState(() => new Set());
+  const tousRecrutes = useMemo(
+    () => new Set([...recrutesServeur, ...mesRecrutes]),
+    [recrutesServeur, mesRecrutes],
+  );
+  const warriors = useMemo(
+    () =>
+      mercenaires
+        .filter((m) => mesRecrutes.has(m.id))
+        .map((m) => ({
+          id: m.id,
+          name: m.nom,
+          role: m.classe,
+          portrait: m.portrait || "/assets/icons/lock.png",
+          veterancy: m.veterance ?? 0,
+          notes: "",
+        })),
+    [mercenaires, mesRecrutes],
+  );
   const [route, setRoute] = useState(location.hash.slice(1) || "forteresse");
   const [game, setGame] = useState(initialGame);
   const [name, setName] = useState("Aldric");
@@ -755,20 +779,24 @@ export function App() {
     );
     return () => sub.subscription.unsubscribe();
   }, []);
-  // Mercenaires créés dans Administration > Mercenaires (tables mercenaire
-  // et classe), rechargés à chaque ouverture d'une page Personnages pour
-  // refléter une création faite entre-temps : chacun apparaît sous l'onglet
-  // de sa classe.
-  const [mercenaires, setMercenaires] = useState([]);
+  // Compte administrateur (affichage uniquement ; les droits réels sont
+  // portés par la base, cf. is_admin()).
+  const estAdmin = session?.user?.email?.toLowerCase() === "btestart@aol.com";
+  // Recharge les mercenaires et les recrutements à la connexion, puis à chaque
+  // ouverture d'une page Personnages (pour refléter une création ou un
+  // recrutement fait entre-temps).
   const surPagePersonnages = route.startsWith("personnages/");
   useEffect(() => {
-    if (!session?.user || !surPagePersonnages) return;
+    if (!session?.user) return;
     let annule = false;
     (async () => {
-      const [{ data: merc, error: e1 }, { data: classes, error: e2 }] = await Promise.all([
-        supabase.from("mercenaire").select("*").order("nom"),
-        supabase.from("classe").select("id, nom"),
-      ]);
+      const [{ data: merc, error: e1 }, { data: classes, error: e2 }, rec, tous] =
+        await Promise.all([
+          supabase.from("mercenaire").select("*").order("nom"),
+          supabase.from("classe").select("id, nom"),
+          supabase.from("recrutement").select("mercenaire_id, user_id"),
+          supabase.rpc("mercenaires_recrutes"),
+        ]);
       if (annule || e1 || e2) return;
       const nomClasse = new Map(classes.map((c) => [c.id, c.nom]));
       setMercenaires(
@@ -780,11 +808,49 @@ export function App() {
           veterance: m.veterance ?? 0,
         })),
       );
+      // Table absente (migration pas encore appliquée) : on garde les
+      // recrutements locaux de la session sans les écraser.
+      if (!rec.error) {
+        const miens = rec.data
+          .filter((r) => r.user_id === session.user.id)
+          .map((r) => r.mercenaire_id);
+        setMesRecrutes((old) => new Set([...old, ...miens]));
+      }
+      if (!tous.error) setRecrutesServeur(new Set(tous.data));
     })();
     return () => {
       annule = true;
     };
   }, [session?.user?.id, surPagePersonnages]);
+  // Recruter un mercenaire : enregistré pour le joueur connecté (un mercenaire
+  // ne peut être recruté que par un seul joueur). Sans la table recrutement,
+  // repli sur la session en cours.
+  async function recruit(m) {
+    if (mesRecrutes.has(m.id)) return;
+    const { error } = await supabase
+      .from("recrutement")
+      .insert({ mercenaire_id: m.id, user_id: session.user.id });
+    const tableAbsente =
+      error &&
+      (error.code === "PGRST205" ||
+        error.code === "42P01" ||
+        /does not exist|schema cache/i.test(error.message || ""));
+    if (error && error.code === "23505") {
+      setRecrutesServeur((old) => new Set([...old, m.id]));
+      notify(`${m.nom} a déjà été recruté par un autre joueur.`);
+      return;
+    }
+    if (error && !tableAbsente) {
+      notify(`Recrutement impossible : ${error.message}`);
+      return;
+    }
+    setMesRecrutes((old) => new Set([...old, m.id]));
+    notify(
+      tableAbsente
+        ? `${m.nom} est recruté pour cette session : il apparaît au Dortoir.`
+        : `${m.nom} est recruté : il apparaît au Dortoir.`,
+    );
+  }
   // Charge une seule fois, au demarrage, le stock de l'Arsenal saisi cote
   // admin (Administration > Arsenal, table ligne_inventaire) et le fusionne
   // dans game.inventory : c'est ce qui permet au MJ d'ajouter "a la main"
@@ -1593,6 +1659,10 @@ export function App() {
           route={route}
           warriors={warriors}
           mercenaires={mercenaires}
+          recrutes={[...mesRecrutes]}
+          tousRecrutes={[...tousRecrutes]}
+          estAdmin={estAdmin}
+          onRecruit={recruit}
           onUpdate={(id, data) =>
             setWarriors((old) =>
               old.map((w) => (w.id === id ? { ...w, ...data } : w)),
@@ -1726,7 +1796,7 @@ export function App() {
           ) : route === "entrainement" ? (
             <Training
               training={training}
-              warriors={warriors}
+              warriors={[]}
               otherOccupied={[...dorm.beds, ...infirm.beds]
                 .filter(Boolean)
                 .map((b) => b.heroId)}
@@ -1752,7 +1822,7 @@ export function App() {
             <Dormitory
               kind="infirmary"
               dorm={infirm}
-              warriors={warriors}
+              warriors={[]}
               gold={game.gold}
               onChange={changeInfirm}
               onUnlock={unlockInfirm}

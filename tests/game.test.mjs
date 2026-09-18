@@ -316,7 +316,7 @@ import {
 } from "../src/treasury-data.js";
 test("durées : bornes 0–5, incrément global, aucune sortie automatique", () => {
   const area = structuredClone(INITIAL_DORMITORY);
-  area.beds[0].remaining = 5;
+  area.beds[0] = { heroId: "tavoul", remaining: 5 };
   const next = stepDurations(area, 1);
   assert.equal(next.beds[0].remaining, 5);
   assert.equal(next.beds[0].heroId, area.beds[0].heroId);
@@ -325,11 +325,19 @@ test("durées : bornes 0–5, incrément global, aucune sortie automatique", () 
     updateDormitory(area, { type: "duration", slot: 0, remaining: 6 }).error,
     /0 à 5/,
   );
-  assert.equal(stepTraining(INITIAL_TRAINING, 1).instructor.remaining, 3);
+  const training = { ...INITIAL_TRAINING, instructor: { heroId: "gnaeus", remaining: 2 } };
+  assert.equal(stepTraining(training, 1).instructor.remaining, 3);
+});
+test("le dortoir, l'infirmerie et l'entraînement démarrent vides (les mercenaires viennent du recrutement)", () => {
+  assert.ok(INITIAL_DORMITORY.beds.every((b) => b === null));
+  assert.equal(INITIAL_TRAINING.instructor, null);
+  assert.ok(INITIAL_TRAINING.students.every((x) => x === null));
 });
 test("repos : pas de doublon ni de placement sur un lit verrouillé", () => {
+  const dormitory = structuredClone(INITIAL_DORMITORY);
+  dormitory.beds[0] = { heroId: "tavoul", remaining: 3 };
   assert.match(
-    updateDormitory(INITIAL_DORMITORY, {
+    updateDormitory(dormitory, {
       type: "place",
       slot: 1,
       heroId: "tavoul",
@@ -338,7 +346,7 @@ test("repos : pas de doublon ni de placement sur un lit verrouillé", () => {
     /déjà/,
   );
   assert.match(
-    updateDormitory(INITIAL_DORMITORY, {
+    updateDormitory(dormitory, {
       type: "place",
       slot: 10,
       heroId: "orik",

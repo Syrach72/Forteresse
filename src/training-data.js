@@ -1,6 +1,6 @@
 export const INITIAL_TRAINING = {
-  instructor: { heroId: "gnaeus", remaining: 2 },
-  students: [{ heroId: "hetamon", remaining: 0 }, null, null],
+  instructor: null,
+  students: [null, null, null],
   capacity: 1,
   secondGroup: false,
 };

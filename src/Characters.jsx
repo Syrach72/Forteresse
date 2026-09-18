@@ -17,6 +17,19 @@ export function ReferenceCrop({
   className = "",
   label = "",
 }) {
+  if (typeof crop === "string")
+    // Portrait d'un mercenaire recruté : URL de l'image (format 3:4).
+    return (
+      <span
+        className={`reference-crop reference-crop-url ${className}`}
+        style={{ aspectRatio: "3/4" }}
+        role={label ? "img" : undefined}
+        aria-label={label || undefined}
+        aria-hidden={label ? undefined : true}
+      >
+        <img alt="" src={crop} />
+      </span>
+    );
   const [x, y, w, h] = crop;
   return (
     <span
@@ -47,10 +60,24 @@ const classeRoute = (nom) =>
     .replace(/[̀-ͯ]/g, "")
     .trim()
     .toLowerCase();
-export function Characters({ route, warriors, mercenaires = [], onUpdate, Modal, notify }) {
+export function Characters({
+  route,
+  warriors,
+  mercenaires = [],
+  recrutes = [],
+  tousRecrutes = [],
+  estAdmin = false,
+  onRecruit = () => {},
+  onUpdate,
+  Modal,
+  notify,
+}) {
   const [, classId, heroId] = route.split("/");
   const cls = CHARACTER_CLASSES.find((c) => c[0] === classId);
-  const hero = warriors.find((w) => w.id === heroId);
+  const merc = mercenaires.find((m) => m.id === heroId);
+  const hero = merc ? undefined : warriors.find((w) => w.id === heroId);
+  // Fiche d'un mercenaire recruté : réservée à son recruteur et à l'admin.
+  const accesFiche = (id) => !tousRecrutes.includes(id) || recrutes.includes(id) || estAdmin;
   const [popup, setPopup] = useState(null);
   const [errors, setErrors] = useState({});
   const title = useRef();
@@ -98,7 +125,7 @@ export function Characters({ route, warriors, mercenaires = [], onUpdate, Modal,
   return (
     <main
       id="main"
-      className={`characters-page ${hero ? "character-detail" : "character-gallery"}`}
+      className={`characters-page ${hero || merc ? "character-detail" : "character-gallery"}`}
       style={
         PARCHMENT_CLASSES.includes(classId)
           ? {
@@ -113,11 +140,15 @@ export function Characters({ route, warriors, mercenaires = [], onUpdate, Modal,
         <div>
           <p className="eyebrow">Les personnages de la compagnie</p>
           <h1 tabIndex="-1" ref={title}>
-            {hero ? hero.name : cls?.[1] || "Personnages"}
+            {merc ? merc.nom : hero ? hero.name : cls?.[1] || "Personnages"}
           </h1>
         </div>
-        <a href={hero ? `#personnages/${classId}` : "#forteresse"}>
-          {hero ? "‹ Tous les guerriers" : "‹ Forteresse"}
+        <a href={hero || merc ? `#personnages/${classId}` : "#forteresse"}>
+          {merc
+            ? `‹ ${cls?.[1] || "Personnages"}`
+            : hero
+              ? "‹ Tous les guerriers"
+              : "‹ Forteresse"}
         </a>
       </div>
       <nav className="mobile-class-nav" aria-label="Classes de personnages">
@@ -136,21 +167,47 @@ export function Characters({ route, warriors, mercenaires = [], onUpdate, Modal,
           <div className="warrior-grid">
             {mercenaires
               .filter((m) => classeRoute(m.classe) === classId)
-              .map((m) => (
-                <figure className="merc-card" key={m.id}>
-                  <span className="merc-portrait">
-                    {m.portrait ? (
-                      <img src={m.portrait} alt={`Portrait de ${m.nom}`} />
-                    ) : (
-                      <span className="merc-portrait-vide" aria-hidden="true" />
-                    )}
-                  </span>
-                  <figcaption>
-                    <strong>{m.nom}</strong>
-                    <span>Vétérance : {m.veterance}</span>
-                  </figcaption>
-                </figure>
-              ))}
+              .map((m) => {
+                const pris = tousRecrutes.includes(m.id);
+                const carte = (
+                  <>
+                    <span className="merc-portrait">
+                      {m.portrait ? (
+                        <img src={m.portrait} alt={`Portrait de ${m.nom}`} />
+                      ) : (
+                        <span className="merc-portrait-vide" aria-hidden="true" />
+                      )}
+                    </span>
+                    <span className="merc-caption">
+                      <strong>{m.nom}</strong>
+                      <span>Vétérance : {m.veterance}</span>
+                    </span>
+                  </>
+                );
+                // Recruté : grisé et inclicable pour les joueurs ; l'admin
+                // peut toujours ouvrir la fiche.
+                if (pris && !estAdmin)
+                  return (
+                    <div
+                      className="merc-card recrute"
+                      key={m.id}
+                      aria-disabled="true"
+                      title="Déjà recruté"
+                    >
+                      {carte}
+                    </div>
+                  );
+                return (
+                  <a
+                    className={`merc-card${pris ? " recrute recrute-admin" : ""}`}
+                    key={m.id}
+                    href={`#personnages/${classId}/${m.id}`}
+                    aria-label={`Ouvrir la fiche de ${m.nom}`}
+                  >
+                    {carte}
+                  </a>
+                );
+              })}
           </div>
         ) : (
           <section className="parchment empty-class">
@@ -161,6 +218,57 @@ export function Characters({ route, warriors, mercenaires = [], onUpdate, Modal,
             <a href="#personnages/guerrier">Voir les guerriers</a>
           </section>
         )
+      ) : merc ? (
+        accesFiche(merc.id) ? (
+          <section className="merc-sheet parchment">
+            <span className="merc-portrait merc-portrait-grand">
+              {merc.portrait ? (
+                <img src={merc.portrait} alt={`Portrait de ${merc.nom}`} />
+              ) : (
+                <span className="merc-portrait-vide" aria-hidden="true" />
+              )}
+            </span>
+            <div className="merc-sheet-body">
+              <h2>{merc.nom}</h2>
+              <div className="stat-line">
+                <span>Classe</span>
+                <strong>{merc.classe || "—"}</strong>
+              </div>
+              <div className="stat-line">
+                <span>Vétérance</span>
+                <strong>{merc.veterance}</strong>
+              </div>
+              <p className="muted">
+                La fiche détaillée de ce mercenaire sera complétée ultérieurement.
+              </p>
+              {recrutes.includes(merc.id) ? (
+                <p className="merc-recrute-note">
+                  Recruté : {merc.nom} est disponible au Dortoir.
+                </p>
+              ) : tousRecrutes.includes(merc.id) ? (
+                <p className="merc-recrute-note">
+                  Recruté par un autre joueur (accès administrateur).
+                </p>
+              ) : (
+                <button
+                  className="wood-button merc-recruit"
+                  type="button"
+                  onClick={() => onRecruit(merc)}
+                >
+                  Recruter
+                </button>
+              )}
+            </div>
+          </section>
+        ) : (
+          <section className="parchment empty-class">
+            <h2>Fiche réservée</h2>
+            <p>Ce mercenaire a été recruté : sa fiche n’est accessible qu’à son recruteur.</p>
+            <a href={`#personnages/${classId}`}>Retour</a>
+          </section>
+        )
+      ) : heroId && !hero && mercenaires.length === 0 ? (
+        <p className="muted">Chargement de la fiche…</p>
       ) : hero ? (
         <>
           <div className="sheet-toolbar">
