@@ -755,6 +755,36 @@ export function App() {
     );
     return () => sub.subscription.unsubscribe();
   }, []);
+  // Mercenaires créés dans Administration > Mercenaires (tables mercenaire
+  // et classe), rechargés à chaque ouverture d'une page Personnages pour
+  // refléter une création faite entre-temps : chacun apparaît sous l'onglet
+  // de sa classe.
+  const [mercenaires, setMercenaires] = useState([]);
+  const surPagePersonnages = route.startsWith("personnages/");
+  useEffect(() => {
+    if (!session?.user || !surPagePersonnages) return;
+    let annule = false;
+    (async () => {
+      const [{ data: merc, error: e1 }, { data: classes, error: e2 }] = await Promise.all([
+        supabase.from("mercenaire").select("*").order("nom"),
+        supabase.from("classe").select("id, nom"),
+      ]);
+      if (annule || e1 || e2) return;
+      const nomClasse = new Map(classes.map((c) => [c.id, c.nom]));
+      setMercenaires(
+        merc.map((m) => ({
+          id: m.id,
+          nom: m.nom,
+          classe: nomClasse.get(m.classe_id) || "",
+          portrait: m.portrait || null,
+          veterance: m.veterance ?? 0,
+        })),
+      );
+    })();
+    return () => {
+      annule = true;
+    };
+  }, [session?.user?.id, surPagePersonnages]);
   // Charge une seule fois, au demarrage, le stock de l'Arsenal saisi cote
   // admin (Administration > Arsenal, table ligne_inventaire) et le fusionne
   // dans game.inventory : c'est ce qui permet au MJ d'ajouter "a la main"
@@ -1562,6 +1592,7 @@ export function App() {
         <Characters
           route={route}
           warriors={warriors}
+          mercenaires={mercenaires}
           onUpdate={(id, data) =>
             setWarriors((old) =>
               old.map((w) => (w.id === id ? { ...w, ...data } : w)),

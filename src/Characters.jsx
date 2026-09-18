@@ -39,7 +39,15 @@ export function ReferenceCrop({
     </span>
   );
 }
-export function Characters({ route, warriors, onUpdate, Modal, notify }) {
+// Identifiant de route d'une classe (« Rôdeur » → « rodeur ») à partir du nom
+// saisi dans l'administration.
+const classeRoute = (nom) =>
+  (nom || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .trim()
+    .toLowerCase();
+export function Characters({ route, warriors, mercenaires = [], onUpdate, Modal, notify }) {
   const [, classId, heroId] = route.split("/");
   const cls = CHARACTER_CLASSES.find((c) => c[0] === classId);
   const hero = warriors.find((w) => w.id === heroId);
@@ -124,7 +132,27 @@ export function Characters({ route, warriors, onUpdate, Modal, notify }) {
         ))}
       </nav>
       {!heroId ? (
-        classId === "guerrier" ? null : (
+        mercenaires.some((m) => classeRoute(m.classe) === classId) ? (
+          <div className="warrior-grid">
+            {mercenaires
+              .filter((m) => classeRoute(m.classe) === classId)
+              .map((m) => (
+                <figure className="merc-card" key={m.id}>
+                  <span className="merc-portrait">
+                    {m.portrait ? (
+                      <img src={m.portrait} alt={`Portrait de ${m.nom}`} />
+                    ) : (
+                      <span className="merc-portrait-vide" aria-hidden="true" />
+                    )}
+                  </span>
+                  <figcaption>
+                    <strong>{m.nom}</strong>
+                    <span>Vétérance : {m.veterance}</span>
+                  </figcaption>
+                </figure>
+              ))}
+          </div>
+        ) : (
           <section className="parchment empty-class">
             <h2>Aucun personnage pour le moment</h2>
             <p>
