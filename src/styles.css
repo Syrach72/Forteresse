@@ -3507,3 +3507,21 @@ h1,
   gap: 18px;
   margin: 14px 0 6px;
 }
+
+.item-destroy-confirm {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #8c3a2a;
+  background: #f6e2d6;
+}
+.item-destroy-confirm p {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+.item-destroy-actions {
+  display: flex;
+  gap: 10px;
+}
+.item-destroy-actions .wood-button {
+  flex: 1;
+}

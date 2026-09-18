@@ -200,6 +200,22 @@ test("achat catalogue : le coût est décompté de la trésorerie, l'objet rejoi
   );
   assert.equal(JSON.stringify(s), snapshot);
 });
+test("destruction : quantité retirée sans gain, refus si quantité invalide ou objet équipé", () => {
+  const s = initialGame();
+  const gold = s.gold;
+  const before = s.inventory.find((i) => i.id === "potion").quantity;
+  const r = transact(s, { type: "destroy", id: "potion", quantity: 3 });
+  assert.equal(r.state.gold, gold);
+  assert.equal(r.state.inventory.find((i) => i.id === "potion").quantity, before - 3);
+  assert.equal(r.state.log[0].amount, 0);
+  const tout = transact(s, { type: "destroy", id: "potion", quantity: before });
+  assert.ok(!tout.state.inventory.some((i) => i.id === "potion"));
+  s.inventory.push({ id: "catalogue:e", nom: "Épée", quantity: 1, equipped: true });
+  const snapshot = JSON.stringify(s);
+  assert.match(transact(s, { type: "destroy", id: "catalogue:e", quantity: 1 }).error, /équipé/);
+  assert.match(transact(s, { type: "destroy", id: "potion", quantity: before + 1 }).error, /Quantité invalide/);
+  assert.equal(JSON.stringify(s), snapshot);
+});
 test("vente : moitié de la valeur créditée à la trésorerie, quantité retirée, refus sans valeur ou quantité invalide", () => {
   const s = initialGame();
   const gold = s.gold;

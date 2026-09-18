@@ -242,8 +242,9 @@ function arsenalCategoryOf(own) {
 // (équiper/vendre/détruire, cf. commentaire plus bas). Composant à part,
 // avec son propre état de quantité à prélever, pour que ce champ reparte
 // à 1 à chaque nouvel objet ouvert (clé = id de l'objet côté appelant).
-function ItemActionPanel({ game, id, onSell, busy, error }) {
+function ItemActionPanel({ game, id, onSell, onDestroy, busy, error }) {
   const [qty, setQty] = useState(1);
+  const [confirmDestroy, setConfirmDestroy] = useState(false);
   const own = game.inventory.find((i) => i.id === id);
   if (!own) return <p>Cet objet n’est plus dans l’arsenal.</p>;
   const { art } = inventoryItemInfo(own);
@@ -256,9 +257,9 @@ function ItemActionPanel({ game, id, onSell, busy, error }) {
         Quantité : {own.quantity}
         {own.equipped ? " · Équipé" : ""}
       </p>
-      {/* Équiper et Détruire restent inertes : Bruno donnera les règles
-          (emplacement d'équipement, confirmation de destruction) avant de
-          les brancher. La vente au Marché (moitié de la valeur) est active. */}
+      {/* Équiper reste inerte : Bruno donnera la règle d'emplacement
+          d'équipement avant de le brancher. La vente au Marché (moitié de la
+          valeur) et la destruction (avec confirmation Oui/Non) sont actives. */}
       <div className="item-detail-actions">
         <div className="item-detail-equip">
           <button className="wood-button" disabled title="Bientôt disponible">
@@ -276,13 +277,14 @@ function ItemActionPanel({ game, id, onSell, busy, error }) {
                 setQty(
                   Number.isFinite(n) ? Math.min(Math.max(n, 1), own.quantity) : 1,
                 );
+                setConfirmDestroy(false);
               }}
             />
           </label>
         </div>
         <button
           className="wood-button"
-          disabled={busy || gain === null || own.equipped}
+          disabled={busy || gain === null || own.equipped || confirmDestroy}
           title={
             gain === null
               ? "Valeur non définie : vente impossible"
@@ -292,10 +294,39 @@ function ItemActionPanel({ game, id, onSell, busy, error }) {
         >
           Vendre
         </button>
-        <button className="wood-button" disabled title="Bientôt disponible">
+        <button
+          className="wood-button"
+          disabled={busy || own.equipped || confirmDestroy}
+          title={own.equipped ? "Rangez d’abord cet objet équipé" : "Détruire définitivement"}
+          onClick={() => setConfirmDestroy(true)}
+        >
           Détruire
         </button>
       </div>
+      {confirmDestroy && (
+        <div className="item-destroy-confirm" role="alertdialog" aria-label="Confirmer la destruction">
+          <p>
+            Détruire définitivement {qty} × {inventoryItemInfo(own).name} ? Cette action est
+            irréversible.
+          </p>
+          <div className="item-destroy-actions">
+            <button
+              className="wood-button"
+              disabled={busy}
+              onClick={() => onDestroy(own.id, qty)}
+            >
+              Oui
+            </button>
+            <button
+              className="wood-button"
+              disabled={busy}
+              onClick={() => setConfirmDestroy(false)}
+            >
+              Non
+            </button>
+          </div>
+        </div>
+      )}
       <p className="muted">
         {gain === null
           ? "Valeur non définie : cet objet ne peut pas être vendu au Marché."
@@ -1220,6 +1251,27 @@ export function App() {
         // de suite) : la modale native bloque le reste de la page pendant
         // qu'elle est ouverte, notamment le bouton +1 Instance necessaire
         // pour faire avancer une fabrication mise en attente.
+        setModal(null);
+        notify(result.message);
+      }
+      busyRef.current = false;
+      setBusy(false);
+    }, 280);
+  }
+  // Destruction définitive d'une quantité d'un objet de l'arsenal, après
+  // confirmation Oui/Non dans la fiche (ItemActionPanel).
+  function actDestroy(id, quantity) {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    setActionError("");
+    timer.current = setTimeout(() => {
+      const result = transact(gameRef.current, { type: "destroy", id, quantity });
+      if (result.error) {
+        setActionError(result.error);
+      } else {
+        gameRef.current = result.state;
+        setGame(result.state);
         setModal(null);
         notify(result.message);
       }
@@ -2376,6 +2428,7 @@ export function App() {
               game={game}
               id={modal.id}
               onSell={actSell}
+              onDestroy={actDestroy}
               busy={busy}
               error={actionError}
             />

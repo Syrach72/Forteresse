@@ -133,6 +133,17 @@ export function transact(state, action) {
     next.gold += gain;
     delta = gain;
     message = `Vente de ${item?.name || own.nom || "l’objet"} ×${qty} : +${gain} Po.`;
+  } else if (action.type === "destroy") {
+    // Destruction définitive d'une quantité d'un objet de l'arsenal (aucun
+    // gain). La confirmation Oui/Non est demandée par l'interface.
+    const own = next.inventory.find((i) => i.id === action.id);
+    const qty = Math.floor(Number(action.quantity));
+    if (!own) return { error: "Cet objet n’est plus dans l’arsenal." };
+    if (!(qty >= 1) || qty > own.quantity) return { error: "Quantité invalide." };
+    if (own.equipped) return { error: "Rangez d’abord cet objet équipé avant de le détruire." };
+    own.quantity -= qty;
+    if (own.quantity <= 0) next.inventory = next.inventory.filter((i) => i.id !== own.id);
+    message = `Destruction de ${item?.name || own.nom || "l’objet"} ×${qty}.`;
   } else if (action.type === "craft") {
     if (!item?.metal) return { error: "Cette recette n’existe pas." };
     if (["metal", "leather", "wood"].some((k) => materialQuantity(next.inventory, k) < item[k]))
