@@ -260,13 +260,10 @@ export function Characters({
               </p>
               {recrutes.includes(merc.id) ? (
                 <div className="merc-recruit-form">
-                  <label htmlFor="merc-nom-joueur">Nom du joueur</label>
-                  <input
-                    id="merc-nom-joueur"
-                    type="text"
-                    readOnly
-                    value={nomsJoueur[merc.id] || ""}
-                  />
+                  <div className="stat-line merc-joueur-fixe">
+                    <span>Nom du joueur</span>
+                    <strong>{nomsJoueur[merc.id] || "—"}</strong>
+                  </div>
                   <button
                     className="wood-button merc-recruit"
                     type="button"

@@ -3752,3 +3752,8 @@ a.merc-card:hover {
   height: 100%;
   object-fit: cover;
 }
+/* Fiche d'un mercenaire recruté : nom du joueur figé (non modifiable). */
+.merc-recruit-form .merc-joueur-fixe {
+  align-self: stretch;
+  margin: 0 0 4px;
+}
