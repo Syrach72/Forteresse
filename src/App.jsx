@@ -1807,6 +1807,7 @@ export function App() {
             />
           ) : route === "dortoirs" ? (
             <Dormitory
+              key="dortoir"
               dorm={dorm}
               warriors={warriors}
               gold={game.gold}
@@ -1820,6 +1821,7 @@ export function App() {
             />
           ) : route === "infirmerie" ? (
             <Dormitory
+              key="infirmerie"
               kind="infirmary"
               dorm={infirm}
               warriors={[]}

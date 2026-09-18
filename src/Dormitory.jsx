@@ -167,16 +167,24 @@ export function Dormitory({
               </button>
             ))}
         </div>
-        {warriors.every(
-          (w) =>
-            dorm.beds.some((b) => b?.heroId === w.id) ||
-            otherOccupied.includes(w.id),
-        ) && (
+        {warriors.length === 0 ? (
           <p>
-            Tous les mercenaires sont occupés. Libérez-en un au repos, en soins ou à l’entraînement.
+            {isInfirmary
+              ? "Aucun mercenaire disponible ici pour le moment."
+              : "Aucun mercenaire recruté pour le moment : recrutez-en depuis les pages Personnages."}
           </p>
+        ) : (
+          warriors.every(
+            (w) =>
+              dorm.beds.some((b) => b?.heroId === w.id) ||
+              otherOccupied.includes(w.id),
+          ) && (
+            <p>
+              Tous les mercenaires sont occupés. Libérez-en un au repos, en soins ou à l’entraînement.
+            </p>
+          )
         )}
-        {selected && (
+        {selected && warriors.some((w) => w.id === selected) && (
           <p role="status" className="placement-status">
             {warriors.find((w) => w.id === selected)?.name} sélectionné :
             choisissez un lit libre.
