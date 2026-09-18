@@ -1390,11 +1390,7 @@ export function App() {
             style={{
               backgroundImage: `url(${ASSETS[{ armurerie: "armory", forge: "forge", dortoirs: "dormitory", entrainement: "training", quetes: "quests", infirmerie: "infirmary", alchimie: "alchemy", tresorerie: "treasury", marche: "market", mage: "mage" }[route]] || ASSETS.castle})`,
             }}
-          >
-            {route === "alchimie" && (
-              <span className="alchemy-pour-fx" aria-hidden="true" />
-            )}
-          </div>
+          />
           <div className="room-top">
             <a href="#forteresse">‹ Forteresse</a>
             <h1 ref={titleRef} tabIndex="-1">
