@@ -1418,13 +1418,14 @@ export function App() {
     };
     const objetById = new Map(objets.map((o) => [o.id, o]));
     // Marché : « Objets divers » regroupe aussi les catégories racines sans
-    // bouton dédié (ex. Gemmes), sous leur propre onglet.
+    // bouton dédié, sous leur propre onglet — sauf les Gemmes, qui ne
+    // s'obtiennent que par fabrication (Tour du Mage) et ne sont pas en vente.
     const rootOf = (categorieId) => {
       let c = categories.find((x) => x.id === categorieId);
       while (c?.parent_id) c = categories.find((x) => x.id === c.parent_id);
       return c;
     };
-    const MARKET_BUTTON_ROOTS = ["armes", "armures", "composants", "matériaux", "produits alchimiques"];
+    const MARKET_BUTTON_ROOTS = ["armes", "armures", "composants", "matériaux", "produits alchimiques", "gemmes"];
     const isDivers = consultation && racineNom.trim().toLowerCase() === "objet divers";
     const included = (o) =>
       isDivers
