@@ -308,6 +308,7 @@ import {
   updateDormitory,
   stepDurations,
   firstFreeBed,
+  syncRecruits,
 } from "../src/dormitory.js";
 import { INITIAL_TRAINING, stepTraining } from "../src/training-data.js";
 import {
@@ -347,6 +348,28 @@ test("recrutement : premier lit libre et débloqué ; aucun lit si tous sont pri
   assert.equal(firstFreeBed(dormitory), -1);
   dormitory.capacity += 1;
   assert.equal(firstFreeBed(dormitory), dormitory.capacity - 1);
+});
+test("lits = embauche : un lit par mercenaire recruté, libéré au renvoi, sans toucher aux autres", () => {
+  const start = structuredClone(INITIAL_DORMITORY);
+  const a = syncRecruits(start, ["a", "b"]);
+  assert.deepEqual(
+    a.beds.slice(0, 3).map((b) => b?.heroId ?? null),
+    ["a", "b", null],
+  );
+  // Rechargement : mêmes recrutés, mêmes lits (idempotent).
+  assert.deepEqual(syncRecruits(a, ["a", "b"]).beds, a.beds);
+  // Renvoi de "a" : son lit se vide, "b" garde le sien ; un nouveau prend le lit libre.
+  const b = syncRecruits(a, ["b"]);
+  assert.deepEqual(
+    b.beds.slice(0, 2).map((x) => x?.heroId ?? null),
+    [null, "b"],
+  );
+  assert.equal(syncRecruits(b, ["b", "c"]).beds[0].heroId, "c");
+  // Plus de recrutés que de lits débloqués : les lits verrouillés restent vides.
+  const many = syncRecruits(start, ["1", "2", "3", "4", "5", "6", "7"]);
+  assert.equal(many.beds.filter(Boolean).length, start.capacity);
+  assert.equal(many.beds[start.capacity], null);
+  assert.equal(start.beds.filter(Boolean).length, 0);
 });
 test("repos : pas de doublon ni de placement sur un lit verrouillé", () => {
   const dormitory = structuredClone(INITIAL_DORMITORY);

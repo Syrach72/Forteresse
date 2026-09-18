@@ -69,6 +69,7 @@ export function Characters({
   estAdmin = false,
   onRecruit = () => {},
   litLibre = true,
+  nomsJoueur = {},
   onUpdate,
   Modal,
   notify,
@@ -81,9 +82,13 @@ export function Characters({
   const accesFiche = (id) => !tousRecrutes.includes(id) || recrutes.includes(id) || estAdmin;
   const [popup, setPopup] = useState(null);
   const [errors, setErrors] = useState({});
+  // Nom du joueur inscrit sur la fiche avant de recruter (enregistré avec le
+  // recrutement, puis affiché sur les pages où apparaît le mercenaire).
+  const [nomJoueur, setNomJoueur] = useState("");
   const title = useRef();
   useEffect(() => {
     setPopup(null);
+    setNomJoueur("");
     document.title = `${hero?.name || cls?.[1] || "Personnages"} · Forteresse`;
     title.current?.focus({ preventScroll: true });
   }, [route]);
@@ -243,31 +248,54 @@ export function Characters({
                 La fiche détaillée de ce mercenaire sera complétée ultérieurement.
               </p>
               {recrutes.includes(merc.id) ? (
-                <p className="merc-recrute-note">
-                  Recruté : {merc.nom} est disponible au Dortoir.
-                </p>
+                <>
+                  <div className="stat-line">
+                    <span>Joueur</span>
+                    <strong>{nomsJoueur[merc.id] || "—"}</strong>
+                  </div>
+                  <p className="merc-recrute-note">
+                    Recruté : {merc.nom} a son lit au Dortoir.
+                  </p>
+                </>
               ) : tousRecrutes.includes(merc.id) ? (
                 <p className="merc-recrute-note">
                   Recruté par un autre joueur (accès administrateur).
                 </p>
               ) : (
-                <>
+                <form
+                  className="merc-recruit-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (nomJoueur.trim() && litLibre)
+                      onRecruit(merc, nomJoueur.trim());
+                  }}
+                >
+                  <label htmlFor="merc-nom-joueur">Nom du joueur</label>
+                  <input
+                    id="merc-nom-joueur"
+                    type="text"
+                    maxLength={24}
+                    autoComplete="off"
+                    value={nomJoueur}
+                    placeholder="Écrivez votre nom"
+                    aria-describedby="merc-recruit-help"
+                    onChange={(e) => setNomJoueur(e.target.value)}
+                  />
                   <button
                     className="wood-button merc-recruit"
-                    type="button"
-                    disabled={!litLibre}
-                    aria-describedby={litLibre ? undefined : "merc-recruit-help"}
-                    onClick={() => onRecruit(merc)}
+                    type="submit"
+                    disabled={!litLibre || !nomJoueur.trim()}
                   >
                     Recruter
                   </button>
-                  {!litLibre && (
-                    <p id="merc-recruit-help" className="merc-recrute-note">
-                      Aucun lit libre au Dortoir : libérez un lit ou débloquez
-                      un emplacement pour recruter {merc.nom}.
-                    </p>
-                  )}
-                </>
+                  <p id="merc-recruit-help" className="merc-recrute-note">
+                    {!litLibre
+                      ? `Aucun lit libre au Dortoir : libérez un lit ou débloquez-en un pour recruter ${merc.nom}.`
+                      : !nomJoueur.trim()
+                        ? "Inscrivez votre nom pour pouvoir recruter ce mercenaire. Il restera affiché sur lui jusqu’à son renvoi."
+                        : `${merc.nom} prendra place dans un lit du Dortoir.`}
+                  </p>
+                </form>
               )}
             </div>
           </section>

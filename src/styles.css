@@ -2260,7 +2260,7 @@ video.interior-backdrop-boxed {
   display: block;
   width: 100%;
 }
-/* Dortoir : cellule agrandie = lit + champ où le joueur inscrit son nom. */
+/* Dortoir : un lit = un mercenaire embauché ; bandeau du nom du joueur en bas. */
 .dorm-named .bed-cell {
   display: flex;
   flex-direction: column;
@@ -2272,28 +2272,21 @@ video.interior-backdrop-boxed {
   aspect-ratio: 1.2;
 }
 .bed-player {
-  width: 100%;
-  min-width: 0;
   box-sizing: border-box;
-  border: 0;
+  min-height: 40px;
   border-top: 2px solid #987a45;
   background: #1f150b;
   color: #f6e3ae;
   font: 600 16px/1.2 "Cormorant Garamond", Georgia, serif;
   text-align: center;
-  padding: 9px 8px;
+  padding: 10px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.bed-player::placeholder {
-  color: #b39a66;
-  font-style: italic;
-  font-weight: 400;
-}
-.bed-player:focus-visible {
-  outline: 2px solid #f4cb63;
-  outline-offset: -2px;
-}
-/* Pastille de compteur : fond cuir noir aux coins dorés. */
-.dorm-named .rest-counter {
+/* Pastille de vétérance : fond cuir noir aux coins dorés. */
+.bed-veterance {
+  position: absolute;
   left: 4px;
   top: 4px;
   display: flex;
@@ -2302,10 +2295,6 @@ video.interior-backdrop-boxed {
   box-sizing: border-box;
   width: 50px;
   height: 50px;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 4px;
   background: url("/assets/references/bed-counter.webp") center/100% 100%
     no-repeat;
   color: #f3d27a;
@@ -2313,6 +2302,37 @@ video.interior-backdrop-boxed {
   font-weight: 700;
   line-height: 1;
   text-shadow: 0 1px 3px #000;
+}
+/* Fiche d'un mercenaire : nom du joueur à inscrire avant de recruter. */
+.merc-recruit-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+}
+.merc-recruit-form label {
+  font-weight: 600;
+}
+.merc-recruit-form input {
+  width: 100%;
+  max-width: 320px;
+  padding: 10px;
+  background: #fff8e7;
+  border: 1px solid var(--edge);
+  font: 19px Georgia, serif;
+}
+.merc-recruit-form .merc-recruit {
+  margin-top: 4px;
+}
+.merc-recruit-form .merc-recrute-note {
+  margin: 0;
+  font-weight: 400;
+  font-size: 16px;
+}
+.merc-recruit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .available-heroes {
   max-width: 1060px;
@@ -2485,14 +2505,14 @@ video.interior-backdrop-boxed {
     font-size: 23px;
     padding: 2px 5px;
   }
-  .dorm-named .rest-counter {
+  .bed-veterance {
     width: 38px;
     height: 38px;
-    padding: 0;
     font-size: 20px;
   }
   .bed-player {
     font-size: 14px;
+    min-height: 32px;
     padding: 7px 4px;
   }
   .bed-name {

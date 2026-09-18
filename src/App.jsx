@@ -13,10 +13,12 @@ import {
 } from "./training-data.js";
 import { Characters } from "./Characters.jsx";
 import { Dormitory } from "./Dormitory.jsx";
+import { Dortoir } from "./Dortoir.jsx";
 import {
   INITIAL_DORMITORY,
   INITIAL_INFIRMARY,
   firstFreeBed,
+  syncRecruits,
   stepDurations,
   updateDormitory,
 } from "./dormitory";
@@ -712,20 +714,17 @@ export function App() {
   const infirmRef = useRef(infirm);
   const [dorm, setDorm] = useState(() => structuredClone(INITIAL_DORMITORY));
   const dormRef = useRef(dorm);
-  // Nom saisi par le joueur sous chaque lit du Dortoir (texte libre, un par
-  // lit). Séparé de `dorm` pour ne pas être écrasé par l'annulation du +10 min.
-  const [bedNames, setBedNames] = useState(() => Array(18).fill(""));
-  const renameBed = (slot, value) =>
-    setBedNames((old) => old.map((n, i) => (i === slot ? value : n)));
   // Mercenaires créés dans Administration > Mercenaires (tables mercenaire et
   // classe) et recrutements (table recrutement). Seuls les mercenaires
-  // recrutés par le joueur connecté sont disponibles au Dortoir, à
-  // l'Infirmerie et à l'Entraînement (liste `warriors` ci-dessous).
+  // recrutés par le joueur connecté sont embauchés (un lit au Dortoir) et
+  // disponibles ailleurs (liste `warriors` ci-dessous).
+  // `mesRecrutes` : identifiant du mercenaire -> nom du joueur saisi sur sa
+  // fiche au moment du recrutement (persiste jusqu'au renvoi).
   const [mercenaires, setMercenaires] = useState([]);
-  const [mesRecrutes, setMesRecrutes] = useState(() => new Set());
+  const [mesRecrutes, setMesRecrutes] = useState(() => new Map());
   const [recrutesServeur, setRecrutesServeur] = useState(() => new Set());
   const tousRecrutes = useMemo(
-    () => new Set([...recrutesServeur, ...mesRecrutes]),
+    () => new Set([...recrutesServeur, ...mesRecrutes.keys()]),
     [recrutesServeur, mesRecrutes],
   );
   const warriors = useMemo(
@@ -738,10 +737,18 @@ export function App() {
           role: m.classe,
           portrait: m.portrait || "/assets/icons/lock.png",
           veterancy: m.veterance ?? 0,
+          player: mesRecrutes.get(m.id) || "",
           notes: "",
         })),
     [mercenaires, mesRecrutes],
   );
+  // Un lit du Dortoir par mercenaire recruté : à chaque changement des
+  // recrutements (chargement, recrutement, renvoi), les lits suivent.
+  useEffect(() => {
+    const next = syncRecruits(dormRef.current, [...mesRecrutes.keys()]);
+    dormRef.current = next;
+    setDorm(next);
+  }, [mesRecrutes, dorm.capacity]);
   const [route, setRoute] = useState(location.hash.slice(1) || "forteresse");
   const [game, setGame] = useState(initialGame);
   const [name, setName] = useState("Aldric");
@@ -800,7 +807,10 @@ export function App() {
         await Promise.all([
           supabase.from("mercenaire").select("*").order("nom"),
           supabase.from("classe").select("id, nom"),
-          supabase.from("recrutement").select("mercenaire_id, user_id"),
+          supabase
+            .from("recrutement")
+            .select("mercenaire_id, user_id, nom_joueur")
+            .order("created_at"),
           supabase.rpc("mercenaires_recrutes"),
         ]);
       if (annule || e1 || e2) return;
@@ -815,12 +825,16 @@ export function App() {
         })),
       );
       // Table absente (migration pas encore appliquée) : on garde les
-      // recrutements locaux de la session sans les écraser.
+      // recrutements locaux de la session sans les écraser. Sinon la base fait
+      // foi (ordre de recrutement conservé : les lits restent stables).
       if (!rec.error) {
-        const miens = rec.data
-          .filter((r) => r.user_id === session.user.id)
-          .map((r) => r.mercenaire_id);
-        setMesRecrutes((old) => new Set([...old, ...miens]));
+        setMesRecrutes(
+          new Map(
+            rec.data
+              .filter((r) => r.user_id === session.user.id)
+              .map((r) => [r.mercenaire_id, r.nom_joueur || ""]),
+          ),
+        );
       }
       if (!tous.error) setRecrutesServeur(new Set(tous.data));
     })();
@@ -833,17 +847,24 @@ export function App() {
   // repli sur la session en cours. Le mercenaire arrive directement dans le
   // premier lit libre et débloqué du Dortoir ; sans lit disponible, il ne peut
   // pas être recruté.
-  async function recruit(m) {
+  async function recruit(m, nomJoueur) {
     if (mesRecrutes.has(m.id)) return;
+    const joueur = (nomJoueur || "").trim();
+    if (!joueur) {
+      notify("Inscrivez votre nom de joueur sur la fiche avant de recruter.");
+      return;
+    }
     if (firstFreeBed(dormRef.current) < 0) {
       notify(
         `Recrutement impossible : aucun lit libre au Dortoir pour ${m.nom}.`,
       );
       return;
     }
-    const { error } = await supabase
-      .from("recrutement")
-      .insert({ mercenaire_id: m.id, user_id: session.user.id });
+    const { error } = await supabase.from("recrutement").insert({
+      mercenaire_id: m.id,
+      user_id: session.user.id,
+      nom_joueur: joueur,
+    });
     const tableAbsente =
       error &&
       (error.code === "PGRST205" ||
@@ -873,17 +894,10 @@ export function App() {
       );
       return;
     }
-    const next = updateDormitory(dormRef.current, {
-      type: "place",
-      slot,
-      heroId: m.id,
-      remaining: 0,
-    });
-    dormRef.current = next.state;
-    setDorm(next.state);
-    setMesRecrutes((old) => new Set([...old, m.id]));
+    // Le lit est attribué par l'effet `syncRecruits` ci-dessus.
+    setMesRecrutes((old) => new Map(old).set(m.id, joueur));
     notify(
-      `${m.nom} est recruté et prend place au lit ${slot + 1} du Dortoir${tableAbsente ? " (pour cette session)" : ""}.`,
+      `${m.nom} est recruté par ${joueur} et prend place au lit ${slot + 1} du Dortoir${tableAbsente ? " (pour cette session seulement : table de recrutement absente)" : ""}.`,
     );
   }
   // Renvoyer un mercenaire recruté : supprime le recrutement (il redevient
@@ -910,21 +924,18 @@ export function App() {
       notify(`Renvoi impossible : ${error.message}`);
       return;
     }
-    const sans = (old) => {
+    // Le lit et le nom du joueur disparaissent avec le recrutement (l'effet
+    // `syncRecruits` libère le lit).
+    setMesRecrutes((old) => {
+      const next = new Map(old);
+      next.delete(id);
+      return next;
+    });
+    setRecrutesServeur((old) => {
       const next = new Set(old);
       next.delete(id);
       return next;
-    };
-    setMesRecrutes(sans);
-    setRecrutesServeur(sans);
-    if (dormRef.current.beds.some((b) => b?.heroId === id)) {
-      const next = {
-        ...dormRef.current,
-        beds: dormRef.current.beds.map((b) => (b?.heroId === id ? null : b)),
-      };
-      dormRef.current = next;
-      setDorm(next);
-    }
+    });
     notify(
       `${m.nom} est renvoyé : il est de nouveau disponible sur la page ${m.classe || "de sa classe"}.`,
     );
@@ -1165,19 +1176,16 @@ export function App() {
     // le clic resterait à 0 après un -1 puis un +1, au lieu de refléter
     // qu'il n'avait pas bougé — l'annulation restaure donc l'état capturé
     // ici, plutôt que de rejouer l'opération inverse).
+    // Les lits du Dortoir (embauche) n'ont pas de compteur : ils ne suivent pas.
     setInstanceUndo({
-      dorm: dormRef.current,
       infirm: infirmRef.current,
       training: trainingRef.current,
       game: gameRef.current,
     });
-    const d = stepDurations(dormRef.current, -1);
     const i = stepDurations(infirmRef.current, -1);
     const t = stepTraining(trainingRef.current, -1);
-    dormRef.current = d;
     infirmRef.current = i;
     trainingRef.current = t;
-    setDorm(d);
     setInfirm(i);
     setTraining(t);
     setInstanceTicks((v) => v + 1);
@@ -1196,10 +1204,8 @@ export function App() {
   }
   function undoInstanceStep() {
     if (!instanceUndo) return;
-    dormRef.current = instanceUndo.dorm;
     infirmRef.current = instanceUndo.infirm;
     trainingRef.current = instanceUndo.training;
-    setDorm(instanceUndo.dorm);
     setInfirm(instanceUndo.infirm);
     setTraining(instanceUndo.training);
     const next = instanceUndo.game;
@@ -1226,7 +1232,6 @@ export function App() {
       person.heroId !== existing?.heroId &&
       [
         ...trainingIds(current),
-        ...dormRef.current.beds.filter(Boolean).map((b) => b.heroId),
         ...infirmRef.current.beds.filter(Boolean).map((b) => b.heroId),
       ].includes(person.heroId)
     )
@@ -1274,34 +1279,6 @@ export function App() {
     notify("Une place élève est débloquée.");
     return { state: next };
   }
-  function changeDorm(action) {
-    if (
-      action.type === "place" &&
-      !warriors.some((w) => w.id === action.heroId)
-    )
-      return { error: "Mercenaire inconnu." };
-    if (
-      action.type === "place" &&
-      trainingIds(trainingRef.current).includes(action.heroId)
-    )
-      return { error: "Ce mercenaire est à l’entraînement." };
-    if (
-      action.type === "place" &&
-      infirmRef.current.beds.some((b) => b?.heroId === action.heroId)
-    )
-      return { error: "Ce mercenaire est déjà à l’infirmerie." };
-    const result = updateDormitory(dormRef.current, action);
-    if (result.state) {
-      dormRef.current = result.state;
-      setDorm(result.state);
-      notify(
-        action.type === "release"
-          ? "Repos terminé : le mercenaire est disponible."
-          : "Dortoir mis à jour.",
-      );
-    }
-    return result;
-  }
   function changeInfirm(action) {
     if (
       action.type === "place" &&
@@ -1313,11 +1290,6 @@ export function App() {
       trainingIds(trainingRef.current).includes(action.heroId)
     )
       return { error: "Ce mercenaire est à l’entraînement." };
-    if (
-      action.type === "place" &&
-      dormRef.current.beds.some((b) => b?.heroId === action.heroId)
-    )
-      return { error: "Ce mercenaire est déjà au dortoir." };
     const result = updateDormitory(infirmRef.current, action);
     if (result.state) {
       infirmRef.current = result.state;
@@ -1737,7 +1709,8 @@ export function App() {
           route={route}
           warriors={warriors}
           mercenaires={mercenaires}
-          recrutes={[...mesRecrutes]}
+          recrutes={[...mesRecrutes.keys()]}
+          nomsJoueur={Object.fromEntries(mesRecrutes)}
           tousRecrutes={[...tousRecrutes]}
           estAdmin={estAdmin}
           onRecruit={recruit}
@@ -1876,30 +1849,21 @@ export function App() {
             <Training
               training={training}
               warriors={[]}
-              otherOccupied={[...dorm.beds, ...infirm.beds]
-                .filter(Boolean)
-                .map((b) => b.heroId)}
+              otherOccupied={infirm.beds.filter(Boolean).map((b) => b.heroId)}
               gold={game.gold}
               onChange={changeTraining}
               onUnlock={unlockTraining}
               Modal={Modal}
             />
           ) : route === "dortoirs" ? (
-            <Dormitory
+            <Dortoir
               key="dortoir"
               dorm={dorm}
               warriors={warriors}
               gold={game.gold}
-              onChange={changeDorm}
               onUnlock={unlockDorm}
               onDismiss={dismiss}
-              names={bedNames}
-              onRename={renameBed}
               Modal={Modal}
-              otherOccupied={[
-                ...infirm.beds.filter(Boolean).map((b) => b.heroId),
-                ...trainingIds(training),
-              ]}
             />
           ) : route === "infirmerie" ? (
             <Dormitory
@@ -1911,10 +1875,7 @@ export function App() {
               onChange={changeInfirm}
               onUnlock={unlockInfirm}
               Modal={Modal}
-              otherOccupied={[
-                ...dorm.beds.filter(Boolean).map((b) => b.heroId),
-                ...trainingIds(training),
-              ]}
+              otherOccupied={trainingIds(training)}
             />
           ) : ["armurerie", "forge", "alchimie", "mage"].includes(route) ? (
             <>

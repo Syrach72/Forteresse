@@ -66,6 +66,24 @@ export function firstFreeBed(dorm) {
   return dorm.beds.slice(0, dorm.capacity).findIndex((b) => !b);
 }
 
+// Le lit représente l'embauche d'un mercenaire (rien à voir avec le repos) :
+// un lit par mercenaire recruté. Libère les lits des mercenaires qui ne sont plus
+// recrutés (renvoyés) et place les recrutés sans lit dans les premiers lits
+// libres et débloqués, dans l'ordre de `recruitedIds` (ordre de recrutement).
+export function syncRecruits(dorm, recruitedIds) {
+  const wanted = new Set(recruitedIds);
+  const beds = dorm.beds.map((b) => (b && wanted.has(b.heroId) ? b : null));
+  const placed = new Set(beds.filter(Boolean).map((b) => b.heroId));
+  for (const id of recruitedIds) {
+    if (placed.has(id)) continue;
+    const slot = firstFreeBed({ ...dorm, beds });
+    if (slot < 0) break;
+    beds[slot] = { heroId: id, remaining: 0 };
+    placed.add(id);
+  }
+  return { ...dorm, beds };
+}
+
 export const INITIAL_INFIRMARY = {
   capacity: 2,
   beds: [null, null, null, null, null, null],
