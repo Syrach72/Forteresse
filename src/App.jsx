@@ -854,6 +854,10 @@ export function App() {
   // Renvoyer un mercenaire recruté : supprime le recrutement (il redevient
   // recrutable, sa carte est dégrisée sur la page de sa classe) et libère son
   // lit au Dortoir. Sans la table recrutement, repli sur la session en cours.
+  // Règle confirmée par Bruno : le mercenaire conserve sa vétérance et tout ce
+  // qui est inscrit sur sa fiche. Seule la ligne `recrutement` est supprimée ;
+  // la ligne `mercenaire` n'est jamais modifiée ici. Toute donnée de fiche
+  // future doit vivre sur le mercenaire, pas sur le recrutement.
   async function dismiss(id) {
     const m = mercenaires.find((x) => x.id === id);
     if (!m || !mesRecrutes.has(id)) return;

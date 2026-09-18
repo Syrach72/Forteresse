@@ -3,6 +3,7 @@
 Ces éléments viennent des captures et transcriptions de Bruno transmises dans cette conversation. Ils remplacent les hypothèses initiales.
 
 - Les joueurs utilisent des mercenaires successivement. Les mercenaires sont des membres de la compagnie, pas des personnages attribués définitivement à un utilisateur.
+- Recrutement : un mercenaire est recruté par un seul joueur à la fois. Depuis la page Dortoirs, le joueur peut le « renvoyer » : il redevient recrutable sur la page de sa classe et **conserve sa vétérance et tout ce qui est inscrit sur sa fiche au moment du renvoi**. Ces données appartiennent au mercenaire, jamais au recrutement (confirmé par Bruno le 18 septembre 2026).
 - Chaque classe ouvre une liste extensible de personnages. Une carte ouvre une fiche. Les caractéristiques sont renseignées manuellement ; aucune IA n’altère la fiche.
 - La fiche Guerrier comporte portrait/caractéristiques, armes/descriptions et grille de progression. Les aptitudes ouvrent des explications.
 - Exemple confirmé : Fougue, coût 3 Énergies ; en dépensant 3 Énergies, une fois par 24 h, le Guerrier prend une Action supplémentaire. Le lien précis entre cette aptitude et une cellule de progression n’est pas encore identifié ; le prototype fournit un bouton nommé Fougue.
