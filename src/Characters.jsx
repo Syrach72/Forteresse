@@ -124,30 +124,7 @@ export function Characters({ route, warriors, onUpdate, Modal, notify }) {
         ))}
       </nav>
       {!heroId ? (
-        classId === "guerrier" ? (
-          <>
-            <div className="warrior-grid">
-              {warriors.map((w) => (
-                <a
-                  key={w.id}
-                  href={`#personnages/guerrier/${w.id}`}
-                  className="warrior-card"
-                  aria-label={`Ouvrir la fiche de ${w.name}`}
-                >
-                  <ReferenceCrop crop={w.crop} />
-                  <span className="card-caption">
-                    <strong>{w.name}</strong>
-                    <small>{w.role.replace("Guerrier · ", "")}</small>
-                    <span>Vétérance : {w.veterancy}</span>
-                  </span>
-                </a>
-              ))}
-            </div>
-            <p className="roster-note">
-              Sélectionnez un personnage pour ouvrir sa fiche.
-            </p>
-          </>
-        ) : (
+        classId === "guerrier" ? null : (
           <section className="parchment empty-class">
             <h2>Aucun personnage pour le moment</h2>
             <p>
