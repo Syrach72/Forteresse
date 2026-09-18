@@ -425,6 +425,38 @@ img {
   background-position: center;
   filter: brightness(0.72);
 }
+video.interior-backdrop {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.marche video.interior-backdrop,
+.castle-map video.interior-backdrop {
+  transform: scale(1.18, 1.07);
+  transform-origin: top left;
+}
+.dortoirs video.interior-backdrop-boxed,
+.infirmerie video.interior-backdrop-boxed,
+.forge video.interior-backdrop-boxed {
+  transform: translateX(-50%) scale(1.18, 1.07);
+  transform-origin: top left;
+}
+.armurerie video.interior-backdrop-boxed {
+  transform: translateX(-50%) scale(1.24, 1.14);
+  transform-origin: 35% 55%;
+}
+.castle-map video.interior-backdrop {
+  filter: none;
+  z-index: 0;
+}
+video.interior-backdrop-boxed {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: auto;
+  height: 100%;
+}
 .armurerie .interior-backdrop,
 .forge .interior-backdrop,
 .infirmerie .interior-backdrop,
@@ -3390,7 +3422,7 @@ h1,
 }
 
 /* Pages de gestion : montrer les actions et le bas du décor sans hauteurs artificielles. */
-.infirmerie .interior-backdrop {
+.infirmerie div.interior-backdrop {
   inset: -140px -90px 0 -240px;
   background-size: cover !important;
   background-position: center bottom !important;
@@ -3438,7 +3470,7 @@ h1,
   .infirmary-board { max-width: none; }
   .infirmary-board .bed-slot { aspect-ratio: .9; }
   .infirmary-board .bed-name { font-size: 10px; }
-  .infirmerie .interior-backdrop { inset: -80px 0 0; }
+  .infirmerie div.interior-backdrop { inset: -80px 0 0; }
 }
 
 .infirmary-board .bed-frame { display: none; }

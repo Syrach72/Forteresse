@@ -34,6 +34,18 @@ function spendMaterial(next, key, amount) {
   const line = findMaterialLine(next.inventory, key);
   if (line) line.quantity -= amount;
 }
+// Ingrédient d'une recette du catalogue (Forge, Armurerie, Laboratoire, Tour
+// du Mage) : Fer/Métal/Cuir/Bois passent par les alias ci-dessus, tout autre
+// composant (alchimie, gemmes...) est cherché par son nom dans l'inventaire.
+const normalizeName = (s) => (s || "").trim().toLowerCase();
+export function findIngredientLine(inventory, nom) {
+  const key = RESOURCE_ALIASES[normalizeName(nom)];
+  if (key) return findMaterialLine(inventory, key);
+  return inventory.find((i) => normalizeName(i.nom) === normalizeName(nom));
+}
+export function ingredientQuantity(inventory, nom) {
+  return findIngredientLine(inventory, nom)?.quantity ?? 0;
+}
 export function initialGame() {
   return {
     ...structuredClone(INITIAL),
@@ -99,28 +111,19 @@ export function transact(state, action) {
   } else if (action.type === "craft-catalogue") {
     // Fabrication d'un objet du catalogue Supabase (Forge), distinct du
     // catalogue local ITEMS : la recette vient de ingredient_recette (noms
-    // libres), pas des trois champs metal/leather/wood fixes. On ne sait
-    // consommer que les ressources déjà suivies localement (Fer/Métal, Cuir,
-    // Bois) ; toute autre ingrédient bloque la fabrication avec un message
-    // clair plutôt que de l'ignorer silencieusement.
+    // libres), pas des trois champs metal/leather/wood fixes. Chaque
+    // ingrédient/composant est débité de l'inventaire (Arsenal) par son nom ;
+    // un composant absent du stock compte comme insuffisant.
     const arme = action.arme;
     const route = action.route;
     if (!arme?.ingredientsList?.length)
       return { error: "Cette recette n’a pas encore d’ingrédients définis." };
     if (route && next.craftingQueue?.[route])
       return { error: "Une fabrication est déjà en cours dans cet atelier." };
-    const needs = [];
-    for (const ing of arme.ingredientsList) {
-      const key = RESOURCE_ALIASES[ing.nom.trim().toLowerCase()];
-      if (!key)
-        return {
-          error: `« ${ing.nom} » n’est pas encore une ressource suivie par le jeu.`,
-        };
-      needs.push([key, ing.quantite]);
-    }
-    if (needs.some(([k, q]) => materialQuantity(next.inventory, k) < q))
+    const needs = arme.ingredientsList.map((ing) => [ing.nom, ing.quantite]);
+    if (needs.some(([nom, q]) => ingredientQuantity(next.inventory, nom) < q))
       return { error: "Ressources insuffisantes pour cette fabrication." };
-    for (const [k, q] of needs) spendMaterial(next, k, q);
+    for (const [nom, q] of needs) findIngredientLine(next.inventory, nom).quantity -= q;
     // Categorie racine (Armes/Armures/Produits Alchimiques/Gemmes) telle
     // que chargee par loadCatalogue (App.jsx) pour l'atelier concerne : sert
     // aux onglets de l'Arsenal, sans dependre d'un second appel a Supabase

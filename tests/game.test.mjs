@@ -153,7 +153,7 @@ test("un seul compteur par matériau : un objet du catalogue nommé Fer/Cuir/Boi
   assert.equal(materialQuantity(r.inventory, "metal"), 90);
   assert.ok(!r.inventory.some((i) => i.id === "material:metal"));
 });
-test("fabrication catalogue : ressource non reconnue ou insuffisante refuse sans muter l'état", () => {
+test("fabrication catalogue : composant absent du stock ou insuffisant refuse sans muter l'état", () => {
   const s = initialGame();
   const snapshot = JSON.stringify(s);
   const inconnue = {
@@ -163,7 +163,7 @@ test("fabrication catalogue : ressource non reconnue ou insuffisante refuse sans
   };
   assert.match(
     transact(s, { type: "craft-catalogue", arme: inconnue }).error,
-    /pas encore une ressource/,
+    /Ressources insuffisantes/,
   );
   const troploin = {
     id: "y",
@@ -175,6 +175,25 @@ test("fabrication catalogue : ressource non reconnue ou insuffisante refuse sans
     /Ressources insuffisantes/,
   );
   assert.equal(JSON.stringify(s), snapshot);
+});
+test("fabrication catalogue : un composant alchimique est débité par son nom dans l'inventaire", () => {
+  const s = initialGame();
+  s.inventory.push({ id: "catalogue:c1", nom: "Essence solaire", quantity: 3, equipped: false });
+  const potion = {
+    id: "p1",
+    nom: "Potion de test",
+    racine: "Produits Alchimiques",
+    duree_fabrication_instances: 2,
+    ingredientsList: [{ nom: "essence solaire", quantite: 2 }],
+  };
+  const r = transact(s, { type: "craft-catalogue", arme: potion, route: "alchimie" }).state;
+  assert.equal(r.inventory.find((i) => i.id === "catalogue:c1").quantity, 1);
+  assert.equal(r.craftingQueue.alchimie.nom, "Potion de test");
+  assert.equal(r.durations.alchimie, 2);
+  assert.match(
+    transact(r, { type: "craft-catalogue", arme: potion, route: "alchimie" }).error,
+    /déjà en cours/,
+  );
 });
 test("fabrication en attente : ressources debitees tout de suite, objet livre seulement quand la duree d'instance atteint 0", () => {
   const s = initialGame();

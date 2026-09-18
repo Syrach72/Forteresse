@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Alchemy } from "./Alchemy.jsx";
-import { Mage } from "./Mage.jsx";
-import { changeMage, initialMage } from "./mage.js";
 import { ASSETS, LOCATIONS, CLASSES, ITEMS } from "./data";
-import { initialGame, transact, RESOURCE_ALIASES, materialQuantity } from "./game";
+import { initialGame, transact, RESOURCE_ALIASES, materialQuantity, ingredientQuantity } from "./game";
 import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
@@ -26,6 +23,104 @@ import { WARRIORS, CHARACTER_CLASSES } from "./characters";
 import { Admin } from "./Admin.jsx";
 import { supabase } from "./supabaseClient";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
+const BACKDROP_VIDEO = {
+  alchimie: "/assets/video/alchimiste-anime.mp4",
+  mage: "/assets/video/mage-test.mp4",
+  forge: "/assets/video/forge-anim.mp4",
+  armurerie: "/assets/video/armurerie-animee.mp4",
+  infirmerie: "/assets/video/infirmerie-animee.mp4",
+  entrainement: "/assets/video/entrainement-anime.mp4",
+  marche: "/assets/video/marche-anime.mp4",
+  tresorerie: "/assets/video/tresorerie-anime.mp4",
+  dortoirs: "/assets/video/dortoir-anime.mp4",
+};
+const BACKDROP_VIDEO_RATIO = {
+  forge: "1 / 1",
+  armurerie: "1 / 1",
+  infirmerie: "1 / 1",
+  dortoirs: "1 / 1",
+  entrainement: "1 / 1",
+  tresorerie: "1 / 1",
+};
+const WORKSHOP_TEXT = {
+  forge: {
+    eyebrow: "Le feu donne forme",
+    destination: "à la forge",
+    catalogue: "Catalogue des armes",
+  },
+  armurerie: {
+    eyebrow: "À l’abri de l’acier",
+    destination: "à l’armurerie",
+    catalogue: "Catalogue des armures",
+  },
+  alchimie: {
+    eyebrow: "Les alambics s’éveillent",
+    destination: "au laboratoire",
+    catalogue: "Catalogue des produits alchimiques",
+  },
+  mage: {
+    eyebrow: "L’arcane prend forme",
+    destination: "à la tour du mage",
+    catalogue: "Catalogue des gemmes",
+  },
+};
+const BACKDROP_LOOP_FADE = 1.1;
+function BackdropVideo({ src, ratio }) {
+  const ref1 = useRef(null);
+  const ref2 = useRef(null);
+  useEffect(() => {
+    const a = ref1.current;
+    const b = ref2.current;
+    if (!a || !b) return;
+    a.style.opacity = 1;
+    b.style.opacity = 0;
+    let active = a;
+    let idle = b;
+    let crossfading = false;
+    let raf;
+    const safePlay = (video) => {
+      video.play().catch(() => {});
+    };
+    safePlay(a);
+    const tick = () => {
+      if (active.paused) safePlay(active);
+      if (active.duration) {
+        const remaining = active.duration - active.currentTime;
+        if (remaining <= BACKDROP_LOOP_FADE) {
+          if (!crossfading) {
+            crossfading = true;
+            idle.currentTime = 0;
+            safePlay(idle);
+          }
+          const t = Math.min(1, Math.max(0, 1 - remaining / BACKDROP_LOOP_FADE));
+          active.style.opacity = 1 - t;
+          idle.style.opacity = t;
+          if (remaining <= 0.02) {
+            active.pause();
+            [active, idle] = [idle, active];
+            active.style.opacity = 1;
+            idle.style.opacity = 0;
+            crossfading = false;
+          }
+        } else {
+          active.style.opacity = 1;
+          idle.style.opacity = 0;
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [src, ratio]);
+  const className = `interior-backdrop${ratio ? " interior-backdrop-boxed" : ""}`;
+  const style = ratio ? { aspectRatio: ratio } : undefined;
+  return (
+    <>
+      <video ref={ref1} className={className} style={style} src={src} muted playsInline />
+      <video ref={ref2} className={className} style={style} src={src} muted playsInline />
+    </>
+  );
+}
 function Sprite({ location, className = "" }) {
   const l =
     typeof location === "string"
@@ -194,11 +289,9 @@ function ItemActionPanel({ game, id }) {
 }
 // Fiche d'un objet réel du catalogue Supabase (Forge/Armurerie/Laboratoire/
 // Tour du Mage) : image, description, recette si elle existe, et tentative
-// de fabrication via les trois matériaux suivis dans game.inventory (voir
-// materialQuantity, game.js). Un ingrédient de recette non reconnu (tout ce qui n'est pas Fer/Métal,
-// Cuir ou Bois) désactive proprement le bouton plutôt que de fabriquer
-// gratuitement ou de planter : la plupart des recettes Alchimie/Magie
-// utilisent des ingrédients qu'aucun système local ne suit encore.
+// de fabrication. Chaque ingrédient/composant est débité de game.inventory
+// par son nom (voir ingredientQuantity, game.js) ; un stock insuffisant
+// désactive le bouton plutôt que de fabriquer gratuitement.
 function CatalogueItemDetail({
   item,
   game,
@@ -208,13 +301,8 @@ function CatalogueItemDetail({
   onCollect,
   route,
 }) {
-  const needs = item.ingredientsList.map((ing) => [
-    ing.nom,
-    RESOURCE_ALIASES[ing.nom.trim().toLowerCase()],
-    ing.quantite,
-  ]);
-  const unmapped = needs.filter(([, key]) => !key);
-  const lacking = needs.some(([, key, q]) => key && materialQuantity(game.inventory, key) < q);
+  const needs = item.ingredientsList;
+  const lacking = needs.some((ing) => ingredientQuantity(game.inventory, ing.nom) < ing.quantite);
   // Fabrication en attente pour CET atelier (peu importe l'objet) : la
   // Duree d'instance definie par l'admin (item.duree_fabrication_instances)
   // decompte via le bouton +1 Instance, comme pour la demo locale forge/
@@ -247,21 +335,16 @@ function CatalogueItemDetail({
             : (item.duree_fabrication_instances ?? "à définir")}
         </strong>
       </div>
-      <h3>Ressources nécessaires</h3>
+      <h3>{route === "alchimie" ? "Composants" : "Ressources nécessaires"}</h3>
       {item.ingredientsList.length ? (
         <div className="materials">
-          {item.ingredientsList.map((ing) => {
-            const key = RESOURCE_ALIASES[ing.nom.trim().toLowerCase()];
-            return (
-              <div key={ing.nom}>
-                <span>{ing.nom}</span>
-                <strong>{ing.quantite}</strong>
-                <small>
-                  {key ? `Stock : ${materialQuantity(game.inventory, key)}` : "Ressource non suivie"}
-                </small>
-              </div>
-            );
-          })}
+          {item.ingredientsList.map((ing) => (
+            <div key={ing.nom}>
+              <span>{ing.nom}</span>
+              <strong>{ing.quantite}</strong>
+              <small>Stock : {ingredientQuantity(game.inventory, ing.nom)}</small>
+            </div>
+          ))}
         </div>
       ) : (
         <p className="muted">Recette à définir.</p>
@@ -272,7 +355,7 @@ function CatalogueItemDetail({
         disabled={
           busy ||
           (queuedHere && !readyHere) ||
-          (!queuedHere && (!needs.length || !!unmapped.length || lacking))
+          (!queuedHere && (!needs.length || lacking))
         }
         onClick={() => (readyHere ? onCollect() : onCraft(item))}
       >
@@ -284,14 +367,8 @@ function CatalogueItemDetail({
               ? "Fabrication en cours…"
               : actionLabel}
       </button>
-      {unmapped.length > 0 ? (
-        <p className="error">
-          « {unmapped[0][0]} » n’est pas encore une ressource suivie par le jeu.
-        </p>
-      ) : (
-        lacking && (
-          <p className="error">Ressources insuffisantes pour cette fabrication.</p>
-        )
+      {lacking && (
+        <p className="error">Ressources insuffisantes pour cette fabrication.</p>
       )}
       {readyHere ? (
         <p className="muted">
@@ -724,13 +801,6 @@ export function App() {
     setModal({ type: "db-catalogue", atelier, racine: ATELIER_RACINE[atelier], detailId: objetId });
     setPendingCraftTarget(null);
   }, [pendingCraftTarget, route, catalogueByAtelier]);
-  function updateMage(action) {
-    const result = changeMage(gameRef.current, action);
-    if (result.error) return result;
-    gameRef.current = result.state;
-    setGame(result.state);
-    return result;
-  }
   function transferCampaign(heroId, id, direction) {
     if (
       !warriors.some((w) => w.id === heroId) ||
@@ -1320,6 +1390,7 @@ export function App() {
             className="castle-map"
             style={{ backgroundImage: `url(${ASSETS.castle})` }}
           >
+            <BackdropVideo src="/assets/video/fortress-anime.mp4" />
             {LOCATIONS.filter((l) => l.id !== "quetes").map((l) => (
               <button
                 key={l.id}
@@ -1385,33 +1456,21 @@ export function App() {
         </main>
       ) : (
         <main id="main" className={`interior ${route}`}>
-          <div
-            className="interior-backdrop"
-            style={{
-              backgroundImage: `url(${ASSETS[{ armurerie: "armory", forge: "forge", dortoirs: "dormitory", entrainement: "training", quetes: "quests", infirmerie: "infirmary", alchimie: "alchemy", tresorerie: "treasury", marche: "market", mage: "mage" }[route]] || ASSETS.castle})`,
-            }}
-          />
+          {BACKDROP_VIDEO[route] ? (
+            <BackdropVideo src={BACKDROP_VIDEO[route]} ratio={BACKDROP_VIDEO_RATIO[route]} />
+          ) : (
+            <div
+              className="interior-backdrop"
+              style={{
+                backgroundImage: `url(${ASSETS[{ armurerie: "armory", forge: "forge", dortoirs: "dormitory", entrainement: "training", quetes: "quests", infirmerie: "infirmary", alchimie: "alchemy", tresorerie: "treasury", marche: "market", mage: "mage" }[route]] || ASSETS.castle})`,
+              }}
+            />
+          )}
           <div className="room-top">
             <a href="#forteresse">‹ Forteresse</a>
             <h1 ref={titleRef} tabIndex="-1">
               {place?.name || "Lieu introuvable"}
             </h1>
-            {route === "alchimie" || route === "mage" ? (
-              <button
-                className="wood-button"
-                onClick={() => {
-                  // La route s'appelle "mage" mais l'atelier stocké en base
-                  // est "magie" (recette.atelier) : ne pas confondre les deux.
-                  const atelier = route === "alchimie" ? "alchimie" : "magie";
-                  const racine =
-                    route === "alchimie" ? "Produits Alchimiques" : "Gemmes";
-                  loadCatalogue(atelier, racine);
-                  setModal({ type: "db-catalogue", atelier, racine });
-                }}
-              >
-                Catalogue ›
-              </button>
-            ) : null}
             <button
               className="wood-button"
               onClick={() => setModal({ type: "inventory" })}
@@ -1481,23 +1540,15 @@ export function App() {
                 ...trainingIds(training),
               ]}
             />
-          ) : route === "alchimie" ? (
-            <Alchemy />
-          ) : route === "mage" ? (
-            <Mage mage={game.mage || initialMage()} inventory={game.inventory} onChange={updateMage} />
-          ) : ["armurerie", "forge"].includes(route) ? (
+          ) : ["armurerie", "forge", "alchimie", "mage"].includes(route) ? (
             <>
               <div className="workshop">
                 <section className="equipment-panel parchment">
-                  <p className="eyebrow">
-                    {route === "forge"
-                      ? "Le feu donne forme"
-                      : "À l’abri de l’acier"}
-                  </p>
+                  <p className="eyebrow">{WORKSHOP_TEXT[route].eyebrow}</p>
                   {(() => {
                     const queued = game.craftingQueue?.[route];
                     const remaining =
-                      game.durations?.[route] ?? (route === "forge" ? 5 : 3);
+                      game.durations?.[route] ?? defaultDurations[route] ?? 0;
                     const ready = !!queued && remaining === 0;
                     // Case vide tant qu'aucune commande n'a ete passee (ni
                     // objet local choisi via le Marche, ni fabrication
@@ -1508,7 +1559,7 @@ export function App() {
                         <p className="muted">
                           Aucune fabrication en cours. Consultez le catalogue
                           pour choisir un objet à envoyer{" "}
-                          {route === "forge" ? "à la forge" : "à l’armurerie"}.
+                          {WORKSHOP_TEXT[route].destination}.
                         </p>
                       );
                     }
@@ -1662,13 +1713,15 @@ export function App() {
                 <button
                   className="catalog-button wood-button"
                   onClick={() => {
-                    const racine = route === "forge" ? "Armes" : "Armures";
-                    loadCatalogue(route, racine);
-                    setModal({ type: "db-catalogue", atelier: route, racine });
+                    // La route s'appelle "mage" mais l'atelier stocké en
+                    // base (recette.atelier) est "magie".
+                    const atelier = route === "mage" ? "magie" : route;
+                    const racine = ATELIER_RACINE[atelier];
+                    loadCatalogue(atelier, racine);
+                    setModal({ type: "db-catalogue", atelier, racine });
                   }}
                 >
-                  {route === "forge" ? "Catalogue des armes" : "Catalogue des armures"}{" "}
-                  ›
+                  {WORKSHOP_TEXT[route].catalogue} ›
                 </button>
               </div>
             </>

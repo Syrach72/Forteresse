@@ -1652,23 +1652,92 @@ function ArsenalSection() {
   const inventaires = useTable("inventaire", { order: "id" });
   const lignes = useTable("ligne_inventaire", { order: "id" });
   const catalogue = useTable("objet_catalogue", { order: "nom" });
+  const categories = useTable("categorie", { order: "nom" });
   const [objetId, setObjetId] = useState("");
   const [quantite, setQuantite] = useState("");
   const [msg, setMsg] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
+  // "" = onglet Général (toutes les catégories) ; sinon id de la catégorie
+  // (racine ou sous-catégorie) dont l'onglet est actif.
+  const [tabCategorie, setTabCategorie] = useState("");
+  // Catégorie choisie dans « Définir la quantité d'un objet » pour réduire
+  // la liste des objets proposés.
+  const [formCategorie, setFormCategorie] = useState("");
 
-  if (inventaires.error || lignes.error || catalogue.error)
-    return <p className="admin-error">{inventaires.error || lignes.error || catalogue.error}</p>;
-  if (!inventaires.rows || !lignes.rows || !catalogue.rows) return <p>Chargement…</p>;
+  if (inventaires.error || lignes.error || catalogue.error || categories.error)
+    return (
+      <p className="admin-error">
+        {inventaires.error || lignes.error || catalogue.error || categories.error}
+      </p>
+    );
+  if (!inventaires.rows || !lignes.rows || !catalogue.rows || !categories.rows)
+    return <p>Chargement…</p>;
 
   const arsenal = inventaires.rows.find((i) => i.type === "arsenal");
   if (!arsenal) return <p>Aucun arsenal trouvé.</p>;
 
   const stock = lignes.rows.filter((l) => l.inventaire_id === arsenal.id);
 
-  function nomObjet(id) {
-    return catalogue.rows.find((o) => o.id === id)?.nom || "?";
+  function objet(id) {
+    return catalogue.rows.find((o) => o.id === id);
   }
+  function nomObjet(id) {
+    return objet(id)?.nom || "?";
+  }
+  function nomCategorie(id) {
+    return categories.rows.find((c) => c.id === id)?.nom || "—";
+  }
+  const childrenOf = (parentId) =>
+    categories.rows.filter((c) => (c.parent_id || null) === parentId);
+  // Une catégorie et toutes ses sous-catégories (récursivement).
+  function categoryAndDescendantIds(id) {
+    const ids = new Set([id]);
+    let added = true;
+    while (added) {
+      added = false;
+      categories.rows.forEach((c) => {
+        if (c.parent_id && ids.has(c.parent_id) && !ids.has(c.id)) {
+          ids.add(c.id);
+          added = true;
+        }
+      });
+    }
+    return ids;
+  }
+  // Racine (catégorie sans parent) d'une catégorie donnée.
+  function rootOf(id) {
+    let current = categories.rows.find((c) => c.id === id);
+    while (current?.parent_id)
+      current = categories.rows.find((c) => c.id === current.parent_id);
+    return current;
+  }
+  function categoryTreeOptions(parentId, depth) {
+    return childrenOf(parentId).flatMap((c) => [
+      <option key={c.id} value={c.id}>
+        {"— ".repeat(depth)}
+        {c.nom}
+      </option>,
+      ...categoryTreeOptions(c.id, depth + 1),
+    ]);
+  }
+  function inCategory(objetIdValue, categorieId) {
+    if (!categorieId) return true;
+    const o = objet(objetIdValue);
+    return !!o && categoryAndDescendantIds(categorieId).has(o.categorie_id);
+  }
+  function selectTab(id) {
+    setTabCategorie(id);
+    setFormCategorie(id);
+    setObjetId("");
+  }
+
+  const activeRoot = tabCategorie ? rootOf(tabCategorie) : null;
+  const rootTabs = childrenOf(null);
+  const subTabs = activeRoot ? childrenOf(activeRoot.id) : [];
+  const visibleStock = stock.filter((l) => inCategory(l.objet_id, tabCategorie));
+  const formObjets = catalogue.rows.filter((o) =>
+    formCategorie ? categoryAndDescendantIds(formCategorie).has(o.categorie_id) : true,
+  );
 
   async function submit(e) {
     e.preventDefault();
@@ -1691,19 +1760,66 @@ function ArsenalSection() {
 
   return (
     <div>
+      <nav className="admin-subtabs" aria-label="Catégories de l’arsenal">
+        <button
+          type="button"
+          className={tabCategorie === "" ? "active" : ""}
+          onClick={() => selectTab("")}
+        >
+          Général ({stock.length})
+        </button>
+        {rootTabs.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            className={activeRoot?.id === c.id ? "active" : ""}
+            onClick={() => selectTab(c.id)}
+          >
+            {c.nom} ({stock.filter((l) => inCategory(l.objet_id, c.id)).length})
+          </button>
+        ))}
+      </nav>
+      {subTabs.length > 0 && (
+        <nav className="admin-subtabs admin-subtabs-level2" aria-label={`Sous-catégories de ${activeRoot.nom}`}>
+          <button
+            type="button"
+            className={tabCategorie === activeRoot.id ? "active" : ""}
+            onClick={() => selectTab(activeRoot.id)}
+          >
+            Tout {activeRoot.nom}
+          </button>
+          {subTabs.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={tabCategorie === c.id ? "active" : ""}
+              onClick={() => selectTab(c.id)}
+            >
+              {c.nom}
+            </button>
+          ))}
+        </nav>
+      )}
+      {tabCategorie && !visibleStock.length && (
+        <p className="muted">Aucun objet de cette catégorie dans l’arsenal.</p>
+      )}
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
               <th>Objet</th>
+              {!tabCategorie && <th>Catégorie</th>}
               <th>Quantité</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {stock.map((l) => (
+            {visibleStock.map((l) => (
               <tr key={l.id}>
                 <td>{nomObjet(l.objet_id)}</td>
+                {!tabCategorie && (
+                  <td>{nomCategorie(rootOf(objet(l.objet_id)?.categorie_id)?.id)}</td>
+                )}
                 <td>{l.quantite}</td>
                 <td className="admin-row-actions">
                   <DeleteButton
@@ -1727,9 +1843,20 @@ function ArsenalSection() {
         <h3>Définir la quantité d’un objet</h3>
         <p>Sélectionner un objet déjà présent met à jour sa quantité totale.</p>
         <div className="admin-ingredient-form">
+          <select
+            aria-label="Catégorie"
+            value={formCategorie}
+            onChange={(e) => {
+              setFormCategorie(e.target.value);
+              setObjetId("");
+            }}
+          >
+            <option value="">Toutes les catégories</option>
+            {categoryTreeOptions(null, 0)}
+          </select>
           <select value={objetId} onChange={(e) => setObjetId(e.target.value)}>
             <option value="">Objet…</option>
-            {catalogue.rows.map((o) => (
+            {formObjets.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.nom}
               </option>
