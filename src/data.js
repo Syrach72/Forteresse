@@ -185,7 +185,6 @@ export const INITIAL = {
   // lignes par la quantité réelle saisie par l'admin — un seul compteur par
   // matériau, qu'il vienne de la démo ou de l'Arsenal admin.
   inventory: [
-    { id: "potion", quantity: 4, equipped: false },
     { id: "material:metal", quantity: 45, equipped: false, nom: "Métal", categorie: "Matériaux" },
     { id: "material:leather", quantity: 18, equipped: false, nom: "Cuir", categorie: "Matériaux" },
     { id: "material:wood", quantity: 40, equipped: false, nom: "Bois", categorie: "Matériaux" },

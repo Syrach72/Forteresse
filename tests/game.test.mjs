@@ -33,13 +33,17 @@ test("fabrication consomme toutes les ressources, puis refuse la répétition im
   );
   assert.equal(r.inventory.find((i) => i.id === "maille").quantity, 1);
 });
+test("l'arsenal de départ ne contient plus de Potion de soin", () => {
+  assert.ok(!initialGame().inventory.some((i) => i.id === "potion"));
+});
 test("potions : consommation sans modifier les caractéristiques", () => {
   const s = initialGame();
-  s.inventory[0].quantity = 1;
+  s.inventory.unshift({ id: "potion", quantity: 1, equipped: false });
   const r = transact(s, { type: "use", id: "potion" }).state;
   assert.equal(r.health, 2);
   assert.ok(!r.inventory.some((i) => i.id === "potion"));
   const full = initialGame();
+  full.inventory.unshift({ id: "potion", quantity: 1, equipped: false });
   full.health = 3;
   assert.equal(transact(full, { type: "use", id: "potion" }).state.health, 3);
 });
@@ -202,6 +206,7 @@ test("achat catalogue : le coût est décompté de la trésorerie, l'objet rejoi
 });
 test("destruction : quantité retirée sans gain, refus si quantité invalide ou objet équipé", () => {
   const s = initialGame();
+  s.inventory.unshift({ id: "potion", quantity: 4, equipped: false });
   const gold = s.gold;
   const before = s.inventory.find((i) => i.id === "potion").quantity;
   const r = transact(s, { type: "destroy", id: "potion", quantity: 3 });
@@ -218,6 +223,7 @@ test("destruction : quantité retirée sans gain, refus si quantité invalide ou
 });
 test("vente : moitié de la valeur créditée à la trésorerie, quantité retirée, refus sans valeur ou quantité invalide", () => {
   const s = initialGame();
+  s.inventory.unshift({ id: "potion", quantity: 4, equipped: false });
   const gold = s.gold;
   const potions = s.inventory.find((i) => i.id === "potion");
   assert.ok(potions && potions.quantity >= 2);
