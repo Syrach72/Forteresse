@@ -899,6 +899,8 @@ export function App() {
     notify(
       `${m.nom} est recruté par ${joueur} et prend place au lit ${slot + 1} du Dortoir${tableAbsente ? " (pour cette session seulement : table de recrutement absente)" : ""}.`,
     );
+    // Recrutement réussi : on va directement voir le mercenaire dans son lit.
+    location.hash = "dortoirs";
   }
   // Renvoyer un mercenaire recruté : supprime le recrutement (il redevient
   // recrutable, sa carte est dégrisée sur la page de sa classe) et libère son
