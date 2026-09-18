@@ -941,6 +941,8 @@ export function App() {
     notify(
       `${m.nom} est renvoyé : il est de nouveau disponible sur la page ${m.classe || "de sa classe"}.`,
     );
+    // Renvoi depuis la fiche : retour au Dortoir, où son lit est maintenant vide.
+    location.hash = "dortoirs";
   }
   // Charge une seule fois, au demarrage, le stock de l'Arsenal saisi cote
   // admin (Administration > Arsenal, table ligne_inventaire) et le fusionne
@@ -1716,6 +1718,7 @@ export function App() {
           tousRecrutes={[...tousRecrutes]}
           estAdmin={estAdmin}
           onRecruit={recruit}
+          onDismiss={dismiss}
           litLibre={firstFreeBed(dorm) >= 0}
           onUpdate={(id, data) =>
             setWarriors((old) =>
@@ -1864,7 +1867,6 @@ export function App() {
               warriors={warriors}
               gold={game.gold}
               onUnlock={unlockDorm}
-              onDismiss={dismiss}
               Modal={Modal}
             />
           ) : route === "infirmerie" ? (

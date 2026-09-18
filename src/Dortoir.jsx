@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { ReferenceCrop } from "./Characters.jsx";
+import { ReferenceCrop, classeRoute } from "./Characters.jsx";
 // Dortoir de la compagnie : un lit = un mercenaire embauché (aucun rapport avec
 // le repos). Le mercenaire y prend place dès qu'il est recruté et le quitte
 // quand il est renvoyé. Le lit affiche sa vétérance et le nom du joueur qui l'a
 // recruté (saisi sur sa fiche).
 const UNLOCK_PRICE = 100;
 const INITIAL_CAPACITY = 6;
-export function Dortoir({ dorm, warriors, gold, onUnlock, onDismiss, Modal }) {
+export function Dortoir({ dorm, warriors, gold, onUnlock, Modal }) {
   const [popup, setPopup] = useState(null);
   const [error, setError] = useState("");
   const hero = (id) => warriors.find((w) => w.id === id);
@@ -38,7 +38,9 @@ export function Dortoir({ dorm, warriors, gold, onUnlock, onDismiss, Modal }) {
                     setError("");
                     if (locked)
                       setPopup({ type: purchasable ? "unlock" : "locked" });
-                    else if (merc) setPopup({ type: "hero", heroId: merc.id });
+                    else if (merc)
+                      // Même fiche que pour le recrutement (bouton « Renvoyer »).
+                      location.hash = `personnages/${classeRoute(merc.role)}/${merc.id}`;
                     else setPopup({ type: "free" });
                   }}
                   aria-label={
@@ -96,11 +98,7 @@ export function Dortoir({ dorm, warriors, gold, onUnlock, onDismiss, Modal }) {
               ? "Débloquer un lit"
               : popup.type === "locked"
                 ? "Lit verrouillé"
-                : popup.type === "free"
-                  ? "Lit libre"
-                  : popup.type === "dismiss"
-                    ? `Renvoyer ${hero(popup.heroId)?.name || "le mercenaire"}`
-                    : hero(popup.heroId)?.name || "Mercenaire"
+                : "Lit libre"
           }
           onClose={() => setPopup(null)}
         >
@@ -137,65 +135,11 @@ export function Dortoir({ dorm, warriors, gold, onUnlock, onDismiss, Modal }) {
               Le coût de ce lit n’a pas encore été renseigné par le maître du
               jeu.
             </p>
-          ) : popup.type === "free" ? (
+          ) : (
             <p>
               Ce lit est libre. Un mercenaire y prend place dès qu’il est
               recruté, depuis les pages Personnages.
             </p>
-          ) : popup.type === "dismiss" ? (
-            <>
-              <p>
-                <strong>{hero(popup.heroId)?.name}</strong> quitte la compagnie
-                : son lit et le nom du joueur sont effacés. Il redevient
-                disponible sur la page de sa classe, avec sa vétérance et tout
-                ce qu’il a acquis.
-              </p>
-              <div className="rest-actions">
-                <button
-                  className="text-button"
-                  type="button"
-                  onClick={() => setPopup(null)}
-                >
-                  Annuler
-                </button>
-                <button
-                  className="primary"
-                  type="button"
-                  onClick={async () => {
-                    await onDismiss(popup.heroId);
-                    setPopup(null);
-                  }}
-                >
-                  Renvoyer
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="stat-line">
-                <span>Classe</span>
-                <strong>{hero(popup.heroId)?.role || "—"}</strong>
-              </div>
-              <div className="stat-line">
-                <span>Vétérance</span>
-                <strong>{hero(popup.heroId)?.veterancy}</strong>
-              </div>
-              <div className="stat-line">
-                <span>Joueur</span>
-                <strong>{hero(popup.heroId)?.player || "—"}</strong>
-              </div>
-              <div className="rest-actions">
-                <button
-                  className="text-button text-button-danger"
-                  type="button"
-                  onClick={() =>
-                    setPopup({ type: "dismiss", heroId: popup.heroId })
-                  }
-                >
-                  Renvoyer
-                </button>
-              </div>
-            </>
           )}
           {error && (
             <p className="error" role="alert">

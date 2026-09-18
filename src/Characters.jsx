@@ -54,7 +54,7 @@ export function ReferenceCrop({
 }
 // Identifiant de route d'une classe (« Rôdeur » → « rodeur ») à partir du nom
 // saisi dans l'administration.
-const classeRoute = (nom) =>
+export const classeRoute = (nom) =>
   (nom || "")
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -68,6 +68,7 @@ export function Characters({
   tousRecrutes = [],
   estAdmin = false,
   onRecruit = () => {},
+  onDismiss = () => {},
   litLibre = true,
   nomsJoueur = {},
   onUpdate,
@@ -149,9 +150,19 @@ export function Characters({
             {merc ? merc.nom : hero ? hero.name : cls?.[1] || "Personnages"}
           </h1>
         </div>
-        <a href={hero || merc ? `#personnages/${classId}` : "#forteresse"}>
+        <a
+          href={
+            merc && recrutes.includes(merc.id)
+              ? "#dortoirs"
+              : hero || merc
+                ? `#personnages/${classId}`
+                : "#forteresse"
+          }
+        >
           {merc
-            ? `‹ ${cls?.[1] || "Personnages"}`
+            ? recrutes.includes(merc.id)
+              ? "‹ Dortoirs"
+              : `‹ ${cls?.[1] || "Personnages"}`
             : hero
               ? "‹ Tous les guerriers"
               : "‹ Forteresse"}
@@ -248,15 +259,27 @@ export function Characters({
                 La fiche détaillée de ce mercenaire sera complétée ultérieurement.
               </p>
               {recrutes.includes(merc.id) ? (
-                <>
-                  <div className="stat-line">
-                    <span>Joueur</span>
-                    <strong>{nomsJoueur[merc.id] || "—"}</strong>
-                  </div>
+                <div className="merc-recruit-form">
+                  <label htmlFor="merc-nom-joueur">Nom du joueur</label>
+                  <input
+                    id="merc-nom-joueur"
+                    type="text"
+                    readOnly
+                    value={nomsJoueur[merc.id] || ""}
+                  />
+                  <button
+                    className="wood-button merc-recruit"
+                    type="button"
+                    onClick={() => setPopup({ type: "renvoi" })}
+                  >
+                    Renvoyer
+                  </button>
                   <p className="merc-recrute-note">
-                    Recruté : {merc.nom} a son lit au Dortoir.
+                    {merc.nom} a son lit au Dortoir. Le renvoyer efface le nom
+                    du joueur et libère le lit ; il conserve sa vétérance et sa
+                    fiche.
                   </p>
-                </>
+                </div>
               ) : tousRecrutes.includes(merc.id) ? (
                 <p className="merc-recrute-note">
                   Recruté par un autre joueur (accès administrateur).
@@ -504,10 +527,43 @@ export function Characters({
       )}
       {popup && (
         <Modal
-          title={popup.type === "edit" ? "Modifier la fiche" : popup.title}
+          title={
+            popup.type === "edit"
+              ? "Modifier la fiche"
+              : popup.type === "renvoi"
+                ? `Renvoyer ${merc?.nom || "le mercenaire"}`
+                : popup.title
+          }
           onClose={() => setPopup(null)}
         >
-          {popup.type === "edit" ? (
+          {popup.type === "renvoi" ? (
+            <>
+              <p>
+                <strong>{merc?.nom}</strong> quitte la compagnie : son lit et le
+                nom du joueur sont effacés. Il redevient disponible sur la page
+                de sa classe, avec sa vétérance et tout ce qu’il a acquis.
+              </p>
+              <div className="rest-actions">
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() => setPopup(null)}
+                >
+                  Annuler
+                </button>
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={() => {
+                    setPopup(null);
+                    onDismiss(merc.id);
+                  }}
+                >
+                  Renvoyer
+                </button>
+              </div>
+            </>
+          ) : popup.type === "edit" ? (
             <form className="edit-character" onSubmit={save} noValidate>
               <p>
                 Les valeurs saisies remplacent manuellement celles de cette
