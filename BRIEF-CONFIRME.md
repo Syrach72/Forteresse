@@ -8,7 +8,7 @@ Ces éléments viennent des captures et transcriptions de Bruno transmises dans 
 - Chaque classe ouvre une liste extensible de personnages. Une carte ouvre une fiche. Les caractéristiques sont renseignées manuellement ; aucune IA n’altère la fiche.
 - La fiche Guerrier comporte portrait/caractéristiques, armes/descriptions et grille de progression. Les aptitudes ouvrent des explications.
 - Exemple confirmé : Fougue, coût 3 Énergies ; en dépensant 3 Énergies, une fois par 24 h, le Guerrier prend une Action supplémentaire. Le lien précis entre cette aptitude et une cellule de progression n’est pas encore identifié ; le prototype fournit un bouton nommé Fougue.
-- Dortoirs : placer un portrait au repos, saisir la durée d’instance. Débloquer des emplacements augmente la capacité d’accueil. Premier coût montré : 100 Po.
+- Dortoirs : un lit par mercenaire embauché (voir Recrutement ci-dessus ; aucun repos ni durée d’instance au Dortoir, cela remplace la version initiale « placer un portrait au repos »). Débloquer des lits augmente la capacité d’accueil. Premier coût montré : 100 Po.
 - Infirmerie : même placement manuel, compteur de soins. Premier lit verrouillé montré : 1 000 Po.
 - Entraînement : instructeur distinct des élèves, compteurs de durée d’instance. Places élèves montrées à 100 Po ; groupe d’instructeur supplémentaire montré à 1 000 Po.
 - Pas de minuterie réelle. Bouton global « +10 minutes » : **ajouter 1 aux compteurs**, valeur bornée de 0 à 5. Tim a explicitement choisi l’incrémentation, malgré une phrase précédente parlant de diminution. Ne pas réintroduire un décompte automatique.
@@ -23,7 +23,7 @@ Ces éléments viennent des captures et transcriptions de Bruno transmises dans 
 
 - Prix exacts d’achat (épée 50, armure 180, potion 25), recettes et ressources initiales.
 - Composition initiale des emplacements, identités/quantités des mercenaires au repos ; les captures montrent des états indépendants.
-- Un mercenaire n’est affecté qu’à un emplacement de repos/soins/entraînement à la fois : choix de cohérence du prototype, à valider dans le brief.
+- Un mercenaire n’est affecté qu’à un emplacement de soins/entraînement à la fois : choix de cohérence du prototype, à valider dans le brief. Son lit au Dortoir (embauche) ne compte pas comme une affectation.
 - L’instructeur reste affecté et aucune sortie automatique n’a lieu quand le compteur atteint 5.
 - Les coûts visibles de trésorerie totalisent 2 010 Po, tandis que le total affiché est 2 095 Po. Une ligne « Autres frais à détailler » de 85 Po explique provisoirement l’écart, sans inventer son intitulé réel.
 - Les achats et déblocages de la démo s’ajoutent aux frais d’entretien initiaux ; éditer un poste ne supprime pas ces mouvements.
