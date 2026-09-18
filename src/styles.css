@@ -3474,3 +3474,29 @@ h1,
 }
 
 .infirmary-board .bed-frame { display: none; }
+
+/* Marché : six boutons de même taille alignés en bas de l'écran. */
+@media (min-width: 681px) {
+  .marche .market-hub {
+    position: absolute;
+    left: 32px;
+    right: 82px;
+    bottom: 28px;
+    width: auto;
+    margin: 0;
+    aspect-ratio: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .marche .market-category {
+    position: static;
+    transform: none;
+    flex: 0 0 auto;
+    width: 152px;
+    height: 128px;
+    font-size: 15px;
+  }
+}

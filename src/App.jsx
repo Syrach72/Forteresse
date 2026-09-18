@@ -300,7 +300,32 @@ function CatalogueItemDetail({
   onCraft,
   onCollect,
   route,
+  readOnly = false,
 }) {
+  // Consultation depuis le Marché : simple fiche de l'objet, sans recette
+  // ni fabrication (le mode achat viendra plus tard).
+  if (readOnly)
+    return (
+      <>
+        {item.icone && (
+          <img className="db-item-art" src={item.icone} alt={item.nom} />
+        )}
+        <h2>{item.nom}</h2>
+        <p>{item.description || "Description à définir."}</p>
+        {item.veterance_requise != null && (
+          <div className="stat-line">
+            <span>Vétérance requise</span>
+            <strong>{item.veterance_requise}</strong>
+          </div>
+        )}
+        {item.portee && (
+          <div className="stat-line">
+            <span>Portée</span>
+            <strong>{item.portee}</strong>
+          </div>
+        )}
+      </>
+    );
   const needs = item.ingredientsList;
   const lacking = needs.some((ing) => ingredientQuantity(game.inventory, ing.nom) < ing.quantite);
   // Fabrication en attente pour CET atelier (peu importe l'objet) : la
@@ -1196,6 +1221,10 @@ export function App() {
   // ITEMS (démo locale), ces objets viennent réellement de l'admin.
   async function loadCatalogue(atelier, racineNom) {
     if (catalogueByAtelier[atelier]) return;
+    // Clé "market:<catégorie>" : simple consultation depuis le Marché, sans
+    // recette (pas d'atelier associé).
+    const consultation = atelier.startsWith("market:");
+    const none = Promise.resolve({ data: [], error: null });
     const [
       { data: categories, error: catErr },
       { data: objets, error: objErr },
@@ -1204,8 +1233,8 @@ export function App() {
     ] = await Promise.all([
       supabase.from("categorie").select("id, nom, parent_id"),
       supabase.from("objet_catalogue").select("*"),
-      supabase.from("recette").select("*").eq("atelier", atelier),
-      supabase.from("ingredient_recette").select("*"),
+      consultation ? none : supabase.from("recette").select("*").eq("atelier", atelier),
+      consultation ? none : supabase.from("ingredient_recette").select("*"),
     ]);
     const err = catErr || objErr || recErr || ingErr;
     if (err) {
@@ -1481,11 +1510,13 @@ export function App() {
           </div>
           {route === "marche" ? (
             <Market
-              onCategory={(category) => {
-                setFilter(category);
-                setSearch("");
+              onCategory={({ racine }) => {
+                // Consultation du catalogue Supabase pour cette catégorie
+                // racine (le mode achat sera traité ensuite).
+                const atelier = `market:${racine}`;
                 setActionError("");
-                setModal({ type: "catalog" });
+                loadCatalogue(atelier, racine);
+                setModal({ type: "db-catalogue", atelier, racine, market: true });
               }}
             />
           ) : route === "quetes" ? (
@@ -2057,6 +2088,7 @@ export function App() {
                       game={game}
                       busy={busy}
                       route={ATELIER_ROUTE[modal.atelier]}
+                      readOnly={!!modal.market}
                       actionLabel={
                         modal.atelier === "forge"
                           ? "Envoyer à la forge"
