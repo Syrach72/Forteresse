@@ -807,9 +807,29 @@ video.interior-backdrop-boxed {
   font-size: 30px;
   text-shadow: 0 2px 3px #000;
 }
+.inventory-slot-name {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 3px 3px 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  color: #fff6dc;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+  background: linear-gradient(to bottom, rgba(20, 14, 8, 0.82), rgba(20, 14, 8, 0));
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  pointer-events: none;
+}
 .inventory-slot > small {
   position: absolute;
-  top: 2px;
+  bottom: 2px;
   left: 2px;
   font-size: 12px;
   background: #4a351a;

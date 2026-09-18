@@ -1955,8 +1955,12 @@ export function App() {
                               setModal({ type: "item", id: own.id });
                             }}
                             aria-label={`${name}, quantité ${own.quantity}`}
+                            title={name}
                           >
                             {art}
+                            <span className="inventory-slot-name" aria-hidden="true">
+                              {name}
+                            </span>
                             <b>{own.quantity}</b>
                             {own.equipped && <small>Équipé</small>}
                           </button>
