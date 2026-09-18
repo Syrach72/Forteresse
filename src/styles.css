@@ -3500,3 +3500,10 @@ h1,
     font-size: 15px;
   }
 }
+
+.market-buy-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 14px 0 6px;
+}

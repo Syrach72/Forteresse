@@ -62,6 +62,7 @@ export function transact(state, action) {
   const item = ITEMS.find((i) => i.id === action.id);
   const next = structuredClone(state);
   let message = "";
+  let spent = 0;
   const add = () => {
     const own = next.inventory.find((i) => i.id === item.id);
     if (own) own.quantity++;
@@ -76,6 +77,33 @@ export function transact(state, action) {
     next.stock[item.id]--;
     add();
     message = `${item.name} acheté : −${item.price} Po.`;
+  } else if (action.type === "buy-catalogue") {
+    // Achat d'un objet du catalogue Supabase depuis le Marché : le coût
+    // d'achat (cout_achat_or, défini par l'admin) est débité de la
+    // trésorerie (game.gold) et l'objet rejoint l'arsenal. Sans coût défini,
+    // l'achat est refusé plutôt que d'offrir l'objet.
+    const arme = action.arme;
+    const cout = arme?.cout_achat_or;
+    if (!arme?.id) return { error: "Objet inconnu." };
+    if (cout === null || cout === undefined || !Number.isFinite(Number(cout)) || Number(cout) < 0)
+      return { error: "Le coût d’achat de cet objet n’est pas encore défini." };
+    if (next.gold < Number(cout))
+      return { error: "Vous n’avez pas assez de pièces d’or." };
+    spent = Number(cout);
+    next.gold -= spent;
+    const invId = `catalogue:${arme.id}`;
+    const own = next.inventory.find((i) => i.id === invId);
+    if (own) own.quantity++;
+    else
+      next.inventory.push({
+        id: invId,
+        quantity: 1,
+        equipped: false,
+        nom: arme.nom,
+        icone: arme.icone,
+        categorie: arme.racine || null,
+      });
+    message = `${arme.nom} acheté : −${spent} Po.`;
   } else if (action.type === "craft") {
     if (!item?.metal) return { error: "Cette recette n’existe pas." };
     if (["metal", "leather", "wood"].some((k) => materialQuantity(next.inventory, k) < item[k]))
@@ -204,7 +232,7 @@ export function transact(state, action) {
     id: crypto.randomUUID(),
     message,
     date: new Date().toISOString(),
-    amount: action.type === "buy" ? -item.price : 0,
+    amount: action.type === "buy" ? -item.price : spent ? -spent : 0,
   });
   next.log = next.log.slice(0, 50);
   return { state: next, message };

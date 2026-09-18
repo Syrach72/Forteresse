@@ -217,6 +217,7 @@ const CATEGORY_TAB_LABELS = {
   Armes: "Armes",
   Armures: "Armures",
   Gemmes: "Gemmes",
+  Composants: "Composants",
   Ingrédients: "Composants",
   Matériaux: "Matériaux",
   "Objet divers": "Divers",
@@ -301,31 +302,57 @@ function CatalogueItemDetail({
   onCollect,
   route,
   readOnly = false,
+  onBuy,
+  onCancel,
 }) {
-  // Consultation depuis le Marché : simple fiche de l'objet, sans recette
-  // ni fabrication (le mode achat viendra plus tard).
-  if (readOnly)
+  // Fiche d'achat depuis le Marché : descriptif, vétérance, portée et coût
+  // d'achat, avec Acheter (débite le coût de la trésorerie) et Annuler.
+  if (readOnly) {
+    const cout = item.cout_achat_or;
+    const coutDefini = cout !== null && cout !== undefined;
+    const soldeInsuffisant = coutDefini && game.gold < cout;
     return (
       <>
         {item.icone && (
           <img className="db-item-art" src={item.icone} alt={item.nom} />
         )}
         <h2>{item.nom}</h2>
+        <h3>Descriptif</h3>
         <p>{item.description || "Description à définir."}</p>
-        {item.veterance_requise != null && (
-          <div className="stat-line">
-            <span>Vétérance requise</span>
-            <strong>{item.veterance_requise}</strong>
-          </div>
+        <div className="stat-line">
+          <span>Vétérance requise</span>
+          <strong>{item.veterance_requise ?? "à définir"}</strong>
+        </div>
+        <div className="stat-line">
+          <span>Portée</span>
+          <strong>{item.portee || "à définir"}</strong>
+        </div>
+        <div className="stat-line">
+          <span>Coût d’achat</span>
+          <strong>{coutDefini ? `${cout} Po` : "à définir"}</strong>
+        </div>
+        <div className="market-buy-actions">
+          <button
+            className="primary"
+            type="button"
+            disabled={busy || !coutDefini || soldeInsuffisant}
+            onClick={() => onBuy(item)}
+          >
+            {busy ? "Achat…" : "Acheter"}
+          </button>
+          <button className="text-button" type="button" onClick={onCancel}>
+            Annuler
+          </button>
+        </div>
+        {!coutDefini && (
+          <p className="muted">Le coût d’achat n’est pas encore défini : achat impossible.</p>
         )}
-        {item.portee && (
-          <div className="stat-line">
-            <span>Portée</span>
-            <strong>{item.portee}</strong>
-          </div>
+        {soldeInsuffisant && (
+          <p className="error">Solde insuffisant : {game.gold} Po en trésorerie.</p>
         )}
       </>
     );
+  }
   const needs = item.ingredientsList;
   const lacking = needs.some((ing) => ingredientQuantity(game.inventory, ing.nom) < ing.quantite);
   // Fabrication en attente pour CET atelier (peu importe l'objet) : la
@@ -1171,6 +1198,27 @@ export function App() {
         // de suite) : la modale native bloque le reste de la page pendant
         // qu'elle est ouverte, notamment le bouton +1 Instance necessaire
         // pour faire avancer une fabrication mise en attente.
+        setModal(null);
+        notify(result.message);
+      }
+      busyRef.current = false;
+      setBusy(false);
+    }, 280);
+  }
+  // Achat d'un objet du catalogue depuis le Marché : le coût d'achat est
+  // décompté de la trésorerie (game.gold) par transact("buy-catalogue").
+  function actBuyCatalogue(arme) {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    setActionError("");
+    timer.current = setTimeout(() => {
+      const result = transact(gameRef.current, { type: "buy-catalogue", arme });
+      if (result.error) {
+        setActionError(result.error);
+      } else {
+        gameRef.current = result.state;
+        setGame(result.state);
         setModal(null);
         notify(result.message);
       }
@@ -2089,6 +2137,8 @@ export function App() {
                       busy={busy}
                       route={ATELIER_ROUTE[modal.atelier]}
                       readOnly={!!modal.market}
+                      onBuy={actBuyCatalogue}
+                      onCancel={() => setModal({ ...modal, detailId: null })}
                       actionLabel={
                         modal.atelier === "forge"
                           ? "Envoyer à la forge"

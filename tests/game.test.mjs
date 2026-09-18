@@ -176,6 +176,29 @@ test("fabrication catalogue : composant absent du stock ou insuffisant refuse sa
   );
   assert.equal(JSON.stringify(s), snapshot);
 });
+test("achat catalogue : le coût est décompté de la trésorerie, l'objet rejoint l'arsenal, refus sans mutation si coût absent ou solde insuffisant", () => {
+  const s = initialGame();
+  const gold = s.gold;
+  const arme = { id: "a1", nom: "Dague test", icone: null, racine: "Armes", cout_achat_or: 40 };
+  const r = transact(s, { type: "buy-catalogue", arme });
+  assert.equal(r.state.gold, gold - 40);
+  assert.equal(r.state.inventory.find((i) => i.id === "catalogue:a1").quantity, 1);
+  assert.equal(r.state.inventory.find((i) => i.id === "catalogue:a1").categorie, "Armes");
+  assert.equal(r.state.log[0].amount, -40);
+  const r2 = transact(r.state, { type: "buy-catalogue", arme });
+  assert.equal(r2.state.inventory.find((i) => i.id === "catalogue:a1").quantity, 2);
+  assert.equal(r2.state.gold, gold - 80);
+  const snapshot = JSON.stringify(s);
+  assert.match(
+    transact(s, { type: "buy-catalogue", arme: { ...arme, cout_achat_or: null } }).error,
+    /pas encore défini/,
+  );
+  assert.match(
+    transact(s, { type: "buy-catalogue", arme: { ...arme, cout_achat_or: gold + 1 } }).error,
+    /pas assez de pièces/,
+  );
+  assert.equal(JSON.stringify(s), snapshot);
+});
 test("fabrication catalogue : un composant alchimique est débité par son nom dans l'inventaire", () => {
   const s = initialGame();
   s.inventory.push({ id: "catalogue:c1", nom: "Essence solaire", quantity: 3, equipped: false });
