@@ -1739,19 +1739,33 @@ function ArsenalSection() {
     formCategorie ? categoryAndDescendantIds(formCategorie).has(o.categorie_id) : true,
   );
 
-  async function submit(e) {
-    e.preventDefault();
-    if (!objetId || quantite === "") return;
+  // Ajoute (sign = 1) ou retire (sign = -1) la quantité saisie à celle déjà
+  // en stock ; la quantité ne descend jamais sous zéro.
+  async function adjust(sign) {
+    const delta = Math.floor(Number(quantite));
+    if (!objetId || !(delta > 0)) {
+      setMsg("Choisissez un objet et une quantité supérieure à zéro.");
+      return;
+    }
     const existing = stock.find((l) => l.objet_id === objetId);
+    if (sign < 0 && !existing) {
+      setMsg("Cet objet n’est pas dans l’arsenal : rien à retirer.");
+      return;
+    }
+    const current = existing?.quantite ?? 0;
+    const next = Math.max(0, current + sign * delta);
     const err = existing
-      ? await lignes.update(existing.id, { quantite: Number(quantite) })
-      : await lignes.insert({ inventaire_id: arsenal.id, objet_id: objetId, quantite: Number(quantite) });
+      ? await lignes.update(existing.id, { quantite: next })
+      : await lignes.insert({ inventaire_id: arsenal.id, objet_id: objetId, quantite: next });
     if (err) setMsg(err);
     else {
       setMsg("");
-      setObjetId("");
       setQuantite("");
     }
+  }
+  function submit(e) {
+    e.preventDefault();
+    adjust(1);
   }
   async function del(id) {
     const err = await lignes.remove(id);
@@ -1824,7 +1838,7 @@ function ArsenalSection() {
                 <td className="admin-row-actions">
                   <DeleteButton
                     id={l.id}
-                    label="Retirer"
+                    label="Supprimer"
                     confirmingId={confirmingId}
                     onAskConfirm={() => setConfirmingId(l.id)}
                     onCancel={() => setConfirmingId(null)}
@@ -1840,8 +1854,11 @@ function ArsenalSection() {
         </table>
       </div>
       <form className="admin-form" onSubmit={submit}>
-        <h3>Définir la quantité d’un objet</h3>
-        <p>Sélectionner un objet déjà présent met à jour sa quantité totale.</p>
+        <h3>Ajouter ou retirer une quantité</h3>
+        <p>
+          La quantité saisie s’ajoute à celle déjà en stock, ou s’en retranche
+          (sans jamais descendre sous zéro).
+        </p>
         <div className="admin-ingredient-form">
           <select
             aria-label="Catégorie"
@@ -1864,13 +1881,17 @@ function ArsenalSection() {
           </select>
           <input
             type="number"
-            min="0"
+            min="1"
+            step="1"
             placeholder="Quantité"
             value={quantite}
             onChange={(e) => setQuantite(e.target.value)}
           />
           <button className="text-button" type="submit">
-            Enregistrer
+            Ajouter
+          </button>
+          <button className="text-button" type="button" onClick={() => adjust(-1)}>
+            Retirer
           </button>
         </div>
         {msg && <p className="admin-error">{msg}</p>}
