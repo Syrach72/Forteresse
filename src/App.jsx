@@ -851,6 +851,45 @@ export function App() {
         : `${m.nom} est recruté : il apparaît au Dortoir.`,
     );
   }
+  // Renvoyer un mercenaire recruté : supprime le recrutement (il redevient
+  // recrutable, sa carte est dégrisée sur la page de sa classe) et libère son
+  // lit au Dortoir. Sans la table recrutement, repli sur la session en cours.
+  async function dismiss(id) {
+    const m = mercenaires.find((x) => x.id === id);
+    if (!m || !mesRecrutes.has(id)) return;
+    const { error } = await supabase
+      .from("recrutement")
+      .delete()
+      .eq("mercenaire_id", id)
+      .eq("user_id", session.user.id);
+    const tableAbsente =
+      error &&
+      (error.code === "PGRST205" ||
+        error.code === "42P01" ||
+        /does not exist|schema cache/i.test(error.message || ""));
+    if (error && !tableAbsente) {
+      notify(`Renvoi impossible : ${error.message}`);
+      return;
+    }
+    const sans = (old) => {
+      const next = new Set(old);
+      next.delete(id);
+      return next;
+    };
+    setMesRecrutes(sans);
+    setRecrutesServeur(sans);
+    if (dormRef.current.beds.some((b) => b?.heroId === id)) {
+      const next = {
+        ...dormRef.current,
+        beds: dormRef.current.beds.map((b) => (b?.heroId === id ? null : b)),
+      };
+      dormRef.current = next;
+      setDorm(next);
+    }
+    notify(
+      `${m.nom} est renvoyé : il est de nouveau disponible sur la page ${m.classe || "de sa classe"}.`,
+    );
+  }
   // Charge une seule fois, au demarrage, le stock de l'Arsenal saisi cote
   // admin (Administration > Arsenal, table ligne_inventaire) et le fusionne
   // dans game.inventory : c'est ce qui permet au MJ d'ajouter "a la main"
@@ -1813,6 +1852,7 @@ export function App() {
               gold={game.gold}
               onChange={changeDorm}
               onUnlock={unlockDorm}
+              onDismiss={dismiss}
               Modal={Modal}
               otherOccupied={[
                 ...infirm.beds.filter(Boolean).map((b) => b.heroId),

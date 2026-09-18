@@ -2281,6 +2281,17 @@ video.interior-backdrop-boxed {
   align-items: center;
   font-size: 15px;
 }
+.available-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.available-slot .text-button {
+  min-height: 32px;
+  padding: 4px 7px;
+  font-size: 15px;
+}
 .available-hero .reference-crop {
   width: 75px;
   max-height: 106px;

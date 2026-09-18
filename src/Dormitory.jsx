@@ -6,6 +6,7 @@ export function Dormitory({
   gold,
   onChange,
   onUnlock,
+  onDismiss,
   Modal,
   kind = "dormitory",
   otherOccupied = [],
@@ -150,21 +151,35 @@ export function Dormitory({
                 !otherOccupied.includes(w.id),
             )
             .map((w) => (
-              <button
-                key={w.id}
-                className={`available-hero ${selected === w.id ? "selected" : ""}`}
-                aria-pressed={selected === w.id}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData("text/plain", w.id);
-                  e.dataTransfer.effectAllowed = "move";
-                  setSelected(w.id);
-                }}
-                onClick={() => setSelected(selected === w.id ? null : w.id)}
-              >
-                <ReferenceCrop crop={w.portrait} />
-                <span>{w.name}</span>
-              </button>
+              <div className="available-slot" key={w.id}>
+                <button
+                  className={`available-hero ${selected === w.id ? "selected" : ""}`}
+                  aria-pressed={selected === w.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", w.id);
+                    e.dataTransfer.effectAllowed = "move";
+                    setSelected(w.id);
+                  }}
+                  onClick={() => setSelected(selected === w.id ? null : w.id)}
+                >
+                  <ReferenceCrop crop={w.portrait} />
+                  <span>{w.name}</span>
+                </button>
+                {onDismiss && (
+                  <button
+                    className="text-button text-button-danger"
+                    type="button"
+                    aria-label={`Renvoyer ${w.name}`}
+                    onClick={() => {
+                      setError("");
+                      setPopup({ type: "dismiss", heroId: w.id });
+                    }}
+                  >
+                    Renvoyer
+                  </button>
+                )}
+              </div>
             ))}
         </div>
         {warriors.length === 0 ? (
@@ -200,7 +215,9 @@ export function Dormitory({
                 ? "Emplacement verrouillé"
                 : popup.type === "pick"
                   ? "Choisir un mercenaire"
-                  : warriors.find((w) => w.id === popup.heroId)?.name || "Repos"
+                  : popup.type === "dismiss"
+                    ? `Renvoyer ${warriors.find((w) => w.id === popup.heroId)?.name || "le mercenaire"}`
+                    : warriors.find((w) => w.id === popup.heroId)?.name || "Repos"
           }
           onClose={() => setPopup(null)}
         >
@@ -237,6 +254,36 @@ export function Dormitory({
               Le coût de cet emplacement n’a pas encore été renseigné par le
               maître du jeu.
             </p>
+          ) : popup.type === "dismiss" ? (
+            <>
+              <p>
+                <strong>
+                  {warriors.find((w) => w.id === popup.heroId)?.name}
+                </strong>{" "}
+                quitte la compagnie. Il redevient disponible sur la page de sa
+                classe, où n’importe quel joueur pourra le recruter.
+              </p>
+              <div className="rest-actions">
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() => setPopup(null)}
+                >
+                  Annuler
+                </button>
+                <button
+                  className="primary"
+                  type="button"
+                  onClick={async () => {
+                    await onDismiss(popup.heroId);
+                    setPopup(null);
+                    setSelected(null);
+                  }}
+                >
+                  Renvoyer
+                </button>
+              </div>
+            </>
           ) : popup.type === "pick" ? (
             <div className="pick-hero-list">
               {warriors.every(
@@ -302,6 +349,17 @@ export function Dormitory({
                     }}
                   >
                     {isInfirmary ? "Terminer les soins" : "Terminer le repos"}
+                  </button>
+                )}
+                {popup.type === "rest" && onDismiss && (
+                  <button
+                    className="text-button text-button-danger"
+                    type="button"
+                    onClick={() =>
+                      setPopup({ type: "dismiss", heroId: popup.heroId })
+                    }
+                  >
+                    Renvoyer
                   </button>
                 )}
                 <button className="primary">
