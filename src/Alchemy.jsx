@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { INGREDIENTS, ALCHEMY_RECIPES, availableIngredient, findAlchemyRecipe } from './alchemy.js';
+import { INGREDIENTS, findAlchemyRecipe } from './alchemy.js';
 const MIME = 'application/x-forteresse-ingredient';
 const POINTS = [[50, 27], [79, 49], [68, 83], [32, 83], [21, 49]];
 export function IngredientArt({ ingredient }) {
@@ -43,10 +43,6 @@ export function Alchemy({ alchemy, inventory, onChange }) {
   }
   const selectedName = selected && INGREDIENTS.find(i => i.id === selected.id)?.name;
   return <section className="alchemy-workspace" aria-label="Atelier d’alchimie" onKeyDown={e => { if (e.key === "Escape") { setSelected(null); setNotice("Sélection annulée."); } }}>
-    <div className="alchemy-intro">
-      <p>Glissez les ingrédients sur les branches, ou sélectionnez-les puis touchez un emplacement.</p>
-      <span>Recettes de démonstration · ordre libre · 1 ingrédient par branche</span>
-    </div>
     <div className="alchemy-table">
       <section className="alchemy-circle-panel" aria-label="Pentagramme de fabrication">
         <div className="alchemy-circle-heading"><h2>Le pentagramme</h2><button className="text-button" disabled={!occupied} onClick={() => perform({ type: 'clear' })}>Tout retirer</button></div>
@@ -70,29 +66,9 @@ export function Alchemy({ alchemy, inventory, onChange }) {
           })}
           <div className="sigil-center" aria-hidden="true">{recipe ? '✦' : '◇'}</div>
         </div>
-        <div className={`alchemy-result ${lastBrew ? 'brew-success' : ''}`} key={lastBrew?.key || 'preview'}>
-          <div><span className="alchemy-result-label">{lastBrew ? 'Ajoutée à l’arsenal' : 'Résultat de la préparation'}</span><h3>{lastBrew?.name || recipe?.name || (occupied ? 'Combinaison inconnue' : 'Choisissez vos ingrédients')}</h3>
-          <p>{lastBrew ? 'Votre potion est prête.' : recipe ? `${recipe.ingredients.length} ingrédients seront consommés.` : occupied ? 'Consultez les recettes ci-contre. Rien n’est consommé.' : 'Une recette apparaît dès que la combinaison est complète.'}</p></div>
-          <button className="primary alchemy-brew" disabled={!recipe} onClick={() => perform({ type: 'brew' })}>Fabriquer la potion</button>
-        </div>
         {error && <p role="alert" className="error alchemy-error">{error}</p>}
         <p className="sr-only" role="status" aria-live="polite">{notice}</p>
       </section>
-      <aside className="alchemy-inventory parchment" aria-label="Inventaire des ingrédients"
-        onDragOver={e => { if (selected?.kind === 'slot' && e.dataTransfer.types.includes(MIME)) e.preventDefault(); }}
-        onDrop={e => { const payload = readDrop(e); if (payload?.kind === 'slot') perform({ type: 'remove', slot: payload.slot }); }}>
-        <header><h2>Ingrédients</h2><span>Quantités disponibles</span></header>
-        <div className="ingredient-grid">{INGREDIENTS.map(ingredient => {
-          const count = availableIngredient(alchemy, ingredient.id);
-          return <button key={ingredient.id} className={`ingredient-tile ${selected?.kind === 'inventory' && selected.id === ingredient.id ? 'selected' : ''}`}
-            aria-label={`${ingredient.name}, ${count} disponibles`} aria-pressed={selected?.kind === 'inventory' && selected.id === ingredient.id} disabled={count < 1}
-            draggable={count > 0} onDragStart={e => startDrag(e, { kind: 'inventory', id: ingredient.id })} onDragEnd={() => setHover(null)}
-            onClick={() => { setSelected(selected?.kind === 'inventory' && selected.id === ingredient.id ? null : { kind: 'inventory', id: ingredient.id }); setError(''); }}>
-            <IngredientArt ingredient={ingredient} /><b>{count}</b><span className="ingredient-name">{ingredient.name}</span>
-          </button>;
-        })}</div>
-        <details className="alchemy-recipes" open><summary>Grimoire · 3 recettes</summary><div>{ALCHEMY_RECIPES.map(r => <button type="button" key={r.id} className="alchemy-recipe-card" onClick={() => perform({ type: 'fill', recipeId: r.id })}><h3>{r.name} <small>×{inventory.find(i => i.id === r.output)?.quantity || 0} à l’arsenal</small></h3><p>{r.ingredients.map(id => INGREDIENTS.find(i => i.id === id).name).join(' + ')}</p></button>)}</div></details>
-      </aside>
     </div>
   </section>;
 }
