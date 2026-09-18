@@ -1,4 +1,4 @@
-.alchemy-workspace { position: absolute; left: 32px; bottom: 24px; max-width: calc(100% - 64px); }
+.alchemy-workspace { position: absolute; left: 32px; bottom: 24px; width: 750px; max-width: calc(100% - 64px); }
 .alchemy-table { display: block; }
 .alchemy-circle-panel { min-width: 0; max-width: 750px; color: #fff1d0; }
 .alchemy-circle-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
