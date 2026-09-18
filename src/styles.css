@@ -3757,3 +3757,29 @@ a.merc-card:hover {
   align-self: stretch;
   margin: 0 0 4px;
 }
+/* Fiche : vétérance modifiable par l'administrateur. */
+.merc-veterance-edit label {
+  font: inherit;
+}
+.merc-veterance-edit > span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.merc-veterance-edit input {
+  width: 90px;
+  padding: 6px 8px;
+  background: #fff8e7;
+  border: 1px solid var(--edge);
+  font: 700 19px Georgia, serif;
+  text-align: right;
+}
+.merc-veterance-edit .wood-button {
+  min-height: 0;
+  padding: 6px 14px;
+  font-size: 15px;
+}
+.merc-veterance-edit .wood-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

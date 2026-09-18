@@ -69,6 +69,7 @@ export function Characters({
   estAdmin = false,
   onRecruit = () => {},
   onDismiss = () => {},
+  onSetVeterance = async () => ({}),
   litLibre = true,
   nomsJoueur = {},
   onUpdate,
@@ -86,6 +87,13 @@ export function Characters({
   // Nom du joueur inscrit sur la fiche avant de recruter (enregistré avec le
   // recrutement, puis affiché sur les pages où apparaît le mercenaire).
   const [nomJoueur, setNomJoueur] = useState("");
+  // Vétérance en cours de saisie (administrateur seulement, sur la fiche).
+  const [vet, setVet] = useState("");
+  const [vetError, setVetError] = useState("");
+  useEffect(() => {
+    setVet(String(merc?.veterance ?? ""));
+    setVetError("");
+  }, [merc?.id, merc?.veterance]);
   const title = useRef();
   useEffect(() => {
     setPopup(null);
@@ -251,10 +259,49 @@ export function Characters({
                 <span>Classe</span>
                 <strong>{merc.classe || "—"}</strong>
               </div>
-              <div className="stat-line">
-                <span>Vétérance</span>
-                <strong>{merc.veterance}</strong>
-              </div>
+              {estAdmin ? (
+                <form
+                  className="stat-line merc-veterance-edit"
+                  noValidate
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const result = await onSetVeterance(merc.id, vet);
+                    setVetError(result?.error || "");
+                  }}
+                >
+                  <label htmlFor="merc-veterance">Vétérance</label>
+                  <span>
+                    <input
+                      id="merc-veterance"
+                      type="number"
+                      min="0"
+                      max="999"
+                      step="1"
+                      value={vet}
+                      aria-invalid={!!vetError}
+                      aria-describedby={vetError ? "merc-veterance-error" : undefined}
+                      onChange={(e) => setVet(e.target.value)}
+                    />
+                    <button
+                      className="wood-button"
+                      type="submit"
+                      disabled={vet === String(merc.veterance ?? "")}
+                    >
+                      Enregistrer
+                    </button>
+                  </span>
+                </form>
+              ) : (
+                <div className="stat-line">
+                  <span>Vétérance</span>
+                  <strong>{merc.veterance}</strong>
+                </div>
+              )}
+              {vetError && (
+                <p id="merc-veterance-error" className="error" role="alert">
+                  {vetError}
+                </p>
+              )}
               <p className="muted">
                 La fiche détaillée de ce mercenaire sera complétée ultérieurement.
               </p>

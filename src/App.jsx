@@ -902,6 +902,26 @@ export function App() {
     // Recrutement réussi : on va directement voir le mercenaire dans son lit.
     location.hash = "dortoirs";
   }
+  // Vétérance d'un mercenaire, modifiable par l'administrateur depuis la fiche
+  // (la base n'autorise l'écriture sur `mercenaire` qu'à l'admin : is_admin()).
+  async function setVeterance(id, value) {
+    const n = Number(value);
+    if (String(value).trim() === "" || !Number.isInteger(n) || n < 0 || n > 999)
+      return { error: "Saisissez un entier de 0 à 999." };
+    const { data, error } = await supabase
+      .from("mercenaire")
+      .update({ veterance: n })
+      .eq("id", id)
+      .select("id");
+    if (error) return { error: error.message };
+    if (!data?.length)
+      return { error: "Modification refusée : droits administrateur requis." };
+    setMercenaires((old) =>
+      old.map((m) => (m.id === id ? { ...m, veterance: n } : m)),
+    );
+    notify(`Vétérance enregistrée : ${n}.`);
+    return {};
+  }
   // Renvoyer un mercenaire recruté : supprime le recrutement (il redevient
   // recrutable, sa carte est dégrisée sur la page de sa classe) et libère son
   // lit au Dortoir. Sans la table recrutement, repli sur la session en cours.
@@ -1719,6 +1739,7 @@ export function App() {
           estAdmin={estAdmin}
           onRecruit={recruit}
           onDismiss={dismiss}
+          onSetVeterance={setVeterance}
           litLibre={firstFreeBed(dorm) >= 0}
           onUpdate={(id, data) =>
             setWarriors((old) =>
