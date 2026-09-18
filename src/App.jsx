@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ASSETS, LOCATIONS, CLASSES, ITEMS } from "./data";
-import { initialGame, transact, RESOURCE_ALIASES, materialQuantity, ingredientQuantity } from "./game";
+import { initialGame, transact, RESOURCE_ALIASES, materialQuantity, ingredientQuantity, sellableValue } from "./game";
 import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
@@ -242,11 +242,13 @@ function arsenalCategoryOf(own) {
 // (équiper/vendre/détruire, cf. commentaire plus bas). Composant à part,
 // avec son propre état de quantité à prélever, pour que ce champ reparte
 // à 1 à chaque nouvel objet ouvert (clé = id de l'objet côté appelant).
-function ItemActionPanel({ game, id }) {
+function ItemActionPanel({ game, id, onSell, busy, error }) {
   const [qty, setQty] = useState(1);
   const own = game.inventory.find((i) => i.id === id);
   if (!own) return <p>Cet objet n’est plus dans l’arsenal.</p>;
   const { art } = inventoryItemInfo(own);
+  const valeur = sellableValue(own);
+  const gain = valeur === null ? null : Math.floor((valeur * qty) / 2);
   return (
     <>
       <div className="item-detail-art">{art}</div>
@@ -254,9 +256,9 @@ function ItemActionPanel({ game, id }) {
         Quantité : {own.quantity}
         {own.equipped ? " · Équipé" : ""}
       </p>
-      {/* Boutons volontairement inertes : Bruno donnera les règles (prix de
-          vente, emplacement d'équipement, confirmation de destruction)
-          avant de les brancher. */}
+      {/* Équiper et Détruire restent inertes : Bruno donnera les règles
+          (emplacement d'équipement, confirmation de destruction) avant de
+          les brancher. La vente au Marché (moitié de la valeur) est active. */}
       <div className="item-detail-actions">
         <div className="item-detail-equip">
           <button className="wood-button" disabled title="Bientôt disponible">
@@ -278,13 +280,32 @@ function ItemActionPanel({ game, id }) {
             />
           </label>
         </div>
-        <button className="wood-button" disabled title="Bientôt disponible">
+        <button
+          className="wood-button"
+          disabled={busy || gain === null || own.equipped}
+          title={
+            gain === null
+              ? "Valeur non définie : vente impossible"
+              : `Vendre pour ${gain} Po (moitié de la valeur)`
+          }
+          onClick={() => onSell(own.id, qty)}
+        >
           Vendre
         </button>
         <button className="wood-button" disabled title="Bientôt disponible">
           Détruire
         </button>
       </div>
+      <p className="muted">
+        {gain === null
+          ? "Valeur non définie : cet objet ne peut pas être vendu au Marché."
+          : `Vente au Marché : ${gain} Po pour ${qty} (moitié de la valeur, ${valeur} Po pièce).`}
+      </p>
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
     </>
   );
 }
@@ -727,7 +748,7 @@ export function App() {
       ] = await Promise.all([
         supabase.from("inventaire").select("id, type"),
         supabase.from("ligne_inventaire").select("*"),
-        supabase.from("objet_catalogue").select("id, nom, icone, categorie_id"),
+        supabase.from("objet_catalogue").select("id, nom, icone, categorie_id, cout_achat_or"),
         supabase.from("categorie").select("id, nom, parent_id"),
       ]);
       // Table absente ou hors-ligne : l'Arsenal reste sur la demo locale,
@@ -753,6 +774,7 @@ export function App() {
             nom: o?.nom || "Objet",
             icone: o?.icone || null,
             categorie: o ? topCategoryName(o.categorie_id) : null,
+            valeur: o?.cout_achat_or ?? null,
           };
         });
       if (!dbItems.length) return;
@@ -1205,6 +1227,27 @@ export function App() {
       setBusy(false);
     }, 280);
   }
+  // Vente d'un objet de l'arsenal au Marché : la moitié de sa valeur est
+  // créditée à la trésorerie par transact("sell").
+  function actSell(id, quantity) {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    setActionError("");
+    timer.current = setTimeout(() => {
+      const result = transact(gameRef.current, { type: "sell", id, quantity });
+      if (result.error) {
+        setActionError(result.error);
+      } else {
+        gameRef.current = result.state;
+        setGame(result.state);
+        setModal(null);
+        notify(result.message);
+      }
+      busyRef.current = false;
+      setBusy(false);
+    }, 280);
+  }
   // Achat d'un objet du catalogue depuis le Marché : le coût d'achat est
   // décompté de la trésorerie (game.gold) par transact("buy-catalogue").
   function actBuyCatalogue(arme) {
@@ -1322,8 +1365,21 @@ export function App() {
       return node?.nom || racineNom;
     };
     const objetById = new Map(objets.map((o) => [o.id, o]));
+    // Marché : « Objets divers » regroupe aussi les catégories racines sans
+    // bouton dédié (ex. Gemmes), sous leur propre onglet.
+    const rootOf = (categorieId) => {
+      let c = categories.find((x) => x.id === categorieId);
+      while (c?.parent_id) c = categories.find((x) => x.id === c.parent_id);
+      return c;
+    };
+    const MARKET_BUTTON_ROOTS = ["armes", "armures", "composants", "matériaux", "produits alchimiques"];
+    const isDivers = consultation && racineNom.trim().toLowerCase() === "objet divers";
+    const included = (o) =>
+      isDivers
+        ? !MARKET_BUTTON_ROOTS.includes((rootOf(o.categorie_id)?.nom || "").trim().toLowerCase())
+        : isUnderRacine(o.categorie_id);
     const items = objets
-      .filter((o) => o.actif !== false && isUnderRacine(o.categorie_id))
+      .filter((o) => o.actif !== false && included(o))
       .map((o) => {
         const recette = recettes.find(
           (r) => r.resultat_objet_id === o.id && r.actif !== false,
@@ -1339,8 +1395,11 @@ export function App() {
         return {
           ...o,
           ingredientsList,
-          groupe: groupName(o.categorie_id),
-          racine: racineNom,
+          groupe:
+            isDivers && rootOf(o.categorie_id) && rootOf(o.categorie_id).id !== racine?.id
+              ? rootOf(o.categorie_id).nom
+              : groupName(o.categorie_id),
+          racine: isDivers ? rootOf(o.categorie_id)?.nom || racineNom : racineNom,
         };
       });
     setCatalogueByAtelier((prev) => ({ ...prev, [atelier]: { items, error: "" } }));
@@ -2312,7 +2371,14 @@ export function App() {
               </button>
             </>
           ) : (
-            <ItemActionPanel key={modal.id} game={game} id={modal.id} />
+            <ItemActionPanel
+              key={modal.id}
+              game={game}
+              id={modal.id}
+              onSell={actSell}
+              busy={busy}
+              error={actionError}
+            />
           )}
           {actionError && (
             <p className="error" role="alert">

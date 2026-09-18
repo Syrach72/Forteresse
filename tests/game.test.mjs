@@ -101,6 +101,7 @@ test("fabrication catalogue avec route et duree_fabrication_instances : mise en 
     nom: "Arbalète légère",
     icone: arme.icone,
     categorie: "Armes",
+    cout: null,
   });
   assert.ok(!queued.inventory.some((i) => i.id === `catalogue:${arme.id}`));
   assert.match(
@@ -197,6 +198,29 @@ test("achat catalogue : le coût est décompté de la trésorerie, l'objet rejoi
     transact(s, { type: "buy-catalogue", arme: { ...arme, cout_achat_or: gold + 1 } }).error,
     /pas assez de pièces/,
   );
+  assert.equal(JSON.stringify(s), snapshot);
+});
+test("vente : moitié de la valeur créditée à la trésorerie, quantité retirée, refus sans valeur ou quantité invalide", () => {
+  const s = initialGame();
+  const gold = s.gold;
+  const potions = s.inventory.find((i) => i.id === "potion");
+  assert.ok(potions && potions.quantity >= 2);
+  const before = potions.quantity;
+  const r = transact(s, { type: "sell", id: "potion", quantity: 2 });
+  assert.equal(r.state.gold, gold + 25); // 2 × 25 Po ÷ 2
+  assert.equal(r.state.inventory.find((i) => i.id === "potion").quantity, before - 2);
+  assert.equal(r.state.log[0].amount, 25);
+  // objet du catalogue de valeur impaire : arrondi à l'entier inférieur
+  s.inventory.push({ id: "catalogue:z", nom: "Bâton", quantity: 1, equipped: false, valeur: 5 });
+  const r2 = transact(s, { type: "sell", id: "catalogue:z", quantity: 1 });
+  assert.equal(r2.state.gold, gold + 2);
+  assert.ok(!r2.state.inventory.some((i) => i.id === "catalogue:z"));
+  // sans valeur, quantité invalide : refus sans muter l'état
+  s.inventory.push({ id: "catalogue:n", nom: "Sans prix", quantity: 3, equipped: false, valeur: null });
+  const snapshot = JSON.stringify(s);
+  assert.match(transact(s, { type: "sell", id: "catalogue:n", quantity: 1 }).error, /valeur/);
+  assert.match(transact(s, { type: "sell", id: "potion", quantity: before + 1 }).error, /Quantité invalide/);
+  assert.match(transact(s, { type: "sell", id: "potion", quantity: 0 }).error, /Quantité invalide/);
   assert.equal(JSON.stringify(s), snapshot);
 });
 test("fabrication catalogue : un composant alchimique est débité par son nom dans l'inventaire", () => {

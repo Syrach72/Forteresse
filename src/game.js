@@ -46,6 +46,15 @@ export function findIngredientLine(inventory, nom) {
 export function ingredientQuantity(inventory, nom) {
   return findIngredientLine(inventory, nom)?.quantity ?? 0;
 }
+// Valeur d'une ligne d'inventaire : coût d'achat du catalogue (champ valeur)
+// ou prix de la démo locale (ITEMS) ; null si aucune valeur n'est définie.
+export function sellableValue(own) {
+  const legacy = ITEMS.find((i) => i.id === own.id);
+  const raw = own.valeur ?? legacy?.price;
+  if (raw === null || raw === undefined) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
 export function initialGame() {
   return {
     ...structuredClone(INITIAL),
@@ -62,7 +71,7 @@ export function transact(state, action) {
   const item = ITEMS.find((i) => i.id === action.id);
   const next = structuredClone(state);
   let message = "";
-  let spent = 0;
+  let delta = 0;
   const add = () => {
     const own = next.inventory.find((i) => i.id === item.id);
     if (own) own.quantity++;
@@ -89,8 +98,9 @@ export function transact(state, action) {
       return { error: "Le coût d’achat de cet objet n’est pas encore défini." };
     if (next.gold < Number(cout))
       return { error: "Vous n’avez pas assez de pièces d’or." };
-    spent = Number(cout);
+    const spent = Number(cout);
     next.gold -= spent;
+    delta = -spent || 0;
     const invId = `catalogue:${arme.id}`;
     const own = next.inventory.find((i) => i.id === invId);
     if (own) own.quantity++;
@@ -102,8 +112,27 @@ export function transact(state, action) {
         nom: arme.nom,
         icone: arme.icone,
         categorie: arme.racine || null,
+        valeur: spent,
       });
     message = `${arme.nom} acheté : −${spent} Po.`;
+  } else if (action.type === "sell") {
+    // Vente au Marché : l'objet est cédé pour la moitié de sa valeur (coût
+    // d'achat du catalogue, ou prix de la démo locale), créditée à la
+    // trésorerie. Sans valeur définie, la vente est refusée.
+    const own = next.inventory.find((i) => i.id === action.id);
+    const qty = Math.floor(Number(action.quantity));
+    if (!own) return { error: "Cet objet n’est plus dans l’arsenal." };
+    if (!(qty >= 1) || qty > own.quantity) return { error: "Quantité invalide." };
+    if (own.equipped) return { error: "Rangez d’abord cet objet équipé avant de le vendre." };
+    const unit = sellableValue(own);
+    if (unit === null)
+      return { error: "La valeur de cet objet n’est pas définie : vente impossible." };
+    const gain = Math.floor((unit * qty) / 2);
+    own.quantity -= qty;
+    if (own.quantity <= 0) next.inventory = next.inventory.filter((i) => i.id !== own.id);
+    next.gold += gain;
+    delta = gain;
+    message = `${item?.name || own.nom || "Objet"} vendu ×${qty} : +${gain} Po.`;
   } else if (action.type === "craft") {
     if (!item?.metal) return { error: "Cette recette n’existe pas." };
     if (["metal", "leather", "wood"].some((k) => materialQuantity(next.inventory, k) < item[k]))
@@ -165,7 +194,13 @@ export function transact(state, action) {
       next.durations = { ...next.durations, [route]: duree };
       next.craftingQueue = {
         ...next.craftingQueue,
-        [route]: { id: arme.id, nom: arme.nom, icone: arme.icone, categorie },
+        [route]: {
+          id: arme.id,
+          nom: arme.nom,
+          icone: arme.icone,
+          categorie,
+          cout: arme.cout_achat_or ?? null,
+        },
       };
       message = `${arme.nom} : fabrication lancée. Elle rejoindra l’arsenal une fois la durée d’instance à 0.`;
     } else {
@@ -180,6 +215,7 @@ export function transact(state, action) {
           nom: arme.nom,
           icone: arme.icone,
           categorie,
+          valeur: arme.cout_achat_or ?? null,
         });
       message = `${arme.nom} fabriqué et ajouté au stock.`;
     }
@@ -212,6 +248,7 @@ export function transact(state, action) {
           nom: value.nom,
           icone: value.icone,
           categorie: value.categorie || null,
+          valeur: value.cout ?? null,
         });
       message = `${value.nom} rejoint l’arsenal.`;
     }
@@ -232,7 +269,7 @@ export function transact(state, action) {
     id: crypto.randomUUID(),
     message,
     date: new Date().toISOString(),
-    amount: action.type === "buy" ? -item.price : spent ? -spent : 0,
+    amount: action.type === "buy" ? -item.price : delta,
   });
   next.log = next.log.slice(0, 50);
   return { state: next, message };
