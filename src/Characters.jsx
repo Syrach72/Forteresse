@@ -68,6 +68,7 @@ export function Characters({
   tousRecrutes = [],
   estAdmin = false,
   onRecruit = () => {},
+  litLibre = true,
   onUpdate,
   Modal,
   notify,
@@ -250,13 +251,23 @@ export function Characters({
                   Recruté par un autre joueur (accès administrateur).
                 </p>
               ) : (
-                <button
-                  className="wood-button merc-recruit"
-                  type="button"
-                  onClick={() => onRecruit(merc)}
-                >
-                  Recruter
-                </button>
+                <>
+                  <button
+                    className="wood-button merc-recruit"
+                    type="button"
+                    disabled={!litLibre}
+                    aria-describedby={litLibre ? undefined : "merc-recruit-help"}
+                    onClick={() => onRecruit(merc)}
+                  >
+                    Recruter
+                  </button>
+                  {!litLibre && (
+                    <p id="merc-recruit-help" className="merc-recrute-note">
+                      Aucun lit libre au Dortoir : libérez un lit ou débloquez
+                      un emplacement pour recruter {merc.nom}.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </section>

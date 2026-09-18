@@ -307,6 +307,7 @@ import {
   INITIAL_DORMITORY,
   updateDormitory,
   stepDurations,
+  firstFreeBed,
 } from "../src/dormitory.js";
 import { INITIAL_TRAINING, stepTraining } from "../src/training-data.js";
 import {
@@ -332,6 +333,20 @@ test("le dortoir, l'infirmerie et l'entraînement démarrent vides (les mercenai
   assert.ok(INITIAL_DORMITORY.beds.every((b) => b === null));
   assert.equal(INITIAL_TRAINING.instructor, null);
   assert.ok(INITIAL_TRAINING.students.every((x) => x === null));
+});
+test("recrutement : premier lit libre et débloqué ; aucun lit si tous sont pris ou verrouillés", () => {
+  const dormitory = structuredClone(INITIAL_DORMITORY);
+  assert.equal(firstFreeBed(dormitory), 0);
+  dormitory.beds[0] = { heroId: "a", remaining: 0 };
+  dormitory.beds[2] = { heroId: "b", remaining: 0 };
+  assert.equal(firstFreeBed(dormitory), 1);
+  for (let i = 0; i < dormitory.capacity; i++)
+    dormitory.beds[i] = { heroId: `h${i}`, remaining: 0 };
+  // Les lits au-delà de la capacité restent vides mais verrouillés.
+  assert.equal(dormitory.beds[dormitory.capacity], null);
+  assert.equal(firstFreeBed(dormitory), -1);
+  dormitory.capacity += 1;
+  assert.equal(firstFreeBed(dormitory), dormitory.capacity - 1);
 });
 test("repos : pas de doublon ni de placement sur un lit verrouillé", () => {
   const dormitory = structuredClone(INITIAL_DORMITORY);

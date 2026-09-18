@@ -16,6 +16,7 @@ import { Dormitory } from "./Dormitory.jsx";
 import {
   INITIAL_DORMITORY,
   INITIAL_INFIRMARY,
+  firstFreeBed,
   stepDurations,
   updateDormitory,
 } from "./dormitory";
@@ -824,9 +825,17 @@ export function App() {
   }, [session?.user?.id, surPagePersonnages]);
   // Recruter un mercenaire : enregistré pour le joueur connecté (un mercenaire
   // ne peut être recruté que par un seul joueur). Sans la table recrutement,
-  // repli sur la session en cours.
+  // repli sur la session en cours. Le mercenaire arrive directement dans le
+  // premier lit libre et débloqué du Dortoir ; sans lit disponible, il ne peut
+  // pas être recruté.
   async function recruit(m) {
     if (mesRecrutes.has(m.id)) return;
+    if (firstFreeBed(dormRef.current) < 0) {
+      notify(
+        `Recrutement impossible : aucun lit libre au Dortoir pour ${m.nom}.`,
+      );
+      return;
+    }
     const { error } = await supabase
       .from("recrutement")
       .insert({ mercenaire_id: m.id, user_id: session.user.id });
@@ -844,11 +853,32 @@ export function App() {
       notify(`Recrutement impossible : ${error.message}`);
       return;
     }
+    // Le lit a pu être pris pendant l'enregistrement : on relit l'état courant
+    // et, s'il n'y a plus de place, on annule le recrutement.
+    const slot = firstFreeBed(dormRef.current);
+    if (slot < 0) {
+      if (!tableAbsente)
+        await supabase
+          .from("recrutement")
+          .delete()
+          .eq("mercenaire_id", m.id)
+          .eq("user_id", session.user.id);
+      notify(
+        `Recrutement impossible : aucun lit libre au Dortoir pour ${m.nom}.`,
+      );
+      return;
+    }
+    const next = updateDormitory(dormRef.current, {
+      type: "place",
+      slot,
+      heroId: m.id,
+      remaining: 0,
+    });
+    dormRef.current = next.state;
+    setDorm(next.state);
     setMesRecrutes((old) => new Set([...old, m.id]));
     notify(
-      tableAbsente
-        ? `${m.nom} est recruté pour cette session : il apparaît au Dortoir.`
-        : `${m.nom} est recruté : il apparaît au Dortoir.`,
+      `${m.nom} est recruté et prend place au lit ${slot + 1} du Dortoir${tableAbsente ? " (pour cette session)" : ""}.`,
     );
   }
   // Renvoyer un mercenaire recruté : supprime le recrutement (il redevient
@@ -1706,6 +1736,7 @@ export function App() {
           tousRecrutes={[...tousRecrutes]}
           estAdmin={estAdmin}
           onRecruit={recruit}
+          litLibre={firstFreeBed(dorm) >= 0}
           onUpdate={(id, data) =>
             setWarriors((old) =>
               old.map((w) => (w.id === id ? { ...w, ...data } : w)),

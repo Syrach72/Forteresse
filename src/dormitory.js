@@ -60,6 +60,12 @@ export function updateDormitory(dorm, action) {
   return { state: next };
 }
 
+// Premier lit débloqué et libre du dortoir (indice), ou -1 s'il n'y en a pas :
+// les lits occupés et les lits verrouillés (au-delà de la capacité) ne comptent pas.
+export function firstFreeBed(dorm) {
+  return dorm.beds.slice(0, dorm.capacity).findIndex((b) => !b);
+}
+
 export const INITIAL_INFIRMARY = {
   capacity: 2,
   beds: [null, null, null, null, null, null],
