@@ -132,7 +132,7 @@ export function transact(state, action) {
     if (own.quantity <= 0) next.inventory = next.inventory.filter((i) => i.id !== own.id);
     next.gold += gain;
     delta = gain;
-    message = `${item?.name || own.nom || "Objet"} vendu ×${qty} : +${gain} Po.`;
+    message = `Vente de ${item?.name || own.nom || "l’objet"} ×${qty} : +${gain} Po.`;
   } else if (action.type === "craft") {
     if (!item?.metal) return { error: "Cette recette n’existe pas." };
     if (["metal", "leather", "wood"].some((k) => materialQuantity(next.inventory, k) < item[k]))
