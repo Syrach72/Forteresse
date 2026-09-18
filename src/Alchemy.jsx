@@ -48,7 +48,7 @@ export function Alchemy({ alchemy, inventory, onChange }) {
         <div className="alchemy-circle-heading"><h2>Le pentagramme</h2><button className="text-button" disabled={!occupied} onClick={() => perform({ type: 'clear' })}>Tout retirer</button></div>
         <p className="alchemy-selection" role="status">{selectedName ? `${selectedName} sélectionné · choisissez une branche` : `${occupied} / 5 branches occupées`}</p>
         <div className={`alchemy-sigil ${recipe ? 'recipe-ready' : ''}`} style={{ '--potion-color': recipe?.color || '#b3cd91' }}>
-          <span className="sigil-art" aria-hidden="true"><img src="/assets/references/alchemy-workbench.png" alt="" draggable="false" /></span>
+          <span className="sigil-art" aria-hidden="true"><img src="/assets/references/pentagram-star.png" alt="" draggable="false" /></span>
           {POINTS.map(([x,y], slot) => {
             const id = alchemy.slots[slot];
             const ingredient = INGREDIENTS.find(i => i.id === id);

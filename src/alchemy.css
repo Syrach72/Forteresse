@@ -6,8 +6,8 @@
 .alchemy-circle-heading button { color: #ffebbd; font-size: 15px; padding: 8px 10px; background: #271e14d9; border: 1px solid #9f8558; }
 .alchemy-selection { min-height: 22px; font-size: 15px; margin: 5px 0; text-shadow: 0 2px 3px #000; }
 .alchemy-sigil { position: relative; aspect-ratio: 384 / 360; width: min(100%, 410px); margin: 0 auto; isolation: isolate; }
-.sigil-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: -1; border-radius: 18%; }
-.sigil-art img { position: absolute; width: 327.083%; max-width: none; left: 0; top: -125%; filter: brightness(1.55); }
+.sigil-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: -1; }
+.sigil-art img { width: 100%; height: 100%; object-fit: contain; }
 .sigil-branch { position: absolute; width: 17%; aspect-ratio: 1; transform: translate(-50%, -50%); }
 .sigil-target { width: 100%; height: 100%; padding: 5px; border-radius: 50%; border: 3px ridge #bba36b; background: radial-gradient(circle, #f2e4bf, #b39c68); color: #665634; display: grid; place-items: center; box-shadow: inset 0 0 10px #44341b66, 0 2px 8px #0008; cursor: pointer; font: 21px Georgia, serif; }
 .sigil-target.filled { background: radial-gradient(circle, #4c5b31, #242a1c); }
