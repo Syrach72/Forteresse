@@ -1,16 +1,10 @@
 .alchemy-workspace { position: absolute; left: 32px; bottom: 24px; width: 750px; max-width: calc(100% - 64px); }
 .alchemy-table { display: block; }
 .alchemy-circle-panel { min-width: 0; max-width: 750px; color: #fff1d0; }
-.alchemy-circle-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.alchemy-circle-heading h2 { font: 700 17px Aniron, Georgia, serif; margin: 0; text-shadow: 0 2px 4px #000; }
-.alchemy-circle-heading button { color: #ffebbd; font-size: 15px; padding: 8px 10px; background: #271e14d9; border: 1px solid #9f8558; }
-.alchemy-selection { min-height: 22px; font-size: 15px; margin: 5px 0; text-shadow: 0 2px 3px #000; }
 .alchemy-sigil { position: relative; aspect-ratio: 384 / 360; width: min(100%, 690px); margin: 0 auto; isolation: isolate; }
 .sigil-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .sigil-art img { width: 100%; height: 100%; object-fit: contain; }
-.alchemy-error { background: var(--paper); padding: 10px; }
 .alchimie .interior-backdrop { background-position: 66% bottom; }
-@media (max-width: 930px) and (min-width: 681px) { .alchemy-circle-heading { align-items: start; } .alchemy-circle-heading h2 { font-size: 14px; } }
 @media (max-width: 680px) {
   .alchemy-sigil { max-width: 340px; }
 }

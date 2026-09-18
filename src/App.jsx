@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { Alchemy } from "./Alchemy.jsx";
-import { changeAlchemy, initialAlchemy } from "./alchemy.js";
 import { Mage } from "./Mage.jsx";
 import { changeMage, initialMage } from "./mage.js";
 import { ASSETS, LOCATIONS, CLASSES, ITEMS } from "./data";
@@ -725,13 +724,6 @@ export function App() {
     setModal({ type: "db-catalogue", atelier, racine: ATELIER_RACINE[atelier], detailId: objetId });
     setPendingCraftTarget(null);
   }, [pendingCraftTarget, route, catalogueByAtelier]);
-  function updateAlchemy(action) {
-    const result = changeAlchemy(gameRef.current, action);
-    if (result.error) return result;
-    gameRef.current = result.state;
-    setGame(result.state);
-    return result;
-  }
   function updateMage(action) {
     const result = changeMage(gameRef.current, action);
     if (result.error) return result;
@@ -1490,7 +1482,7 @@ export function App() {
               ]}
             />
           ) : route === "alchimie" ? (
-            <Alchemy alchemy={game.alchemy || initialAlchemy()} onChange={updateAlchemy} />
+            <Alchemy />
           ) : route === "mage" ? (
             <Mage mage={game.mage || initialMage()} inventory={game.inventory} onChange={updateMage} />
           ) : ["armurerie", "forge"].includes(route) ? (
