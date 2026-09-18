@@ -1539,8 +1539,8 @@ export function App() {
                             />
                           )}
                           <h2>{queuedNom}</h2>
-                          <div className="workshop-duration">
-                            <label>Durée d’instance restante</label>
+                          <div className="stat-line">
+                            <span>Durée d’instance restante</span>
                             <strong>{remaining}</strong>
                           </div>
                           <button
