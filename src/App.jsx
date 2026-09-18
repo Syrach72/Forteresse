@@ -712,6 +712,11 @@ export function App() {
   const infirmRef = useRef(infirm);
   const [dorm, setDorm] = useState(() => structuredClone(INITIAL_DORMITORY));
   const dormRef = useRef(dorm);
+  // Nom saisi par le joueur sous chaque lit du Dortoir (texte libre, un par
+  // lit). Séparé de `dorm` pour ne pas être écrasé par l'annulation du +10 min.
+  const [bedNames, setBedNames] = useState(() => Array(18).fill(""));
+  const renameBed = (slot, value) =>
+    setBedNames((old) => old.map((n, i) => (i === slot ? value : n)));
   // Mercenaires créés dans Administration > Mercenaires (tables mercenaire et
   // classe) et recrutements (table recrutement). Seuls les mercenaires
   // recrutés par le joueur connecté sont disponibles au Dortoir, à
@@ -1888,6 +1893,8 @@ export function App() {
               onChange={changeDorm}
               onUnlock={unlockDorm}
               onDismiss={dismiss}
+              names={bedNames}
+              onRename={renameBed}
               Modal={Modal}
               otherOccupied={[
                 ...infirm.beds.filter(Boolean).map((b) => b.heroId),

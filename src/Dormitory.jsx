@@ -7,6 +7,8 @@ export function Dormitory({
   onChange,
   onUnlock,
   onDismiss,
+  names = [],
+  onRename,
   Modal,
   kind = "dormitory",
   otherOccupied = [],
@@ -49,7 +51,7 @@ export function Dormitory({
   return (
     <>
       <section
-        className={`dorm-board ${isInfirmary ? "infirmary-board" : ""}`}
+        className={`dorm-board ${isInfirmary ? "infirmary-board" : "dorm-named"}`}
         aria-label="Emplacements de repos"
       >
         <div className="dorm-title">
@@ -70,8 +72,8 @@ export function Dormitory({
             const purchasable =
               slot === initialCapacity && dorm.capacity === initialCapacity;
             return (
-              <button
-                className={`bed-slot ${locked ? "bed-locked" : ""} ${hover === slot ? "drop-target" : ""}`}
+              <div
+                className="bed-cell"
                 key={slot}
                 onDragOver={(e) => {
                   if (!locked && !bed) {
@@ -87,6 +89,9 @@ export function Dormitory({
                   if (warriors.some((w) => w.id === id) && !locked && !bed)
                     place(slot, id);
                 }}
+              >
+              <button
+                className={`bed-slot ${locked ? "bed-locked" : ""} ${hover === slot ? "drop-target" : ""}`}
                 onClick={() => {
                   setError("");
                   if (locked)
@@ -130,6 +135,18 @@ export function Dormitory({
                   <span className="free-bed">Placer un mercenaire</span>
                 )}
               </button>
+              {onRename && !locked && (
+                <input
+                  className="bed-player"
+                  type="text"
+                  maxLength={24}
+                  value={names[slot] ?? ""}
+                  placeholder="Nom du joueur"
+                  aria-label={`Nom du joueur, lit ${slot + 1}`}
+                  onChange={(e) => onRename(slot, e.target.value)}
+                />
+              )}
+              </div>
             );
           })}
         </div>
