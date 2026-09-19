@@ -75,23 +75,17 @@ function BackdropVideo({ src, ratio }) {
     const a = ref1.current;
     const b = ref2.current;
     if (!a || !b) return;
-    // Fondu de boucle : la vidéo qui sort reste opaque et la suivante apparaît
-    // PAR-DESSUS. Fondre les deux en même temps les rend semi-transparentes et
-    // laisse transparaître le fond statique (autre teinte, et absent hors de la
-    // carte), d'où une bande de teinte horizontale à chaque boucle. Le calque du
-    // dessus (idle) est donc placé un cran au-dessus de celui du dessous (active).
-    a.style.zIndex = "";
-    b.style.zIndex = "";
-    const baseZ = parseInt(getComputedStyle(a).zIndex, 10) || 0;
-    const setStack = (below, above) => {
-      below.style.zIndex = baseZ - 1;
-      above.style.zIndex = baseZ;
-    };
+    // Fondu de boucle : "a" (dessous) reste toujours opaque, seul "b" (dessus)
+    // change d'opacité. Fondre les deux en même temps les rendrait
+    // semi-transparentes et laisserait transparaître le fond statique (autre
+    // teinte, absent hors de la carte) : bande de teinte à chaque boucle. On ne
+    // touche pas à l'ordre d'empilement (z-index) : un calque passé derrière le
+    // fond de la carte disparaîtrait au profit de l'image fixe.
+    //  - mode "in"  : "a" joue, "b" apparaît par-dessus (0 → 1) en fin de boucle ;
+    //  - mode "out" : "b" joue, "a" repart de 0 dessous et "b" disparaît (1 → 0).
     a.style.opacity = 1;
     b.style.opacity = 0;
-    let active = a;
-    let idle = b;
-    setStack(active, idle);
+    let mode = "in";
     let crossfading = false;
     let raf;
     const safePlay = (video) => {
@@ -99,29 +93,27 @@ function BackdropVideo({ src, ratio }) {
     };
     safePlay(a);
     const tick = () => {
+      const active = mode === "in" ? a : b;
+      const next = mode === "in" ? b : a;
       if (active.paused) safePlay(active);
       if (active.duration) {
         const remaining = active.duration - active.currentTime;
         if (remaining <= BACKDROP_LOOP_FADE) {
           if (!crossfading) {
             crossfading = true;
-            idle.currentTime = 0;
-            safePlay(idle);
+            next.currentTime = 0;
+            safePlay(next);
           }
           const t = Math.min(1, Math.max(0, 1 - remaining / BACKDROP_LOOP_FADE));
-          active.style.opacity = 1;
-          idle.style.opacity = t;
+          b.style.opacity = mode === "in" ? t : 1 - t;
           if (remaining <= 0.02) {
             active.pause();
-            [active, idle] = [idle, active];
-            active.style.opacity = 1;
-            idle.style.opacity = 0;
-            setStack(active, idle);
+            mode = mode === "in" ? "out" : "in";
+            b.style.opacity = mode === "out" ? 1 : 0;
             crossfading = false;
           }
         } else {
-          active.style.opacity = 1;
-          idle.style.opacity = 0;
+          b.style.opacity = mode === "in" ? 0 : 1;
         }
       }
       raf = requestAnimationFrame(tick);
