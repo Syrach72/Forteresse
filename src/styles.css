@@ -450,6 +450,10 @@ video.interior-backdrop {
   filter: none;
   z-index: 0;
 }
+/* Tour du Mage : image retournée (fenêtre à droite, mage tourné vers la droite). */
+.mage video.interior-backdrop {
+  transform: scaleX(-1);
+}
 video.interior-backdrop-boxed {
   left: 50%;
   right: auto;
