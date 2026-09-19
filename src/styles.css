@@ -153,6 +153,16 @@ img {
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
 }
+/* Lien « Modifier les recettes » : bouton (pas un span), donc encore en noir
+   sur le décor sombre ; même texte blanc contouré que le reste. */
+.tresorerie .parchment .text-button {
+  color: #fff;
+  text-shadow:
+    -1.5px -1.5px 0 #000,
+    1.5px -1.5px 0 #000,
+    -1.5px 1.5px 0 #000,
+    1.5px 1.5px 0 #000;
+}
 .interior .parchment h1,
 .interior .parchment h2,
 .interior .parchment h3,
