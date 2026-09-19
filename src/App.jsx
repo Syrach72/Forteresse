@@ -68,17 +68,40 @@ const WORKSHOP_TEXT = {
   },
 };
 const BACKDROP_LOOP_FADE = 1.1;
-// Fondu de boucle plus court pour les vidéos dont la dernière image diffère
-// nettement de la première (ex. la capuche de l’alchimiste bouge) : un fondu
-// long y montre un « dédoublement » pendant toute sa durée.
-const BACKDROP_VIDEO_FADE = { alchimie: 0.3 };
-function BackdropVideo({ src, ratio, fade = BACKDROP_LOOP_FADE }) {
+// Vidéos qui ne bouclent pas (la caméra recule : première et dernière image
+// très différentes). Un fondu enchaîné y superpose deux capuches ; on fait donc
+// un fondu par le noir (sortie puis entrée, en secondes) : aucun dédoublement.
+const BACKDROP_VIDEO_DIP = { alchimie: 0.4 };
+function BackdropVideo({ src, ratio, dip }) {
   const ref1 = useRef(null);
   const ref2 = useRef(null);
   useEffect(() => {
     const a = ref1.current;
     const b = ref2.current;
     if (!a || !b) return;
+    if (dip) {
+      // Une seule vidéo (lecture en boucle native) ; son opacité descend à 0
+      // avant la fin et remonte après le redémarrage, sur le fond noir de la page.
+      b.pause();
+      b.style.opacity = 0;
+      a.loop = true;
+      a.style.opacity = 0;
+      a.play().catch(() => {});
+      let rafDip;
+      const tickDip = () => {
+        if (a.paused) a.play().catch(() => {});
+        if (a.duration) {
+          const t = a.currentTime;
+          a.style.opacity = Math.max(0, Math.min(1, t / dip, (a.duration - t) / dip));
+        }
+        rafDip = requestAnimationFrame(tickDip);
+      };
+      rafDip = requestAnimationFrame(tickDip);
+      return () => {
+        cancelAnimationFrame(rafDip);
+        a.loop = false;
+      };
+    }
     // Fondu de boucle : "a" (dessous) reste toujours opaque, seul "b" (dessus)
     // change d'opacité. Fondre les deux en même temps les rendrait
     // semi-transparentes et laisserait transparaître le fond statique (autre
@@ -102,13 +125,13 @@ function BackdropVideo({ src, ratio, fade = BACKDROP_LOOP_FADE }) {
       if (active.paused) safePlay(active);
       if (active.duration) {
         const remaining = active.duration - active.currentTime;
-        if (remaining <= fade) {
+        if (remaining <= BACKDROP_LOOP_FADE) {
           if (!crossfading) {
             crossfading = true;
             next.currentTime = 0;
             safePlay(next);
           }
-          const t = Math.min(1, Math.max(0, 1 - remaining / fade));
+          const t = Math.min(1, Math.max(0, 1 - remaining / BACKDROP_LOOP_FADE));
           b.style.opacity = mode === "in" ? t : 1 - t;
           if (remaining <= 0.02) {
             active.pause();
@@ -124,7 +147,7 @@ function BackdropVideo({ src, ratio, fade = BACKDROP_LOOP_FADE }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [src, ratio, fade]);
+  }, [src, ratio, dip]);
   const className = `interior-backdrop${ratio ? " interior-backdrop-boxed" : ""}`;
   const style = ratio ? { aspectRatio: ratio } : undefined;
   return (
@@ -1846,7 +1869,7 @@ export function App() {
       ) : (
         <main id="main" className={`interior ${route}`}>
           {BACKDROP_VIDEO[route] ? (
-            <BackdropVideo src={BACKDROP_VIDEO[route]} ratio={BACKDROP_VIDEO_RATIO[route]} fade={BACKDROP_VIDEO_FADE[route]} />
+            <BackdropVideo src={BACKDROP_VIDEO[route]} ratio={BACKDROP_VIDEO_RATIO[route]} dip={BACKDROP_VIDEO_DIP[route]} />
           ) : (
             <div
               className="interior-backdrop"

@@ -10,8 +10,10 @@
    largeur visible). Aligné à gauche, il rogne le bord droit, où se trouve un
    filigrane « Vidu AI » (86-99 % de la largeur, bas de l'image). Le haut se
    fond dans le noir de la page. Sur mobile, on garde le remplissage complet. */
+/* Fond noir aussi sur mobile : la vidéo s'y éteint brièvement à chaque boucle
+   (fondu par le noir, voir BACKDROP_VIDEO_DIP dans App.jsx). */
+main.alchimie { background: #0d0b0a; }
 @media (min-width: 681px) {
-  main.alchimie { background: #0d0b0a; }
   .alchimie video.interior-backdrop {
     inset: auto 0 0 0;
     height: auto;
