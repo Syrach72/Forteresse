@@ -72,14 +72,11 @@ const BACKDROP_LOOP_FADE = 1.1;
 // très différentes). Un fondu enchaîné y superpose deux capuches ; on fait donc
 // un fondu par le noir (sortie puis entrée, en secondes) : aucun dédoublement.
 const BACKDROP_VIDEO_DIP = { alchimie: 0.4 };
-// Vidéos plus basses que la page : le vide au-dessus est comblé par un reflet
-// flou de la vidéo elle-même (voir BackdropVideo, prop extend).
-const BACKDROP_VIDEO_EXTEND = { alchimie: true };
-function BackdropVideo({ src, ratio, dip, extend }) {
+// Vitesse de lecture (1 = normale) : le Laboratoire est ralenti.
+const BACKDROP_VIDEO_RATE = { alchimie: 0.6 };
+function BackdropVideo({ src, ratio, dip, rate = 1 }) {
   const ref1 = useRef(null);
   const ref2 = useRef(null);
-  const extRef = useRef(null);
-  const extSoftRef = useRef(null);
   useEffect(() => {
     const a = ref1.current;
     const b = ref2.current;
@@ -90,100 +87,20 @@ function BackdropVideo({ src, ratio, dip, extend }) {
       b.pause();
       b.style.opacity = 0;
       a.loop = true;
+      a.defaultPlaybackRate = rate;
+      a.playbackRate = rate;
+      // Durée du fondu en secondes réelles : le temps média passe `rate` fois
+      // moins vite quand la lecture est ralentie.
+      const dipMedia = dip * rate;
       a.style.opacity = 0;
       a.play().catch(() => {});
       let rafDip;
-      // Extension du décor vers le haut, sans raccord : les images de la vidéo
-      // sont réfléchies au-dessus de son bord haut (l'axe du miroir est la
-      // première rangée, donc les deux côtés se raccordent exactement), puis
-      // floutées et assombries par le CSS. Sous l'axe, une copie droite de la
-      // bande haute (déjà floue) sert de fond à l'estompage de la vidéo nette.
-      // Deux calques : les bords (étagères) restent peu flous ; le centre, où le
-      // mage serait reflété, reçoit une copie très floue et sombre (simple lueur
-      // ambiante : on ne reconnaît plus la silhouette, mais la fumée se prolonge).
-      // Les deux suivent l'opacité de la vidéo (fondu par le noir de la boucle).
-      const ext = extRef.current;
-      const soft = extSoftRef.current;
-      const ectx = extend && ext ? ext.getContext("2d") : null;
-      const sctx = extend && soft ? soft.getContext("2d") : null;
-      const drawExtension = () => {
-        const main = a.parentElement;
-        const vw = a.videoWidth;
-        const vh = a.videoHeight;
-        if (!ectx || !main || !vw) return;
-        const eh = a.offsetHeight;
-        const ew = a.offsetWidth;
-        const top = a.offsetTop;
-        if (top <= 2) {
-          ext.style.display = "none";
-          soft.style.display = "none";
-          return;
-        }
-        ext.style.display = "block";
-        soft.style.display = "block";
-        const blend = 0.3 * eh;
-        const ch = top + blend;
-        const k = 0.5;
-        const cw = Math.round(ew * k);
-        const chp = Math.round(ch * k);
-        if (ext.width !== cw || ext.height !== chp) {
-          ext.width = cw;
-          ext.height = chp;
-        }
-        if (soft.width !== cw || soft.height !== chp) {
-          soft.width = cw;
-          soft.height = chp;
-        }
-        ext.style.height = ch + "px";
-        soft.style.height = ch + "px";
-        ext.style.setProperty("--axis", (top / ch) * 100 + "%");
-        ectx.clearRect(0, 0, cw, chp);
-        // Zone visible de la vidéo (cover, cf. alchemy.css).
-        const sc = Math.max(ew / vw, eh / vh);
-        const srcW = ew / sc;
-        const srcH = eh / sc;
-        const srcY = (vh - srcH) / 2;
-        // Décalage horizontal de la vidéo (object-position, en %), comme le CSS.
-        const posX = parseFloat(getComputedStyle(a).objectPosition) / 100 || 0;
-        const srcX = (vw - srcW) * posX;
-        ectx.drawImage(a, srcX, srcY, srcW, blend / sc, 0, top * k, cw, blend * k);
-        const segH = eh * 0.6;
-        let y = top;
-        let flipped = true;
-        for (let n = 0; y > 0 && n < 4; n++) {
-          const h = Math.min(segH, y);
-          ectx.save();
-          if (flipped) {
-            ectx.translate(0, y * k);
-            ectx.scale(1, -1);
-            ectx.drawImage(a, srcX, srcY, srcW, h / sc, 0, 0, cw, h * k);
-          } else {
-            ectx.drawImage(a, srcX, srcY + (segH - h) / sc, srcW, h / sc, 0, (y - h) * k, cw, h * k);
-          }
-          ectx.restore();
-          y -= h;
-          flipped = !flipped;
-        }
-        // Estompage du haut vers le noir (les 32 % supérieurs).
-        const fadeH = chp * 0.32;
-        const g = ectx.createLinearGradient(0, 0, 0, fadeH);
-        g.addColorStop(0, "rgba(0,0,0,1)");
-        g.addColorStop(1, "rgba(0,0,0,0)");
-        ectx.globalCompositeOperation = "destination-out";
-        ectx.fillStyle = g;
-        ectx.fillRect(0, 0, cw, fadeH);
-        ectx.globalCompositeOperation = "source-over";
-        sctx.clearRect(0, 0, cw, chp);
-        sctx.drawImage(ext, 0, 0);
-      };
       const tickDip = () => {
-        drawExtension();
         if (a.paused) a.play().catch(() => {});
         if (a.duration) {
           const t = a.currentTime;
-          a.style.opacity = Math.max(0, Math.min(1, t / dip, (a.duration - t) / dip));
+          a.style.opacity = Math.max(0, Math.min(1, t / dipMedia, (a.duration - t) / dipMedia));
         }
-        if (ext && soft) ext.style.opacity = soft.style.opacity = a.style.opacity;
         rafDip = requestAnimationFrame(tickDip);
       };
       rafDip = requestAnimationFrame(tickDip);
@@ -237,17 +154,11 @@ function BackdropVideo({ src, ratio, dip, extend }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [src, ratio, dip]);
+  }, [src, ratio, dip, rate]);
   const className = `interior-backdrop${ratio ? " interior-backdrop-boxed" : ""}`;
   const style = ratio ? { aspectRatio: ratio } : undefined;
   return (
     <>
-      {extend && (
-        <>
-          <canvas ref={extSoftRef} className="backdrop-extend backdrop-extend-soft" aria-hidden="true" />
-          <canvas ref={extRef} className="backdrop-extend" aria-hidden="true" />
-        </>
-      )}
       <video ref={ref1} className={className} style={style} src={src} muted playsInline />
       <video ref={ref2} className={className} style={style} src={src} muted playsInline />
     </>
@@ -1965,7 +1876,7 @@ export function App() {
       ) : (
         <main id="main" className={`interior ${route}`}>
           {BACKDROP_VIDEO[route] ? (
-            <BackdropVideo src={BACKDROP_VIDEO[route]} ratio={BACKDROP_VIDEO_RATIO[route]} dip={BACKDROP_VIDEO_DIP[route]} extend={BACKDROP_VIDEO_EXTEND[route]} />
+            <BackdropVideo src={BACKDROP_VIDEO[route]} ratio={BACKDROP_VIDEO_RATIO[route]} dip={BACKDROP_VIDEO_DIP[route]} rate={BACKDROP_VIDEO_RATE[route]} />
           ) : (
             <div
               className="interior-backdrop"

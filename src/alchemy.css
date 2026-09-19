@@ -5,52 +5,9 @@
 .sigil-art { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .sigil-art img { width: 100%; height: 100%; object-fit: contain; }
 .alchimie .interior-backdrop { background-position: 66% bottom; }
-/* Fond animé (1920x1080) : au lieu de le remplir tout le cadre (cover = ~54 %
-   de la largeur visible), il occupe le bas de la page en 4/3 (75 % de la
-   largeur visible). Décalé à gauche (object-position 20 %, lu aussi par
-   BackdropVideo pour le reflet), il rogne surtout le bord droit, où se trouve
-   un filigrane « Vidu AI » (86-99 % de la largeur, bas de l'image). Le haut se
-   fond dans le noir de la page. Sur mobile, on garde le remplissage complet. */
-/* Extension du décor au-dessus de la vidéo (canvas dessiné par BackdropVideo :
-   reflet de la vidéo). Flou + assombrissement pour un fond « hors champ ».
-   Le masque est l'union de deux couches : les bords gauche et droit (étagères)
-   et tout ce qui est sous l'axe du reflet (--axis), qui sert d'estompage à la
-   vidéo nette. Le centre au-dessus de l'axe (mage qui verse, bougie du milieu,
-   fumée) reste donc noir. L'estompage vers le haut est fait dans le canvas. */
-.backdrop-extend {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  z-index: -2;
-  pointer-events: none;
-  filter: blur(3px) brightness(1.15);
-  -webkit-mask-image:
-    linear-gradient(to right, #000 0, #000 26%, transparent 33%, transparent 88%, #000 94%),
-    linear-gradient(to bottom, transparent calc(var(--axis, 60%) - 6%), #000 var(--axis, 60%));
-  mask-image:
-    linear-gradient(to right, #000 0, #000 26%, transparent 33%, transparent 88%, #000 94%),
-    linear-gradient(to bottom, transparent calc(var(--axis, 60%) - 6%), #000 var(--axis, 60%));
-}
-/* Calque très flou du centre : lueur ambiante à la place du reflet du mage. */
-.backdrop-extend-soft {
-  filter: blur(40px) brightness(0.6);
-  -webkit-mask-image: linear-gradient(to right, transparent 0, transparent 22%, #000 36%, #000 90%, transparent 99%);
-  mask-image: linear-gradient(to right, transparent 0, transparent 22%, #000 36%, #000 90%, transparent 99%);
-}
-/* Fond noir aussi sur mobile : la vidéo s'y éteint brièvement à chaque boucle
-   (fondu par le noir, voir BACKDROP_VIDEO_DIP dans App.jsx). */
-main.alchimie { background: #0d0b0a; }
-@media (min-width: 681px) {
-  .alchimie video.interior-backdrop {
-    inset: auto 0 0 0;
-    height: auto;
-    aspect-ratio: 4 / 3;
-    object-position: 20% center;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 28%);
-    mask-image: linear-gradient(to bottom, transparent 0, #000 28%);
-  }
-}
 @media (max-width: 680px) {
   .alchemy-sigil { max-width: 340px; }
 }
+/* Fond noir : la vidéo s'y éteint brièvement à chaque boucle (fondu par le noir,
+   voir BACKDROP_VIDEO_DIP dans App.jsx). */
+main.alchimie { background: #0d0b0a; }
