@@ -148,6 +148,15 @@ function BackdropVideo({ src, ratio, dip, extend }) {
           y -= h;
           flipped = !flipped;
         }
+        // Estompage du haut vers le noir (les 32 % supérieurs).
+        const fadeH = chp * 0.32;
+        const g = ectx.createLinearGradient(0, 0, 0, fadeH);
+        g.addColorStop(0, "rgba(0,0,0,1)");
+        g.addColorStop(1, "rgba(0,0,0,0)");
+        ectx.globalCompositeOperation = "destination-out";
+        ectx.fillStyle = g;
+        ectx.fillRect(0, 0, cw, fadeH);
+        ectx.globalCompositeOperation = "source-over";
       };
       const tickDip = () => {
         drawExtension();

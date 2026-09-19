@@ -11,9 +11,11 @@
    filigrane « Vidu AI » (86-99 % de la largeur, bas de l'image). Le haut se
    fond dans le noir de la page. Sur mobile, on garde le remplissage complet. */
 /* Extension du décor au-dessus de la vidéo (canvas dessiné par BackdropVideo :
-   reflet de la vidéo). Flou + assombrissement pour un fond « hors champ » ;
-   estompé vers le haut, et centre (capuche) masqué par une ellipse centrée sur
-   l'axe du reflet (--axis) pour ne pas voir de capuche inversée. */
+   reflet de la vidéo). Flou + assombrissement pour un fond « hors champ ».
+   Le masque est l'union de deux couches : les bords gauche et droit (étagères)
+   et tout ce qui est sous l'axe du reflet (--axis), qui sert d'estompage à la
+   vidéo nette. Le centre au-dessus de l'axe (mage qui verse, bougie du milieu,
+   fumée) reste donc noir. L'estompage vers le haut est fait dans le canvas. */
 .backdrop-extend {
   position: absolute;
   left: 0;
@@ -23,13 +25,11 @@
   pointer-events: none;
   filter: blur(3px) brightness(1.15);
   -webkit-mask-image:
-    linear-gradient(to bottom, transparent 0, #000 32%),
-    radial-gradient(ellipse 26% 120% at 58% var(--axis, 60%), transparent 0, transparent 45%, #000 100%);
-  -webkit-mask-composite: source-in;
+    linear-gradient(to right, #000 0, #000 26%, transparent 33%, transparent 85%, #000 91%),
+    linear-gradient(to bottom, transparent calc(var(--axis, 60%) - 6%), #000 var(--axis, 60%));
   mask-image:
-    linear-gradient(to bottom, transparent 0, #000 32%),
-    radial-gradient(ellipse 26% 120% at 58% var(--axis, 60%), transparent 0, transparent 45%, #000 100%);
-  mask-composite: intersect;
+    linear-gradient(to right, #000 0, #000 26%, transparent 33%, transparent 85%, #000 91%),
+    linear-gradient(to bottom, transparent calc(var(--axis, 60%) - 6%), #000 var(--axis, 60%));
 }
 /* Fond noir aussi sur mobile : la vidéo s'y éteint brièvement à chaque boucle
    (fondu par le noir, voir BACKDROP_VIDEO_DIP dans App.jsx). */
