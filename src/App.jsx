@@ -1769,7 +1769,7 @@ export function App() {
             className="castle-map"
             style={{ backgroundImage: `url(${ASSETS.castle})` }}
           >
-            <BackdropVideo src="/assets/video/fortress-anime.mp4" />
+            <BackdropVideo src="/assets/video/fortress-anime3.mp4" />
             {LOCATIONS.filter((l) => l.id !== "quetes").map((l) => (
               <button
                 key={l.id}
