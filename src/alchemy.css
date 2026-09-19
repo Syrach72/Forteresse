@@ -31,6 +31,12 @@
     linear-gradient(to right, #000 0, #000 26%, transparent 33%, transparent 85%, #000 91%),
     linear-gradient(to bottom, transparent calc(var(--axis, 60%) - 6%), #000 var(--axis, 60%));
 }
+/* Calque très flou du centre : lueur ambiante à la place du reflet du mage. */
+.backdrop-extend-soft {
+  filter: blur(40px) brightness(0.6);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, transparent 20%, #000 34%, #000 86%, transparent 96%);
+  mask-image: linear-gradient(to right, transparent 0, transparent 20%, #000 34%, #000 86%, transparent 96%);
+}
 /* Fond noir aussi sur mobile : la vidéo s'y éteint brièvement à chaque boucle
    (fondu par le noir, voir BACKDROP_VIDEO_DIP dans App.jsx). */
 main.alchimie { background: #0d0b0a; }

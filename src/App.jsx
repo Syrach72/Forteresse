@@ -79,6 +79,7 @@ function BackdropVideo({ src, ratio, dip, extend }) {
   const ref1 = useRef(null);
   const ref2 = useRef(null);
   const extRef = useRef(null);
+  const extSoftRef = useRef(null);
   useEffect(() => {
     const a = ref1.current;
     const b = ref2.current;
@@ -97,9 +98,14 @@ function BackdropVideo({ src, ratio, dip, extend }) {
       // première rangée, donc les deux côtés se raccordent exactement), puis
       // floutées et assombries par le CSS. Sous l'axe, une copie droite de la
       // bande haute (déjà floue) sert de fond à l'estompage de la vidéo nette.
-      // Le centre (capuche) est masqué par le CSS : au-dessus, il reste noir.
+      // Deux calques : les bords (étagères) restent peu flous ; le centre, où le
+      // mage serait reflété, reçoit une copie très floue et sombre (simple lueur
+      // ambiante : on ne reconnaît plus la silhouette, mais la fumée se prolonge).
+      // Les deux suivent l'opacité de la vidéo (fondu par le noir de la boucle).
       const ext = extRef.current;
+      const soft = extSoftRef.current;
       const ectx = extend && ext ? ext.getContext("2d") : null;
+      const sctx = extend && soft ? soft.getContext("2d") : null;
       const drawExtension = () => {
         const main = a.parentElement;
         const vw = a.videoWidth;
@@ -110,9 +116,11 @@ function BackdropVideo({ src, ratio, dip, extend }) {
         const top = a.offsetTop;
         if (top <= 2) {
           ext.style.display = "none";
+          soft.style.display = "none";
           return;
         }
         ext.style.display = "block";
+        soft.style.display = "block";
         const blend = 0.3 * eh;
         const ch = top + blend;
         const k = 0.5;
@@ -122,7 +130,12 @@ function BackdropVideo({ src, ratio, dip, extend }) {
           ext.width = cw;
           ext.height = chp;
         }
+        if (soft.width !== cw || soft.height !== chp) {
+          soft.width = cw;
+          soft.height = chp;
+        }
         ext.style.height = ch + "px";
+        soft.style.height = ch + "px";
         ext.style.setProperty("--axis", (top / ch) * 100 + "%");
         ectx.clearRect(0, 0, cw, chp);
         // Zone visible de la vidéo (cover, alignée à gauche, cf. alchemy.css).
@@ -157,6 +170,8 @@ function BackdropVideo({ src, ratio, dip, extend }) {
         ectx.fillStyle = g;
         ectx.fillRect(0, 0, cw, fadeH);
         ectx.globalCompositeOperation = "source-over";
+        sctx.clearRect(0, 0, cw, chp);
+        sctx.drawImage(ext, 0, 0);
       };
       const tickDip = () => {
         drawExtension();
@@ -165,6 +180,7 @@ function BackdropVideo({ src, ratio, dip, extend }) {
           const t = a.currentTime;
           a.style.opacity = Math.max(0, Math.min(1, t / dip, (a.duration - t) / dip));
         }
+        if (ext && soft) ext.style.opacity = soft.style.opacity = a.style.opacity;
         rafDip = requestAnimationFrame(tickDip);
       };
       rafDip = requestAnimationFrame(tickDip);
@@ -223,7 +239,12 @@ function BackdropVideo({ src, ratio, dip, extend }) {
   const style = ratio ? { aspectRatio: ratio } : undefined;
   return (
     <>
-      {extend && <canvas ref={extRef} className="backdrop-extend" aria-hidden="true" />}
+      {extend && (
+        <>
+          <canvas ref={extSoftRef} className="backdrop-extend backdrop-extend-soft" aria-hidden="true" />
+          <canvas ref={extRef} className="backdrop-extend" aria-hidden="true" />
+        </>
+      )}
       <video ref={ref1} className={className} style={style} src={src} muted playsInline />
       <video ref={ref2} className={className} style={style} src={src} muted playsInline />
     </>
