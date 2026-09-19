@@ -153,16 +153,18 @@ export function Characters({
     >
       <div className="characters-heading">
         <div>
-          <p className="eyebrow">
-            {heroId ? "Les personnages de la compagnie" : "Mercenaires Disponibles"}
-          </p>
+          {heroId && <p className="eyebrow">Les personnages de la compagnie</p>}
           <h1 tabIndex="-1" ref={title}>
-            {merc ? merc.nom : hero ? hero.name : cls?.[1] || "Personnages"}
+            {merc
+              ? merc.nom
+              : hero
+                ? hero.name
+                : `${cls?.[1] || "Personnages"}${
+                    mercenaires.some((m) => classeRoute(m.classe) === classId)
+                      ? " : choisis un mercenaire disponible"
+                      : ""
+                  }`}
           </h1>
-          {!heroId &&
-            mercenaires.some((m) => classeRoute(m.classe) === classId) && (
-              <p className="characters-subtitle">Choisis un mercenaire à recruter</p>
-            )}
         </div>
         <a
           href={
