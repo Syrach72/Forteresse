@@ -335,9 +335,16 @@ img {
   max-width: 100%;
   overflow-wrap: normal;
   /* cqw ici se réfère à la largeur du bouton .location (son propre container),
-     donc le texte suit sa taille réelle au lieu de celle de castle-map. */
-  font-size: clamp(8.5px, 15cqw, 14px);
+     donc le texte suit sa taille réelle au lieu de celle de castle-map.
+     12cqw : le plus long mot ("Laboratoire", "d’Entraînement") tient dans le
+     bouton à toutes les largeurs ; à 15cqw / 8,5px mini il débordait. */
+  font-size: clamp(5.5px, 12cqw, 14px);
   line-height: 1.1;
+}
+@media (max-width: 1000px) {
+  .location {
+    padding-inline: 3px;
+  }
 }
 .tight-word {
   display: inline-block;
