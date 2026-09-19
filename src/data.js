@@ -48,7 +48,7 @@ export const LOCATIONS = [
   {
     id: "infirmerie",
     name: "Infirmerie",
-    x: 64,
+    x: 73.2,
     y: 47.6,
     w: 15.6,
     h: 21,
