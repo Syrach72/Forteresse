@@ -1692,6 +1692,12 @@ video.interior-backdrop-boxed {
 .characters-heading .eyebrow {
   margin: 0 0 8px;
 }
+.characters-subtitle {
+  margin: 8px 0 0;
+  font-size: 19px;
+  font-style: italic;
+  color: var(--muted);
+}
 .characters-heading > a {
   font-size: 18px;
 }
