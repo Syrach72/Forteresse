@@ -10,6 +10,27 @@
    largeur visible). Aligné à gauche, il rogne le bord droit, où se trouve un
    filigrane « Vidu AI » (86-99 % de la largeur, bas de l'image). Le haut se
    fond dans le noir de la page. Sur mobile, on garde le remplissage complet. */
+/* Extension du décor au-dessus de la vidéo (canvas dessiné par BackdropVideo :
+   reflet de la vidéo). Flou + assombrissement pour un fond « hors champ » ;
+   estompé vers le haut, et centre (capuche) masqué par une ellipse centrée sur
+   l'axe du reflet (--axis) pour ne pas voir de capuche inversée. */
+.backdrop-extend {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  z-index: -2;
+  pointer-events: none;
+  filter: blur(7px) brightness(0.8);
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent 0, #000 45%),
+    radial-gradient(ellipse 26% 70% at 58% var(--axis, 60%), transparent 0, transparent 35%, #000 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to bottom, transparent 0, #000 45%),
+    radial-gradient(ellipse 26% 70% at 58% var(--axis, 60%), transparent 0, transparent 35%, #000 100%);
+  mask-composite: intersect;
+}
 /* Fond noir aussi sur mobile : la vidéo s'y éteint brièvement à chaque boucle
    (fondu par le noir, voir BACKDROP_VIDEO_DIP dans App.jsx). */
 main.alchimie { background: #0d0b0a; }
