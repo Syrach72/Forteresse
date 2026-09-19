@@ -27,7 +27,7 @@ import { Admin } from "./Admin.jsx";
 import { supabase } from "./supabaseClient";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
 const BACKDROP_VIDEO = {
-  alchimie: "/assets/video/alchimiste-anime.mp4",
+  alchimie: "/assets/video/alchimiste-anime2.mp4",
   mage: "/assets/video/mage-test.mp4",
   forge: "/assets/video/forge-anim.mp4",
   armurerie: "/assets/video/armurerie-animee.mp4",
