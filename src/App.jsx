@@ -68,7 +68,11 @@ const WORKSHOP_TEXT = {
   },
 };
 const BACKDROP_LOOP_FADE = 1.1;
-function BackdropVideo({ src, ratio }) {
+// Fondu de boucle plus court pour les vidéos dont la dernière image diffère
+// nettement de la première (ex. la capuche de l’alchimiste bouge) : un fondu
+// long y montre un « dédoublement » pendant toute sa durée.
+const BACKDROP_VIDEO_FADE = { alchimie: 0.3 };
+function BackdropVideo({ src, ratio, fade = BACKDROP_LOOP_FADE }) {
   const ref1 = useRef(null);
   const ref2 = useRef(null);
   useEffect(() => {
@@ -98,13 +102,13 @@ function BackdropVideo({ src, ratio }) {
       if (active.paused) safePlay(active);
       if (active.duration) {
         const remaining = active.duration - active.currentTime;
-        if (remaining <= BACKDROP_LOOP_FADE) {
+        if (remaining <= fade) {
           if (!crossfading) {
             crossfading = true;
             next.currentTime = 0;
             safePlay(next);
           }
-          const t = Math.min(1, Math.max(0, 1 - remaining / BACKDROP_LOOP_FADE));
+          const t = Math.min(1, Math.max(0, 1 - remaining / fade));
           b.style.opacity = mode === "in" ? t : 1 - t;
           if (remaining <= 0.02) {
             active.pause();
@@ -120,7 +124,7 @@ function BackdropVideo({ src, ratio }) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [src, ratio]);
+  }, [src, ratio, fade]);
   const className = `interior-backdrop${ratio ? " interior-backdrop-boxed" : ""}`;
   const style = ratio ? { aspectRatio: ratio } : undefined;
   return (
@@ -1842,7 +1846,7 @@ export function App() {
       ) : (
         <main id="main" className={`interior ${route}`}>
           {BACKDROP_VIDEO[route] ? (
-            <BackdropVideo src={BACKDROP_VIDEO[route]} ratio={BACKDROP_VIDEO_RATIO[route]} />
+            <BackdropVideo src={BACKDROP_VIDEO[route]} ratio={BACKDROP_VIDEO_RATIO[route]} fade={BACKDROP_VIDEO_FADE[route]} />
           ) : (
             <div
               className="interior-backdrop"
