@@ -22,7 +22,7 @@ export function Treasury({ treasury, gold, log, onChange, Modal }) {
       <div className="treasury-costs">
         <h2 className="sr-only">Frais d’entretien</h2>
         {treasury.costs.map((c) => (
-          <div className="treasury-cost" key={c.id}>
+          <div className="treasury-cost parchment" key={c.id}>
             <span>{c.label}</span>
             <strong>{fmt(c.amount)}</strong>
             <button
