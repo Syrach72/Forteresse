@@ -475,7 +475,18 @@ function CatalogueItemDetail({
               : actionLabel}
       </button>
       {lacking && (
-        <p className="error">Ressources insuffisantes pour cette fabrication.</p>
+        <p className="error">
+          Ressources insuffisantes pour cette fabrication (
+          {needs
+            .map((ing) => ({
+              nom: ing.nom,
+              manque: ing.quantite - ingredientQuantity(game.inventory, ing.nom),
+            }))
+            .filter((m) => m.manque > 0)
+            .map((m) => `${m.nom} : ${m.manque} manquant${m.manque > 1 ? "s" : ""}`)
+            .join(", ")}
+          ).
+        </p>
       )}
       {readyHere ? (
         <p className="muted">
