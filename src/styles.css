@@ -133,29 +133,20 @@ img {
    .class-nav a) au lieu du parchemin presque opaque utilise ailleurs
    (modales, admin, connexion). Le halo clair sur le texte compense la
    perte de contraste du fond devenu transparent. */
+/* Niveau de verre dépoli unique (validé sur la Trésorerie) : fond 0,14 et flou
+   5px. Repris à l'identique par .location et .class-nav plus bas. */
 .interior .parchment {
-  background: rgba(240, 233, 219, 0.28);
-  border: 2px ridge #a99f8e;
-  box-shadow:
-    0 4px 14px #0008,
-    inset 0 0 18px #fff6;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-/* Trésorerie : verre dépoli 2x moins marqué (fond et flou divisés par 2). Les
-   lignes de frais (Entretien, Lits, etc.), le résumé et le journal partagent
-   le même effet via la classe .parchment. */
-.tresorerie .parchment {
   background: rgba(240, 233, 219, 0.14);
+  border: 2px ridge #a99f8e;
   box-shadow:
     0 4px 14px #0008,
     inset 0 0 18px #fff3;
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
 }
-/* Lien « Modifier les recettes » : bouton (pas un span), donc encore en noir
-   sur le décor sombre ; même texte blanc contouré que le reste. */
-.tresorerie .parchment .text-button {
+/* Boutons-liens (ex. « Modifier les recettes ») : des <button>, pas des span,
+   donc encore en noir sur le décor sombre ; même texte blanc contouré. */
+.interior .parchment .text-button {
   color: #fff;
   text-shadow:
     -1.5px -1.5px 0 #000,
@@ -217,9 +208,9 @@ img {
 .class-nav button,
 .class-nav a {
   font-family: Aniron, Georgia, serif;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(7px);
-  -webkit-backdrop-filter: blur(7px);
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   border: 2px ridge #bdaa83;
   text-align: center;
   text-decoration: none;
@@ -239,9 +230,9 @@ img {
 .class-nav button:hover,
 .class-nav a:hover,
 .class-nav .active {
-  background: rgba(221, 199, 126, 0.37);
-  backdrop-filter: blur(7px);
-  -webkit-backdrop-filter: blur(7px);
+  background: rgba(221, 199, 126, 0.26);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
 }
 .class-nav a.nav-logout {
   grid-column: span 2;
@@ -320,18 +311,18 @@ img {
   overflow: visible;
 }
 .location.parchment {
-  background: rgba(240, 233, 219, 0.21);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(240, 233, 219, 0.14);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   border: 2px ridge #a99f8e;
   box-shadow:
     0 3px 10px #0008,
-    inset 0 0 14px #fff5;
+    inset 0 0 14px #fff3;
 }
 .location.parchment:hover {
-  background: rgba(249, 239, 207, 0.33);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(249, 239, 207, 0.22);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   box-shadow:
     0 0 0 3px var(--gold),
     0 8px 25px #0008;
