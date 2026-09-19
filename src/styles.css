@@ -134,7 +134,7 @@ img {
    (modales, admin, connexion). Le halo clair sur le texte compense la
    perte de contraste du fond devenu transparent. */
 .interior .parchment {
-  background: rgba(240, 233, 219, 0.42);
+  background: rgba(240, 233, 219, 0.28);
   border: 2px ridge #a99f8e;
   box-shadow:
     0 4px 14px #0008,
@@ -196,7 +196,7 @@ img {
 .class-nav button,
 .class-nav a {
   font-family: Aniron, Georgia, serif;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(7px);
   -webkit-backdrop-filter: blur(7px);
   border: 2px ridge #bdaa83;
@@ -218,7 +218,7 @@ img {
 .class-nav button:hover,
 .class-nav a:hover,
 .class-nav .active {
-  background: rgba(221, 199, 126, 0.55);
+  background: rgba(221, 199, 126, 0.37);
   backdrop-filter: blur(7px);
   -webkit-backdrop-filter: blur(7px);
 }
@@ -299,7 +299,7 @@ img {
   overflow: visible;
 }
 .location.parchment {
-  background: rgba(240, 233, 219, 0.32);
+  background: rgba(240, 233, 219, 0.21);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border: 2px ridge #a99f8e;
@@ -308,7 +308,7 @@ img {
     inset 0 0 14px #fff5;
 }
 .location.parchment:hover {
-  background: rgba(249, 239, 207, 0.5);
+  background: rgba(249, 239, 207, 0.33);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   box-shadow:
