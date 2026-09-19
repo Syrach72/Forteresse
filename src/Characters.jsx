@@ -159,11 +159,7 @@ export function Characters({
               ? merc.nom
               : hero
                 ? hero.name
-                : `${cls?.[1] || "Personnages"}${
-                    mercenaires.some((m) => classeRoute(m.classe) === classId)
-                      ? " : choisis un mercenaire disponible"
-                      : ""
-                  }`}
+                : `${cls?.[1] || "Personnages"} : choisis un mercenaire disponible`}
           </h1>
         </div>
         <a
