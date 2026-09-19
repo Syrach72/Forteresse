@@ -138,12 +138,15 @@ function BackdropVideo({ src, ratio, dip, extend }) {
         soft.style.height = ch + "px";
         ext.style.setProperty("--axis", (top / ch) * 100 + "%");
         ectx.clearRect(0, 0, cw, chp);
-        // Zone visible de la vidéo (cover, alignée à gauche, cf. alchemy.css).
+        // Zone visible de la vidéo (cover, cf. alchemy.css).
         const sc = Math.max(ew / vw, eh / vh);
         const srcW = ew / sc;
         const srcH = eh / sc;
         const srcY = (vh - srcH) / 2;
-        ectx.drawImage(a, 0, srcY, srcW, blend / sc, 0, top * k, cw, blend * k);
+        // Décalage horizontal de la vidéo (object-position, en %), comme le CSS.
+        const posX = parseFloat(getComputedStyle(a).objectPosition) / 100 || 0;
+        const srcX = (vw - srcW) * posX;
+        ectx.drawImage(a, srcX, srcY, srcW, blend / sc, 0, top * k, cw, blend * k);
         const segH = eh * 0.6;
         let y = top;
         let flipped = true;
@@ -153,9 +156,9 @@ function BackdropVideo({ src, ratio, dip, extend }) {
           if (flipped) {
             ectx.translate(0, y * k);
             ectx.scale(1, -1);
-            ectx.drawImage(a, 0, srcY, srcW, h / sc, 0, 0, cw, h * k);
+            ectx.drawImage(a, srcX, srcY, srcW, h / sc, 0, 0, cw, h * k);
           } else {
-            ectx.drawImage(a, 0, srcY + (segH - h) / sc, srcW, h / sc, 0, (y - h) * k, cw, h * k);
+            ectx.drawImage(a, srcX, srcY + (segH - h) / sc, srcW, h / sc, 0, (y - h) * k, cw, h * k);
           }
           ectx.restore();
           y -= h;
