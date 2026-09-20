@@ -1079,14 +1079,16 @@ function CatalogueSection({ onCraftItem }) {
               </div>
             </div>
             {arme && (
-              <div className="field field-grow">
+              <div className="field field-protection">
                 <label htmlFor="cat-portee">Portée</label>
                 <div className="input-wrap">
                   <input
                     id="cat-portee"
-                    placeholder="ex. 30/90c, ou vide pour une arme de corps à corps"
+                    maxLength={6}
+                    placeholder="30/90c"
+                    title="Portée en cases (ex. 30/90c) ; vide pour une arme de corps à corps"
                     value={form.portee}
-                    onChange={(e) => setForm({ ...form, portee: e.target.value })}
+                    onChange={(e) => setForm({ ...form, portee: e.target.value.slice(0, 6) })}
                   />
                 </div>
               </div>
