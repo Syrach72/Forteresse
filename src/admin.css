@@ -159,6 +159,31 @@
 .admin-form-grid .field-narrow {
   max-width: 100px;
 }
+/* Bloc « Fabrication » : cellules ajustées à leur contenu (2 chiffres pour la
+   vétérance, 5 caractères pour la protection, 1 lettre pour le type). */
+.admin-form-grid-compact {
+  display: flex;
+  flex-wrap: wrap;
+}
+.admin-form-grid-compact .field {
+  flex: 0 0 auto;
+}
+.admin-form-grid-compact .field-narrow {
+  flex-basis: 100px;
+}
+.admin-form-grid-compact .field-xs {
+  flex-basis: 76px;
+}
+.admin-form-grid-compact .field-protection {
+  flex-basis: 110px;
+}
+.admin-form-grid-compact .field-grow {
+  flex: 1 1 200px;
+}
+.admin-form-grid-compact .field-xs input,
+.admin-form-grid-compact .field-protection input {
+  text-align: center;
+}
 .admin-form textarea {
   width: 100%;
   min-height: 45px;

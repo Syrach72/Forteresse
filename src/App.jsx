@@ -383,6 +383,36 @@ function ItemActionPanel({ game, id, onSell, onDestroy, busy, error }) {
     </>
   );
 }
+// Statistiques de combat d'une fiche : vétérance pour tous, puis portée
+// (armes) ou protection et type (armures, boucliers exclus, cf.
+// loadCatalogue > estArmure) — mêmes règles que l'admin.
+function CombatStats({ item }) {
+  return (
+    <>
+      <div className="stat-line">
+        <span>Vétérance requise</span>
+        <strong>{item.veterance_requise ?? "à définir"}</strong>
+      </div>
+      {item.estArmure ? (
+        <>
+          <div className="stat-line">
+            <span>Protection</span>
+            <strong>{item.protection || "à définir"}</strong>
+          </div>
+          <div className="stat-line">
+            <span>Type</span>
+            <strong>{item.type_armure || "à définir"}</strong>
+          </div>
+        </>
+      ) : (
+        <div className="stat-line">
+          <span>Portée</span>
+          <strong>{item.portee || "à définir"}</strong>
+        </div>
+      )}
+    </>
+  );
+}
 // Fiche d'un objet réel du catalogue Supabase (Forge/Armurerie/Laboratoire/
 // Tour du Mage) : image, description, recette si elle existe, et tentative
 // de fabrication. Chaque ingrédient/composant est débité de game.inventory
@@ -414,14 +444,7 @@ function CatalogueItemDetail({
         <h2>{item.nom}</h2>
         <h3>Descriptif</h3>
         <p>{item.description || "Description à définir."}</p>
-        <div className="stat-line">
-          <span>Vétérance requise</span>
-          <strong>{item.veterance_requise ?? "à définir"}</strong>
-        </div>
-        <div className="stat-line">
-          <span>Portée</span>
-          <strong>{item.portee || "à définir"}</strong>
-        </div>
+        <CombatStats item={item} />
         <div className="stat-line">
           <span>Coût d’achat</span>
           <strong>{coutDefini ? `${cout} Po` : "à définir"}</strong>
@@ -466,14 +489,7 @@ function CatalogueItemDetail({
       )}
       <h2>{item.nom}</h2>
       <p>{item.description || "Description à définir."}</p>
-      <div className="stat-line">
-        <span>Vétérance requise</span>
-        <strong>{item.veterance_requise ?? "à définir"}</strong>
-      </div>
-      <div className="stat-line">
-        <span>Portée</span>
-        <strong>{item.portee || "à définir"}</strong>
-      </div>
+      <CombatStats item={item} />
       <div className="workshop-duration">
         <label>Temps de fabrication (instances)</label>
         <strong>
@@ -1638,6 +1654,19 @@ export function App() {
       return node?.nom || racineNom;
     };
     const objetById = new Map(objets.map((o) => [o.id, o]));
+    // Armure = sous la rubrique « Armures », boucliers exclus (même règle que
+    // l'admin) : affiche protection et type à la place de la portée.
+    const estArmure = (categorieId) => {
+      let current = categories.find((c) => c.id === categorieId);
+      let dansArmures = false;
+      while (current) {
+        const nom = current.nom.trim().toLowerCase();
+        if (nom.startsWith("bouclier")) return false;
+        if (nom === "armures") dansArmures = true;
+        current = categories.find((c) => c.id === current.parent_id);
+      }
+      return dansArmures;
+    };
     // Marché : « Objets divers » regroupe aussi les catégories racines sans
     // bouton dédié, sous leur propre onglet — sauf les Gemmes, qui ne
     // s'obtiennent que par fabrication (Tour du Mage) et ne sont pas en vente.
@@ -1669,6 +1698,7 @@ export function App() {
         return {
           ...o,
           ingredientsList,
+          estArmure: estArmure(o.categorie_id),
           groupe:
             isDivers && rootOf(o.categorie_id) && rootOf(o.categorie_id).id !== racine?.id
               ? rootOf(o.categorie_id).nom

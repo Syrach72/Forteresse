@@ -139,6 +139,8 @@ function emptyCatalogueItem(categorieId = "") {
     duree_fabrication_instances: "",
     cout_achat_or: "",
     portee: "",
+    protection: "",
+    type_armure: "",
   };
 }
 
@@ -426,6 +428,27 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
     }
     return false;
   }
+  // Armures : sous la rubrique « Armures », boucliers exclus (un bouclier
+  // n'a ni protection ni type, et reste sans vétérance ni portée).
+  function isCategorieArmure(categorieId) {
+    let current = categories.rows?.find((c) => c.id === categorieId);
+    let dansArmures = false;
+    while (current) {
+      const nom = current.nom.trim().toLowerCase();
+      if (nom.startsWith("bouclier")) return false;
+      if (nom === "armures") dansArmures = true;
+      current = categories.rows.find((c) => c.id === current.parent_id);
+    }
+    return dansArmures;
+  }
+  function categorieFlags(categorieId) {
+    const arme = isCategorieArme(categorieId);
+    const armure = !arme && isCategorieArmure(categorieId);
+    const craftable =
+      arme ||
+      isCategorieParmi(categorieId, ["produits alchimiques", "gemmes", "armures"]);
+    return { arme, armure, craftable };
+  }
   function startEdit(row) {
     setEditing(row.id);
     setForm({
@@ -436,6 +459,8 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
       duree_fabrication_instances: row.duree_fabrication_instances ?? "",
       cout_achat_or: row.cout_achat_or ?? "",
       portee: row.portee || "",
+      protection: row.protection || "",
+      type_armure: row.type_armure || "",
     });
     setIconFile(null);
     setMsg("");
@@ -471,29 +496,26 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
       }
       icone = result.url;
     }
-    const arme = isCategorieArme(form.categorie_id);
-    const craftable =
-      arme ||
-      isCategorieParmi(form.categorie_id, [
-        "produits alchimiques",
-        "gemmes",
-        "armures",
-      ]);
+    const { arme, armure, craftable } = categorieFlags(form.categorie_id);
     const values = {
       ...form,
       description: form.description || null,
       icone,
-      // Vetérance et portee : uniquement les Armes (stats de combat sans
-      // sens pour une potion ou une gemme). Cout d'achat et temps de
+      // Vetérance : Armes et Armures (hors boucliers). Portee : Armes seules.
+      // Protection et type : Armures seules (hors boucliers). Stats de combat
+      // sans sens pour une potion ou une gemme. Cout d'achat et temps de
       // fabrication : Armes + Produits Alchimiques/Gemmes/Armures. Effaces
       // si l'objet ne fait plus partie de la rubrique concernee, pour ne
       // pas laisser trainer une valeur sur un ingredient ou un materiau.
-      veterance_requise: arme ? toIntOrNull(form.veterance_requise) : null,
+      veterance_requise:
+        arme || armure ? toIntOrNull(form.veterance_requise) : null,
       duree_fabrication_instances: craftable
         ? toIntOrNull(form.duree_fabrication_instances)
         : null,
       cout_achat_or: craftable ? toIntOrNull(form.cout_achat_or) : null,
       portee: arme ? form.portee || null : null,
+      protection: armure ? form.protection.trim() || null : null,
+      type_armure: armure ? form.type_armure || null : null,
     };
     const err = editing ? await update(editing, values) : await insert(values);
     if (err) setMsg(err);
@@ -571,21 +593,14 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
         </label>
       </div>
       {(() => {
-        const arme = isCategorieArme(form.categorie_id);
-        const craftable =
-          arme ||
-          isCategorieParmi(form.categorie_id, [
-            "produits alchimiques",
-            "gemmes",
-            "armures",
-          ]);
+        const { arme, armure, craftable } = categorieFlags(form.categorie_id);
         if (!craftable) return null;
         return (
           <>
           <p className="eyebrow admin-section-label">Fabrication</p>
-          <div className="admin-form-grid">
-            {arme && (
-              <div className="field">
+          <div className="admin-form-grid admin-form-grid-compact">
+            {(arme || armure) && (
+              <div className="field field-xs">
                 <label htmlFor="cat-veterance">Vétérance requise</label>
                 <div className="input-wrap">
                   <input
@@ -595,7 +610,10 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
                     max="20"
                     value={form.veterance_requise}
                     onChange={(e) =>
-                      setForm({ ...form, veterance_requise: e.target.value })
+                      setForm({
+                        ...form,
+                        veterance_requise: e.target.value.slice(0, 2),
+                      })
                     }
                   />
                 </div>
@@ -632,7 +650,7 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
               </div>
             </div>
             {arme && (
-              <div className="field">
+              <div className="field field-grow">
                 <label htmlFor="cat-portee">Portée</label>
                 <div className="input-wrap">
                   <input
@@ -643,6 +661,43 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
                   />
                 </div>
               </div>
+            )}
+            {armure && (
+              <>
+                <div className="field field-protection">
+                  <label htmlFor="cat-protection">Protection</label>
+                  <div className="input-wrap">
+                    <input
+                      id="cat-protection"
+                      maxLength={5}
+                      value={form.protection}
+                      onChange={(e) =>
+                        setForm({ ...form, protection: e.target.value.slice(0, 5) })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="field field-xs">
+                  <label htmlFor="cat-type-armure">Type</label>
+                  <div className="input-wrap">
+                    <input
+                      id="cat-type-armure"
+                      maxLength={1}
+                      pattern="[A-Z]"
+                      value={form.type_armure}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          type_armure: e.target.value
+                            .toUpperCase()
+                            .replace(/[^A-Z]/g, "")
+                            .slice(0, 1),
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </>
             )}
           </div>
           </>
