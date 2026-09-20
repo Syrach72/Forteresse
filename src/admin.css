@@ -471,27 +471,11 @@
   gap: 14px;
   margin-top: 8px;
 }
-.admin-recette {
-  border: 1px solid var(--edge);
-  border-radius: 4px;
-  padding: 12px 16px;
-  margin-bottom: 14px;
-  background: rgba(255, 253, 245, 0.35);
+.admin-recette-footer {
+  margin-top: 12px;
 }
-.admin-recette-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.admin-tag {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: var(--wood);
-  color: var(--paper-light);
-  border-radius: 3px;
-  padding: 2px 8px;
+.admin-recette-footer label {
+  font: 14px Georgia, serif;
 }
 .admin-ingredient-list {
   list-style: none;

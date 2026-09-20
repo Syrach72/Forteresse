@@ -2,13 +2,18 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { ASSETS } from "./data";
 
-const ATELIERS = ["alchimie", "forge", "armurerie", "magie"];
-const ATELIER_LABELS = {
-  alchimie: "Recette (alchimie)",
-  forge: "Forgeage d’armes",
-  armurerie: "Forgeage d’armure",
-  magie: "Formule (magie)",
+// Atelier de fabrication d'un objet, déduit de la rubrique racine de sa
+// catégorie (vérifié sur les recettes existantes : aucune exception). Il n'y
+// a donc plus de champ « Atelier » à renseigner sur la fiche.
+const ATELIER_PAR_RACINE = {
+  armes: "forge",
+  armures: "armurerie",
+  "produits alchimiques": "alchimie",
+  gemmes: "magie",
 };
+// Rubriques dont les objets peuvent entrer dans une recette. Les Produits
+// Alchimiques y figurent : plusieurs recettes existantes en consomment.
+const RACINES_INGREDIENTS = ["composants", "matériaux", "produits alchimiques"];
 // Libellé du bouton qui envoie réellement l'objet vers son atelier de jeu
 // (App.jsx, prop onCraftItem) : reprend le vocabulaire déjà utilisé côté
 // joueur (« Envoyer à la forge »/« … à l’armurerie ») pour rester cohérent.
@@ -354,11 +359,221 @@ function NamedListSection({ table, singular, blockedBy, hierarchical = false }) 
   );
 }
 
-function CatalogueSection({ onViewRecette, focusObjetId }) {
+// Catégorie racine d'une catégorie (remonte les parent_id).
+function racineDe(categories, categorieId) {
+  let current = categories.find((c) => c.id === categorieId);
+  while (current?.parent_id) current = categories.find((c) => c.id === current.parent_id);
+  return current || null;
+}
+
+// Bloc « Recette » de la fiche d'un objet fabricable : ingrédients, quantité
+// produite et envoi vers l'atelier. Remplace l'ancien onglet Recettes. La
+// ligne `recette` (une par objet dans l'interface) est créée en douce au
+// premier ingrédient, avec code et nom repris de l'objet ; les ingrédients
+// s'enregistrent immédiatement, sans passer par « Enregistrer » de la fiche.
+function RecetteBlock({ objet, atelier, objets, categories, recettes, ingredients, onCraftItem }) {
+  const recette = recettes.rows.find((r) => r.resultat_objet_id === objet.id);
+  const lignes = recette ? ingredients.rows.filter((i) => i.recette_id === recette.id) : [];
+  const [choix, setChoix] = useState({ objet_id: "", quantite: "1" });
+  const [qtyEdits, setQtyEdits] = useState({});
+  const [qteProduite, setQteProduite] = useState(String(recette?.quantite_produite ?? 1));
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  function nomObjet(id) {
+    return objets.find((o) => o.id === id)?.nom || "?";
+  }
+  // Ingrédients proposés, regroupés par rubrique : hors l'objet lui-même et
+  // hors ceux déjà dans la recette (un même objet ne peut y figurer qu'une fois).
+  const groupes = [];
+  objets.forEach((o) => {
+    const racine = racineDe(categories, o.categorie_id);
+    if (
+      !racine ||
+      !RACINES_INGREDIENTS.includes(racine.nom.trim().toLowerCase()) ||
+      o.id === objet.id ||
+      o.actif === false ||
+      lignes.some((l) => l.objet_id === o.id)
+    )
+      return;
+    let groupe = groupes.find((g) => g.nom === racine.nom);
+    if (!groupe) groupes.push((groupe = { nom: racine.nom, options: [] }));
+    groupe.options.push(o);
+  });
+
+  async function ajouterIngredient() {
+    const quantite = Number(choix.quantite);
+    if (!choix.objet_id) {
+      setMsg("Choisissez un ingrédient.");
+      return;
+    }
+    if (!Number.isInteger(quantite) || quantite < 1) {
+      setMsg("La quantité doit être un entier d’au moins 1.");
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    let recetteId = recette?.id;
+    let creee = false;
+    if (!recetteId) {
+      const produite = Math.floor(Number(qteProduite));
+      const { data, error } = await supabase
+        .from("recette")
+        .insert({
+          code_unique: `recette-${objet.code_unique}`,
+          nom: objet.nom,
+          atelier,
+          resultat_objet_id: objet.id,
+          quantite_produite: produite >= 1 ? produite : 1,
+        })
+        .select("id")
+        .single();
+      if (error) {
+        setBusy(false);
+        setMsg(error.message);
+        return;
+      }
+      recetteId = data.id;
+      creee = true;
+    }
+    const err = await ingredients.insert({
+      recette_id: recetteId,
+      objet_id: choix.objet_id,
+      quantite_requise: quantite,
+    });
+    // Recette créée à l'instant mais ingrédient refusé : on ne laisse pas
+    // une recette vide derrière soi.
+    if (err && creee) await supabase.from("recette").delete().eq("id", recetteId);
+    await recettes.reload();
+    setBusy(false);
+    if (err) setMsg(err);
+    else setChoix({ objet_id: "", quantite: "1" });
+  }
+  async function retirerIngredient(id) {
+    setMsg((await ingredients.remove(id)) || "");
+  }
+  async function enregistrerQuantite(ligne) {
+    const brut = qtyEdits[ligne.id];
+    const n = Number(brut);
+    setQtyEdits((prev) => {
+      const next = { ...prev };
+      delete next[ligne.id];
+      return next;
+    });
+    if (brut === undefined || brut === "" || !Number.isInteger(n) || n < 1 || n === ligne.quantite_requise)
+      return;
+    setMsg((await ingredients.update(ligne.id, { quantite_requise: n })) || "");
+  }
+  async function enregistrerQuantiteProduite() {
+    const n = Number(qteProduite);
+    if (!Number.isInteger(n) || n < 1) {
+      setQteProduite(String(recette?.quantite_produite ?? 1));
+      return;
+    }
+    if (recette && n !== recette.quantite_produite)
+      setMsg((await recettes.update(recette.id, { quantite_produite: n })) || "");
+  }
+  // Entrée dans un champ du bloc : ne doit pas enregistrer la fiche entière
+  // (le bloc est dans son formulaire) ; dans la ligne d'ajout, elle ajoute.
+  function surEntree(e) {
+    if (e.key !== "Enter" || e.target.tagName !== "INPUT") return;
+    e.preventDefault();
+    if (e.target.dataset.ajout) ajouterIngredient();
+  }
+
+  return (
+    <div className="admin-recette-block" onKeyDown={surEntree}>
+      <p className="eyebrow admin-section-label">Recette</p>
+      {lignes.length ? (
+        <ul className="admin-ingredient-list">
+          {lignes.map((l) => (
+            <li key={l.id}>
+              {nomObjet(l.objet_id)} ×
+              <input
+                type="number"
+                min="1"
+                className="ingredient-qty-input"
+                value={qtyEdits[l.id] ?? l.quantite_requise}
+                onChange={(e) => setQtyEdits({ ...qtyEdits, [l.id]: e.target.value })}
+                onBlur={() => enregistrerQuantite(l)}
+                aria-label={`Quantité de ${nomObjet(l.objet_id)}`}
+              />
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => retirerIngredient(l.id)}
+                aria-label={`Retirer ${nomObjet(l.objet_id)}`}
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">Aucun ingrédient renseigné pour l’instant.</p>
+      )}
+      <div className="admin-ingredient-form">
+        <select
+          value={choix.objet_id}
+          onChange={(e) => setChoix({ ...choix, objet_id: e.target.value })}
+          aria-label="Ingrédient à ajouter"
+        >
+          <option value="">Ingrédient…</option>
+          {groupes.map((g) => (
+            <optgroup key={g.nom} label={g.nom}>
+              {g.options.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.nom}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <input
+          type="number"
+          min="1"
+          placeholder="Qté"
+          data-ajout="1"
+          value={choix.quantite}
+          onChange={(e) => setChoix({ ...choix, quantite: e.target.value })}
+          aria-label="Quantité de l’ingrédient à ajouter"
+        />
+        <button type="button" className="text-button" disabled={busy} onClick={ajouterIngredient}>
+          Ajouter l’ingrédient
+        </button>
+      </div>
+      <div className="admin-ingredient-form admin-recette-footer">
+        <label htmlFor="rec-qte-produite">Quantité produite</label>
+        <input
+          id="rec-qte-produite"
+          type="number"
+          min="1"
+          value={qteProduite}
+          onChange={(e) => setQteProduite(e.target.value)}
+          onBlur={enregistrerQuantiteProduite}
+        />
+        {lignes.length > 0 && (
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => onCraftItem(objet.id, recette.atelier)}
+          >
+            {CRAFT_BUTTON_LABELS[recette.atelier] || "Placer en fabrication"}
+          </button>
+        )}
+      </div>
+      {msg && <p className="admin-error">{msg}</p>}
+    </div>
+  );
+}
+
+function CatalogueSection({ onCraftItem }) {
   const { rows, error, insert, update, remove } = useTable("objet_catalogue", {
     order: "nom",
   });
   const categories = useTable("categorie", { order: "nom" });
+  const recettes = useTable("recette", { order: "nom" });
+  const ingredients = useTable("ingredient_recette", { order: "id" });
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyCatalogueItem());
   const [iconFile, setIconFile] = useState(null);
@@ -366,10 +581,6 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
   const [msg, setMsg] = useState("");
   const [filterCategorie, setFilterCategorie] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
-  // Rouvre automatiquement la fiche d'un objet quand on revient depuis sa
-  // recette (bouton « Retour ») : appliqué une seule fois par demande, pour
-  // ne pas écraser une saisie en cours si les lignes se rechargent ensuite.
-  const focusAppliedRef = useRef(null);
 
   function nomCategorie(id) {
     return categories.rows?.find((c) => c.id === id)?.nom || "?";
@@ -447,7 +658,9 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
     const craftable =
       arme ||
       isCategorieParmi(categorieId, ["produits alchimiques", "gemmes", "armures"]);
-    return { arme, armure, craftable };
+    const racine = racineDe(categories.rows || [], categorieId);
+    const atelier = ATELIER_PAR_RACINE[racine?.nom.trim().toLowerCase()] || null;
+    return { arme, armure, craftable, atelier };
   }
   function startEdit(row) {
     setEditing(row.id);
@@ -465,14 +678,6 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
     setIconFile(null);
     setMsg("");
   }
-  useEffect(() => {
-    if (!focusObjetId || !rows || focusAppliedRef.current === focusObjetId) return;
-    const row = rows.find((r) => r.id === focusObjetId);
-    if (row) {
-      startEdit(row);
-      focusAppliedRef.current = focusObjetId;
-    }
-  }, [focusObjetId, rows]);
   function cancel() {
     setEditing(null);
     setForm(emptyCatalogueItem(categories.rows?.[0]?.id || ""));
@@ -496,7 +701,18 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
       }
       icone = result.url;
     }
-    const { arme, armure, craftable } = categorieFlags(form.categorie_id);
+    const { arme, armure, craftable, atelier } = categorieFlags(form.categorie_id);
+    // Un objet qui a une recette doit rester dans une rubrique fabricable :
+    // sinon la recette deviendrait invisible tout en restant en base.
+    const recette = editing
+      ? recettes.rows.find((r) => r.resultat_objet_id === editing)
+      : null;
+    if (recette && !atelier) {
+      setMsg(
+        "Cet objet a une recette : sa catégorie doit rester Armes, Armures, Produits Alchimiques ou Gemmes.",
+      );
+      return;
+    }
     const values = {
       ...form,
       description: form.description || null,
@@ -518,21 +734,65 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
       type_armure: armure ? form.type_armure || null : null,
     };
     const err = editing ? await update(editing, values) : await insert(values);
-    if (err) setMsg(err);
-    else cancel();
+    if (err) {
+      setMsg(err);
+      return;
+    }
+    // Changement de rubrique fabricable (ex. Armes -> Armures) : l'atelier de
+    // la recette suit, pour que « Placer dans… » et le jeu restent cohérents.
+    if (recette && recette.atelier !== atelier) {
+      const errAtelier = await recettes.update(recette.id, { atelier });
+      if (errAtelier) {
+        setMsg(errAtelier);
+        return;
+      }
+    }
+    cancel();
   }
+  // Supprimer un objet supprime aussi sa propre recette (ses lignes
+  // d'ingrédients partent en cascade). Refusé d'emblée s'il sert
+  // d'ingrédient ailleurs ; si la suppression échoue malgré tout (objet dans
+  // un inventaire...), la recette est recréée à l'identique.
   async function del(id) {
-    const err = await remove(id);
-    if (err)
+    setMsg("");
+    const serviDans = ingredients.rows.find((i) => i.objet_id === id);
+    if (serviDans) {
+      const autre = recettes.rows.find((r) => r.id === serviDans.recette_id);
       setMsg(
-        "Suppression impossible (probablement utilisé par une recette ou un inventaire) : " +
-          err,
+        `Suppression impossible : cet objet est un ingrédient de la recette « ${autre?.nom || "?"} ».`,
       );
+      return;
+    }
+    const recette = recettes.rows.find((r) => r.resultat_objet_id === id);
+    const lignes = recette ? ingredients.rows.filter((i) => i.recette_id === recette.id) : [];
+    if (recette) {
+      const { error: errRecette } = await supabase.from("recette").delete().eq("id", recette.id);
+      if (errRecette) {
+        setMsg("Suppression impossible : " + errRecette.message);
+        return;
+      }
+    }
+    const err = await remove(id);
+    if (recette) {
+      if (err) {
+        await supabase.from("recette").insert(recette);
+        if (lignes.length) await supabase.from("ingredient_recette").insert(lignes);
+      }
+      await recettes.reload();
+      await ingredients.reload();
+    }
+    if (err)
+      setMsg("Suppression impossible (probablement utilisé dans un inventaire) : " + err);
   }
 
-  if (error || categories.error)
-    return <p className="admin-error">{error || categories.error}</p>;
-  if (!rows || !categories.rows) return <p>Chargement…</p>;
+  if (error || categories.error || recettes.error || ingredients.error)
+    return (
+      <p className="admin-error">
+        {error || categories.error || recettes.error || ingredients.error}
+      </p>
+    );
+  if (!rows || !categories.rows || !recettes.rows || !ingredients.rows)
+    return <p>Chargement…</p>;
   if (!editing && !form.categorie_id && categories.rows[0]) {
     setForm({ ...form, categorie_id: categories.rows[0].id });
   }
@@ -593,7 +853,7 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
         </label>
       </div>
       {(() => {
-        const { arme, armure, craftable } = categorieFlags(form.categorie_id);
+        const { arme, armure, craftable, atelier } = categorieFlags(form.categorie_id);
         if (!craftable) return null;
         return (
           <>
@@ -700,6 +960,22 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
               </>
             )}
           </div>
+          {editing ? (
+            <RecetteBlock
+              key={editing}
+              objet={rows.find((r) => r.id === editing)}
+              atelier={atelier}
+              objets={rows}
+              categories={categories.rows}
+              recettes={recettes}
+              ingredients={ingredients}
+              onCraftItem={onCraftItem}
+            />
+          ) : (
+            <p className="muted">
+              Enregistrez d’abord l’objet pour renseigner sa recette.
+            </p>
+          )}
           </>
         );
       })()}
@@ -760,15 +1036,6 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
         {editing && (
           <button type="button" className="text-button" onClick={cancel}>
             Annuler
-          </button>
-        )}
-        {editing && (
-          <button
-            type="button"
-            className="text-button"
-            onClick={() => onViewRecette(editing)}
-          >
-            Voir la recette ›
           </button>
         )}
       </div>
@@ -850,363 +1117,6 @@ function CatalogueSection({ onViewRecette, focusObjetId }) {
           </tbody>
         </table>
       </div>
-      {!editing && formEl}
-    </div>
-  );
-}
-
-function emptyRecette() {
-  return { code_unique: "", nom: "", atelier: ATELIERS[0], resultat_objet_id: "", quantite_produite: 1 };
-}
-
-// Icône (image) du produit fini d'une recette. L'image appartient à
-// l'objet du catalogue résultat (objet_catalogue.icone) — pas un second
-// champ sur la recette elle-même, pour ne pas dupliquer la même image à
-// deux endroits qui pourraient diverger (cf. section 8 CLAUDE.md).
-function ObjectIconPicker({ objet, onUpload }) {
-  const [cropSource, setCropSource] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState("");
-
-  return (
-    <div className="icon-picker">
-      <label className="icon-frame" htmlFor={`obj-icon-${objet.id}`} title="Image du produit fini">
-        {objet.icone ? (
-          <img src={objet.icone} alt="" />
-        ) : (
-          <span className="icon-placeholder-mark" aria-hidden="true">
-            +
-          </span>
-        )}
-        <span className="portrait-frame-hint" aria-hidden="true">
-          {objet.icone ? "Changer" : "Ajouter"}
-        </span>
-      </label>
-      <input
-        id={`obj-icon-${objet.id}`}
-        type="file"
-        accept="image/*"
-        className="sr-only-file"
-        onChange={(e) => {
-          const f = e.target.files[0];
-          if (f) setCropSource(f);
-          e.target.value = "";
-        }}
-      />
-      {uploading && <span className="icon-uploading">Envoi…</span>}
-      {error && <p className="admin-error">{error}</p>}
-      {cropSource && (
-        <PortraitCropper
-          file={cropSource}
-          viewW={200}
-          viewH={200}
-          outputW={400}
-          outputH={400}
-          title="Recadrer l’image du produit"
-          onCancel={() => setCropSource(null)}
-          onConfirm={async (blob) => {
-            setCropSource(null);
-            setUploading(true);
-            const file = new File([blob], "produit.jpg", { type: "image/jpeg" });
-            const result = await uploadImage("catalogue-icones", file, objet.code_unique || objet.nom);
-            if (result.error) {
-              setUploading(false);
-              setError(result.error);
-              return;
-            }
-            const err = await onUpload(result.url);
-            setUploading(false);
-            if (err) setError(err);
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-function RecettesSection({ onCraftItem, onBack, focusObjetId }) {
-  const catalogue = useTable("objet_catalogue", { order: "nom" });
-  const recettes = useTable("recette", { order: "nom" });
-  const ingredients = useTable("ingredient_recette", { order: "id" });
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(emptyRecette());
-  const [msg, setMsg] = useState("");
-  const [ingredientForm, setIngredientForm] = useState({});
-  const [ingredientQty, setIngredientQty] = useState({});
-  const [confirmingId, setConfirmingId] = useState(null);
-  // Fait défiler jusqu'à la recette de l'objet dont on vient (bouton
-  // « Voir la recette » côté catalogue), une seule fois par demande.
-  const recetteRefs = useRef({});
-  const scrollAppliedRef = useRef(null);
-  useEffect(() => {
-    if (!focusObjetId || !recettes.rows || scrollAppliedRef.current === focusObjetId) return;
-    const r = recettes.rows.find((r) => r.resultat_objet_id === focusObjetId);
-    if (r) {
-      recetteRefs.current[r.id]?.scrollIntoView({ behavior: "smooth", block: "center" });
-      scrollAppliedRef.current = focusObjetId;
-    }
-  }, [focusObjetId, recettes.rows]);
-
-  function nomObjet(id) {
-    return catalogue.rows?.find((o) => o.id === id)?.nom || "?";
-  }
-  function startEdit(r) {
-    setEditing(r.id);
-    setForm({
-      code_unique: r.code_unique,
-      nom: r.nom,
-      atelier: r.atelier,
-      resultat_objet_id: r.resultat_objet_id,
-      quantite_produite: r.quantite_produite,
-    });
-    setMsg("");
-  }
-  function cancelEdit() {
-    setEditing(null);
-    setForm(emptyRecette());
-    setMsg("");
-  }
-  async function submit(e) {
-    e.preventDefault();
-    if (!form.code_unique.trim() || !form.nom.trim() || !form.resultat_objet_id) {
-      setMsg("Le code, le nom et l’objet résultat sont obligatoires.");
-      return;
-    }
-    const values = { ...form, quantite_produite: Number(form.quantite_produite) || 1 };
-    const err = editing ? await recettes.update(editing, values) : await recettes.insert(values);
-    if (err) setMsg(err);
-    else cancelEdit();
-  }
-  async function delRecette(id) {
-    const err = await recettes.remove(id);
-    if (err) setMsg(err);
-    else ingredients.reload();
-  }
-  async function addIngredient(recetteId) {
-    const f = ingredientForm[recetteId];
-    if (!f?.objet_id || !f?.quantite) return;
-    const err = await ingredients.insert({
-      recette_id: recetteId,
-      objet_id: f.objet_id,
-      quantite_requise: Number(f.quantite),
-    });
-    if (err) setMsg(err);
-    else setIngredientForm({ ...ingredientForm, [recetteId]: { objet_id: "", quantite: "" } });
-  }
-  async function delIngredient(id) {
-    const err = await ingredients.remove(id);
-    if (err) setMsg(err);
-  }
-  async function saveIngredientQty(i) {
-    const raw = ingredientQty[i.id];
-    const n = Number(raw);
-    if (raw === undefined || raw === "" || !Number.isInteger(n) || n < 1 || n === i.quantite_requise) {
-      setIngredientQty((prev) => {
-        const next = { ...prev };
-        delete next[i.id];
-        return next;
-      });
-      return;
-    }
-    const err = await ingredients.update(i.id, { quantite_requise: n });
-    if (err) setMsg(err);
-    setIngredientQty((prev) => {
-      const next = { ...prev };
-      delete next[i.id];
-      return next;
-    });
-  }
-
-  if (catalogue.error || recettes.error || ingredients.error)
-    return <p className="admin-error">{catalogue.error || recettes.error || ingredients.error}</p>;
-  if (!catalogue.rows || !recettes.rows || !ingredients.rows) return <p>Chargement…</p>;
-
-  const formEl = (
-    <form className="admin-form" onSubmit={submit}>
-      <h3>{editing ? "Modifier la recette" : "Ajouter une recette"}</h3>
-      <div className="admin-form-grid">
-        <div className="field">
-          <label htmlFor="rec-code">Code unique</label>
-          <div className="input-wrap">
-            <input
-              id="rec-code"
-              value={form.code_unique}
-              onChange={(e) => setForm({ ...form, code_unique: e.target.value })}
-            />
-          </div>
-        </div>
-        <div className="field">
-          <label htmlFor="rec-nom">Nom</label>
-          <div className="input-wrap">
-            <input
-              id="rec-nom"
-              value={form.nom}
-              onChange={(e) => setForm({ ...form, nom: e.target.value })}
-            />
-          </div>
-        </div>
-        <div className="field">
-          <label htmlFor="rec-atelier">Atelier</label>
-          <select
-            id="rec-atelier"
-            value={form.atelier}
-            onChange={(e) => setForm({ ...form, atelier: e.target.value })}
-          >
-            {ATELIERS.map((a) => (
-              <option key={a} value={a}>
-                {ATELIER_LABELS[a] || a}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="rec-resultat">Objet produit</label>
-          <select
-            id="rec-resultat"
-            value={form.resultat_objet_id}
-            onChange={(e) => setForm({ ...form, resultat_objet_id: e.target.value })}
-          >
-            <option value="">Choisir…</option>
-            {catalogue.rows.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.nom}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="rec-qte">Quantité produite</label>
-          <div className="input-wrap">
-            <input
-              id="rec-qte"
-              type="number"
-              min="1"
-              value={form.quantite_produite}
-              onChange={(e) => setForm({ ...form, quantite_produite: e.target.value })}
-            />
-          </div>
-        </div>
-      </div>
-      {msg && <p className="admin-error">{msg}</p>}
-      <div className="admin-form-actions">
-        <button className="primary" type="submit">
-          {editing ? "Enregistrer" : "Ajouter la recette"}
-        </button>
-        {editing && (
-          <button type="button" className="text-button" onClick={cancelEdit}>
-            Annuler
-          </button>
-        )}
-      </div>
-    </form>
-  );
-
-  return (
-    <div>
-      {recettes.rows.map((r) => {
-        const resultObjet = catalogue.rows.find((o) => o.id === r.resultat_objet_id);
-        return (
-        <div
-          className="admin-recette"
-          key={r.id}
-          ref={(el) => {
-            recetteRefs.current[r.id] = el;
-          }}
-        >
-          <div className="admin-recette-header">
-            {resultObjet && (
-              <ObjectIconPicker
-                objet={resultObjet}
-                onUpload={(url) => catalogue.update(resultObjet.id, { icone: url })}
-              />
-            )}
-            <strong>{r.nom}</strong>
-            <span className="admin-tag">{ATELIER_LABELS[r.atelier] || r.atelier}</span>
-            <span>→ {nomObjet(r.resultat_objet_id)} ×{r.quantite_produite}</span>
-            <button type="button" className="text-button" onClick={() => startEdit(r)}>
-              Modifier
-            </button>
-            <DeleteButton
-              id={r.id}
-              confirmingId={confirmingId}
-              onAskConfirm={() => setConfirmingId(r.id)}
-              onCancel={() => setConfirmingId(null)}
-              onConfirm={() => {
-                setConfirmingId(null);
-                delRecette(r.id);
-              }}
-            />
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => onCraftItem(r.resultat_objet_id, r.atelier)}
-            >
-              {CRAFT_BUTTON_LABELS[r.atelier] || "Placer en fabrication"}
-            </button>
-            <button type="button" className="text-button" onClick={() => onBack(r.resultat_objet_id)}>
-              ‹ Retour
-            </button>
-          </div>
-          {editing === r.id && formEl}
-          <ul className="admin-ingredient-list">
-            {ingredients.rows
-              .filter((i) => i.recette_id === r.id)
-              .map((i) => (
-                <li key={i.id}>
-                  {nomObjet(i.objet_id)} ×
-                  <input
-                    type="number"
-                    min="1"
-                    className="ingredient-qty-input"
-                    value={ingredientQty[i.id] ?? i.quantite_requise}
-                    onChange={(e) =>
-                      setIngredientQty({ ...ingredientQty, [i.id]: e.target.value })
-                    }
-                    onBlur={() => saveIngredientQty(i)}
-                    aria-label={`Quantité de ${nomObjet(i.objet_id)}`}
-                  />
-                  <button type="button" className="text-button" onClick={() => delIngredient(i.id)}>
-                    ✕
-                  </button>
-                </li>
-              ))}
-          </ul>
-          <div className="admin-ingredient-form">
-            <select
-              value={ingredientForm[r.id]?.objet_id || ""}
-              onChange={(e) =>
-                setIngredientForm({
-                  ...ingredientForm,
-                  [r.id]: { ...ingredientForm[r.id], objet_id: e.target.value },
-                })
-              }
-            >
-              <option value="">Ingrédient…</option>
-              {catalogue.rows.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.nom}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              min="1"
-              placeholder="Qté"
-              value={ingredientForm[r.id]?.quantite || ""}
-              onChange={(e) =>
-                setIngredientForm({
-                  ...ingredientForm,
-                  [r.id]: { ...ingredientForm[r.id], quantite: e.target.value },
-                })
-              }
-            />
-            <button type="button" className="text-button" onClick={() => addIngredient(r.id)}>
-              Ajouter l’ingrédient
-            </button>
-          </div>
-        </div>
-        );
-      })}
       {!editing && formEl}
     </div>
   );
@@ -1958,18 +1868,6 @@ function ArsenalSection() {
 export function Admin({ onCraftItem = () => {} }) {
   const session = useSession();
   const [tab, setTab] = useState("catalogue");
-  // Aller-retour entre la fiche d'un objet et sa recette : quel objet
-  // rouvrir côté catalogue, quelle recette rejoindre côté recettes.
-  const [recetteFocusId, setRecetteFocusId] = useState(null);
-  const [catalogueFocusId, setCatalogueFocusId] = useState(null);
-  function viewRecette(objetId) {
-    setRecetteFocusId(objetId);
-    setTab("recettes");
-  }
-  function backToCatalogue(objetId) {
-    setCatalogueFocusId(objetId);
-    setTab("catalogue");
-  }
 
   if (session === undefined)
     return (
@@ -2005,9 +1903,6 @@ export function Admin({ onCraftItem = () => {} }) {
         <button className={tab === "categories" ? "active" : ""} onClick={() => setTab("categories")}>
           Catégories
         </button>
-        <button className={tab === "recettes" ? "active" : ""} onClick={() => setTab("recettes")}>
-          Recettes
-        </button>
         <button className={tab === "classes" ? "active" : ""} onClick={() => setTab("classes")}>
           Classes
         </button>
@@ -2019,22 +1914,13 @@ export function Admin({ onCraftItem = () => {} }) {
         </button>
       </nav>
       <div className="admin-content parchment">
-        {tab === "catalogue" && (
-          <CatalogueSection onViewRecette={viewRecette} focusObjetId={catalogueFocusId} />
-        )}
+        {tab === "catalogue" && <CatalogueSection onCraftItem={onCraftItem} />}
         {tab === "categories" && (
           <NamedListSection
             table="categorie"
             singular="catégorie"
             blockedBy="des objets du catalogue"
             hierarchical
-          />
-        )}
-        {tab === "recettes" && (
-          <RecettesSection
-            onCraftItem={onCraftItem}
-            onBack={backToCatalogue}
-            focusObjetId={recetteFocusId}
           />
         )}
         {tab === "classes" && (
