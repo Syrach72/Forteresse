@@ -25,8 +25,37 @@ export default async function handler(req, res) {
       );
     }
     const ok = reponses.every((r) => r.ok);
+    // Origine de l'appel, pour le suivi affiché dans l'admin : la tâche
+    // planifiée de Vercel s'annonce par son user-agent, celle de GitHub par
+    // ?source=github ; tout le reste est « manuel ». Noté seulement si les
+    // lectures ont réussi, pour que l'indicateur reflète un vrai succès.
+    const agent = String(req.headers["user-agent"] || "");
+    const source = agent.includes("vercel-cron")
+      ? "vercel"
+      : req.query?.source === "github"
+        ? "github"
+        : "manuel";
+    let enregistre = false;
+    if (ok) {
+      try {
+        const r = await fetch(`${url}/rest/v1/rpc/enregistrer_maintien`, {
+          method: "POST",
+          headers: {
+            apikey: key,
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ p_source: source }),
+        });
+        enregistre = r.ok;
+      } catch {
+        // le suivi est un confort : il ne doit jamais faire échouer le maintien
+      }
+    }
     res.status(ok ? 200 : 502).json({
       ok,
+      source,
+      enregistre,
       statuts: reponses.map((r) => r.status),
       le: new Date().toISOString(),
     });

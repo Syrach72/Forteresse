@@ -13,4 +13,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Appeler le point de maintien
-        run: curl --fail --silent --show-error --retry 3 --retry-delay 15 https://forteresse.vercel.app/api/keepalive
+        run: curl --fail --silent --show-error --retry 3 --retry-delay 15 "https://forteresse.vercel.app/api/keepalive?source=github"

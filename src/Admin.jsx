@@ -2169,6 +2169,46 @@ function messageInvitation(code) {
   return `Rejoins la forteresse : ${location.origin}/#inscription — code d’invitation : ${formaterCode(code)}`;
 }
 
+// Suivi du maintien actif de la base (voir api/keepalive.js) : heure du dernier
+// appel de chacune des deux tâches planifiées (Vercel, GitHub). Alerte s'il n'y
+// a plus eu d'appel planifié depuis plus de 2 jours. N'affiche rien si la
+// table de suivi est absente ou illisible.
+function EtatMaintien() {
+  const [rows, setRows] = useState(null);
+  useEffect(() => {
+    let annule = false;
+    supabase
+      .from("maintien")
+      .select("*")
+      .then(({ data, error }) => {
+        if (!annule && !error) setRows(data);
+      });
+    return () => {
+      annule = true;
+    };
+  }, []);
+  if (!rows) return null;
+  const dernier = (source) => rows.find((r) => r.source === source)?.dernier;
+  const depuis = (iso) => {
+    if (!iso) return "pas encore reçu";
+    const min = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+    if (min < 60) return `il y a ${min} min`;
+    const h = Math.round(min / 60);
+    return h < 48 ? `il y a ${h} h` : `il y a ${Math.round(h / 24)} j`;
+  };
+  const planifies = ["vercel", "github"].map(dernier).filter(Boolean);
+  const recent = planifies.length ? Math.max(...planifies.map((d) => new Date(d).getTime())) : null;
+  const alerte = recent !== null && Date.now() - recent > 48 * 3600 * 1000;
+  return (
+    <p className={alerte ? "admin-error" : "muted"} role="status">
+      Maintien actif de la base — Vercel : {depuis(dernier("vercel"))} · GitHub :{" "}
+      {depuis(dernier("github"))}
+      {alerte && " — ⚠ aucun appel planifié depuis plus de 2 jours"}
+      {recent === null && " (en attente du premier appel planifié, chaque matin)"}
+    </p>
+  );
+}
+
 // Inscription sur invitation : l'administrateur crée un code par joueur, le lui
 // transmet, et le joueur le saisit sur « Créer un compte ». Chaque code ne
 // sert qu'une fois ; le contrôle réel est dans la base (déclencheur sur
@@ -2380,6 +2420,7 @@ export function Admin({ onCraftItem = () => {} }) {
           Invitations
         </button>
       </nav>
+      <EtatMaintien />
       {sauvegardeMsg && (
         <p className="muted" role="status">
           {sauvegardeMsg}
