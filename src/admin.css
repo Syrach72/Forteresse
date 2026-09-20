@@ -537,3 +537,15 @@
 .admin-ingredient-form input[type="number"] {
   width: 80px;
 }
+
+/* Lignes d'état entre les onglets et le parchemin (fond sombre) : suivi du
+   maintien actif, résultat de la sauvegarde. */
+.admin-etat {
+  margin: 8px 4px;
+  font-size: 14px;
+  color: var(--paper-light);
+}
+.admin-etat-alerte {
+  color: #ffb4a2;
+  font-weight: 700;
+}

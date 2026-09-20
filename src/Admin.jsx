@@ -2200,7 +2200,7 @@ function EtatMaintien() {
   const recent = planifies.length ? Math.max(...planifies.map((d) => new Date(d).getTime())) : null;
   const alerte = recent !== null && Date.now() - recent > 48 * 3600 * 1000;
   return (
-    <p className={alerte ? "admin-error" : "muted"} role="status">
+    <p className={alerte ? "admin-etat admin-etat-alerte" : "admin-etat"} role="status">
       Maintien actif de la base — Vercel : {depuis(dernier("vercel"))} · GitHub :{" "}
       {depuis(dernier("github"))}
       {alerte && " — ⚠ aucun appel planifié depuis plus de 2 jours"}
@@ -2422,7 +2422,7 @@ export function Admin({ onCraftItem = () => {} }) {
       </nav>
       <EtatMaintien />
       {sauvegardeMsg && (
-        <p className="muted" role="status">
+        <p className="admin-etat" role="status">
           {sauvegardeMsg}
         </p>
       )}
