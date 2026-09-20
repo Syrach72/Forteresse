@@ -389,10 +389,13 @@ function ItemActionPanel({ game, id, onSell, onDestroy, busy, error }) {
 function CombatStats({ item }) {
   return (
     <>
-      <div className="stat-line">
-        <span>Vétérance requise</span>
-        <strong>{item.veterance_requise ?? "à définir"}</strong>
-      </div>
+      {/* Pas de vétérance sur un bouclier. */}
+      {!item.estBouclier && (
+        <div className="stat-line">
+          <span>Vétérance requise</span>
+          <strong>{item.veterance_requise ?? "à définir"}</strong>
+        </div>
+      )}
       {item.estArmure ? (
         <>
           <div className="stat-line">
@@ -418,8 +421,13 @@ function CombatStats({ item }) {
           )}
         </>
       ) : item.estBouclier ? (
-        // Bouclier : pas de portée, mais des malus (renseignés seulement).
+        // Bouclier : pas de portée, mais une parade et des malus (ceux-ci
+        // seulement s'ils sont renseignés).
         <>
+          <div className="stat-line">
+            <span>Parade</span>
+            <strong>{item.parade || "à définir"}</strong>
+          </div>
           {item.malus_discretion != null && (
             <div className="stat-line">
               <span>Discrétion</span>

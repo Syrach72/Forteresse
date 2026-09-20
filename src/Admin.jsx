@@ -149,6 +149,7 @@ function emptyCatalogueItem(categorieId = "") {
     malus_discretion: "",
     malus_vitesse: "",
     malus_esquive: "",
+    parade: "",
   };
 }
 // Malus d'armure (Discrétion, Vitesse) : entier négatif ou nul, 2 chiffres au
@@ -761,6 +762,7 @@ function CatalogueSection({ onCraftItem }) {
       malus_discretion: row.malus_discretion == null ? "" : String(row.malus_discretion),
       malus_vitesse: row.malus_vitesse == null ? "" : String(row.malus_vitesse),
       malus_esquive: row.malus_esquive == null ? "" : String(row.malus_esquive),
+      parade: row.parade || "",
     });
     setIconFile(null);
     setMsg("");
@@ -879,6 +881,7 @@ function CatalogueSection({ onCraftItem }) {
       malus_discretion: armure || bouclier ? malusOuNull(form.malus_discretion) : null,
       malus_vitesse: armure || bouclier ? malusOuNull(form.malus_vitesse) : null,
       malus_esquive: bouclier ? malusOuNull(form.malus_esquive) : null,
+      parade: bouclier ? form.parade.trim() || null : null,
     };
     const err = editing
       ? await update(editing, values)
@@ -1124,6 +1127,19 @@ function CatalogueSection({ onCraftItem }) {
                   </div>
                 </div>
               </>
+            )}
+            {bouclier && (
+              <div className="field field-protection">
+                <label htmlFor="cat-parade">Parade</label>
+                <div className="input-wrap">
+                  <input
+                    id="cat-parade"
+                    maxLength={5}
+                    value={form.parade}
+                    onChange={(e) => setForm({ ...form, parade: e.target.value.slice(0, 5) })}
+                  />
+                </div>
+              </div>
             )}
             {(armure || bouclier) && (
               <>
