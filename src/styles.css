@@ -3818,3 +3818,11 @@ a.merc-card:hover {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Catalogue joueur : bouton d'en-tête, repères de la liste et annulation
+   d'un achat ou d'une fabrication tant que la fiche reste ouverte. */
+.header-catalogue { font-weight: 700; }
+.db-item-tag { margin-left: auto; color: var(--muted); font-size: 13px; white-space: nowrap; }
+.undo-banner { margin: 12px 0 4px; padding: 10px 14px; border: 1px solid var(--edge); background: var(--paper-light); }
+.undo-banner p { margin: 0 0 6px; font-weight: 600; }
+.undo-banner small { display: block; margin-top: 6px; color: var(--muted); }

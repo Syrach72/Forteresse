@@ -67,6 +67,22 @@ export function initialGame() {
     craftingQueue: {},
   };
 }
+// Annulation d'un achat ou d'une fabrication lancée depuis une fiche du
+// catalogue, tant que la fiche est restée ouverte. `stack` = pile des
+// opérations faites sur cette fiche : { kind, before, after, message }, où
+// `before`/`after` sont l'état de jeu avant et après (transact renvoie
+// toujours un nouvel objet). On annule la dernière en restaurant `before`
+// tel quel : c'est exact (or, stocks, ressources, atelier, journal), sans
+// rejouer d'opération inverse. Refusée si l'état courant n'est plus celui
+// produit par cette opération (autre changement entre-temps) : on ne
+// restaure jamais un vieil état par-dessus une situation qui a évolué.
+export function undoLast(stack, current) {
+  const last = stack[stack.length - 1];
+  if (!last) return { error: "Aucune opération à annuler." };
+  if (current !== last.after)
+    return { error: "Annulation impossible : la situation a changé depuis." };
+  return { state: last.before, stack: stack.slice(0, -1), kind: last.kind };
+}
 export function transact(state, action) {
   const item = ITEMS.find((i) => i.id === action.id);
   const next = structuredClone(state);

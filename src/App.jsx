@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { ASSETS, LOCATIONS, CLASSES, ITEMS } from "./data";
-import { initialGame, transact, RESOURCE_ALIASES, materialQuantity, ingredientQuantity, sellableValue } from "./game";
+import { initialGame, transact, undoLast, RESOURCE_ALIASES, materialQuantity, ingredientQuantity, sellableValue } from "./game";
 import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
@@ -413,75 +413,52 @@ function CombatStats({ item }) {
     </>
   );
 }
-// Fiche d'un objet réel du catalogue Supabase (Forge/Armurerie/Laboratoire/
-// Tour du Mage) : image, description, recette si elle existe, et tentative
-// de fabrication. Chaque ingrédient/composant est débité de game.inventory
-// par son nom (voir ingredientQuantity, game.js) ; un stock insuffisant
-// désactive le bouton plutôt que de fabriquer gratuitement.
+// Fiche d'un objet réel du catalogue Supabase, unique pour le Marché, les
+// ateliers (Forge/Armurerie/Laboratoire/Tour du Mage) et le Catalogue global :
+// image, description, statistiques, puis « Acheter » si l'objet a un coût
+// d'achat et « Fabriquer » s'il a une recette (chaque bouton suit les
+// données). Lecture seule : rien ne s'y modifie, seule l'administration
+// écrit le catalogue. Chaque ingrédient est débité de game.inventory par son
+// nom (voir ingredientQuantity, game.js) ; un stock, un solde ou un atelier
+// indisponible désactive le bouton avec sa raison plutôt que d'agir.
+// `context` : "market" (Marché : la fiche montre toujours Acheter, même sans
+// coût défini), "atelier" (toujours Fabriquer, même sans recette), "global"
+// (uniquement ce qui est réellement disponible). `undo` = dernière opération
+// annulable faite sur cette fiche ; elle disparaît dès qu'on la quitte.
 function CatalogueItemDetail({
   item,
   game,
   busy,
+  context = "atelier",
   actionLabel = "Fabriquer",
+  route,
+  onBuy,
   onCraft,
   onCollect,
-  route,
-  readOnly = false,
-  onBuy,
-  onCancel,
+  undo,
+  onUndo,
 }) {
-  // Fiche d'achat depuis le Marché : descriptif, vétérance, portée et coût
-  // d'achat, avec Acheter (débite le coût de la trésorerie) et Annuler.
-  if (readOnly) {
-    const cout = item.cout_achat_or;
-    const coutDefini = cout !== null && cout !== undefined;
-    const soldeInsuffisant = coutDefini && game.gold < cout;
-    return (
-      <>
-        {item.icone && (
-          <img className="db-item-art" src={item.icone} alt={item.nom} />
-        )}
-        <h2>{item.nom}</h2>
-        <h3>Descriptif</h3>
-        <p>{item.description || "Description à définir."}</p>
-        <CombatStats item={item} />
-        <div className="stat-line">
-          <span>Coût d’achat</span>
-          <strong>{coutDefini ? `${cout} Po` : "à définir"}</strong>
-        </div>
-        <div className="market-buy-actions">
-          <button
-            className="primary"
-            type="button"
-            disabled={busy || !coutDefini || soldeInsuffisant}
-            onClick={() => onBuy(item)}
-          >
-            {busy ? "Achat…" : "Acheter"}
-          </button>
-          <button className="text-button" type="button" onClick={onCancel}>
-            Annuler
-          </button>
-        </div>
-        {!coutDefini && (
-          <p className="muted">Le coût d’achat n’est pas encore défini : achat impossible.</p>
-        )}
-        {soldeInsuffisant && (
-          <p className="error">Solde insuffisant : {game.gold} Po en trésorerie.</p>
-        )}
-      </>
-    );
-  }
+  const cout = item.cout_achat_or;
+  const coutDefini = cout !== null && cout !== undefined;
   const needs = item.ingredientsList;
+  const showBuy = coutDefini || context === "market";
+  const showCraft = needs.length > 0 || context === "atelier";
+  const soldeInsuffisant = coutDefini && game.gold < cout;
   const lacking = needs.some((ing) => ingredientQuantity(game.inventory, ing.nom) < ing.quantite);
-  // Fabrication en attente pour CET atelier (peu importe l'objet) : la
-  // Duree d'instance definie par l'admin (item.duree_fabrication_instances)
-  // decompte via le bouton +1 Instance, comme pour la demo locale forge/
-  // armurerie. A 0, elle n'est PAS livree automatiquement : il faut cliquer
-  // "Envoyer à l'Arsenal" (action "collect-craft", game.js) pour liberer
-  // l'atelier et permettre une nouvelle fabrication.
-  const queuedHere = game.craftingQueue?.[route];
+  // Fabrication en attente dans l'atelier de cet objet : la Durée d'instance
+  // décompte via le bouton +1 Instance. À 0, elle n'est PAS livrée toute
+  // seule : « Envoyer à l'Arsenal » libère l'atelier. Un atelier occupé par
+  // un AUTRE objet bloque la fabrication de celui-ci.
+  const queued = route ? game.craftingQueue?.[route] : null;
+  const queuedId = queued && typeof queued === "object" ? queued.id : queued;
+  const queuedHere = !!queued && queuedId === item.id;
+  const autreEnCours = !!queued && !queuedHere;
+  const autreNom =
+    queued && typeof queued === "object"
+      ? queued.nom
+      : ITEMS.find((i) => i.id === queued)?.name || "un autre objet";
   const remaining = game.durations?.[route] ?? item.duree_fabrication_instances ?? 0;
-  const readyHere = !!queuedHere && remaining === 0;
+  const readyHere = queuedHere && remaining === 0;
   return (
     <>
       {item.icone && (
@@ -490,47 +467,89 @@ function CatalogueItemDetail({
       <h2>{item.nom}</h2>
       <p>{item.description || "Description à définir."}</p>
       <CombatStats item={item} />
-      <div className="workshop-duration">
-        <label>Temps de fabrication (instances)</label>
-        <strong>
-          {queuedHere
-            ? remaining
-            : (item.duree_fabrication_instances ?? "à définir")}
-        </strong>
-      </div>
-      <h3>{route === "alchimie" ? "Composants" : "Ressources nécessaires"}</h3>
-      {item.ingredientsList.length ? (
-        <div className="materials">
-          {item.ingredientsList.map((ing) => (
-            <div key={ing.nom}>
-              <span>{ing.nom}</span>
-              <strong>{ing.quantite}</strong>
-              <small>Stock : {ingredientQuantity(game.inventory, ing.nom)}</small>
-            </div>
-          ))}
+      {showBuy && (
+        <div className="stat-line">
+          <span>Coût d’achat</span>
+          <strong>{coutDefini ? `${cout} Po` : "à définir"}</strong>
         </div>
-      ) : (
-        <p className="muted">Recette à définir.</p>
       )}
-      <button
-        className="primary"
-        type="button"
-        disabled={
-          busy ||
-          (queuedHere && !readyHere) ||
-          (!queuedHere && (!needs.length || lacking))
-        }
-        onClick={() => (readyHere ? onCollect() : onCraft(item))}
-      >
-        {busy
-          ? "Fabrication…"
-          : readyHere
-            ? "Envoyer à l’Arsenal"
-            : queuedHere
-              ? "Fabrication en cours…"
-              : actionLabel}
-      </button>
-      {lacking && (
+      {showCraft && (
+        <>
+          <div className="workshop-duration">
+            <label>Temps de fabrication (instances)</label>
+            <strong>
+              {queuedHere
+                ? remaining
+                : (item.duree_fabrication_instances ?? "à définir")}
+            </strong>
+          </div>
+          <h3>{item.atelier === "alchimie" ? "Composants" : "Ressources nécessaires"}</h3>
+          {needs.length ? (
+            <div className="materials">
+              {needs.map((ing) => (
+                <div key={ing.nom}>
+                  <span>{ing.nom}</span>
+                  <strong>{ing.quantite}</strong>
+                  <small>Stock : {ingredientQuantity(game.inventory, ing.nom)}</small>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="muted">Recette à définir.</p>
+          )}
+        </>
+      )}
+      <div className="market-buy-actions">
+        {showBuy && (
+          <button
+            className="primary"
+            type="button"
+            disabled={busy || !coutDefini || soldeInsuffisant}
+            onClick={() => onBuy(item)}
+          >
+            {busy ? "Achat…" : coutDefini ? `Acheter · ${cout} Po` : "Acheter"}
+          </button>
+        )}
+        {showCraft && (
+          <button
+            className="primary"
+            type="button"
+            disabled={
+              busy ||
+              autreEnCours ||
+              (queuedHere && !readyHere) ||
+              (!queuedHere && (!needs.length || lacking))
+            }
+            onClick={() => (readyHere ? onCollect() : onCraft(item))}
+          >
+            {busy
+              ? "Fabrication…"
+              : readyHere
+                ? "Envoyer à l’Arsenal"
+                : queuedHere
+                  ? "Fabrication en cours…"
+                  : autreEnCours
+                    ? "Atelier occupé"
+                    : actionLabel}
+          </button>
+        )}
+      </div>
+      {undo && (
+        <div className="undo-banner" role="status">
+          <p>{undo.message}</p>
+          <button className="text-button" type="button" disabled={busy} onClick={onUndo}>
+            {undo.kind === "buy" ? "Annuler l’achat" : "Annuler la fabrication"}
+          </button>
+          <small>Possible tant que vous n’avez pas quitté cette fiche.</small>
+        </div>
+      )}
+      {showBuy && !coutDefini && (
+        <p className="muted">Le coût d’achat n’est pas encore défini : achat impossible.</p>
+      )}
+      {soldeInsuffisant && (
+        <p className="error">Solde insuffisant : {game.gold} Po en trésorerie.</p>
+      )}
+      {showCraft && lacking && !queuedHere && (
         <p className="error">
           Ressources insuffisantes pour cette fabrication (
           {needs
@@ -544,22 +563,28 @@ function CatalogueItemDetail({
           ).
         </p>
       )}
-      {readyHere ? (
-        <p className="muted">
-          Fabrication terminée : cliquez sur « Envoyer à l’Arsenal » pour
-          libérer l’atelier.
-        </p>
-      ) : queuedHere ? (
-        <p className="muted">
-          Fabrication en cours : encore {remaining} instance(s) avant de
-          pouvoir l’envoyer à l’arsenal.
-        </p>
-      ) : (
-        <p className="muted">
-          L’objet fabriqué rejoint votre inventaire une fois la durée
-          d’instance à 0.
-        </p>
-      )}
+      {showCraft &&
+        (readyHere ? (
+          <p className="muted">
+            Fabrication terminée : cliquez sur « Envoyer à l’Arsenal » pour
+            libérer l’atelier.
+          </p>
+        ) : queuedHere ? (
+          <p className="muted">
+            Fabrication en cours : encore {remaining} instance(s) avant de
+            pouvoir l’envoyer à l’arsenal.
+          </p>
+        ) : autreEnCours ? (
+          <p className="muted">
+            L’atelier est occupé par {autreNom}. Récupérez-le à l’atelier
+            avant d’en lancer une autre.
+          </p>
+        ) : (
+          <p className="muted">
+            L’objet fabriqué rejoint votre inventaire une fois la durée
+            d’instance à 0.
+          </p>
+        ))}
     </>
   );
 }
@@ -831,6 +856,12 @@ export function App() {
   // recharger qu'une fois par atelier consulté. { [atelier]: { items, error } }
   const [catalogueByAtelier, setCatalogueByAtelier] = useState({});
   const [catalogueTabByAtelier, setCatalogueTabByAtelier] = useState({});
+  // Recherche du Catalogue global (bouton de l'en-tête, accessible partout).
+  const [globalSearch, setGlobalSearch] = useState("");
+  // Achats/fabrications faits depuis la fiche ouverte, annulables tant qu'on
+  // ne la quitte pas (cf. undoLast, game.js). Vidée dès que la fiche se
+  // ferme, change d'objet ou que la page change.
+  const [undoStack, setUndoStack] = useState([]);
   // Objet visé depuis l'admin (bouton « Placer dans la forge » d'une
   // recette) : mémorise quel objet sélectionner une fois arrivé sur la
   // bonne page et son catalogue chargé, avant de s'effacer lui-même.
@@ -1160,6 +1191,11 @@ export function App() {
   // bouton admin « Placer dans la forge » sur la bonne page.
   const ATELIER_ROUTE = { forge: "forge", armurerie: "armurerie", alchimie: "alchimie", magie: "mage" };
   const ATELIER_RACINE = { forge: "Armes", armurerie: "Armures", alchimie: "Produits Alchimiques", magie: "Gemmes" };
+  // Quitter la fiche (fermer, retour à la liste, autre objet, autre page)
+  // rend définitifs les achats et fabrications qui y ont été faits.
+  useEffect(() => {
+    setUndoStack([]);
+  }, [modal?.type, modal?.detailId, modal?.atelier, route]);
   function sendToForge(objetId, atelier) {
     const targetRoute = ATELIER_ROUTE[atelier];
     if (!targetRoute) return;
@@ -1474,7 +1510,8 @@ export function App() {
     setBusy(true);
     setActionError("");
     timer.current = setTimeout(() => {
-      const result = transact(gameRef.current, {
+      const before = gameRef.current;
+      const result = transact(before, {
         type: "craft-catalogue",
         arme,
         route,
@@ -1484,16 +1521,36 @@ export function App() {
       } else {
         gameRef.current = result.state;
         setGame(result.state);
-        // Toujours refermer la fenetre (fabrication lancee ou livree tout
-        // de suite) : la modale native bloque le reste de la page pendant
-        // qu'elle est ouverte, notamment le bouton +1 Instance necessaire
-        // pour faire avancer une fabrication mise en attente.
-        setModal(null);
+        // La fiche reste ouverte (fabrication lancee ou livree tout de
+        // suite) pour pouvoir l'annuler ; la fermer la rend definitive.
+        setUndoStack((s) => [
+          ...s,
+          { kind: "craft", before, after: result.state, message: result.message },
+        ]);
         notify(result.message);
       }
       busyRef.current = false;
       setBusy(false);
     }, 280);
+  }
+  // Annule la derniere operation (achat ou fabrication) faite sur la fiche
+  // ouverte : l'etat d'avant est restaure tel quel (or, stocks, atelier).
+  function undoCatalogue() {
+    if (busyRef.current) return;
+    const result = undoLast(undoStack, gameRef.current);
+    if (result.error) {
+      setActionError(result.error);
+      return;
+    }
+    setActionError("");
+    gameRef.current = result.state;
+    setGame(result.state);
+    setUndoStack(result.stack);
+    notify(
+      result.kind === "buy"
+        ? "Achat annulé : pièces d’or remboursées."
+        : "Fabrication annulée : ressources restituées, atelier libéré.",
+    );
   }
   // Destruction définitive d'une quantité d'un objet de l'arsenal, après
   // confirmation Oui/Non dans la fiche (ItemActionPanel).
@@ -1545,13 +1602,19 @@ export function App() {
     setBusy(true);
     setActionError("");
     timer.current = setTimeout(() => {
-      const result = transact(gameRef.current, { type: "buy-catalogue", arme });
+      const before = gameRef.current;
+      const result = transact(before, { type: "buy-catalogue", arme });
       if (result.error) {
         setActionError(result.error);
       } else {
         gameRef.current = result.state;
         setGame(result.state);
-        setModal(null);
+        // La fiche reste ouverte : l'achat est annulable tant qu'on ne la
+        // quitte pas.
+        setUndoStack((s) => [
+          ...s,
+          { kind: "buy", before, after: result.state, message: result.message },
+        ]);
         notify(result.message);
       }
       busyRef.current = false;
@@ -1595,16 +1658,16 @@ export function App() {
     }
     location.hash = l.id;
   }
-  // Charge le catalogue Supabase d'un atelier (objets rattachés à la
-  // catégorie racine donnée + recette de cet atelier associée, avec ses
-  // ingrédients) à la demande, une seule fois par atelier. Contrairement à
-  // ITEMS (démo locale), ces objets viennent réellement de l'admin.
+  // Charge le catalogue Supabase (objets rattachés à la catégorie racine
+  // donnée + leur recette éventuelle, avec ses ingrédients) à la demande, une
+  // seule fois par clé. Contrairement à ITEMS (démo locale), ces objets
+  // viennent réellement de l'admin. Clés : un atelier (forge, armurerie,
+  // alchimie, magie), "market:<catégorie>" (Marché) ou "global" (Catalogue de
+  // l'en-tête : tout ce qui est achetable ou fabricable, toutes rubriques).
   async function loadCatalogue(atelier, racineNom) {
     if (catalogueByAtelier[atelier]) return;
-    // Clé "market:<catégorie>" : simple consultation depuis le Marché, sans
-    // recette (pas d'atelier associé).
     const consultation = atelier.startsWith("market:");
-    const none = Promise.resolve({ data: [], error: null });
+    const global = atelier === "global";
     const [
       { data: categories, error: catErr },
       { data: objets, error: objErr },
@@ -1613,8 +1676,8 @@ export function App() {
     ] = await Promise.all([
       supabase.from("categorie").select("id, nom, parent_id"),
       supabase.from("objet_catalogue").select("*"),
-      consultation ? none : supabase.from("recette").select("*").eq("atelier", atelier),
-      consultation ? none : supabase.from("ingredient_recette").select("*"),
+      supabase.from("recette").select("*"),
+      supabase.from("ingredient_recette").select("*"),
     ]);
     const err = catErr || objErr || recErr || ingErr;
     if (err) {
@@ -1624,11 +1687,13 @@ export function App() {
       }));
       return;
     }
-    const racine = categories.find(
-      (c) =>
-        c.nom.trim().toLowerCase() === racineNom.trim().toLowerCase() &&
-        !c.parent_id,
-    );
+    const racine = global
+      ? null
+      : categories.find(
+          (c) =>
+            c.nom.trim().toLowerCase() === racineNom.trim().toLowerCase() &&
+            !c.parent_id,
+        );
     const isUnderRacine = (categorieId) => {
       let current = categories.find((c) => c.id === categorieId);
       while (current) {
@@ -1681,31 +1746,57 @@ export function App() {
       isDivers
         ? !MARKET_BUTTON_ROOTS.includes((rootOf(o.categorie_id)?.nom || "").trim().toLowerCase())
         : isUnderRacine(o.categorie_id);
-    const items = objets
-      .filter((o) => o.actif !== false && included(o))
-      .map((o) => {
-        const recette = recettes.find(
-          (r) => r.resultat_objet_id === o.id && r.actif !== false,
-        );
-        const ingredientsList = recette
-          ? ingredients
-              .filter((i) => i.recette_id === recette.id)
-              .map((i) => ({
-                nom: objetById.get(i.objet_id)?.nom || "Ingrédient inconnu",
-                quantite: i.quantite_requise,
-              }))
-          : [];
-        return {
-          ...o,
-          ingredientsList,
-          estArmure: estArmure(o.categorie_id),
-          groupe:
-            isDivers && rootOf(o.categorie_id) && rootOf(o.categorie_id).id !== racine?.id
-              ? rootOf(o.categorie_id).nom
-              : groupName(o.categorie_id),
-          racine: isDivers ? rootOf(o.categorie_id)?.nom || racineNom : racineNom,
-        };
-      });
+    // Catalogue global : onglet = catégorie de niveau 2 sous la racine propre
+    // à chaque objet (même principe que groupName, racine par racine).
+    const groupeSousRacine = (categorieId, root) => {
+      let node = categories.find((c) => c.id === categorieId);
+      if (!node || !root) return root?.nom || "Autres";
+      if (node.id === root.id) return root.nom;
+      while (node && node.parent_id !== root.id) {
+        node = categories.find((c) => c.id === node.parent_id);
+      }
+      return node?.nom || root.nom;
+    };
+    const construire = (o) => {
+      const recette = recettes.find(
+        (r) => r.resultat_objet_id === o.id && r.actif !== false,
+      );
+      const ingredientsList = recette
+        ? ingredients
+            .filter((i) => i.recette_id === recette.id)
+            .map((i) => ({
+              nom: objetById.get(i.objet_id)?.nom || "Ingrédient inconnu",
+              quantite: i.quantite_requise,
+            }))
+        : [];
+      const root = rootOf(o.categorie_id);
+      return {
+        ...o,
+        ingredientsList,
+        // Atelier de fabrication (forge/armurerie/alchimie/magie), tel que
+        // défini par la recette : null si l'objet n'a pas de recette.
+        atelier: recette?.atelier || null,
+        estArmure: estArmure(o.categorie_id),
+        groupe: global
+          ? groupeSousRacine(o.categorie_id, root)
+          : isDivers && root && root.id !== racine?.id
+            ? root.nom
+            : groupName(o.categorie_id),
+        racine: global || isDivers ? root?.nom || racineNom : racineNom,
+      };
+    };
+    // Global : uniquement ce qui est réellement disponible, à l'achat (coût
+    // défini) ou à la fabrication (recette avec au moins un ingrédient).
+    const items = global
+      ? objets
+          .filter((o) => o.actif !== false)
+          .map(construire)
+          .filter(
+            (it) =>
+              (it.cout_achat_or !== null && it.cout_achat_or !== undefined) ||
+              it.ingredientsList.length > 0,
+          )
+      : objets.filter((o) => o.actif !== false && included(o)).map(construire);
     setCatalogueByAtelier((prev) => ({ ...prev, [atelier]: { items, error: "" } }));
   }
   // null si aucune commande locale n'est en cours pour Forge/Armurerie (cf.
@@ -1789,6 +1880,22 @@ export function App() {
             {money(game.gold)} <small>Po</small>
           </span>
         </a>
+        <button
+          type="button"
+          className="header-time header-catalogue"
+          onClick={() => {
+            setActionError("");
+            loadCatalogue("global", "Tout");
+            setModal({
+              type: "db-catalogue",
+              atelier: "global",
+              racine: "Catalogue",
+              global: true,
+            });
+          }}
+        >
+          Catalogue
+        </button>
         <div className="instance-controls">
           <button className="header-time" onClick={decreaseInstances}
             aria-label="+1 Instance · toutes les Durées d’Instance -1"
@@ -2402,7 +2509,9 @@ export function App() {
                   ? catalogueByAtelier[modal.atelier]?.items?.find(
                       (i) => i.id === modal.detailId,
                     )?.nom || modal.racine
-                  : `Catalogue : ${modal.racine}`
+                  : modal.global
+                    ? "Catalogue"
+                    : `Catalogue : ${modal.racine}`
                 : modal.type === "inventory"
                 ? "Inventaire de la compagnie"
                 : modal.type === "locked"
@@ -2499,24 +2608,37 @@ export function App() {
                 // fabrication depuis cette meme fenetre.
                 return (
                   <>
-                    <CatalogueItemDetail
-                      item={detailItem}
-                      game={game}
-                      busy={busy}
-                      route={ATELIER_ROUTE[modal.atelier]}
-                      readOnly={!!modal.market}
-                      onBuy={actBuyCatalogue}
-                      onCancel={() => setModal({ ...modal, detailId: null })}
-                      actionLabel={
-                        modal.atelier === "forge"
-                          ? "Envoyer à la forge"
-                          : modal.atelier === "armurerie"
-                            ? "Envoyer à l’armurerie"
-                            : "Fabriquer"
-                      }
-                      onCraft={(a) => actCatalogue(a, ATELIER_ROUTE[modal.atelier])}
-                      onCollect={() => actCollect(ATELIER_ROUTE[modal.atelier])}
-                    />
+                    {(() => {
+                      // Atelier de fabrication de CET objet (celui de sa
+                      // recette) ; dans un atelier, à défaut, celui de la page.
+                      const atelierItem =
+                        detailItem.atelier ||
+                        (modal.global || modal.market ? null : modal.atelier);
+                      const routeItem = ATELIER_ROUTE[atelierItem];
+                      return (
+                        <CatalogueItemDetail
+                          item={detailItem}
+                          game={game}
+                          busy={busy}
+                          context={
+                            modal.global ? "global" : modal.market ? "market" : "atelier"
+                          }
+                          route={routeItem}
+                          actionLabel={
+                            atelierItem === "forge"
+                              ? "Envoyer à la forge"
+                              : atelierItem === "armurerie"
+                                ? "Envoyer à l’armurerie"
+                                : "Fabriquer"
+                          }
+                          onBuy={actBuyCatalogue}
+                          onCraft={(a) => actCatalogue(a, routeItem)}
+                          onCollect={() => actCollect(routeItem)}
+                          undo={undoStack[undoStack.length - 1] || null}
+                          onUndo={undoCatalogue}
+                        />
+                      );
+                    })()}
                     {actionError && (
                       <p role="alert" className="error">
                         {actionError}
@@ -2566,12 +2688,36 @@ export function App() {
                   )
                     ? catalogueTabByAtelier[modal.atelier]
                     : groups[0];
-                  const shown = entry.items
-                    .filter((a) => a.groupe === activeTab)
-                    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+                  // Catalogue global : une recherche couvre toutes les rubriques
+                  // (les onglets sont alors sans objet).
+                  const q = modal.global ? globalSearch.trim().toLocaleLowerCase("fr") : "";
+                  const shown = (
+                    q
+                      ? entry.items.filter((a) => a.nom.toLocaleLowerCase("fr").includes(q))
+                      : entry.items.filter((a) => a.groupe === activeTab)
+                  ).sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
                   return (
                     <>
-                      {groups.length > 1 && (
+                      {modal.global && (
+                        <div className="search-wrap">
+                          <input
+                            aria-label="Rechercher dans le catalogue"
+                            placeholder="Rechercher un objet…"
+                            value={globalSearch}
+                            onChange={(e) => setGlobalSearch(e.target.value)}
+                          />
+                          {globalSearch && (
+                            <button
+                              type="button"
+                              className="text-button"
+                              onClick={() => setGlobalSearch("")}
+                            >
+                              Effacer
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {groups.length > 1 && !q && (
                         <div className="db-item-tabs">
                           {groups.map((g) => (
                             <button
@@ -2606,9 +2752,22 @@ export function App() {
                               <span className="db-item-icon" aria-hidden="true" />
                             )}
                             <span>{a.nom}</span>
+                            {modal.global && (
+                              <small className="db-item-tag">
+                                {[
+                                  a.cout_achat_or !== null && a.cout_achat_or !== undefined
+                                    ? `${a.cout_achat_or} Po`
+                                    : null,
+                                  a.ingredientsList.length ? "Fabrication" : null,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </small>
+                            )}
                           </button>
                         ))}
                       </div>
+                      {!shown.length && <p className="muted">Aucun résultat.</p>}
                     </>
                   );
                 })()
