@@ -2136,8 +2136,6 @@ const TABLES_SAUVEGARDE = [
   "ligne_inventaire",
   "recrutement",
   "invitation",
-  "compagnie",
-  "adhesion_compagnie",
   "profil",
 ];
 async function telechargerSauvegarde() {
