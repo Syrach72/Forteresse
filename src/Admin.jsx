@@ -168,7 +168,32 @@ function malusOuNull(v) {
   return v === "" || v === "-" || !Number.isFinite(n) ? null : n;
 }
 
-async function uploadImage(bucket, file, seed) {
+// Icônes du catalogue : réduites avant envoi (400 px au plus, WebP). Elles
+// s'affichent à 185 px au maximum ; une image d'origine de plusieurs Mo
+// (jusqu'à 3000 px) épuisait le quota de trafic du projet Supabase gratuit.
+// Repli sur le fichier d'origine si la réduction échoue ou n'allège pas.
+async function reduireIcone(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const s = Math.min(1, 400 / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bmp.width * s));
+    canvas.height = Math.max(1, Math.round(bmp.height * s));
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((r) => canvas.toBlob(r, "image/webp", 0.9));
+    if (blob && blob.size < file.size) return new File([blob], "icone.webp", { type: "image/webp" });
+  } catch {
+    // image illisible par le navigateur : on envoie le fichier tel quel
+  }
+  return file;
+}
+
+async function uploadImage(bucket, originalFile, seed) {
+  // Seules les icônes du catalogue sont réduites (les portraits de
+  // mercenaires gardent leur qualité d'origine).
+  const file = bucket === "catalogue-icones" ? await reduireIcone(originalFile) : originalFile;
   const ext = (file.name.split(".").pop() || "png").toLowerCase();
   const path = `${(seed || "image").replace(/[^a-z0-9-]/gi, "-")}-${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
