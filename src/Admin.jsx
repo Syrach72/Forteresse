@@ -371,12 +371,36 @@ function racineDe(categories, categorieId) {
 // ligne `recette` (une par objet dans l'interface) est créée en douce au
 // premier ingrédient, avec code et nom repris de l'objet ; les ingrédients
 // s'enregistrent immédiatement, sans passer par « Enregistrer » de la fiche.
-function RecetteBlock({ objet, atelier, objets, categories, recettes, ingredients, onCraftItem }) {
-  const recette = recettes.rows.find((r) => r.resultat_objet_id === objet.id);
-  const lignes = recette ? ingredients.rows.filter((i) => i.recette_id === recette.id) : [];
+// Sans `objet` (formulaire « Ajouter un objet »), le bloc travaille sur un
+// brouillon (`brouillon` : { lignes, qteProduite }, tenu par la section) qui
+// n'est enregistré qu'avec l'objet, au clic sur « Ajouter ».
+function RecetteBlock({
+  objet,
+  atelier,
+  objets,
+  categories,
+  recettes,
+  ingredients,
+  onCraftItem,
+  brouillon,
+  setBrouillon,
+}) {
+  const enBrouillon = !objet;
+  const recette = enBrouillon
+    ? undefined
+    : recettes.rows.find((r) => r.resultat_objet_id === objet.id);
+  const lignes = enBrouillon
+    ? brouillon.lignes
+    : recette
+      ? ingredients.rows.filter((i) => i.recette_id === recette.id)
+      : [];
   const [choix, setChoix] = useState({ objet_id: "", quantite: "1" });
   const [qtyEdits, setQtyEdits] = useState({});
-  const [qteProduite, setQteProduite] = useState(String(recette?.quantite_produite ?? 1));
+  const [qteLocale, setQteLocale] = useState(String(recette?.quantite_produite ?? 1));
+  const qteProduite = enBrouillon ? brouillon.qteProduite : qteLocale;
+  const setQteProduite = enBrouillon
+    ? (v) => setBrouillon({ ...brouillon, qteProduite: v })
+    : setQteLocale;
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -391,7 +415,7 @@ function RecetteBlock({ objet, atelier, objets, categories, recettes, ingredient
     if (
       !racine ||
       !RACINES_INGREDIENTS.includes(racine.nom.trim().toLowerCase()) ||
-      o.id === objet.id ||
+      o.id === objet?.id ||
       o.actif === false ||
       lignes.some((l) => l.objet_id === o.id)
     )
@@ -409,6 +433,18 @@ function RecetteBlock({ objet, atelier, objets, categories, recettes, ingredient
     }
     if (!Number.isInteger(quantite) || quantite < 1) {
       setMsg("La quantité doit être un entier d’au moins 1.");
+      return;
+    }
+    if (enBrouillon) {
+      setMsg("");
+      setBrouillon({
+        ...brouillon,
+        lignes: [
+          ...brouillon.lignes,
+          { id: choix.objet_id, objet_id: choix.objet_id, quantite_requise: quantite },
+        ],
+      });
+      setChoix({ objet_id: "", quantite: "1" });
       return;
     }
     setBusy(true);
@@ -450,6 +486,10 @@ function RecetteBlock({ objet, atelier, objets, categories, recettes, ingredient
     else setChoix({ objet_id: "", quantite: "1" });
   }
   async function retirerIngredient(id) {
+    if (enBrouillon) {
+      setBrouillon({ ...brouillon, lignes: brouillon.lignes.filter((l) => l.id !== id) });
+      return;
+    }
     setMsg((await ingredients.remove(id)) || "");
   }
   async function enregistrerQuantite(ligne) {
@@ -465,6 +505,7 @@ function RecetteBlock({ objet, atelier, objets, categories, recettes, ingredient
     setMsg((await ingredients.update(ligne.id, { quantite_requise: n })) || "");
   }
   async function enregistrerQuantiteProduite() {
+    if (enBrouillon) return; // validée à l'ajout de l'objet
     const n = Number(qteProduite);
     if (!Number.isInteger(n) || n < 1) {
       setQteProduite(String(recette?.quantite_produite ?? 1));
@@ -493,9 +534,18 @@ function RecetteBlock({ objet, atelier, objets, categories, recettes, ingredient
                 type="number"
                 min="1"
                 className="ingredient-qty-input"
-                value={qtyEdits[l.id] ?? l.quantite_requise}
-                onChange={(e) => setQtyEdits({ ...qtyEdits, [l.id]: e.target.value })}
-                onBlur={() => enregistrerQuantite(l)}
+                value={enBrouillon ? l.quantite_requise : (qtyEdits[l.id] ?? l.quantite_requise)}
+                onChange={(e) =>
+                  enBrouillon
+                    ? setBrouillon({
+                        ...brouillon,
+                        lignes: brouillon.lignes.map((x) =>
+                          x.id === l.id ? { ...x, quantite_requise: e.target.value } : x,
+                        ),
+                      })
+                    : setQtyEdits({ ...qtyEdits, [l.id]: e.target.value })
+                }
+                onBlur={() => !enBrouillon && enregistrerQuantite(l)}
                 aria-label={`Quantité de ${nomObjet(l.objet_id)}`}
               />
               <button
@@ -552,7 +602,7 @@ function RecetteBlock({ objet, atelier, objets, categories, recettes, ingredient
           onChange={(e) => setQteProduite(e.target.value)}
           onBlur={enregistrerQuantiteProduite}
         />
-        {lignes.length > 0 && (
+        {lignes.length > 0 && !enBrouillon && (
           <button
             type="button"
             className="text-button"
@@ -562,15 +612,22 @@ function RecetteBlock({ objet, atelier, objets, categories, recettes, ingredient
           </button>
         )}
       </div>
+      {enBrouillon && (
+        <p className="muted">La recette sera créée en même temps que l’objet, au clic sur « Ajouter ».</p>
+      )}
       {msg && <p className="admin-error">{msg}</p>}
     </div>
   );
 }
 
+const BROUILLON_VIDE = { lignes: [], qteProduite: "1" };
+
 function CatalogueSection({ onCraftItem }) {
-  const { rows, error, insert, update, remove } = useTable("objet_catalogue", {
+  const { rows, error, reload, update, remove } = useTable("objet_catalogue", {
     order: "nom",
   });
+  // Recette en cours de saisie dans le formulaire « Ajouter un objet ».
+  const [brouillon, setBrouillon] = useState(BROUILLON_VIDE);
   const categories = useTable("categorie", { order: "nom" });
   const recettes = useTable("recette", { order: "nom" });
   const ingredients = useTable("ingredient_recette", { order: "id" });
@@ -680,9 +737,66 @@ function CatalogueSection({ onCraftItem }) {
   }
   function cancel() {
     setEditing(null);
+    setBrouillon(BROUILLON_VIDE);
     setForm(emptyCatalogueItem(categories.rows?.[0]?.id || ""));
     setIconFile(null);
     setMsg("");
+  }
+  // Ajoute l'objet puis, s'il est fabricable et que le brouillon a des
+  // ingrédients, sa recette. Tout ou rien : si la recette échoue, l'objet est
+  // retiré (rien ne reste à moitié créé) et la saisie est conservée.
+  async function ajouterAvecRecette(values, atelier) {
+    const lignes = atelier ? brouillon.lignes : [];
+    if (lignes.some((l) => !Number.isInteger(Number(l.quantite_requise)) || Number(l.quantite_requise) < 1))
+      return "Chaque ingrédient de la recette doit avoir une quantité entière d’au moins 1.";
+    const produite = Math.floor(Number(brouillon.qteProduite));
+    if (lignes.length && !(produite >= 1)) return "La quantité produite doit être d’au moins 1.";
+    const { data, error: errObjet } = await supabase
+      .from("objet_catalogue")
+      .insert(values)
+      .select("id")
+      .single();
+    if (errObjet) return errObjet.message;
+    if (lignes.length) {
+      const { data: rec, error: errRecette } = await supabase
+        .from("recette")
+        .insert({
+          code_unique: `recette-${values.code_unique}`,
+          nom: values.nom,
+          atelier,
+          resultat_objet_id: data.id,
+          quantite_produite: produite,
+        })
+        .select("id")
+        .single();
+      let echec = errRecette?.message || "";
+      if (!echec) {
+        const { error: errLignes } = await supabase.from("ingredient_recette").insert(
+          lignes.map((l) => ({
+            recette_id: rec.id,
+            objet_id: l.objet_id,
+            quantite_requise: Number(l.quantite_requise),
+          })),
+        );
+        echec = errLignes?.message || "";
+      }
+      if (echec) {
+        await supabase.from("recette").delete().eq("resultat_objet_id", data.id);
+        const { error: errNettoyage } = await supabase
+          .from("objet_catalogue")
+          .delete()
+          .eq("id", data.id);
+        await reload();
+        return (
+          `La recette n’a pas pu être créée (${echec}) : l’objet n’a pas été ajouté.` +
+          (errNettoyage ? ` Nettoyage impossible, supprimez « ${values.nom} » à la main.` : "")
+        );
+      }
+      await recettes.reload();
+      await ingredients.reload();
+    }
+    await reload();
+    return "";
   }
   async function submit(e) {
     e.preventDefault();
@@ -733,7 +847,9 @@ function CatalogueSection({ onCraftItem }) {
       protection: armure ? form.protection.trim() || null : null,
       type_armure: armure ? form.type_armure || null : null,
     };
-    const err = editing ? await update(editing, values) : await insert(values);
+    const err = editing
+      ? await update(editing, values)
+      : await ajouterAvecRecette(values, craftable ? atelier : null);
     if (err) {
       setMsg(err);
       return;
@@ -972,9 +1088,16 @@ function CatalogueSection({ onCraftItem }) {
               onCraftItem={onCraftItem}
             />
           ) : (
-            <p className="muted">
-              Enregistrez d’abord l’objet pour renseigner sa recette.
-            </p>
+            <RecetteBlock
+              key="nouveau"
+              atelier={atelier}
+              objets={rows}
+              categories={categories.rows}
+              recettes={recettes}
+              ingredients={ingredients}
+              brouillon={brouillon}
+              setBrouillon={setBrouillon}
+            />
           )}
           </>
         );
