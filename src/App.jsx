@@ -384,7 +384,7 @@ function ItemActionPanel({ game, id, onSell, onDestroy, busy, error }) {
   );
 }
 // Statistiques de combat d'une fiche : vétérance pour tous, puis portée
-// (armes) ou protection et type (armures, boucliers exclus, cf.
+// (armes) ou protection, type et malus (armures, boucliers exclus, cf.
 // loadCatalogue > estArmure) — mêmes règles que l'admin.
 function CombatStats({ item }) {
   return (
@@ -403,6 +403,19 @@ function CombatStats({ item }) {
             <span>Type</span>
             <strong>{item.type_armure || "à définir"}</strong>
           </div>
+          {/* Malus renseignés seulement : une armure sans malus n'affiche rien. */}
+          {item.malus_discretion != null && (
+            <div className="stat-line">
+              <span>Discrétion</span>
+              <strong>{item.malus_discretion}</strong>
+            </div>
+          )}
+          {item.malus_vitesse != null && (
+            <div className="stat-line">
+              <span>Vitesse</span>
+              <strong>{item.malus_vitesse}</strong>
+            </div>
+          )}
         </>
       ) : (
         <div className="stat-line">

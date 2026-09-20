@@ -146,7 +146,22 @@ function emptyCatalogueItem(categorieId = "") {
     portee: "",
     protection: "",
     type_armure: "",
+    malus_discretion: "",
+    malus_vitesse: "",
   };
+}
+// Malus d'armure (Discrétion, Vitesse) : entier négatif ou nul, 2 chiffres au
+// plus. Un chiffre tapé sans signe devient négatif (2 -> -2), « - » seul reste
+// en attente de son chiffre ; « 0 » = aucun malus, vide = non renseigné.
+function nettoyerMalus(raw) {
+  const chiffres = String(raw).replace(/\D/g, "").slice(0, 2);
+  if (chiffres === "") return String(raw).includes("-") ? "-" : "";
+  const n = Number(chiffres);
+  return n === 0 ? "0" : `-${n}`;
+}
+function malusOuNull(v) {
+  const n = Number(v);
+  return v === "" || v === "-" || !Number.isFinite(n) ? null : n;
 }
 
 async function uploadImage(bucket, file, seed) {
@@ -731,6 +746,8 @@ function CatalogueSection({ onCraftItem }) {
       portee: row.portee || "",
       protection: row.protection || "",
       type_armure: row.type_armure || "",
+      malus_discretion: row.malus_discretion == null ? "" : String(row.malus_discretion),
+      malus_vitesse: row.malus_vitesse == null ? "" : String(row.malus_vitesse),
     });
     setIconFile(null);
     setMsg("");
@@ -846,6 +863,8 @@ function CatalogueSection({ onCraftItem }) {
       portee: arme ? form.portee || null : null,
       protection: armure ? form.protection.trim() || null : null,
       type_armure: armure ? form.type_armure || null : null,
+      malus_discretion: armure ? malusOuNull(form.malus_discretion) : null,
+      malus_vitesse: armure ? malusOuNull(form.malus_vitesse) : null,
     };
     const err = editing
       ? await update(editing, values)
@@ -1069,6 +1088,36 @@ function CatalogueSection({ onCraftItem }) {
                             .replace(/[^A-Z]/g, "")
                             .slice(0, 1),
                         })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="field field-xs">
+                  <label htmlFor="cat-malus-discretion">Discrétion</label>
+                  <div className="input-wrap">
+                    <input
+                      id="cat-malus-discretion"
+                      inputMode="numeric"
+                      maxLength={3}
+                      placeholder="-1"
+                      value={form.malus_discretion}
+                      onChange={(e) =>
+                        setForm({ ...form, malus_discretion: nettoyerMalus(e.target.value) })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="field field-xs">
+                  <label htmlFor="cat-malus-vitesse">Vitesse</label>
+                  <div className="input-wrap">
+                    <input
+                      id="cat-malus-vitesse"
+                      inputMode="numeric"
+                      maxLength={3}
+                      placeholder="-1"
+                      value={form.malus_vitesse}
+                      onChange={(e) =>
+                        setForm({ ...form, malus_vitesse: nettoyerMalus(e.target.value) })
                       }
                     />
                   </div>
