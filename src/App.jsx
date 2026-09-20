@@ -448,10 +448,25 @@ function CombatStats({ item }) {
           )}
         </>
       ) : (
-        <div className="stat-line">
-          <span>Portée</span>
-          <strong>{item.portee || "à définir"}</strong>
-        </div>
+        <>
+          <div className="stat-line">
+            <span>Portée</span>
+            <strong>{item.portee || "à définir"}</strong>
+          </div>
+          {/* Armes : allonge et type de dégâts, seulement s'ils sont renseignés. */}
+          {item.allonge && (
+            <div className="stat-line">
+              <span>Allonge</span>
+              <strong>{item.allonge}</strong>
+            </div>
+          )}
+          {item.type_degats && (
+            <div className="stat-line">
+              <span>Type de dégâts</span>
+              <strong>{item.type_degats}</strong>
+            </div>
+          )}
+        </>
       )}
     </>
   );
@@ -2801,7 +2816,7 @@ export function App() {
                             }
                           >
                             {a.icone ? (
-                              <img className="db-item-icon" src={a.icone} alt="" />
+                              <img className="db-item-icon" src={a.icone} alt="" loading="lazy" decoding="async" />
                             ) : (
                               <span className="db-item-icon" aria-hidden="true" />
                             )}

@@ -150,6 +150,8 @@ function emptyCatalogueItem(categorieId = "") {
     malus_vitesse: "",
     malus_esquive: "",
     parade: "",
+    allonge: "",
+    type_degats: "",
   };
 }
 // Malus d'armure (Discrétion, Vitesse) : entier négatif ou nul, 2 chiffres au
@@ -763,6 +765,8 @@ function CatalogueSection({ onCraftItem }) {
       malus_vitesse: row.malus_vitesse == null ? "" : String(row.malus_vitesse),
       malus_esquive: row.malus_esquive == null ? "" : String(row.malus_esquive),
       parade: row.parade || "",
+      allonge: row.allonge || "",
+      type_degats: row.type_degats || "",
     });
     setIconFile(null);
     setMsg("");
@@ -882,6 +886,8 @@ function CatalogueSection({ onCraftItem }) {
       malus_vitesse: armure || bouclier ? malusOuNull(form.malus_vitesse) : null,
       malus_esquive: bouclier ? malusOuNull(form.malus_esquive) : null,
       parade: bouclier ? form.parade.trim() || null : null,
+      allonge: arme ? form.allonge.trim() || null : null,
+      type_degats: arme ? form.type_degats.trim() || null : null,
     };
     const err = editing
       ? await update(editing, values)
@@ -1079,19 +1085,45 @@ function CatalogueSection({ onCraftItem }) {
               </div>
             </div>
             {arme && (
-              <div className="field field-protection">
-                <label htmlFor="cat-portee">Portée</label>
-                <div className="input-wrap">
-                  <input
-                    id="cat-portee"
-                    maxLength={6}
-                    placeholder="30/90c"
-                    title="Portée en cases (ex. 30/90c) ; vide pour une arme de corps à corps"
-                    value={form.portee}
-                    onChange={(e) => setForm({ ...form, portee: e.target.value.slice(0, 6) })}
-                  />
+              <>
+                <div className="field field-huit">
+                  <label htmlFor="cat-portee">Portée</label>
+                  <div className="input-wrap">
+                    <input
+                      id="cat-portee"
+                      maxLength={8}
+                      placeholder="30/90c"
+                      title="Portée en cases (ex. 30/90c) ; vide pour une arme de corps à corps"
+                      value={form.portee}
+                      onChange={(e) => setForm({ ...form, portee: e.target.value.slice(0, 8) })}
+                    />
+                  </div>
                 </div>
-              </div>
+                <div className="field field-huit">
+                  <label htmlFor="cat-allonge">Allonge</label>
+                  <div className="input-wrap">
+                    <input
+                      id="cat-allonge"
+                      maxLength={8}
+                      value={form.allonge}
+                      onChange={(e) => setForm({ ...form, allonge: e.target.value.slice(0, 8) })}
+                    />
+                  </div>
+                </div>
+                <div className="field field-huit">
+                  <label htmlFor="cat-type-degats">Type de dégâts</label>
+                  <div className="input-wrap">
+                    <input
+                      id="cat-type-degats"
+                      maxLength={8}
+                      value={form.type_degats}
+                      onChange={(e) =>
+                        setForm({ ...form, type_degats: e.target.value.slice(0, 8) })
+                      }
+                    />
+                  </div>
+                </div>
+              </>
             )}
             {armure && (
               <>
@@ -1279,7 +1311,7 @@ function CatalogueSection({ onCraftItem }) {
                 <tr className={editing === r.id ? "editing" : ""}>
                   <td>
                     {r.icone ? (
-                      <img className="admin-icon" src={r.icone} alt="" />
+                      <img className="admin-icon" src={r.icone} alt="" loading="lazy" decoding="async" />
                     ) : (
                       "—"
                     )}
@@ -1772,7 +1804,7 @@ function MercenairesSection() {
                 <tr className={editing === m.id ? "editing" : ""}>
                   <td>
                     {m.portrait ? (
-                      <img className="admin-icon" src={m.portrait} alt="" />
+                      <img className="admin-icon" src={m.portrait} alt="" loading="lazy" decoding="async" />
                     ) : (
                       "—"
                     )}

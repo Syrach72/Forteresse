@@ -177,6 +177,12 @@
 .admin-form-grid-compact .field-protection {
   flex-basis: 110px;
 }
+.admin-form-grid-compact .field-huit {
+  flex-basis: 128px;
+}
+.admin-form-grid-compact .field-huit input {
+  text-align: center;
+}
 .admin-form-grid-compact .field-grow {
   flex: 1 1 200px;
 }
