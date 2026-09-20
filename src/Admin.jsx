@@ -148,6 +148,7 @@ function emptyCatalogueItem(categorieId = "") {
     type_armure: "",
     malus_discretion: "",
     malus_vitesse: "",
+    malus_esquive: "",
   };
 }
 // Malus d'armure (Discrétion, Vitesse) : entier négatif ou nul, 2 chiffres au
@@ -711,8 +712,18 @@ function CatalogueSection({ onCraftItem }) {
     }
     return false;
   }
+  // Bouclier : la catégorie de l'objet ou l'un de ses ancêtres s'appelle
+  // « Bouclier… » (sous la rubrique Armures).
+  function isCategorieBouclier(categorieId) {
+    let current = categories.rows?.find((c) => c.id === categorieId);
+    while (current) {
+      if (current.nom.trim().toLowerCase().startsWith("bouclier")) return true;
+      current = categories.rows.find((c) => c.id === current.parent_id);
+    }
+    return false;
+  }
   // Armures : sous la rubrique « Armures », boucliers exclus (un bouclier
-  // n'a ni protection ni type, et reste sans vétérance ni portée).
+  // n'a ni protection ni type, ni vétérance, ni portée : voir malus).
   function isCategorieArmure(categorieId) {
     let current = categories.rows?.find((c) => c.id === categorieId);
     let dansArmures = false;
@@ -727,12 +738,13 @@ function CatalogueSection({ onCraftItem }) {
   function categorieFlags(categorieId) {
     const arme = isCategorieArme(categorieId);
     const armure = !arme && isCategorieArmure(categorieId);
+    const bouclier = !arme && isCategorieBouclier(categorieId);
     const craftable =
       arme ||
       isCategorieParmi(categorieId, ["produits alchimiques", "gemmes", "armures"]);
     const racine = racineDe(categories.rows || [], categorieId);
     const atelier = ATELIER_PAR_RACINE[racine?.nom.trim().toLowerCase()] || null;
-    return { arme, armure, craftable, atelier };
+    return { arme, armure, bouclier, craftable, atelier };
   }
   function startEdit(row) {
     setEditing(row.id);
@@ -748,6 +760,7 @@ function CatalogueSection({ onCraftItem }) {
       type_armure: row.type_armure || "",
       malus_discretion: row.malus_discretion == null ? "" : String(row.malus_discretion),
       malus_vitesse: row.malus_vitesse == null ? "" : String(row.malus_vitesse),
+      malus_esquive: row.malus_esquive == null ? "" : String(row.malus_esquive),
     });
     setIconFile(null);
     setMsg("");
@@ -832,7 +845,7 @@ function CatalogueSection({ onCraftItem }) {
       }
       icone = result.url;
     }
-    const { arme, armure, craftable, atelier } = categorieFlags(form.categorie_id);
+    const { arme, armure, bouclier, craftable, atelier } = categorieFlags(form.categorie_id);
     // Un objet qui a une recette doit rester dans une rubrique fabricable :
     // sinon la recette deviendrait invisible tout en restant en base.
     const recette = editing
@@ -863,8 +876,9 @@ function CatalogueSection({ onCraftItem }) {
       portee: arme ? form.portee || null : null,
       protection: armure ? form.protection.trim() || null : null,
       type_armure: armure ? form.type_armure || null : null,
-      malus_discretion: armure ? malusOuNull(form.malus_discretion) : null,
-      malus_vitesse: armure ? malusOuNull(form.malus_vitesse) : null,
+      malus_discretion: armure || bouclier ? malusOuNull(form.malus_discretion) : null,
+      malus_vitesse: armure || bouclier ? malusOuNull(form.malus_vitesse) : null,
+      malus_esquive: bouclier ? malusOuNull(form.malus_esquive) : null,
     };
     const err = editing
       ? await update(editing, values)
@@ -988,8 +1002,25 @@ function CatalogueSection({ onCraftItem }) {
         </label>
       </div>
       {(() => {
-        const { arme, armure, craftable, atelier } = categorieFlags(form.categorie_id);
+        const { arme, armure, bouclier, craftable, atelier } = categorieFlags(form.categorie_id);
         if (!craftable) return null;
+        // Cellule de malus (entier négatif ou nul) : Discrétion et Vitesse pour
+        // les armures et les boucliers, Esquive pour les boucliers seuls.
+        const celluleMalus = (champ, id, libelle) => (
+          <div className="field field-xs">
+            <label htmlFor={id}>{libelle}</label>
+            <div className="input-wrap">
+              <input
+                id={id}
+                inputMode="numeric"
+                maxLength={3}
+                placeholder="-1"
+                value={form[champ]}
+                onChange={(e) => setForm({ ...form, [champ]: nettoyerMalus(e.target.value) })}
+              />
+            </div>
+          </div>
+        );
         return (
           <>
           <p className="eyebrow admin-section-label">Fabrication</p>
@@ -1092,38 +1123,15 @@ function CatalogueSection({ onCraftItem }) {
                     />
                   </div>
                 </div>
-                <div className="field field-xs">
-                  <label htmlFor="cat-malus-discretion">Discrétion</label>
-                  <div className="input-wrap">
-                    <input
-                      id="cat-malus-discretion"
-                      inputMode="numeric"
-                      maxLength={3}
-                      placeholder="-1"
-                      value={form.malus_discretion}
-                      onChange={(e) =>
-                        setForm({ ...form, malus_discretion: nettoyerMalus(e.target.value) })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="field field-xs">
-                  <label htmlFor="cat-malus-vitesse">Vitesse</label>
-                  <div className="input-wrap">
-                    <input
-                      id="cat-malus-vitesse"
-                      inputMode="numeric"
-                      maxLength={3}
-                      placeholder="-1"
-                      value={form.malus_vitesse}
-                      onChange={(e) =>
-                        setForm({ ...form, malus_vitesse: nettoyerMalus(e.target.value) })
-                      }
-                    />
-                  </div>
-                </div>
               </>
             )}
+            {(armure || bouclier) && (
+              <>
+                {celluleMalus("malus_discretion", "cat-malus-discretion", "Discrétion")}
+                {celluleMalus("malus_vitesse", "cat-malus-vitesse", "Vitesse")}
+              </>
+            )}
+            {bouclier && celluleMalus("malus_esquive", "cat-malus-esquive", "Esquive")}
           </div>
           {editing ? (
             <RecetteBlock

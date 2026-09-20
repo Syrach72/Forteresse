@@ -417,6 +417,28 @@ function CombatStats({ item }) {
             </div>
           )}
         </>
+      ) : item.estBouclier ? (
+        // Bouclier : pas de portée, mais des malus (renseignés seulement).
+        <>
+          {item.malus_discretion != null && (
+            <div className="stat-line">
+              <span>Discrétion</span>
+              <strong>{item.malus_discretion}</strong>
+            </div>
+          )}
+          {item.malus_vitesse != null && (
+            <div className="stat-line">
+              <span>Vitesse</span>
+              <strong>{item.malus_vitesse}</strong>
+            </div>
+          )}
+          {item.malus_esquive != null && (
+            <div className="stat-line">
+              <span>Esquive</span>
+              <strong>{item.malus_esquive}</strong>
+            </div>
+          )}
+        </>
       ) : (
         <div className="stat-line">
           <span>Portée</span>
@@ -1745,6 +1767,16 @@ export function App() {
       }
       return dansArmures;
     };
+    // Bouclier : la catégorie de l'objet ou l'un de ses ancêtres s'appelle
+    // « Bouclier… » : affiche ses malus à la place de la portée.
+    const estBouclier = (categorieId) => {
+      let current = categories.find((c) => c.id === categorieId);
+      while (current) {
+        if (current.nom.trim().toLowerCase().startsWith("bouclier")) return true;
+        current = categories.find((c) => c.id === current.parent_id);
+      }
+      return false;
+    };
     // Marché : « Objets divers » regroupe aussi les catégories racines sans
     // bouton dédié, sous leur propre onglet — sauf les Gemmes, qui ne
     // s'obtiennent que par fabrication (Tour du Mage) et ne sont pas en vente.
@@ -1790,6 +1822,7 @@ export function App() {
         // défini par la recette : null si l'objet n'a pas de recette.
         atelier: recette?.atelier || null,
         estArmure: estArmure(o.categorie_id),
+        estBouclier: estBouclier(o.categorie_id),
         groupe: global
           ? groupeSousRacine(o.categorie_id, root)
           : isDivers && root && root.id !== racine?.id
