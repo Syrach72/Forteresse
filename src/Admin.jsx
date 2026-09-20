@@ -138,7 +138,7 @@ function emptyCatalogueItem(categorieId = "") {
     categorie_id: categorieId,
     description: "",
     empilable: true,
-    utilisable: false,
+    utilisable: true,
     icone: "",
     veterance_requise: "",
     duree_fabrication_instances: "",
