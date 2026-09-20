@@ -36,7 +36,7 @@ function useSession() {
   return session;
 }
 
-function useTable(table, { order = "id" } = {}) {
+function useTable(table, { order = "id", key = "id" } = {}) {
   const [rows, setRows] = useState(null);
   const [error, setError] = useState("");
   async function reload() {
@@ -57,13 +57,13 @@ function useTable(table, { order = "id" } = {}) {
     return "";
   }
   async function update(id, values) {
-    const { error } = await supabase.from(table).update(values).eq("id", id);
+    const { error } = await supabase.from(table).update(values).eq(key, id);
     if (error) return error.message;
     await reload();
     return "";
   }
   async function remove(id) {
-    const { error } = await supabase.from(table).delete().eq("id", id);
+    const { error } = await supabase.from(table).delete().eq(key, id);
     if (error) return error.message;
     await reload();
     return "";
@@ -2120,9 +2120,212 @@ function ArsenalSection() {
   );
 }
 
+// Sauvegarde à la demande : toutes les tables de la partie et du catalogue,
+// téléchargées dans un fichier JSON sur l'ordinateur de l'administrateur (aucun
+// service externe). Une table illisible est notée dans le fichier sans
+// interrompre les autres. Pas de restauration automatique : le fichier sert de
+// filet de sécurité (l'offre gratuite de Supabase n'a pas de sauvegardes).
+const TABLES_SAUVEGARDE = [
+  "categorie",
+  "classe",
+  "objet_catalogue",
+  "recette",
+  "ingredient_recette",
+  "mercenaire",
+  "inventaire",
+  "ligne_inventaire",
+  "recrutement",
+  "invitation",
+  "compagnie",
+  "adhesion_compagnie",
+  "profil",
+];
+async function telechargerSauvegarde() {
+  const contenu = { date: new Date().toISOString(), tables: {}, erreurs: {} };
+  for (const table of TABLES_SAUVEGARDE) {
+    const { data, error } = await supabase.from(table).select("*").limit(10000);
+    if (error) contenu.erreurs[table] = error.message;
+    else contenu.tables[table] = data;
+  }
+  const lignes = Object.values(contenu.tables).reduce((a, t) => a + t.length, 0);
+  const blob = new Blob([JSON.stringify(contenu, null, 1)], { type: "application/json" });
+  const lien = document.createElement("a");
+  lien.href = URL.createObjectURL(blob);
+  lien.download = `forteresse-sauvegarde-${contenu.date.slice(0, 10)}.json`;
+  document.body.appendChild(lien);
+  lien.click();
+  lien.remove();
+  setTimeout(() => URL.revokeObjectURL(lien.href), 10000);
+  return { lignes, tables: Object.keys(contenu.tables).length, erreurs: Object.keys(contenu.erreurs) };
+}
+
+// Code d'invitation : 8 caractères sans ambiguïté (ni 0/O ni 1/I), tirés au
+// hasard par le navigateur ; affiché XXXX-XXXX mais stocké sans tiret.
+const ALPHABET_INVITATION = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function genererCodeInvitation() {
+  const tirage = crypto.getRandomValues(new Uint32Array(8));
+  return Array.from(tirage, (n) => ALPHABET_INVITATION[n % ALPHABET_INVITATION.length]).join("");
+}
+const formaterCode = (code) => `${code.slice(0, 4)}-${code.slice(4)}`;
+function messageInvitation(code) {
+  return `Rejoins la forteresse : ${location.origin}/#inscription — code d’invitation : ${formaterCode(code)}`;
+}
+
+// Inscription sur invitation : l'administrateur crée un code par joueur, le lui
+// transmet, et le joueur le saisit sur « Créer un compte ». Chaque code ne
+// sert qu'une fois ; le contrôle réel est dans la base (déclencheur sur
+// auth.users, voir la migration invitations).
+function InvitationsSection() {
+  const { rows, error, insert, remove } = useTable("invitation", { order: "cree_le", key: "code" });
+  const [note, setNote] = useState("");
+  const [msg, setMsg] = useState("");
+  const [dernier, setDernier] = useState(null);
+  const [copie, setCopie] = useState("");
+  const [confirmingId, setConfirmingId] = useState(null);
+
+  async function copier(code) {
+    try {
+      await navigator.clipboard.writeText(messageInvitation(code));
+      setCopie(code);
+      setTimeout(() => setCopie(""), 2500);
+    } catch {
+      setMsg("Copie impossible : sélectionnez le message et copiez-le à la main.");
+    }
+  }
+  async function creer(e) {
+    e.preventDefault();
+    setMsg("");
+    const code = genererCodeInvitation();
+    const err = await insert({ code, note: note.trim() || null });
+    if (err) {
+      setMsg(err);
+      return;
+    }
+    setDernier(code);
+    setNote("");
+  }
+  async function supprimer(code) {
+    const err = await remove(code);
+    if (err) setMsg(err);
+  }
+
+  if (error) return <p className="admin-error">{error}</p>;
+  if (!rows) return <p>Chargement…</p>;
+  const triees = [...rows].sort((a, b) => b.cree_le.localeCompare(a.cree_le));
+  const formatDate = (d) => new Date(d).toLocaleDateString("fr-FR");
+
+  return (
+    <div>
+      <p>
+        Personne ne peut créer de compte sans code d’invitation. Créez un code
+        par joueur et transmettez-le lui : il le saisit sur la page « Créer un
+        compte ». Chaque code ne sert qu’une fois.
+      </p>
+      <form className="admin-form" onSubmit={creer}>
+        <h3>Nouvelle invitation</h3>
+        <div className="admin-form-grid">
+          <div className="field">
+            <label htmlFor="inv-note">Pour qui ? (facultatif, pour vous retrouver)</label>
+            <div className="input-wrap">
+              <input
+                id="inv-note"
+                value={note}
+                maxLength={60}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+        {msg && <p className="admin-error">{msg}</p>}
+        <div className="admin-form-actions">
+          <button className="primary" type="submit">
+            Créer une invitation
+          </button>
+        </div>
+      </form>
+      {dernier && (
+        <div className="undo-banner" role="status">
+          <p>
+            Invitation créée : <strong>{formaterCode(dernier)}</strong>
+          </p>
+          <p>{messageInvitation(dernier)}</p>
+          <button className="text-button" type="button" onClick={() => copier(dernier)}>
+            {copie === dernier ? "Message copié ✓" : "Copier le message"}
+          </button>
+        </div>
+      )}
+      <div className="admin-table-wrap">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Pour</th>
+              <th>Créée le</th>
+              <th>État</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {triees.map((r) => (
+              <tr key={r.code}>
+                <td>
+                  <strong>{formaterCode(r.code)}</strong>
+                </td>
+                <td>{r.note || "—"}</td>
+                <td>{formatDate(r.cree_le)}</td>
+                <td>{r.utilise_par || r.utilise_le ? `Utilisée le ${formatDate(r.utilise_le)}` : "Disponible"}</td>
+                <td className="admin-row-actions">
+                  {!r.utilise_le && (
+                    <>
+                      <button type="button" className="text-button" onClick={() => copier(r.code)}>
+                        {copie === r.code ? "Copié ✓" : "Copier le message"}
+                      </button>
+                      <DeleteButton
+                        id={r.code}
+                        label="Révoquer"
+                        confirmingId={confirmingId}
+                        onAskConfirm={() => setConfirmingId(r.code)}
+                        onCancel={() => setConfirmingId(null)}
+                        onConfirm={() => {
+                          setConfirmingId(null);
+                          supprimer(r.code);
+                        }}
+                      />
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {!triees.length && (
+              <tr>
+                <td colSpan={5}>Aucune invitation pour l’instant.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function Admin({ onCraftItem = () => {} }) {
   const session = useSession();
   const [tab, setTab] = useState("catalogue");
+  const [sauvegardeMsg, setSauvegardeMsg] = useState("");
+  const [sauvegardeEnCours, setSauvegardeEnCours] = useState(false);
+  async function sauvegarder() {
+    setSauvegardeEnCours(true);
+    setSauvegardeMsg("");
+    try {
+      const r = await telechargerSauvegarde();
+      setSauvegardeMsg(
+        `Sauvegarde téléchargée : ${r.lignes} enregistrements, ${r.tables} tables${r.erreurs.length ? ` (illisibles : ${r.erreurs.join(", ")})` : ""}.`,
+      );
+    } catch (e) {
+      setSauvegardeMsg("Sauvegarde impossible : " + (e.message || e));
+    }
+    setSauvegardeEnCours(false);
+  }
 
   if (session === undefined)
     return (
@@ -2143,6 +2346,14 @@ export function Admin({ onCraftItem = () => {} }) {
         <h1>Administration — Forteresse</h1>
         <div className="admin-header-actions">
           <span>{session.user.email}</span>
+          <button
+            className="text-button"
+            onClick={sauvegarder}
+            disabled={sauvegardeEnCours}
+            title="Télécharge un fichier avec toutes les données de la partie et du catalogue"
+          >
+            {sauvegardeEnCours ? "Sauvegarde…" : "Télécharger une sauvegarde"}
+          </button>
           <button className="text-button" onClick={() => supabase.auth.signOut()}>
             Se déconnecter
           </button>
@@ -2167,7 +2378,15 @@ export function Admin({ onCraftItem = () => {} }) {
         <button className={tab === "arsenal" ? "active" : ""} onClick={() => setTab("arsenal")}>
           Arsenal
         </button>
+        <button className={tab === "invitations" ? "active" : ""} onClick={() => setTab("invitations")}>
+          Invitations
+        </button>
       </nav>
+      {sauvegardeMsg && (
+        <p className="muted" role="status">
+          {sauvegardeMsg}
+        </p>
+      )}
       <div className="admin-content parchment">
         {tab === "catalogue" && <CatalogueSection onCraftItem={onCraftItem} />}
         {tab === "categories" && (
@@ -2183,6 +2402,7 @@ export function Admin({ onCraftItem = () => {} }) {
         )}
         {tab === "mercenaires" && <MercenairesSection />}
         {tab === "arsenal" && <ArsenalSection />}
+        {tab === "invitations" && <InvitationsSection />}
       </div>
     </main>
   );

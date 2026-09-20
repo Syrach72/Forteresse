@@ -690,6 +690,11 @@ function Auth({ signup, onEnter }) {
     const email = String(f.get("email")).trim();
     const password = String(f.get("password"));
     const pseudo = signup ? String(f.get("pseudo")).trim() : "";
+    // Inscription sur invitation : code remis par l'administrateur (8 lettres
+    // ou chiffres, tirets et casse sans importance).
+    const invitation = signup
+      ? String(f.get("invitation") || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase()
+      : "";
     const invalid = {};
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       invalid.email = "Saisissez une adresse e-mail valide.";
@@ -697,6 +702,8 @@ function Auth({ signup, onEnter }) {
       invalid.password = "Utilisez au moins 8 caractères.";
     if (signup && pseudo.length < 2)
       invalid.pseudo = "Saisissez au moins 2 caractères.";
+    if (signup && invitation.length !== 8)
+      invalid.invitation = "Saisissez le code d’invitation reçu (8 caractères).";
     setErrors(invalid);
     setServerError("");
     if (Object.keys(invalid).length) {
@@ -704,11 +711,22 @@ function Auth({ signup, onEnter }) {
       return;
     }
     setBusy(true);
+    // Vérification préalable pour un message clair ; le contrôle réel est fait
+    // par la base (déclencheur sur la création du compte).
+    if (signup) {
+      const { data: valide } = await supabase.rpc("invitation_valide", { p_code: invitation });
+      if (!valide) {
+        setBusy(false);
+        setErrors({ invitation: "Code d’invitation invalide ou déjà utilisé." });
+        document.getElementById("invitation").focus();
+        return;
+      }
+    }
     const { data, error } = signup
       ? await supabase.auth.signUp({
           email,
           password,
-          options: { data: { pseudo } },
+          options: { data: { pseudo, invitation } },
         })
       : await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
@@ -718,7 +736,9 @@ function Auth({ signup, onEnter }) {
           ? "E-mail ou mot de passe incorrect."
           : error.message === "User already registered"
             ? "Un compte existe déjà avec cet e-mail."
-            : error.message,
+            : /invitation/i.test(error.message)
+              ? "Code d’invitation invalide ou déjà utilisé."
+              : error.message,
       );
       return;
     }
@@ -758,14 +778,16 @@ function Auth({ signup, onEnter }) {
     >
       <form className="auth-card parchment" onSubmit={submit} noValidate>
         <h1>{signup ? "Créer un compte" : "Connexion"}</h1>
-        {["email", "password", ...(signup ? ["pseudo"] : [])].map((name) => (
+        {["email", "password", ...(signup ? ["pseudo", "invitation"] : [])].map((name) => (
           <div className="field" key={name}>
             <label htmlFor={name}>
               {name === "email"
                 ? "E-mail"
                 : name === "password"
                   ? "Mot de passe"
-                  : "Pseudo"}
+                  : name === "invitation"
+                    ? "Code d’invitation"
+                    : "Pseudo"}
             </label>
             <div className="input-wrap">
               <input
@@ -787,8 +809,12 @@ function Auth({ signup, onEnter }) {
                       : "current-password"
                     : name === "email"
                       ? "email"
-                      : "nickname"
+                      : name === "invitation"
+                        ? "off"
+                        : "nickname"
                 }
+                placeholder={name === "invitation" ? "XXXX-XXXX" : undefined}
+                style={name === "invitation" ? { textTransform: "uppercase" } : undefined}
                 aria-invalid={!!errors[name]}
                 aria-describedby={
                   errors[name]
@@ -815,6 +841,9 @@ function Auth({ signup, onEnter }) {
             </div>
             {name === "password" && !errors[name] && (
               <small id="password-help">8 caractères minimum.</small>
+            )}
+            {name === "invitation" && !errors[name] && (
+              <small>Code remis par l’administrateur de la forteresse.</small>
             )}
             {errors[name] && (
               <small className="error" id={`${name}-error`}>

@@ -1,4 +1,5 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "dist/client"
+  "outputDirectory": "dist/client",
+  "crons": [{ "path": "/api/keepalive", "schedule": "0 7 * * *" }]
 }
