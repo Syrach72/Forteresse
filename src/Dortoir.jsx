@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ReferenceCrop, classeRoute } from "./Characters.jsx";
+import { VetBadge } from "./VetBadge.jsx";
+import { useGlassWindows } from "./glassWindows.js";
 // Dortoir de la compagnie : un lit = un mercenaire embauché (aucun rapport avec
 // le repos). Le mercenaire y prend place dès qu'il est recruté et le quitte
 // quand il est renvoyé. Le lit affiche sa vétérance et le nom du joueur qui l'a
@@ -12,14 +14,26 @@ const INITIAL_CAPACITY = 6;
 export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }) {
   const [popup, setPopup] = useState(null);
   const [error, setError] = useState("");
+  // Verre dépoli sur le cadre seulement : les lits sont des fenêtres
+  // entièrement transparentes découpées dans ce verre.
+  const boardRef = useRef(null);
+  const layerRef = useRef(null);
+  const windows = useGlassWindows(boardRef, layerRef, ".bed-cell");
   const hero = (id) => warriors.find((w) => w.id === id);
   const hired = dorm.beds.filter((b) => b && hero(b.heroId)).length;
   return (
     <>
       <section
-        className="dorm-board dorm-named parchment"
+        ref={boardRef}
+        className="dorm-board dorm-named parchment glass-board"
         aria-label="Lits des mercenaires embauchés"
       >
+        <div
+          ref={layerRef}
+          className="glass-layer"
+          style={windows ? { clipPath: `path(evenodd, "${windows}")` } : undefined}
+          aria-hidden="true"
+        />
         <div className="dorm-title">
           <h2>Dortoirs de la compagnie</h2>
           <span>
@@ -66,9 +80,7 @@ export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }
                         className="bed-portrait"
                         crop={merc.portrait}
                       />
-                      <span className="bed-veterance" title="Vétérance">
-                        {merc.veterancy}
-                      </span>
+                      <VetBadge className="bed-veterance" value={merc.veterancy} />
                       <span className="bed-name">{merc.name}</span>
                       {away && <span className="bed-away-label">{away}</span>}
                     </>

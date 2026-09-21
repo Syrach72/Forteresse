@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ReferenceCrop } from "./Characters.jsx";
+import { useGlassWindows } from "./glassWindows.js";
 // Infirmerie PARTAGÉE : visible par tous les joueurs. Un joueur y envoie son
 // mercenaire depuis sa fiche (bouton « Soigner ») ; il y reste SOINS_INSTANCES
 // instances (le compteur baisse à chaque +1 Instance de l'administrateur), puis
@@ -23,6 +24,11 @@ export function Infirmary({
   const [popup, setPopup] = useState(null);
   const [error, setError] = useState("");
   const [enCours, setEnCours] = useState(false);
+  // Verre dépoli sur le cadre seulement : les lits et les cases à débloquer
+  // sont des fenêtres entièrement transparentes découpées dans ce verre.
+  const boardRef = useRef(null);
+  const layerRef = useRef(null);
+  const windows = useGlassWindows(boardRef, layerRef, ".bed-slot");
   const hero = (id) => people.find((w) => w.id === id);
   const enSoin = infirmary.beds.filter(Boolean).length;
   const close = () => {
@@ -45,9 +51,16 @@ export function Infirmary({
   return (
     <>
       <section
-        className="dorm-board infirmary-board parchment"
+        ref={boardRef}
+        className="dorm-board infirmary-board parchment glass-board"
         aria-label="Lits de l'infirmerie"
       >
+        <div
+          ref={layerRef}
+          className="glass-layer"
+          style={windows ? { clipPath: `path(evenodd, "${windows}")` } : undefined}
+          aria-hidden="true"
+        />
         <div className="dorm-title">
           <h2>Infirmerie de la compagnie</h2>
           <span>

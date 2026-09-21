@@ -2340,24 +2340,40 @@ video.interior-backdrop-boxed {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* Pastille de vétérance : fond cuir noir aux coins dorés. */
+/* Pastille de vétérance commune (composant VetBadge) : image « laurier » avec le
+   nombre centré ; la taille se règle avec --vet. */
+.vet-badge {
+  --vet: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-sizing: border-box;
+  width: var(--vet);
+  height: var(--vet);
+  padding: 0;
+  background: url("/assets/icons/veterance.webp") center/100% 100% no-repeat;
+  color: #f3d27a;
+  font-weight: 700;
+  font-size: calc(var(--vet) * 0.48);
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 1px 3px #000;
+}
+.vet-badge-long {
+  font-size: calc(var(--vet) * 0.34);
+}
+/* Les panneaux en verre dépoli mettent tout le texte en blanc contouré : la
+   pastille garde son or. */
+.interior .parchment .vet-badge {
+  color: #f3d27a;
+  text-shadow: 0 1px 3px #000;
+}
 .bed-veterance {
   position: absolute;
   left: 4px;
   top: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: 50px;
-  height: 50px;
-  background: url("/assets/references/bed-counter.webp") center/100% 100%
-    no-repeat;
-  color: #f3d27a;
-  font-size: 26px;
-  font-weight: 700;
-  line-height: 1;
-  text-shadow: 0 1px 3px #000;
+  --vet: 50px;
 }
 /* Fiche d'un mercenaire : nom du joueur à inscrire avant de recruter. */
 .merc-recruit-form {
@@ -2572,9 +2588,7 @@ video.interior-backdrop-boxed {
     padding: 2px 5px;
   }
   .bed-veterance {
-    width: 38px;
-    height: 38px;
-    font-size: 20px;
+    --vet: 38px;
   }
   .bed-player {
     font-size: 14px;
@@ -2743,14 +2757,10 @@ video.interior-backdrop-boxed {
   background: #ecd9a1;
 }
 .training-duration {
-  background: #29291e;
-  color: #e5cf92;
-  border: 3px ridge #9c8d56;
-  padding: 3px 11px;
-  font-size: 27px;
+  --vet: 58px;
   position: absolute;
   top: 8px;
-  left: calc(50% - 24px);
+  left: calc(50% - 29px);
   z-index: 1;
 }
 .training-locked {
@@ -3776,6 +3786,24 @@ a.merc-card:hover {
   margin-top: 3px;
   font-size: clamp(12px, 1.05vw, 16px);
 }
+.merc-caption .merc-vet {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.merc-caption .vet-badge {
+  --vet: 30px;
+  display: inline-flex;
+  margin: 0;
+  font-size: calc(var(--vet) * 0.48);
+}
+.merc-caption .vet-badge.vet-badge-long {
+  font-size: calc(var(--vet) * 0.34);
+}
+.vet-badge-fiche {
+  --vet: 46px;
+}
 .merc-sheet {
   display: flex;
   gap: 28px;
@@ -3870,4 +3898,27 @@ a.merc-card:hover {
   background: #123723d9;
   border: 1px solid #ffdc5b;
   padding: 3px 5px;
+}
+
+/* Cadres des lits (Dortoir, Infirmerie) : le verre dépoli (même intensité que les
+   autres pages) n'habille que le cadre ; les lits et les cases à débloquer sont
+   des fenêtres ENTIÈREMENT transparentes, découpées dans une couche de verre
+   (glassWindows.js) : ni flou ni teinte derrière elles. */
+.dorm-board.glass-board {
+  position: relative;
+  isolation: isolate;
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 4px 14px #0008;
+}
+.glass-layer {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: rgba(240, 233, 219, 0.14);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  box-shadow: inset 0 0 18px #fff3;
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { CHARACTER_CLASSES, WEAPONS, LEVELS } from "./characters";
 import { ASSETS } from "./data";
 import { SOINS_INSTANCES } from "./dormitory.js";
+import { VetBadge } from "./VetBadge.jsx";
 const PARCHMENT_CLASSES = [
   "guerrier",
   "roublard",
@@ -215,7 +216,9 @@ export function Characters({
                     </span>
                     <span className="merc-caption">
                       <strong>{m.nom}</strong>
-                      <span>Vétérance : {m.veterance}</span>
+                      <span className="merc-vet">
+                        Vétérance <VetBadge value={m.veterance} />
+                      </span>
                     </span>
                   </>
                 );
@@ -304,7 +307,7 @@ export function Characters({
               ) : (
                 <div className="stat-line">
                   <span>Vétérance</span>
-                  <strong>{merc.veterance}</strong>
+                  <VetBadge className="vet-badge-fiche" value={merc.veterance} />
                 </div>
               )}
               {vetError && (

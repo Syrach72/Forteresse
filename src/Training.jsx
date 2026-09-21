@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ReferenceCrop } from "./Characters.jsx";
+import { VetBadge } from "./VetBadge.jsx";
 import { VETERANCE_ECART, eligibleStudents } from "./training-data.js";
 // Terrain d'entraînement PARTAGÉ : visible par tous les joueurs. Un instructeur
 // (choisi depuis la fiche du mercenaire, au Dortoir) et des élèves (choisis
@@ -63,9 +64,7 @@ export function Training({
       >
         {w ? (
           <>
-            <span className="training-duration" title="Vétérance">
-              {w.veterancy}
-            </span>
+            <VetBadge className="training-duration" value={w.veterancy} />
             <ReferenceCrop crop={w.portrait} />
             <strong>{w.name}</strong>
           </>
