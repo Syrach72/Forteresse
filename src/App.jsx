@@ -383,14 +383,15 @@ function ItemActionPanel({ game, id, onSell, onDestroy, busy, error }) {
     </>
   );
 }
-// Statistiques de combat d'une fiche : vétérance pour tous, puis portée
-// (armes) ou protection, type et malus (armures, boucliers exclus, cf.
-// loadCatalogue > estArmure) — mêmes règles que l'admin.
+// Statistiques de combat d'une fiche : vétérance (armes et armures
+// seulement), puis portée (armes) ou protection, type et malus (armures,
+// boucliers exclus, cf. loadCatalogue > estArmure) — mêmes règles que l'admin.
 function CombatStats({ item }) {
   return (
     <>
-      {/* Pas de vétérance sur un bouclier. */}
-      {!item.estBouclier && (
+      {/* Pas de vétérance sur un bouclier, un produit alchimique, un
+          matériau, un composant ni une gemme. */}
+      {(item.estArme || item.estArmure) && !item.estBouclier && (
         <div className="stat-line">
           <span>Vétérance requise</span>
           <strong>{item.veterance_requise ?? "à définir"}</strong>
@@ -1819,6 +1820,17 @@ export function App() {
       }
       return dansArmures;
     };
+    // Arme : la catégorie de l'objet ou l'un de ses ancêtres commence par
+    // « Arme » (même règle que isCategorieArme de l'admin). Sert à réserver
+    // la vétérance requise aux armes et aux armures.
+    const estArme = (categorieId) => {
+      let current = categories.find((c) => c.id === categorieId);
+      while (current) {
+        if (current.nom.trim().toLowerCase().startsWith("arme")) return true;
+        current = categories.find((c) => c.id === current.parent_id);
+      }
+      return false;
+    };
     // Bouclier : la catégorie de l'objet ou l'un de ses ancêtres s'appelle
     // « Bouclier… » : affiche ses malus à la place de la portée.
     const estBouclier = (categorieId) => {
@@ -1873,6 +1885,7 @@ export function App() {
         // Atelier de fabrication (forge/armurerie/alchimie/magie), tel que
         // défini par la recette : null si l'objet n'a pas de recette.
         atelier: recette?.atelier || null,
+        estArme: estArme(o.categorie_id),
         estArmure: estArmure(o.categorie_id),
         estBouclier: estBouclier(o.categorie_id),
         groupe: global
