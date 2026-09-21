@@ -2330,10 +2330,12 @@ video.interior-backdrop-boxed {
   box-sizing: border-box;
   min-height: 40px;
   border-top: 2px solid #987a45;
-  background: transparent;
-  color: #f6e3ae;
-  text-shadow: 0 1px 4px #000, 0 0 8px #000;
-  font: 600 16px/1.2 "Cormorant Garamond", Georgia, serif;
+  /* Nom du joueur : fond crème de la barre latérale, texte noir sans contour,
+     même police que le titre de la page (Aniron). */
+  background: #d8cbb1;
+  color: #000;
+  text-shadow: none;
+  font: 700 16px/1.2 Aniron, Georgia, serif;
   text-align: center;
   padding: 10px 8px;
   overflow: hidden;
