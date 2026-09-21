@@ -183,6 +183,13 @@
 .admin-form-grid-compact .field-huit input {
   text-align: center;
 }
+/* Portée : 12 caractères, pour pouvoir écrire « personnelle ». */
+.admin-form-grid-compact .field-portee {
+  flex-basis: 176px;
+}
+.admin-form-grid-compact .field-portee input {
+  text-align: center;
+}
 .admin-form-grid-compact .field-grow {
   flex: 1 1 200px;
 }

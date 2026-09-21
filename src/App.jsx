@@ -384,8 +384,9 @@ function ItemActionPanel({ game, id, onSell, onDestroy, busy, error }) {
   );
 }
 // Statistiques de combat d'une fiche : vétérance (armes et armures
-// seulement), puis portée (armes) ou protection, type et malus (armures,
-// boucliers exclus, cf. loadCatalogue > estArmure) — mêmes règles que l'admin.
+// seulement), puis portée (armes et produits alchimiques) ou protection, type
+// et malus (armures, boucliers exclus, cf. loadCatalogue > estArmure) — mêmes
+// règles que l'admin.
 function CombatStats({ item }) {
   return (
     <>
@@ -450,18 +451,21 @@ function CombatStats({ item }) {
         </>
       ) : (
         <>
-          <div className="stat-line">
-            <span>Portée</span>
-            <strong>{item.portee || "à définir"}</strong>
-          </div>
+          {/* Portée : armes et produits alchimiques seulement. */}
+          {(item.estArme || item.estAlchimique) && (
+            <div className="stat-line">
+              <span>Portée</span>
+              <strong>{item.portee || "à définir"}</strong>
+            </div>
+          )}
           {/* Armes : allonge et type de dégâts, seulement s'ils sont renseignés. */}
-          {item.allonge && (
+          {item.estArme && item.allonge && (
             <div className="stat-line">
               <span>Allonge</span>
               <strong>{item.allonge}</strong>
             </div>
           )}
-          {item.type_degats && (
+          {item.estArme && item.type_degats && (
             <div className="stat-line">
               <span>Type de dégâts</span>
               <strong>{item.type_degats}</strong>
@@ -1831,6 +1835,17 @@ export function App() {
       }
       return false;
     };
+    // Produit alchimique : la catégorie de l'objet ou l'un de ses ancêtres
+    // s'appelle « Produits Alchimiques » (même règle que l'admin). Avec les
+    // armes, seule rubrique où la portée s'affiche.
+    const estAlchimique = (categorieId) => {
+      let current = categories.find((c) => c.id === categorieId);
+      while (current) {
+        if (current.nom.trim().toLowerCase() === "produits alchimiques") return true;
+        current = categories.find((c) => c.id === current.parent_id);
+      }
+      return false;
+    };
     // Bouclier : la catégorie de l'objet ou l'un de ses ancêtres s'appelle
     // « Bouclier… » : affiche ses malus à la place de la portée.
     const estBouclier = (categorieId) => {
@@ -1886,6 +1901,7 @@ export function App() {
         // défini par la recette : null si l'objet n'a pas de recette.
         atelier: recette?.atelier || null,
         estArme: estArme(o.categorie_id),
+        estAlchimique: estAlchimique(o.categorie_id),
         estArmure: estArmure(o.categorie_id),
         estBouclier: estBouclier(o.categorie_id),
         groupe: global

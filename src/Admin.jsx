@@ -767,12 +767,13 @@ function CatalogueSection({ onCraftItem }) {
     const arme = isCategorieArme(categorieId);
     const armure = !arme && isCategorieArmure(categorieId);
     const bouclier = !arme && isCategorieBouclier(categorieId);
+    const alchimique = !arme && isCategorieParmi(categorieId, ["produits alchimiques"]);
     const craftable =
       arme ||
       isCategorieParmi(categorieId, ["produits alchimiques", "gemmes", "armures"]);
     const racine = racineDe(categories.rows || [], categorieId);
     const atelier = ATELIER_PAR_RACINE[racine?.nom.trim().toLowerCase()] || null;
-    return { arme, armure, bouclier, craftable, atelier };
+    return { arme, armure, bouclier, alchimique, craftable, atelier };
   }
   function startEdit(row) {
     setEditing(row.id);
@@ -876,7 +877,9 @@ function CatalogueSection({ onCraftItem }) {
       }
       icone = result.url;
     }
-    const { arme, armure, bouclier, craftable, atelier } = categorieFlags(form.categorie_id);
+    const { arme, armure, bouclier, alchimique, craftable, atelier } = categorieFlags(
+      form.categorie_id,
+    );
     // Un objet qui a une recette doit rester dans une rubrique fabricable :
     // sinon la recette deviendrait invisible tout en restant en base.
     const recette = editing
@@ -892,7 +895,8 @@ function CatalogueSection({ onCraftItem }) {
       ...form,
       description: form.description || null,
       icone,
-      // Vetérance : Armes et Armures (hors boucliers). Portee : Armes seules.
+      // Vetérance : Armes et Armures (hors boucliers). Portee : Armes et
+      // Produits Alchimiques (texte libre, ex. « 30/90c » ou « personnelle »).
       // Protection et type : Armures seules (hors boucliers). Stats de combat
       // sans sens pour une potion ou une gemme. Cout d'achat et temps de
       // fabrication : Armes + Produits Alchimiques/Gemmes/Armures. Effaces
@@ -904,7 +908,7 @@ function CatalogueSection({ onCraftItem }) {
         ? toIntOrNull(form.duree_fabrication_instances)
         : null,
       cout_achat_or: craftable ? toIntOrNull(form.cout_achat_or) : null,
-      portee: arme ? form.portee || null : null,
+      portee: arme || alchimique ? form.portee.trim() || null : null,
       protection: armure ? form.protection.trim() || null : null,
       type_armure: armure ? form.type_armure || null : null,
       malus_discretion: armure || bouclier ? malusOuNull(form.malus_discretion) : null,
@@ -1036,7 +1040,9 @@ function CatalogueSection({ onCraftItem }) {
         </label>
       </div>
       {(() => {
-        const { arme, armure, bouclier, craftable, atelier } = categorieFlags(form.categorie_id);
+        const { arme, armure, bouclier, alchimique, craftable, atelier } = categorieFlags(
+          form.categorie_id,
+        );
         if (!craftable) return null;
         // Cellule de malus (entier négatif ou nul) : Discrétion et Vitesse pour
         // les armures et les boucliers, Esquive pour les boucliers seuls.
@@ -1109,21 +1115,23 @@ function CatalogueSection({ onCraftItem }) {
                 />
               </div>
             </div>
+            {(arme || alchimique) && (
+              <div className="field field-portee">
+                <label htmlFor="cat-portee">Portée</label>
+                <div className="input-wrap">
+                  <input
+                    id="cat-portee"
+                    maxLength={12}
+                    placeholder={arme ? "30/90c" : "personnelle"}
+                    title="Portée en cases (ex. 30/90c) ou « personnelle » ; vide pour une arme de corps à corps"
+                    value={form.portee}
+                    onChange={(e) => setForm({ ...form, portee: e.target.value.slice(0, 12) })}
+                  />
+                </div>
+              </div>
+            )}
             {arme && (
               <>
-                <div className="field field-huit">
-                  <label htmlFor="cat-portee">Portée</label>
-                  <div className="input-wrap">
-                    <input
-                      id="cat-portee"
-                      maxLength={8}
-                      placeholder="30/90c"
-                      title="Portée en cases (ex. 30/90c) ; vide pour une arme de corps à corps"
-                      value={form.portee}
-                      onChange={(e) => setForm({ ...form, portee: e.target.value.slice(0, 8) })}
-                    />
-                  </div>
-                </div>
                 <div className="field field-huit">
                   <label htmlFor="cat-allonge">Allonge</label>
                   <div className="input-wrap">
