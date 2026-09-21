@@ -4,7 +4,7 @@ import { initialGame, transact, RESOURCE_ALIASES, materialQuantity, ingredientQu
 import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
-import { INITIAL_TREASURY, changeTreasury } from "./treasury-data.js";
+import { INITIAL_TREASURY, changeTreasury, entretienCompagnie } from "./treasury-data.js";
 import { Training } from "./Training.jsx";
 import {
   INITIAL_TRAINING,
@@ -951,6 +951,22 @@ export function App() {
         })),
     [mercenaires, tousRecrutes, joueurs],
   );
+  // Entretien d'une instance : 10 Po par point de vétérance de tous les
+  // mercenaires du dortoir (le serveur le prélève à chaque +1 Instance).
+  const entretien = useMemo(
+    () => entretienCompagnie(dormPeople.map((p) => p.veterancy)),
+    [dormPeople],
+  );
+  // Budget affiché : le poste « Entretien » est calculé (vétérance × 10), pas saisi.
+  const treasuryAffiche = useMemo(
+    () => ({
+      ...treasury,
+      costs: treasury.costs.map((c) =>
+        c.id === "entretien" ? { ...c, amount: entretien, auto: true } : c,
+      ),
+    }),
+    [treasury, entretien],
+  );
   // Mercenaires recrutés qui ne sont pas au dortoir (ils y gardent leur lit,
   // affiché grisé) : identifiant -> où ils sont. Renvoyer de la compagnie est
   // le seul cas où le lit se libère.
@@ -1003,6 +1019,17 @@ export function App() {
   const [actionError, setActionError] = useState("");
   const [busy, setBusy] = useState(false);
   const gameRef = useRef(game);
+  // Alerte quand la trésorerie passe sous zéro (pour tous les joueurs) : le
+  // compteur du menu devient rouge et clignote tant que le solde est négatif ;
+  // la fenêtre d'alerte s'ouvre à chaque passage sous zéro (ou au chargement si
+  // le solde est déjà négatif) et ne bloque rien.
+  const [alerteSolde, setAlerteSolde] = useState(false);
+  const soldeAvant = useRef(0);
+  useEffect(() => {
+    if (game.gold < 0 && soldeAvant.current >= 0) setAlerteSolde(true);
+    if (game.gold >= 0) setAlerteSolde(false);
+    soldeAvant.current = game.gold;
+  }, [game.gold]);
   const busyRef = useRef(false);
   const timer = useRef();
   const toastTimer = useRef();
@@ -1302,7 +1329,7 @@ export function App() {
     const undoId = crypto.randomUUID();
     setInstanceUndo({
       id: undoId,
-      gains: { entrainement: [], infirmerie: [], ateliers: [] },
+      gains: { entrainement: [], infirmerie: [], ateliers: [], entretien: 0 },
     });
     setInstanceTicks((v) => v + 1);
     // Seul l'administrateur fait avancer l'instance (une fois pour tous les
@@ -1318,6 +1345,9 @@ export function App() {
         const nom = (id) =>
           peopleRef.current.find((w) => w.id === id)?.name || "Un mercenaire";
         const phrases = [
+          ...(gains.entretien > 0
+            ? [`Entretien de la compagnie : −${money(gains.entretien)} Po.`]
+            : []),
           ...gains.entrainement.map((g) =>
             g.gradue
               ? `${nom(g.mercenaire_id)} a rejoint son instructeur (vétérance ${g.a}) et retourne au dortoir.`
@@ -1344,11 +1374,17 @@ export function App() {
     setInstanceTicks((v) => Math.max(0, v - 1));
     setInstanceUndo(null);
     const g = u.gains;
-    if (g.entrainement.length || g.infirmerie.length || g.ateliers.length)
+    if (g.entrainement.length || g.infirmerie.length || g.ateliers.length || g.entretien > 0)
       // Niveaux, compteurs et durées sont en base : le serveur les remet comme
       // avant et replace les mercenaires renvoyés au dortoir.
       enqueueTraining(async () => {
         const erreurs = [];
+        if (g.entretien > 0) {
+          const { error } = await supabase.rpc("entretien_annuler", {
+            p_montant: g.entretien,
+          });
+          if (error) erreurs.push(error.message);
+        }
         for (const [fn, gains] of [
           ["entrainement_annuler_instance", g.entrainement],
           ["infirmerie_annuler_instance", g.infirmerie],
@@ -1575,14 +1611,22 @@ export function App() {
   // arrive à 0 retrouve sa place au dortoir ; dans les ateliers chaque durée
   // baisse de 1 (rien n'est livré tout seul : « Envoyer à l'Arsenal »).
   async function runSharedInstance() {
+    // Début de la nouvelle instance : l'entretien est prélevé d'abord, sur les
+    // vétérances d'avant la progression. Un solde négatif ne bloque rien.
+    const e = await supabase.rpc("entretien_prelever");
     const t = await supabase.rpc("entrainement_instance");
     const i = await supabase.rpc("infirmerie_instance");
     const a = await supabase.rpc("ateliers_instance");
     await synchroniserPartage();
     const liste = (r) => (Array.isArray(r.data) ? r.data : []);
     return {
-      gains: { entrainement: liste(t), infirmerie: liste(i), ateliers: liste(a) },
-      erreur: [t.error?.message, i.error?.message, a.error?.message]
+      gains: {
+        entrainement: liste(t),
+        infirmerie: liste(i),
+        ateliers: liste(a),
+        entretien: e.data?.montant || 0,
+      },
+      erreur: [e.error?.message, t.error?.message, i.error?.message, a.error?.message]
         .filter(Boolean)
         .join(" "),
     };
@@ -2105,9 +2149,9 @@ export function App() {
         </nav>
         <div className="header-treasury">
         <a
-          className="gold-counter"
+          className={`gold-counter ${game.gold < 0 ? "gold-negative" : ""}`}
           href="#tresorerie"
-          aria-label={`Trésorerie : ${game.gold} pièces d’or`}
+          aria-label={`Trésorerie : ${game.gold} pièces d’or${game.gold < 0 ? " (solde négatif)" : ""}`}
         >
           <span className="coin" aria-hidden="true">
             <img src="/assets/gold-coin.png" alt="" />
@@ -2298,7 +2342,8 @@ export function App() {
             />
           ) : route === "tresorerie" ? (
             <Treasury
-              treasury={treasury}
+              treasury={treasuryAffiche}
+              entretienDetail={{ montant: entretien, mercenaires: dormPeople.length }}
               gold={game.gold}
               log={game.log}
               onChange={updateTreasury}
@@ -2744,6 +2789,16 @@ export function App() {
             ))}
           </nav>
         </main>
+      )}
+      {alerteSolde && game.gold < 0 && (
+        <Modal title="Trésorerie négative" onClose={() => setAlerteSolde(false)}>
+          <p role="alert">
+            Le solde de la compagnie est de{" "}
+            <strong className="gold-negative-text">{money(game.gold)} Po</strong>.
+            Le jeu n’est pas bloqué, mais les achats sont impossibles tant que
+            le solde reste négatif.
+          </p>
+        </Modal>
       )}
       {toast && (
         <div role="status" className="toast">

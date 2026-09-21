@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { treasuryTotal } from "./treasury-data.js";
 const fmt = (n) => new Intl.NumberFormat("fr-FR").format(n);
-export function Treasury({ treasury, gold, log, onChange, Modal }) {
+export function Treasury({ treasury, entretienDetail, gold, log, onChange, Modal }) {
   const [edit, setEdit] = useState(null);
   const [error, setError] = useState("");
   function submit(e) {
@@ -23,17 +23,32 @@ export function Treasury({ treasury, gold, log, onChange, Modal }) {
         <h2 className="sr-only">Frais d’entretien</h2>
         {treasury.costs.map((c) => (
           <div className="treasury-cost parchment" key={c.id}>
-            <span>{c.label}</span>
+            <span>
+              {c.label}
+              {c.auto && (
+                // Entretien calculé : 10 Po par point de vétérance de tous les
+                // mercenaires du dortoir, prélevé à chaque nouvelle instance.
+                <small className="treasury-auto">
+                  {entretienDetail?.mercenaires ?? 0} mercenaire
+                  {(entretienDetail?.mercenaires ?? 0) > 1 ? "s" : ""} au dortoir ·
+                  vétérance × 10 · prélevé à chaque instance
+                </small>
+              )}
+            </span>
             <strong>{fmt(c.amount)}</strong>
-            <button
-              onClick={() => {
-                setError("");
-                setEdit(c);
-              }}
-              aria-label={`Modifier ${c.label}`}
-            >
-              Mod.
-            </button>
+            {c.auto ? (
+              <span aria-hidden="true" />
+            ) : (
+              <button
+                onClick={() => {
+                  setError("");
+                  setEdit(c);
+                }}
+                aria-label={`Modifier ${c.label}`}
+              >
+                Mod.
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -66,7 +81,8 @@ export function Treasury({ treasury, gold, log, onChange, Modal }) {
           <strong>{fmt(gold)} Po</strong>
           {gold < 0 && (
             <p className="error">
-              Solde négatif : les achats sont indisponibles.
+              Solde négatif : les achats sont indisponibles tant qu’il n’est
+              pas revenu au-dessus de zéro.
             </p>
           )}
         </div>

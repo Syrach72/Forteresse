@@ -2890,6 +2890,12 @@ video.interior-backdrop-boxed {
   background: #f7f4ed;
   text-transform: uppercase;
 }
+.treasury-auto {
+  display: block;
+  font-size: 13px;
+  line-height: 1.25;
+  color: #5a4a2e;
+}
 .treasury-cost button:hover {
   background: #e8d291;
 }
@@ -3942,4 +3948,32 @@ a.merc-card:hover {
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   box-shadow: inset 0 0 18px #fff3;
+}
+
+/* Trésorerie négative : le compteur du menu devient rouge et clignote. */
+.gold-counter.gold-negative,
+.gold-counter.gold-negative small {
+  color: #ff5a48;
+  text-shadow: 0 0 8px rgba(255, 60, 40, 0.8);
+}
+.gold-counter.gold-negative {
+  outline: 2px solid #ff5a48;
+  outline-offset: -2px;
+}
+.gold-negative-text {
+  color: var(--danger);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .gold-counter.gold-negative {
+    animation: solde-negatif 1.2s ease-in-out infinite;
+  }
+}
+@keyframes solde-negatif {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }

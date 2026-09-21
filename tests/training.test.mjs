@@ -219,3 +219,14 @@ test("terrain : un nouvel instructeur va dans le premier groupe libre", () => {
   assert.equal(groupOfInstructor(complet, "c"), 2);
   assert.equal(groupOfInstructor(complet, "z"), null);
 });
+import { ENTRETIEN_PAR_VETERANCE, entretienCompagnie } from "../src/treasury-data.js";
+test("entretien : 10 Po par point de vétérance de tous les mercenaires du dortoir", () => {
+  assert.equal(ENTRETIEN_PAR_VETERANCE, 10);
+  assert.equal(entretienCompagnie([]), 0);
+  assert.equal(entretienCompagnie(), 0);
+  assert.equal(entretienCompagnie([0, 0, 0, 5]), 50);
+  assert.equal(entretienCompagnie([3, 4, 1]), 80);
+});
+test("entretien : valeurs absentes ou invalides comptées pour 0", () => {
+  assert.equal(entretienCompagnie([null, undefined, "x", -2, 2.9]), 20);
+});

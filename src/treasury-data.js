@@ -42,3 +42,15 @@ export function changeTreasury(current, change) {
       (current.income - treasuryTotal(current)),
   };
 }
+// Entretien de la compagnie (règle de Bruno) : 10 Po par point de vétérance de
+// TOUS les mercenaires du dortoir (recrutés, actifs ou grisés). Le serveur le
+// prélève sur la trésorerie au début de chaque nouvelle instance (+1 Instance,
+// fonction entretien_prelever) et le solde peut alors devenir négatif sans rien
+// bloquer. Cette fonction ne sert qu'à l'affichage.
+export const ENTRETIEN_PAR_VETERANCE = 10;
+export function entretienCompagnie(veterances = []) {
+  return (
+    veterances.reduce((somme, v) => somme + Math.max(0, Math.trunc(Number(v)) || 0), 0) *
+    ENTRETIEN_PAR_VETERANCE
+  );
+}
