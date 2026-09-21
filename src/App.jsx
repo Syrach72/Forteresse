@@ -945,7 +945,15 @@ export function App() {
     setDorm(next);
   }, [mesRecrutes, dorm.capacity]);
   const [route, setRoute] = useState(location.hash.slice(1) || "forteresse");
-  const [game, setGame] = useState(initialGame);
+  // Or, arsenal, journal et fabrications sont PARTAGÉS (base de données) : ils
+  // arrivent par synchroniserEconomie() ; les valeurs de démonstration locales
+  // (905 Po, matériaux, objets de démo) ne sont plus utilisées.
+  const [game, setGame] = useState(() => ({
+    ...initialGame(),
+    gold: 0,
+    inventory: [],
+    log: [],
+  }));
   const [name, setName] = useState("Aldric");
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState("");
@@ -1169,89 +1177,6 @@ export function App() {
     // Renvoi depuis la fiche : retour au Dortoir, où son lit est maintenant vide.
     location.hash = "dortoirs";
   }
-  // Charge une seule fois, au demarrage, le stock de l'Arsenal saisi cote
-  // admin (Administration > Arsenal, table ligne_inventaire) et le fusionne
-  // dans game.inventory : c'est ce qui permet au MJ d'ajouter "a la main"
-  // les materiaux/composants gagnes en mission, pour que les joueurs les
-  // retrouvent dans leur Arsenal (au prochain chargement de la page, comme
-  // le reste de la demo). Fusion additive avec l'inventaire local existant
-  // (potions de depart, objets deja fabriques cette session) via le meme id
-  // `catalogue:<uuid>` que craft-catalogue/collect-craft, pour ne pas creer
-  // une seconde ligne pour le meme objet. Un seul compteur par objet : pas
-  // de compteur separe pour Fer/Cuir/Bois (voir plus bas, remplacement des
-  // lignes `material:<cle>` de demo par l'objet reel de l'admin).
-  const arsenalDbLoadedRef = useRef(false);
-  useEffect(() => {
-    if (!session?.user || arsenalDbLoadedRef.current) return;
-    arsenalDbLoadedRef.current = true;
-    (async () => {
-      const [
-        { data: inventaires, error: invErr },
-        { data: lignes, error: ligErr },
-        { data: objets, error: objErr },
-        { data: categories, error: catErr },
-      ] = await Promise.all([
-        supabase.from("inventaire").select("id, type"),
-        supabase.from("ligne_inventaire").select("*"),
-        supabase.from("objet_catalogue").select("id, nom, icone, categorie_id, cout_achat_or"),
-        supabase.from("categorie").select("id, nom, parent_id"),
-      ]);
-      // Table absente ou hors-ligne : l'Arsenal reste sur la demo locale,
-      // sans bloquer le reste du jeu.
-      if (invErr || ligErr || objErr || catErr) return;
-      const arsenal = inventaires.find((i) => i.type === "arsenal");
-      if (!arsenal) return;
-      const objetById = new Map(objets.map((o) => [o.id, o]));
-      const topCategoryName = (categorieId) => {
-        let current = categories.find((c) => c.id === categorieId);
-        while (current?.parent_id)
-          current = categories.find((c) => c.id === current.parent_id);
-        return current?.nom || null;
-      };
-      const dbItems = lignes
-        .filter((l) => l.inventaire_id === arsenal.id && l.quantite > 0)
-        .map((l) => {
-          const o = objetById.get(l.objet_id);
-          return {
-            id: `catalogue:${l.objet_id}`,
-            quantity: l.quantite,
-            equipped: false,
-            nom: o?.nom || "Objet",
-            icone: o?.icone || null,
-            categorie: o ? topCategoryName(o.categorie_id) : null,
-            valeur: o?.cout_achat_or ?? null,
-          };
-        });
-      if (!dbItems.length) return;
-      // Construit a partir de gameRef.current (source lue par act()), pas
-      // d'un callback setGame(g => ...) : act() ecrit dans gameRef.current
-      // sans jamais relire l'etat React `game`, donc une fusion qui ne
-      // mettrait a jour que setGame serait ecrasee au premier clic (le
-      // craft suivant repartirait de l'etat pre-fusion et l'ecraserait a
-      // son tour) — cf. le meme motif gameRef.current = g; setGame(g); que
-      // les autres actions de ce fichier (transferCampaign, etc.).
-      let inventory = gameRef.current.inventory.map((x) => ({ ...x }));
-      for (const it of dbItems) {
-        // Fer/Métal, Cuir ou Bois : remplace la ligne de démonstration
-        // locale (`material:<clé>`, data.js) au lieu de s'y ajouter — un
-        // seul compteur par matériau, celui de l'admin devient la
-        // référence dès qu'il existe (voir materialQuantity, game.js).
-        const materialKey = RESOURCE_ALIASES[(it.nom || "").trim().toLowerCase()];
-        if (materialKey)
-          inventory = inventory.filter((x) => x.id !== `material:${materialKey}`);
-        const idx = inventory.findIndex((x) => x.id === it.id);
-        if (idx >= 0)
-          inventory[idx] = {
-            ...inventory[idx],
-            quantity: inventory[idx].quantity + it.quantity,
-          };
-        else inventory = [...inventory, it];
-      }
-      const g = { ...gameRef.current, inventory };
-      gameRef.current = g;
-      setGame(g);
-    })();
-  }, [session]);
   useEffect(() => {
     if (session === undefined || route === "admin") return;
     if (!session && !auth) location.hash = "connexion";
@@ -1405,30 +1330,24 @@ export function App() {
   }
   const defaultDurations = { forge: 5, armurerie: 3, alchimie: 2, mage: 0 };
   function decreaseInstances() {
-    // Instantané avant modification, pour permettre un « Annuler » exact
-    // (ré-appliquer un delta +1 ne suffit pas : un compteur déjà à 0 avant
-    // le clic resterait à 0 après un -1 puis un +1, au lieu de refléter
-    // qu'il n'avait pas bougé — l'annulation restaure donc l'état capturé
-    // ici, plutôt que de rejouer l'opération inverse).
-    // Les lits du Dortoir (embauche) n'ont pas de compteur : ils ne suivent pas.
-    // Le terrain d'entraînement et l'infirmerie sont partagés et écrits en
-    // base : `gains` (ce que le serveur a renvoyé) est complété par la file
-    // d'entraînement et sert à l'annulation.
+    // Le terrain d'entraînement, l'infirmerie et les ateliers (durées des
+    // fabrications) sont partagés et écrits en base : `gains` (ce que le
+    // serveur a renvoyé) est complété par la file d'opérations et sert à
+    // l'annulation. Les lits du Dortoir (embauche) n'ont pas de compteur.
     const undoId = crypto.randomUUID();
     setInstanceUndo({
       id: undoId,
-      gains: { entrainement: [], infirmerie: [] },
-      game: gameRef.current,
+      gains: { entrainement: [], infirmerie: [], ateliers: [] },
     });
     setInstanceTicks((v) => v + 1);
-    // Seul l'administrateur fait avancer l'entraînement et l'infirmerie (une
-    // fois par instance, pour tous les joueurs) ; le serveur le revérifie.
+    // Seul l'administrateur fait avancer l'instance (une fois pour tous les
+    // joueurs) ; le serveur le revérifie.
     if (estAdmin)
       enqueueTraining(async () => {
         const { gains, erreur } = await runSharedInstance();
         setInstanceUndo((u) => (u?.id === undoId ? { ...u, gains } : u));
         if (erreur) {
-          notify(`Entraînement ou infirmerie impossible : ${erreur}`);
+          notify(`+1 Instance : ${erreur}`);
           return;
         }
         const nom = (id) =>
@@ -1442,46 +1361,36 @@ export function App() {
           ...gains.infirmerie
             .filter((g) => g.sorti)
             .map((g) => `${nom(g.mercenaire_id)} est soigné et retrouve sa place au dortoir.`),
+          ...gains.ateliers
+            .filter((g) => g.a === 0)
+            .map((g) => `La fabrication de l'atelier ${g.atelier} est terminée.`),
         ];
-        if (phrases.length) notify(phrases.join(" "));
+        notify(
+          phrases.length
+            ? `+1 Instance : ${phrases.join(" ")}`
+            : "+1 Instance : toutes les Durées d’Instance diminuent de 1, minimum 0.",
+        );
       });
-    const next = {
-      ...gameRef.current,
-      durations: Object.fromEntries(
-        Object.entries(gameRef.current.durations || defaultDurations).map(([k, v]) => [
-          k,
-          Math.max(0, Math.min(5, v - 1)),
-        ]),
-      ),
-    };
-    gameRef.current = next;
-    setGame(next);
-    notify("+1 Instance : toutes les Durées d’Instance diminuent de 1, minimum 0.");
   }
   function undoInstanceStep() {
-    // Bouton désactivé tant que l'entraînement n'a pas fini son +1 Instance.
+    // Bouton désactivé tant que le +1 Instance n'a pas fini d'être appliqué.
     if (!instanceUndo || trainingPending > 0) return;
     const u = instanceUndo;
-    const next = u.game;
-    gameRef.current = next;
-    setGame(next);
     setInstanceTicks((v) => Math.max(0, v - 1));
     setInstanceUndo(null);
-    if (u.gains.entrainement.length || u.gains.infirmerie.length)
-      // Niveaux gagnés et compteurs sont en base : le serveur les remet comme
+    const g = u.gains;
+    if (g.entrainement.length || g.infirmerie.length || g.ateliers.length)
+      // Niveaux, compteurs et durées sont en base : le serveur les remet comme
       // avant et replace les mercenaires renvoyés au dortoir.
       enqueueTraining(async () => {
         const erreurs = [];
-        if (u.gains.entrainement.length) {
-          const { error } = await supabase.rpc("entrainement_annuler_instance", {
-            p_gains: u.gains.entrainement,
-          });
-          if (error) erreurs.push(error.message);
-        }
-        if (u.gains.infirmerie.length) {
-          const { error } = await supabase.rpc("infirmerie_annuler_instance", {
-            p_gains: u.gains.infirmerie,
-          });
+        for (const [fn, gains] of [
+          ["entrainement_annuler_instance", g.entrainement],
+          ["infirmerie_annuler_instance", g.infirmerie],
+          ["ateliers_annuler_instance", g.ateliers],
+        ]) {
+          if (!gains.length) continue;
+          const { error } = await supabase.rpc(fn, { p_gains: gains });
           if (error) erreurs.push(error.message);
         }
         await synchroniserPartage();
@@ -1520,7 +1429,98 @@ export function App() {
   // Relit l'état partagé : terrain d'entraînement (places, places élèves
   // débloquées), infirmerie (lits occupés, compteurs, lits débloqués) et
   // vétérances (qu'un +1 Instance a pu changer).
+  // Cache du catalogue (objets, catégories) pour afficher l'arsenal et les
+  // fabrications sans le retélécharger à chaque changement.
+  const catalogueCacheRef = useRef({ objets: new Map(), categories: [] });
+  // Or de la compagnie, arsenal, journal et fabrications en cours : lus en base
+  // et reversés dans `game` (même forme qu'avant, pour l'affichage existant).
+  async function synchroniserEconomie() {
+    const [etat, inv, lignes, fab, jour] = await Promise.all([
+      supabase.from("partie_etat").select("or_compagnie").maybeSingle(),
+      supabase.from("inventaire").select("id, type"),
+      supabase.from("ligne_inventaire").select("inventaire_id, objet_id, quantite"),
+      supabase.from("atelier_fabrication").select("atelier, objet_id, quantite, restant"),
+      supabase
+        .from("partie_journal")
+        .select("id, message, montant, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+    if (etat.error || inv.error || lignes.error || fab.error || !etat.data) return;
+    const arsenal = inv.data.find((i) => i.type === "arsenal");
+    const enStock = lignes.data.filter(
+      (l) => l.inventaire_id === arsenal?.id && l.quantite > 0,
+    );
+    const cache = catalogueCacheRef.current;
+    if ([...enStock, ...fab.data].some((x) => !cache.objets.has(x.objet_id))) {
+      const [o, c] = await Promise.all([
+        supabase.from("objet_catalogue").select("id, nom, icone, categorie_id, cout_achat_or"),
+        supabase.from("categorie").select("id, nom, parent_id"),
+      ]);
+      if (!o.error && !c.error) {
+        cache.objets = new Map(o.data.map((x) => [x.id, x]));
+        cache.categories = c.data;
+      }
+    }
+    const racine = (categorieId) => {
+      let cur = cache.categories.find((c) => c.id === categorieId);
+      while (cur?.parent_id)
+        cur = cache.categories.find((c) => c.id === cur.parent_id);
+      return cur?.nom || null;
+    };
+    const inventory = [];
+    for (const l of enStock) {
+      const id = `catalogue:${l.objet_id}`;
+      const deja = inventory.find((x) => x.id === id);
+      if (deja) {
+        deja.quantity += l.quantite;
+        continue;
+      }
+      const o = cache.objets.get(l.objet_id);
+      inventory.push({
+        id,
+        quantity: l.quantite,
+        equipped: false,
+        nom: o?.nom || "Objet",
+        icone: o?.icone || null,
+        categorie: o ? racine(o.categorie_id) : null,
+        valeur: o?.cout_achat_or ?? null,
+      });
+    }
+    const craftingQueue = {};
+    const durations = {};
+    for (const x of fab.data) {
+      const o = cache.objets.get(x.objet_id);
+      craftingQueue[x.atelier] = {
+        id: x.objet_id,
+        nom: o?.nom || "Objet",
+        icone: o?.icone || null,
+        categorie: o ? racine(o.categorie_id) : null,
+        cout: o?.cout_achat_or ?? null,
+      };
+      durations[x.atelier] = x.restant;
+    }
+    const log = (jour.data || []).map((j) => ({
+      id: j.id,
+      message: j.message,
+      amount: j.montant,
+      date: j.created_at,
+    }));
+    const g = {
+      ...gameRef.current,
+      gold: etat.data.or_compagnie,
+      inventory,
+      craftingQueue,
+      durations,
+      log,
+    };
+    gameRef.current = g;
+    setGame(g);
+  }
   async function synchroniserPartage() {
+    await Promise.all([synchroniserZonesPartagees(), synchroniserEconomie()]);
+  }
+  async function synchroniserZonesPartagees() {
     const [places, reglage, vet, lits, litsReglage] = await Promise.all([
       supabase.from("entrainement_place").select("role, position, mercenaire_id"),
       supabase.from("entrainement_reglage").select("places_eleves").maybeSingle(),
@@ -1567,6 +1567,10 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "entrainement_reglage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "infirmerie_place" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "infirmerie_reglage" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "partie_etat" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "partie_journal" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "atelier_fabrication" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "ligne_inventaire" }, rafraichir)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "mercenaire" }, rafraichir)
       .subscribe();
     return () => {
@@ -1575,27 +1579,25 @@ export function App() {
     };
   }, [session?.user?.id]);
   useEffect(() => {
-    if (
-      session?.user &&
-      (route === "entrainement" || route === "dortoirs" || route === "infirmerie")
-    )
-      synchroniserPartage();
+    if (session?.user && !auth) synchroniserPartage();
   }, [route, session?.user?.id]);
   // +1 Instance sur les zones partagées (administrateur) : au terrain
   // d'entraînement le serveur fait gagner 1 point de vétérance à chaque élève
   // et renvoie au dortoir celui qui rejoint son instructeur (l'instructeur
   // reste en place) ; à l'infirmerie chaque compteur baisse de 1 et celui qui
-  // arrive à 0 retrouve sa place au dortoir.
+  // arrive à 0 retrouve sa place au dortoir ; dans les ateliers chaque durée
+  // baisse de 1 (rien n'est livré tout seul : « Envoyer à l'Arsenal »).
   async function runSharedInstance() {
     const t = await supabase.rpc("entrainement_instance");
     const i = await supabase.rpc("infirmerie_instance");
+    const a = await supabase.rpc("ateliers_instance");
     await synchroniserPartage();
+    const liste = (r) => (Array.isArray(r.data) ? r.data : []);
     return {
-      gains: {
-        entrainement: Array.isArray(t.data) ? t.data : [],
-        infirmerie: Array.isArray(i.data) ? i.data : [],
-      },
-      erreur: [t.error?.message, i.error?.message].filter(Boolean).join(" "),
+      gains: { entrainement: liste(t), infirmerie: liste(i), ateliers: liste(a) },
+      erreur: [t.error?.message, i.error?.message, a.error?.message]
+        .filter(Boolean)
+        .join(" "),
     };
   }
   // Fiche du mercenaire (Dortoir) : bouton « Instructeur ».
@@ -1644,25 +1646,8 @@ export function App() {
   async function unlockTraining() {
     if (trainingRef.current.capacity >= 3)
       return { error: "Toutes les places élèves sont ouvertes." };
-    if (gameRef.current.gold < 100)
-      return { error: "Trésorerie insuffisante." };
     const { error } = await supabase.rpc("entrainement_debloquer_place");
     if (error) return { error: error.message };
-    const g = {
-      ...gameRef.current,
-      gold: gameRef.current.gold - 100,
-      log: [
-        {
-          id: crypto.randomUUID(),
-          message: "Place élève débloquée : −100 Po.",
-          amount: -100,
-          date: new Date().toISOString(),
-        },
-        ...gameRef.current.log,
-      ].slice(0, 50),
-    };
-    gameRef.current = g;
-    setGame(g);
     await synchroniserPartage();
     notify("Une place élève est débloquée.");
     return {};
@@ -1694,52 +1679,26 @@ export function App() {
   async function unlockInfirm() {
     if (infirmRef.current.capacity !== 2)
       return { error: "Cet emplacement est déjà débloqué." };
-    if (gameRef.current.gold < 1000)
-      return { error: "Trésorerie insuffisante." };
     const { error } = await supabase.rpc("infirmerie_debloquer_place");
     if (error) return { error: error.message };
-    const nextGame = {
-      ...gameRef.current,
-      gold: gameRef.current.gold - 1000,
-      log: [
-        {
-          id: crypto.randomUUID(),
-          message: "Lit d’infirmerie débloqué : −1000 Po.",
-          amount: -1000,
-          date: new Date().toISOString(),
-        },
-        ...gameRef.current.log,
-      ].slice(0, 50),
-    };
-    gameRef.current = nextGame;
-    setGame(nextGame);
     await synchroniserPartage();
     notify("Un lit d’infirmerie est débloqué.");
     return {};
   }
-  function unlockDorm() {
+  // Le lit du dortoir est encore local à chaque navigateur (bloc suivant du
+  // partage) ; sa dépense, elle, est prélevée sur l'or PARTAGÉ.
+  async function unlockDorm() {
     if (dormRef.current.capacity !== 6)
       return { error: "Cet emplacement est déjà débloqué." };
-    if (gameRef.current.gold < 100)
-      return { error: "Trésorerie insuffisante." };
+    const { error } = await supabase.rpc("partie_depenser", {
+      p_montant: 100,
+      p_motif: "Emplacement de dortoir débloqué",
+    });
+    if (error) return { error: error.message };
     const nextDorm = { ...dormRef.current, capacity: 7 };
-    const nextGame = {
-      ...gameRef.current,
-      gold: gameRef.current.gold - 100,
-      log: [
-        {
-          id: crypto.randomUUID(),
-          message: "Emplacement de dortoir débloqué : −100 Po.",
-          amount: -100,
-          date: new Date().toISOString(),
-        },
-        ...gameRef.current.log,
-      ].slice(0, 50),
-    };
     dormRef.current = nextDorm;
-    gameRef.current = nextGame;
     setDorm(nextDorm);
-    setGame(nextGame);
+    await synchroniserPartage();
     notify("Un nouvel emplacement est débloqué.");
     return { state: nextDorm };
   }
@@ -1766,152 +1725,125 @@ export function App() {
       setBusy(false);
     }, 280);
   }
-  function actCatalogue(arme, route) {
-    if (busyRef.current) return;
+  // Opération économique PARTAGÉE : le serveur (fonctions partie_*) fait foi
+  // (solde, stock, recette, atelier libre, droits) ; l'affichage est relu
+  // ensuite. Renvoie les données de la réponse, ou null si l'opération a
+  // échoué (l'erreur est alors affichée).
+  async function operationPartagee(appel) {
+    if (busyRef.current) return null;
     busyRef.current = true;
     setBusy(true);
     setActionError("");
-    timer.current = setTimeout(() => {
-      const before = gameRef.current;
-      const result = transact(before, {
-        type: "craft-catalogue",
-        arme,
-        route,
-      });
-      if (result.error) {
-        setActionError(result.error);
-      } else {
-        gameRef.current = result.state;
-        setGame(result.state);
-        // La fiche reste ouverte (fabrication lancee ou livree tout de
-        // suite) pour pouvoir l'annuler ; la fermer la rend definitive.
-        setUndoStack((s) => [
-          ...s,
-          { kind: "craft", before, after: result.state, message: result.message },
-        ]);
-        notify(result.message);
+    try {
+      const { data, error } = await appel();
+      if (error) {
+        setActionError(error.message);
+        return null;
       }
+      await synchroniserPartage();
+      return data ?? {};
+    } finally {
       busyRef.current = false;
       setBusy(false);
-    }, 280);
+    }
   }
-  // Annule la derniere operation (achat ou fabrication) faite sur la fiche
-  // ouverte : l'etat d'avant est restaure tel quel (or, stocks, atelier).
-  function undoCatalogue() {
-    if (busyRef.current) return;
-    const result = undoLast(undoStack, gameRef.current);
-    if (result.error) {
-      setActionError(result.error);
+  // Identifiant d'objet du catalogue depuis une ligne d'arsenal (`catalogue:<id>`).
+  const objetDe = (invId) =>
+    typeof invId === "string" && invId.startsWith("catalogue:")
+      ? invId.slice("catalogue:".length)
+      : null;
+  const nomDe = (invId) =>
+    gameRef.current.inventory.find((i) => i.id === invId)?.nom || "L’objet";
+  // Fabrication d'un objet du catalogue : ingrédients retirés de l'arsenal ;
+  // livraison immédiate, ou mise en file dans l'atelier si l'objet a une durée.
+  async function actCatalogue(arme) {
+    const data = await operationPartagee(() =>
+      supabase.rpc("partie_fabriquer", { p_objet: arme.id }),
+    );
+    if (!data) return;
+    // La fiche reste ouverte (fabrication lancée ou livrée tout de suite) pour
+    // pouvoir l'annuler ; la fermer la rend définitive.
+    setUndoStack((s) => [
+      ...s,
+      { kind: "craft", journalId: data.journal_id, message: data.message },
+    ]);
+    notify(data.message);
+  }
+  // Annule la dernière opération (achat ou fabrication) faite sur la fiche
+  // ouverte : opération inverse journalisée par le serveur, refusée si l'objet
+  // n'est plus disponible ou si la fabrication a été récupérée.
+  async function undoCatalogue() {
+    const last = undoStack[undoStack.length - 1];
+    if (!last) {
+      setActionError("Aucune opération à annuler.");
       return;
     }
-    setActionError("");
-    gameRef.current = result.state;
-    setGame(result.state);
-    setUndoStack(result.stack);
-    notify(
-      result.kind === "buy"
-        ? "Achat annulé : pièces d’or remboursées."
-        : "Fabrication annulée : ressources restituées, atelier libéré.",
+    const data = await operationPartagee(() =>
+      supabase.rpc("partie_annuler", { p_journal: last.journalId }),
     );
+    if (!data) return;
+    setUndoStack((s) => s.slice(0, -1));
+    notify(data.message);
   }
   // Destruction définitive d'une quantité d'un objet de l'arsenal, après
   // confirmation Oui/Non dans la fiche (ItemActionPanel).
-  function actDestroy(id, quantity) {
-    if (busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
-    setActionError("");
-    timer.current = setTimeout(() => {
-      const result = transact(gameRef.current, { type: "destroy", id, quantity });
-      if (result.error) {
-        setActionError(result.error);
-      } else {
-        gameRef.current = result.state;
-        setGame(result.state);
-        setModal(null);
-        notify(result.message);
-      }
-      busyRef.current = false;
-      setBusy(false);
-    }, 280);
+  async function actDestroy(id, quantity) {
+    const objet = objetDe(id);
+    if (!objet) {
+      setActionError("Cet objet ne peut pas être détruit.");
+      return;
+    }
+    const nom = nomDe(id);
+    const data = await operationPartagee(() =>
+      supabase.rpc("partie_detruire", { p_objet: objet, p_quantite: quantity }),
+    );
+    if (!data) return;
+    setModal(null);
+    notify(`Destruction de ${nom} ×${quantity}.`);
   }
   // Vente d'un objet de l'arsenal au Marché : la moitié de sa valeur est
-  // créditée à la trésorerie par transact("sell").
-  function actSell(id, quantity) {
-    if (busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
-    setActionError("");
-    timer.current = setTimeout(() => {
-      const result = transact(gameRef.current, { type: "sell", id, quantity });
-      if (result.error) {
-        setActionError(result.error);
-      } else {
-        gameRef.current = result.state;
-        setGame(result.state);
-        setModal(null);
-        notify(result.message);
-      }
-      busyRef.current = false;
-      setBusy(false);
-    }, 280);
+  // créditée à la trésorerie partagée.
+  async function actSell(id, quantity) {
+    const objet = objetDe(id);
+    if (!objet) {
+      setActionError("Cet objet ne peut pas être vendu.");
+      return;
+    }
+    const nom = nomDe(id);
+    const data = await operationPartagee(() =>
+      supabase.rpc("partie_vendre", { p_objet: objet, p_quantite: quantity }),
+    );
+    if (!data) return;
+    setModal(null);
+    notify(`Vente de ${nom} ×${quantity} : +${data.gain} Po.`);
   }
   // Achat d'un objet du catalogue depuis le Marché : le coût d'achat est
-  // décompté de la trésorerie (game.gold) par transact("buy-catalogue").
-  function actBuyCatalogue(arme) {
-    if (busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
-    setActionError("");
-    timer.current = setTimeout(() => {
-      const before = gameRef.current;
-      const result = transact(before, { type: "buy-catalogue", arme });
-      if (result.error) {
-        setActionError(result.error);
-      } else {
-        gameRef.current = result.state;
-        setGame(result.state);
-        // La fiche reste ouverte : l'achat est annulable tant qu'on ne la
-        // quitte pas.
-        setUndoStack((s) => [
-          ...s,
-          { kind: "buy", before, after: result.state, message: result.message },
-        ]);
-        notify(result.message);
-      }
-      busyRef.current = false;
-      setBusy(false);
-    }, 280);
+  // décompté de la trésorerie partagée et l'objet rejoint l'arsenal commun.
+  async function actBuyCatalogue(arme) {
+    const data = await operationPartagee(() =>
+      supabase.rpc("partie_acheter", { p_objet: arme.id }),
+    );
+    if (!data) return;
+    // La fiche reste ouverte : l'achat est annulable tant qu'on ne la quitte pas.
+    setUndoStack((s) => [
+      ...s,
+      { kind: "buy", journalId: data.journal_id, message: "" },
+    ]);
+    notify(`${arme.nom} acheté : −${arme.cout_achat_or} Po.`);
   }
-  // Recupere manuellement une fabrication (locale ou catalogue) une fois sa
-  // Duree d'instance a 0 : libere l'atelier pour une nouvelle fabrication.
-  // Referme la fiche de l'objet catalogue tout juste livre (vide les
-  // cellules Temps de fabrication/Ressources) au lieu de la laisser prete
-  // a relancer immediatement le meme objet : il faut retourner au
-  // catalogue pour en choisir un (comme apres une livraison immediate).
-  function actCollect(route) {
-    if (busyRef.current) return;
-    busyRef.current = true;
-    setBusy(true);
-    setActionError("");
-    timer.current = setTimeout(() => {
-      const result = transact(gameRef.current, { type: "collect-craft", route });
-      if (result.error) {
-        setActionError(result.error);
-      } else {
-        gameRef.current = result.state;
-        setGame(result.state);
-        setModal(null);
-        // Vide la case locale (Épée longue/Cotte de mailles) : elle ne doit
-        // pas se remettre prête à refabriquer toute seule apres la
-        // livraison, mais rester vide jusqu'a une nouvelle commande
-        // explicite (Marché > Voir la recette, ou le Catalogue).
-        setSelection(null);
-        notify(result.message);
-      }
-      busyRef.current = false;
-      setBusy(false);
-    }, 280);
+  // Récupère une fabrication terminée (durée d'instance à 0) : l'objet rejoint
+  // l'arsenal et l'atelier est libéré. Referme la fiche de l'objet tout juste
+  // livré (il faut retourner au catalogue pour en choisir un autre).
+  async function actCollect(route) {
+    const data = await operationPartagee(() =>
+      supabase.rpc("partie_recuperer", { p_atelier: route }),
+    );
+    if (!data) return;
+    setModal(null);
+    // Vide la case locale de démonstration : elle ne doit pas se remettre
+    // prête à refabriquer toute seule après la livraison.
+    setSelection(null);
+    notify(data.message);
   }
   function go(l) {
     if (l.locked) {

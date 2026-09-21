@@ -121,8 +121,8 @@ export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }
               <button
                 className="primary"
                 disabled={gold < UNLOCK_PRICE}
-                onClick={() => {
-                  const result = onUnlock();
+                onClick={async () => {
+                  const result = await onUnlock();
                   if (result?.error) setError(result.error);
                   else setPopup(null);
                 }}

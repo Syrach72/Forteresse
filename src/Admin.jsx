@@ -1876,6 +1876,65 @@ function MercenairesSection() {
   );
 }
 
+// Or de la compagnie : une seule trésorerie, partagée par tous les joueurs
+// (table partie_etat). Seul l administrateur peut la fixer ; les achats, ventes
+// et déblocages des joueurs la modifient ensuite (voir le journal en Trésorerie).
+function OrCompagnie() {
+  const [or, setOr] = useState(null);
+  const [saisie, setSaisie] = useState("");
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    supabase
+      .from("partie_etat")
+      .select("or_compagnie")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setOr(data.or_compagnie);
+          setSaisie(String(data.or_compagnie));
+        }
+      });
+  }, []);
+  async function enregistrer(e) {
+    e.preventDefault();
+    const n = Number(saisie);
+    if (String(saisie).trim() === "" || !Number.isInteger(n) || n < 0 || n > 100000000) {
+      setMsg("Saisissez un entier de 0 à 100 000 000.");
+      return;
+    }
+    const { data, error } = await supabase.rpc("partie_or_definir", { p_montant: n });
+    if (error) setMsg(error.message);
+    else {
+      setOr(data);
+      setMsg("Or de la compagnie enregistré.");
+    }
+  }
+  if (or === null) return null;
+  return (
+    <form className="admin-form" onSubmit={enregistrer} noValidate>
+      <h3>Or de la compagnie</h3>
+      <p>
+        Trésorerie unique, partagée par tous les joueurs (actuellement {or} Po).
+        Les achats, ventes et déblocages des joueurs la modifient ensuite.
+      </p>
+      <div className="admin-ingredient-form">
+        <input
+          type="number"
+          min="0"
+          step="1"
+          aria-label="Or de la compagnie"
+          value={saisie}
+          onChange={(e) => setSaisie(e.target.value)}
+        />
+        <button className="text-button" type="submit">
+          Enregistrer l’or
+        </button>
+      </div>
+      {msg && <p className="admin-error">{msg}</p>}
+    </form>
+  );
+}
+
 function ArsenalSection() {
   const inventaires = useTable("inventaire", { order: "id" });
   const lignes = useTable("ligne_inventaire", { order: "id" });
@@ -2002,6 +2061,7 @@ function ArsenalSection() {
 
   return (
     <div>
+      <OrCompagnie />
       <nav className="admin-subtabs" aria-label="Catégories de l’arsenal">
         <button
           type="button"
