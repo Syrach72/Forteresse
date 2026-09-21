@@ -40,7 +40,6 @@ const BACKDROP_VIDEO = {
 const BACKDROP_VIDEO_RATIO = {
   forge: "1 / 1",
   armurerie: "1 / 1",
-  infirmerie: "1 / 1",
   dortoirs: "1 / 1",
   entrainement: "1 / 1",
   tresorerie: "1 / 1",
