@@ -38,7 +38,6 @@ const BACKDROP_VIDEO = {
   dortoirs: "/assets/video/dortoir-anime.mp4",
 };
 const BACKDROP_VIDEO_RATIO = {
-  forge: "1 / 1",
   armurerie: "1 / 1",
   dortoirs: "1 / 1",
   entrainement: "1 / 1",

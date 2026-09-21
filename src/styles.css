@@ -460,8 +460,7 @@ video.interior-backdrop {
   transform: scale(1.18, 1.07);
   transform-origin: top left;
 }
-.dortoirs video.interior-backdrop-boxed,
-.forge video.interior-backdrop-boxed {
+.dortoirs video.interior-backdrop-boxed {
   transform: translateX(-50%) scale(1.18, 1.07);
   transform-origin: top left;
 }
