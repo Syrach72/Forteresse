@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { CHARACTER_CLASSES, WEAPONS, LEVELS } from "./characters";
 import { ASSETS } from "./data";
+import { SOINS_INSTANCES } from "./dormitory.js";
 const PARCHMENT_CLASSES = [
   "guerrier",
   "roublard",
@@ -73,6 +74,8 @@ export function Characters({
   onSetInstructor = () => {},
   absences = {},
   instructeurEnPlace = false,
+  onHeal = () => {},
+  infirmerieComplete = false,
   litLibre = true,
   nomsJoueur = {},
   onUpdate,
@@ -330,6 +333,14 @@ export function Characters({
                     <button
                       className="wood-button merc-recruit"
                       type="button"
+                      disabled={!!absences[merc.id] || infirmerieComplete}
+                      onClick={() => onHeal(merc.id)}
+                    >
+                      Soigner
+                    </button>
+                    <button
+                      className="wood-button merc-recruit"
+                      type="button"
                       onClick={() => setPopup({ type: "renvoi" })}
                     >
                       Renvoyer
@@ -338,9 +349,7 @@ export function Characters({
                   <p className="merc-recrute-note">
                     {absences[merc.id]
                       ? `${merc.nom} n’est pas au dortoir (${absences[merc.id].toLowerCase()}) : il garde son lit.`
-                      : instructeurEnPlace
-                        ? "Un instructeur est déjà en place au Terrain d’Entraînement."
-                        : `« Instructeur » envoie ${merc.nom} au Terrain d’Entraînement pour former des élèves de sa classe.`}
+                      : `« Instructeur » l’envoie former des élèves de sa classe${instructeurEnPlace ? " (un instructeur est déjà en place)" : ""} ; « Soigner » l’envoie à l’infirmerie pour ${SOINS_INSTANCES} instances${infirmerieComplete ? " (aucun lit libre pour le moment)" : ""}.`}
                   </p>
                   <p className="merc-recrute-note">
                     {merc.nom} a son lit au Dortoir. Le renvoyer efface le nom

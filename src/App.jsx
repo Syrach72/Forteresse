@@ -12,15 +12,15 @@ import {
   trainingIds,
 } from "./training-data.js";
 import { Characters } from "./Characters.jsx";
-import { Dormitory } from "./Dormitory.jsx";
+import { Infirmary } from "./Infirmary.jsx";
 import { Dortoir } from "./Dortoir.jsx";
 import {
   INITIAL_DORMITORY,
   INITIAL_INFIRMARY,
+  SOINS_INSTANCES,
+  buildInfirmary,
   firstFreeBed,
   syncRecruits,
-  stepDurations,
-  updateDormitory,
 } from "./dormitory";
 import { CHARACTER_CLASSES } from "./characters";
 import { Admin } from "./Admin.jsx";
@@ -1148,15 +1148,9 @@ export function App() {
       return;
     }
     // Renvoyé de la compagnie, il quitte aussi l'entraînement (avec ses élèves
-    // s'il en était l'instructeur : la base s'en charge à la suppression du
-    // recrutement) et l'infirmerie.
-    synchroniserEntrainement();
-    const inf = {
-      ...infirmRef.current,
-      beds: infirmRef.current.beds.map((b) => (b?.heroId === id ? null : b)),
-    };
-    infirmRef.current = inf;
-    setInfirm(inf);
+    // s'il en était l'instructeur) et l'infirmerie : la base s'en charge à la
+    // suppression du recrutement.
+    synchroniserPartage();
     // Le lit et le nom du joueur disparaissent avec le recrutement (l'effet
     // `syncRecruits` libère le lit).
     setMesRecrutes((old) => {
@@ -1417,43 +1411,39 @@ export function App() {
     // qu'il n'avait pas bougé — l'annulation restaure donc l'état capturé
     // ici, plutôt que de rejouer l'opération inverse).
     // Les lits du Dortoir (embauche) n'ont pas de compteur : ils ne suivent pas.
-    // Le terrain d'entraînement est partagé et écrit en base : `gains` (ce que
-    // le serveur a renvoyé) est complété par la file d'entraînement et sert à
-    // l'annulation.
+    // Le terrain d'entraînement et l'infirmerie sont partagés et écrits en
+    // base : `gains` (ce que le serveur a renvoyé) est complété par la file
+    // d'entraînement et sert à l'annulation.
     const undoId = crypto.randomUUID();
     setInstanceUndo({
       id: undoId,
-      infirm: infirmRef.current,
-      gains: [],
+      gains: { entrainement: [], infirmerie: [] },
       game: gameRef.current,
     });
-    const i = stepDurations(infirmRef.current, -1);
-    infirmRef.current = i;
-    setInfirm(i);
     setInstanceTicks((v) => v + 1);
-    // Seul l'administrateur fait avancer l'entraînement (une fois par instance,
-    // pour tous les joueurs) ; le serveur le revérifie.
+    // Seul l'administrateur fait avancer l'entraînement et l'infirmerie (une
+    // fois par instance, pour tous les joueurs) ; le serveur le revérifie.
     if (estAdmin)
       enqueueTraining(async () => {
-        const { gains, erreur } = await runTrainingInstance();
+        const { gains, erreur } = await runSharedInstance();
         setInstanceUndo((u) => (u?.id === undoId ? { ...u, gains } : u));
         if (erreur) {
-          notify(`Entraînement impossible : ${erreur}`);
+          notify(`Entraînement ou infirmerie impossible : ${erreur}`);
           return;
         }
-        if (gains.length) {
-          const nom = (id) =>
-            peopleRef.current.find((w) => w.id === id)?.name || "Un élève";
-          notify(
-            gains
-              .map((g) =>
-                g.gradue
-                  ? `${nom(g.mercenaire_id)} a rejoint son instructeur (vétérance ${g.a}) et retourne au dortoir.`
-                  : `${nom(g.mercenaire_id)} passe à la vétérance ${g.a}.`,
-              )
-              .join(" "),
-          );
-        }
+        const nom = (id) =>
+          peopleRef.current.find((w) => w.id === id)?.name || "Un mercenaire";
+        const phrases = [
+          ...gains.entrainement.map((g) =>
+            g.gradue
+              ? `${nom(g.mercenaire_id)} a rejoint son instructeur (vétérance ${g.a}) et retourne au dortoir.`
+              : `${nom(g.mercenaire_id)} passe à la vétérance ${g.a}.`,
+          ),
+          ...gains.infirmerie
+            .filter((g) => g.sorti)
+            .map((g) => `${nom(g.mercenaire_id)} est soigné et retrouve sa place au dortoir.`),
+        ];
+        if (phrases.length) notify(phrases.join(" "));
       });
     const next = {
       ...gameRef.current,
@@ -1472,22 +1462,30 @@ export function App() {
     // Bouton désactivé tant que l'entraînement n'a pas fini son +1 Instance.
     if (!instanceUndo || trainingPending > 0) return;
     const u = instanceUndo;
-    infirmRef.current = u.infirm;
-    setInfirm(u.infirm);
     const next = u.game;
     gameRef.current = next;
     setGame(next);
     setInstanceTicks((v) => Math.max(0, v - 1));
     setInstanceUndo(null);
-    if (u.gains.length)
-      // Les niveaux gagnés sont en base : le serveur les retire et replace
-      // les élèves renvoyés.
+    if (u.gains.entrainement.length || u.gains.infirmerie.length)
+      // Niveaux gagnés et compteurs sont en base : le serveur les remet comme
+      // avant et replace les mercenaires renvoyés au dortoir.
       enqueueTraining(async () => {
-        const { error } = await supabase.rpc("entrainement_annuler_instance", {
-          p_gains: u.gains,
-        });
-        if (error) throw new Error(error.message);
-        await synchroniserEntrainement();
+        const erreurs = [];
+        if (u.gains.entrainement.length) {
+          const { error } = await supabase.rpc("entrainement_annuler_instance", {
+            p_gains: u.gains.entrainement,
+          });
+          if (error) erreurs.push(error.message);
+        }
+        if (u.gains.infirmerie.length) {
+          const { error } = await supabase.rpc("infirmerie_annuler_instance", {
+            p_gains: u.gains.infirmerie,
+          });
+          if (error) erreurs.push(error.message);
+        }
+        await synchroniserPartage();
+        if (erreurs.length) throw new Error(erreurs.join(" "));
       });
     notify("Dernier +1 Instance annulé.");
   }
@@ -1519,14 +1517,22 @@ export function App() {
       )
       .finally(() => setTrainingPending((n) => n - 1));
   }
-  // Relit l'état partagé : places du terrain d'entraînement, places élèves
-  // débloquées et vétérances (qu'un +1 Instance a pu changer).
-  async function synchroniserEntrainement() {
-    const [places, reglage, vet] = await Promise.all([
+  // Relit l'état partagé : terrain d'entraînement (places, places élèves
+  // débloquées), infirmerie (lits occupés, compteurs, lits débloqués) et
+  // vétérances (qu'un +1 Instance a pu changer).
+  async function synchroniserPartage() {
+    const [places, reglage, vet, lits, litsReglage] = await Promise.all([
       supabase.from("entrainement_place").select("role, position, mercenaire_id"),
       supabase.from("entrainement_reglage").select("places_eleves").maybeSingle(),
       supabase.from("mercenaire").select("id, veterance"),
+      supabase.from("infirmerie_place").select("position, mercenaire_id, restant"),
+      supabase.from("infirmerie_reglage").select("places").maybeSingle(),
     ]);
+    if (!lits.error) {
+      const next = buildInfirmary(lits.data, litsReglage.data?.places);
+      infirmRef.current = next;
+      setInfirm(next);
+    }
     if (!places.error) {
       const next = buildTraining(places.data, reglage.data?.places_eleves);
       trainingRef.current = next;
@@ -1543,22 +1549,24 @@ export function App() {
       );
     }
   }
-  // Terrain d'entraînement partagé : chargé à la connexion, puis mis à jour en
-  // direct chez tous les joueurs (Supabase Realtime), et à chaque visite des
-  // pages Entraînement et Dortoirs au cas où la connexion en direct serait
-  // coupée.
+  // Terrain d'entraînement et infirmerie partagés : chargés à la connexion,
+  // puis mis à jour en direct chez tous les joueurs (Supabase Realtime), et à
+  // chaque visite des pages Entraînement, Infirmerie et Dortoirs au cas où la
+  // connexion en direct serait coupée.
   useEffect(() => {
     if (!session?.user) return;
-    synchroniserEntrainement();
+    synchroniserPartage();
     let attente;
     const rafraichir = () => {
       clearTimeout(attente);
-      attente = setTimeout(synchroniserEntrainement, 150);
+      attente = setTimeout(synchroniserPartage, 150);
     };
     const canal = supabase
       .channel("entrainement-partage")
       .on("postgres_changes", { event: "*", schema: "public", table: "entrainement_place" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "entrainement_reglage" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "infirmerie_place" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "infirmerie_reglage" }, rafraichir)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "mercenaire" }, rafraichir)
       .subscribe();
     return () => {
@@ -1567,17 +1575,28 @@ export function App() {
     };
   }, [session?.user?.id]);
   useEffect(() => {
-    if (session?.user && (route === "entrainement" || route === "dortoirs"))
-      synchroniserEntrainement();
+    if (
+      session?.user &&
+      (route === "entrainement" || route === "dortoirs" || route === "infirmerie")
+    )
+      synchroniserPartage();
   }, [route, session?.user?.id]);
-  // +1 Instance au terrain d'entraînement (administrateur) : le serveur fait
-  // gagner 1 point de vétérance à chaque élève et renvoie au dortoir celui
-  // qui rejoint son instructeur. L'instructeur reste en place.
-  async function runTrainingInstance() {
-    const { data, error } = await supabase.rpc("entrainement_instance");
-    if (error) return { gains: [], erreur: error.message };
-    await synchroniserEntrainement();
-    return { gains: Array.isArray(data) ? data : [], erreur: "" };
+  // +1 Instance sur les zones partagées (administrateur) : au terrain
+  // d'entraînement le serveur fait gagner 1 point de vétérance à chaque élève
+  // et renvoie au dortoir celui qui rejoint son instructeur (l'instructeur
+  // reste en place) ; à l'infirmerie chaque compteur baisse de 1 et celui qui
+  // arrive à 0 retrouve sa place au dortoir.
+  async function runSharedInstance() {
+    const t = await supabase.rpc("entrainement_instance");
+    const i = await supabase.rpc("infirmerie_instance");
+    await synchroniserPartage();
+    return {
+      gains: {
+        entrainement: Array.isArray(t.data) ? t.data : [],
+        infirmerie: Array.isArray(i.data) ? i.data : [],
+      },
+      erreur: [t.error?.message, i.error?.message].filter(Boolean).join(" "),
+    };
   }
   // Fiche du mercenaire (Dortoir) : bouton « Instructeur ».
   async function chooseInstructor(id) {
@@ -1588,7 +1607,7 @@ export function App() {
       notify(error.message);
       return;
     }
-    await synchroniserEntrainement();
+    await synchroniserPartage();
     notify(
       `${peopleRef.current.find((w) => w.id === id)?.name} est instructeur au Terrain d’Entraînement.`,
     );
@@ -1601,7 +1620,7 @@ export function App() {
       p_mercenaire: id,
     });
     if (error) return { error: error.message };
-    await synchroniserEntrainement();
+    await synchroniserPartage();
     notify(
       `${peopleRef.current.find((w) => w.id === id)?.name} commence son instruction.`,
     );
@@ -1616,7 +1635,7 @@ export function App() {
     if (!id) return {};
     const { error } = await supabase.rpc("entrainement_renvoyer", { p_mercenaire: id });
     if (error) return { error: error.message };
-    await synchroniserEntrainement();
+    await synchroniserPartage();
     notify(
       `${peopleRef.current.find((w) => w.id === id)?.name} retourne au dortoir${role === "instructor" ? " avec ses élèves" : ""}.`,
     );
@@ -1644,39 +1663,41 @@ export function App() {
     };
     gameRef.current = g;
     setGame(g);
-    await synchroniserEntrainement();
+    await synchroniserPartage();
     notify("Une place élève est débloquée.");
     return {};
   }
-  function changeInfirm(action) {
-    if (
-      action.type === "place" &&
-      !warriors.some((w) => w.id === action.heroId)
-    )
-      return { error: "Mercenaire inconnu." };
-    if (
-      action.type === "place" &&
-      trainingIds(trainingRef.current).includes(action.heroId)
-    )
-      return { error: "Ce mercenaire est à l’entraînement." };
-    const result = updateDormitory(infirmRef.current, action);
-    if (result.state) {
-      infirmRef.current = result.state;
-      setInfirm(result.state);
-      notify(
-        action.type === "release"
-          ? "Soins terminés : le mercenaire est disponible."
-          : "Infirmerie mise à jour.",
-      );
+  // Fiche du mercenaire (Dortoir) : bouton « Soigner ». Le mercenaire prend le
+  // premier lit libre de l'infirmerie pour SOINS_INSTANCES instances, puis
+  // retrouve sa place au dortoir (son lit y reste, grisé). Règles vérifiées par
+  // le serveur.
+  async function healMercenary(id) {
+    const { error } = await supabase.rpc("infirmerie_soigner", { p_mercenaire: id });
+    if (error) {
+      notify(error.message);
+      return;
     }
-    return result;
+    await synchroniserPartage();
+    notify(
+      `${peopleRef.current.find((w) => w.id === id)?.name} est en soin à l’infirmerie (${SOINS_INSTANCES} instances).`,
+    );
+    location.hash = "infirmerie";
   }
-  function unlockInfirm() {
+  // Rappel au dortoir avant la fin des soins : son recruteur ou l'administrateur.
+  async function recallFromInfirmary(id) {
+    const { error } = await supabase.rpc("infirmerie_renvoyer", { p_mercenaire: id });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    notify(`${peopleRef.current.find((w) => w.id === id)?.name} retourne au dortoir.`);
+    return {};
+  }
+  async function unlockInfirm() {
     if (infirmRef.current.capacity !== 2)
       return { error: "Cet emplacement est déjà débloqué." };
     if (gameRef.current.gold < 1000)
       return { error: "Trésorerie insuffisante." };
-    const next = { ...infirmRef.current, capacity: 3 };
+    const { error } = await supabase.rpc("infirmerie_debloquer_place");
+    if (error) return { error: error.message };
     const nextGame = {
       ...gameRef.current,
       gold: gameRef.current.gold - 1000,
@@ -1690,12 +1711,11 @@ export function App() {
         ...gameRef.current.log,
       ].slice(0, 50),
     };
-    infirmRef.current = next;
     gameRef.current = nextGame;
-    setInfirm(next);
     setGame(nextGame);
+    await synchroniserPartage();
     notify("Un lit d’infirmerie est débloqué.");
-    return { state: next };
+    return {};
   }
   function unlockDorm() {
     if (dormRef.current.capacity !== 6)
@@ -2210,6 +2230,8 @@ export function App() {
           onDismiss={dismiss}
           onSetVeterance={setVeterance}
           onSetInstructor={chooseInstructor}
+          onHeal={healMercenary}
+          infirmerieComplete={infirm.beds.slice(0, infirm.capacity).every(Boolean)}
           absences={absences}
           instructeurEnPlace={!!training.instructor}
           litLibre={firstFreeBed(dorm) >= 0}
@@ -2367,16 +2389,16 @@ export function App() {
               Modal={Modal}
             />
           ) : route === "infirmerie" ? (
-            <Dormitory
+            <Infirmary
               key="infirmerie"
-              kind="infirmary"
-              dorm={infirm}
-              warriors={[]}
+              infirmary={infirm}
+              people={people}
+              warriors={warriors}
+              estAdmin={estAdmin}
               gold={game.gold}
-              onChange={changeInfirm}
+              onRecall={recallFromInfirmary}
               onUnlock={unlockInfirm}
               Modal={Modal}
-              otherOccupied={trainingIds(training)}
             />
           ) : ["armurerie", "forge", "alchimie", "mage"].includes(route) ? (
             <>

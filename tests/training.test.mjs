@@ -77,3 +77,33 @@ test("une ligne hors des places connues est ignorée", () => {
   );
   assert.deepEqual(trainingIds(state), []);
 });
+import {
+  INITIAL_INFIRMARY,
+  SOINS_INSTANCES,
+  buildInfirmary,
+} from "../src/dormitory.js";
+test("infirmerie : les soins durent 5 instances", () => {
+  assert.equal(SOINS_INSTANCES, 5);
+});
+test("infirmerie : état d'affichage construit depuis les lignes de la base", () => {
+  const state = buildInfirmary(
+    [
+      { position: 0, mercenaire_id: "a", restant: 5 },
+      { position: 2, mercenaire_id: "b", restant: 1 },
+    ],
+    3,
+  );
+  assert.equal(state.capacity, 3);
+  assert.deepEqual(state.beds[0], { heroId: "a", remaining: 5 });
+  assert.equal(state.beds[1], null);
+  assert.deepEqual(state.beds[2], { heroId: "b", remaining: 1 });
+  assert.equal(state.beds.length, INITIAL_INFIRMARY.beds.length);
+});
+test("infirmerie : vide par défaut, lits bornés entre 2 et 3, ligne inconnue ignorée", () => {
+  assert.deepEqual(buildInfirmary([], 2), INITIAL_INFIRMARY);
+  assert.equal(buildInfirmary([], 9).capacity, 3);
+  assert.equal(buildInfirmary([], 0).capacity, 2);
+  assert.equal(buildInfirmary([], undefined).capacity, 2);
+  const s = buildInfirmary([{ position: 9, mercenaire_id: "x", restant: 5 }], 3);
+  assert.ok(s.beds.every((b) => b === null));
+});

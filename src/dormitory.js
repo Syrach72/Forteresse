@@ -88,6 +88,19 @@ export const INITIAL_INFIRMARY = {
   capacity: 2,
   beds: [null, null, null, null, null, null],
 };
+// Durée des soins à l'arrivée à l'infirmerie, en instances (règle de Bruno).
+export const SOINS_INSTANCES = 5;
+// Infirmerie PARTAGÉE (tables infirmerie_place / infirmerie_reglage) : état
+// d'affichage à partir des lignes de la base. `places` = lignes
+// { position, mercenaire_id, restant }, `capacity` = lits débloqués (2 ou 3).
+export function buildInfirmary(places = [], capacity = 2) {
+  const state = structuredClone(INITIAL_INFIRMARY);
+  state.capacity = Math.max(2, Math.min(3, Number(capacity) || 2));
+  for (const p of places)
+    if (p.position >= 0 && p.position < state.beds.length)
+      state.beds[p.position] = { heroId: p.mercenaire_id, remaining: p.restant };
+  return state;
+}
 export function stepDurations(area, delta) {
   return {
     ...area,

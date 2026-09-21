@@ -3860,3 +3860,17 @@ a.merc-card:hover {
 .undo-banner { margin: 12px 0 4px; padding: 10px 14px; border: 1px solid var(--edge); background: var(--paper-light); }
 .undo-banner p { margin: 0 0 6px; font-weight: 600; }
 .undo-banner small { display: block; margin-top: 6px; color: var(--muted); }
+/* Infirmerie : mention « En soin » sur le lit occupé (à la place de l'ancien
+   « Placer un mercenaire »). */
+.bed-care-label {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 2;
+  font-size: 12px;
+  line-height: 1.1;
+  color: #fff0c2;
+  background: #123723d9;
+  border: 1px solid #ffdc5b;
+  padding: 3px 5px;
+}
