@@ -123,8 +123,8 @@ export function Treasury({
           <p>Aucun mouvement pour le moment.</p>
         )}
         <p className="muted">
-          Le solde inclut les achats et déblocages réalisés pendant cette
-          session.
+          Le solde regroupe les achats, les déblocages et le budget de chaque
+          instance.
         </p>
       </section>
       {edit && (
