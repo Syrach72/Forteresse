@@ -4,7 +4,7 @@ import { initialGame, transact, RESOURCE_ALIASES, materialQuantity, ingredientQu
 import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
-import { INITIAL_TREASURY, changeTreasury, entretienCompagnie } from "./treasury-data.js";
+import { EMPTY_TREASURY, buildTreasury, entretienCompagnie } from "./treasury-data.js";
 import { Training } from "./Training.jsx";
 import {
   INITIAL_TRAINING,
@@ -888,10 +888,8 @@ function Auth({ signup, onEnter }) {
 export function App() {
   const [campaign, setCampaign] = useState({});
   const campaignRef = useRef(campaign);
-  const [treasury, setTreasury] = useState(() =>
-    structuredClone(INITIAL_TREASURY),
-  );
-  const treasuryRef = useRef(treasury);
+  // Budget partagé (table budget_poste) : chargé par synchroniserBudget().
+  const [treasury, setTreasury] = useState(EMPTY_TREASURY);
   const [training, setTraining] = useState(() =>
     structuredClone(INITIAL_TRAINING),
   );
@@ -1276,32 +1274,19 @@ export function App() {
     );
     return { state: camp };
   }
-  function updateTreasury(change) {
-    const result = changeTreasury(treasuryRef.current, change);
-    if (result.error) return result;
-    const label =
-      change.id === "income"
-        ? "Recettes"
-        : treasuryRef.current.costs.find((c) => c.id === change.id).label;
-    const g = {
-      ...gameRef.current,
-      gold: gameRef.current.gold + result.delta,
-      log: [
-        {
-          id: crypto.randomUUID(),
-          message: `${label} modifié manuellement : ${change.amount} Po.`,
-          amount: result.delta,
-          date: new Date().toISOString(),
-        },
-        ...gameRef.current.log,
-      ].slice(0, 50),
-    };
-    treasuryRef.current = result.state;
-    gameRef.current = g;
-    setTreasury(result.state);
-    setGame(g);
-    notify("Trésorerie enregistrée. Le solde a été recalculé.");
-    return result;
+  // Modification d'un poste du budget (administrateur seul, vérifiée par le
+  // serveur). Elle joue à partir de la prochaine instance : le solde actuel ne
+  // change pas.
+  async function updateTreasury(change) {
+    const code = change.id === "income" ? "recettes" : change.id;
+    const { error } = await supabase.rpc("budget_modifier", {
+      p_code: code,
+      p_montant: change.amount,
+    });
+    if (error) return { error: error.message };
+    await synchroniserBudget();
+    notify("Budget enregistré : il s’applique à partir de la prochaine instance.");
+    return {};
   }
   function setWorkshopDuration(id, value) {
     const n = Number(value);
@@ -1329,7 +1314,7 @@ export function App() {
     const undoId = crypto.randomUUID();
     setInstanceUndo({
       id: undoId,
-      gains: { entrainement: [], infirmerie: [], ateliers: [], entretien: 0 },
+      gains: { entrainement: [], infirmerie: [], ateliers: [], budget: 0 },
     });
     setInstanceTicks((v) => v + 1);
     // Seul l'administrateur fait avancer l'instance (une fois pour tous les
@@ -1345,8 +1330,10 @@ export function App() {
         const nom = (id) =>
           peopleRef.current.find((w) => w.id === id)?.name || "Un mercenaire";
         const phrases = [
-          ...(gains.entretien > 0
-            ? [`Entretien de la compagnie : −${money(gains.entretien)} Po.`]
+          ...(gains.budget !== 0
+            ? [
+                `Budget de l’instance (recettes − dépenses) : ${gains.budget > 0 ? "+" : ""}${money(gains.budget)} Po.`,
+              ]
             : []),
           ...gains.entrainement.map((g) =>
             g.gradue
@@ -1374,14 +1361,14 @@ export function App() {
     setInstanceTicks((v) => Math.max(0, v - 1));
     setInstanceUndo(null);
     const g = u.gains;
-    if (g.entrainement.length || g.infirmerie.length || g.ateliers.length || g.entretien > 0)
+    if (g.entrainement.length || g.infirmerie.length || g.ateliers.length || g.budget !== 0)
       // Niveaux, compteurs et durées sont en base : le serveur les remet comme
       // avant et replace les mercenaires renvoyés au dortoir.
       enqueueTraining(async () => {
         const erreurs = [];
-        if (g.entretien > 0) {
-          const { error } = await supabase.rpc("entretien_annuler", {
-            p_montant: g.entretien,
+        if (g.budget !== 0) {
+          const { error } = await supabase.rpc("budget_annuler_instance", {
+            p_net: g.budget,
           });
           if (error) erreurs.push(error.message);
         }
@@ -1519,7 +1506,20 @@ export function App() {
     setGame(g);
   }
   async function synchroniserPartage() {
-    await Promise.all([synchroniserZonesPartagees(), synchroniserEconomie()]);
+    await Promise.all([
+      synchroniserZonesPartagees(),
+      synchroniserEconomie(),
+      synchroniserBudget(),
+    ]);
+  }
+  // Recettes et postes de dépenses (les mêmes pour tous les joueurs).
+  async function synchroniserBudget() {
+    const { data, error } = await supabase
+      .from("budget_poste")
+      .select("code, libelle, nature, montant, auto, ordre");
+    if (error || !data) return;
+    const next = buildTreasury(data);
+    setTreasury(next);
   }
   async function synchroniserZonesPartagees() {
     const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage] = await Promise.all([
@@ -1591,6 +1591,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "recrutement" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "dortoir_reglage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "partie_etat" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "budget_poste" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "partie_journal" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "atelier_fabrication" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "ligne_inventaire" }, rafraichir)
@@ -1611,9 +1612,10 @@ export function App() {
   // arrive à 0 retrouve sa place au dortoir ; dans les ateliers chaque durée
   // baisse de 1 (rien n'est livré tout seul : « Envoyer à l'Arsenal »).
   async function runSharedInstance() {
-    // Début de la nouvelle instance : l'entretien est prélevé d'abord, sur les
-    // vétérances d'avant la progression. Un solde négatif ne bloque rien.
-    const e = await supabase.rpc("entretien_prelever");
+    // Début de la nouvelle instance : le solde reçoit (recettes − dépenses), dont
+    // l'entretien calculé sur les vétérances d'avant la progression. Un solde
+    // négatif ne bloque rien.
+    const e = await supabase.rpc("budget_appliquer_instance");
     const t = await supabase.rpc("entrainement_instance");
     const i = await supabase.rpc("infirmerie_instance");
     const a = await supabase.rpc("ateliers_instance");
@@ -1624,7 +1626,7 @@ export function App() {
         entrainement: liste(t),
         infirmerie: liste(i),
         ateliers: liste(a),
-        entretien: e.data?.montant || 0,
+        budget: e.data?.net || 0,
       },
       erreur: [e.error?.message, t.error?.message, i.error?.message, a.error?.message]
         .filter(Boolean)
@@ -2344,6 +2346,7 @@ export function App() {
             <Treasury
               treasury={treasuryAffiche}
               entretienDetail={{ montant: entretien, mercenaires: dormPeople.length }}
+              estAdmin={estAdmin}
               gold={game.gold}
               log={game.log}
               onChange={updateTreasury}

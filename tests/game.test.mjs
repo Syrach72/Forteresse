@@ -64,8 +64,9 @@ import {
 } from "../src/dormitory.js";
 import { INITIAL_TRAINING } from "../src/training-data.js";
 import {
-  INITIAL_TREASURY,
-  changeTreasury,
+  EMPTY_TREASURY,
+  bilanInstance,
+  buildTreasury,
   treasuryTotal,
 } from "../src/treasury-data.js";
 test("le dortoir, l'infirmerie et l'entraînement démarrent vides (les mercenaires viennent du recrutement)", () => {
@@ -87,17 +88,21 @@ test("recrutement : premier lit libre et débloqué ; aucun lit si tous sont pri
   dormitory.capacity += 1;
   assert.equal(firstFreeBed(dormitory), dormitory.capacity - 1);
 });
-test("trésorerie : édition du budget sans annuler les achats déjà faits", () => {
-  assert.equal(treasuryTotal(INITIAL_TREASURY), 2095);
-  const r = changeTreasury(INITIAL_TREASURY, { id: "entretien", amount: 200 });
-  assert.equal(r.delta, -50);
-  assert.equal(805 + r.delta, 755);
-  assert.equal(
-    changeTreasury(INITIAL_TREASURY, { id: "income", amount: 4000 }).delta,
-    1000,
+test("trésorerie : le budget vient de la base, recettes − dépenses = ce que rapporte chaque instance", () => {
+  const rows = [
+    { code: "recettes", libelle: "Recettes", nature: "recette", montant: 3000, auto: false, ordre: 0 },
+    { code: "dortoir", libelle: "Lits Dortoir", nature: "depense", montant: 1000, auto: false, ordre: 2 },
+    { code: "entretien", libelle: "Entretien", nature: "depense", montant: 0, auto: true, ordre: 1 },
+  ];
+  const t = buildTreasury(rows);
+  assert.equal(t.income, 3000);
+  assert.deepEqual(
+    t.costs.map((c) => c.id),
+    ["entretien", "dortoir"],
   );
-  assert.match(
-    changeTreasury(INITIAL_TREASURY, { id: "income", amount: -1 }).error,
-    /entier/,
-  );
+  assert.equal(t.costs[0].auto, true);
+  assert.equal(treasuryTotal(t), 1000);
+  assert.equal(bilanInstance(t), 2000);
+  assert.equal(bilanInstance({ income: 100, costs: [{ id: "x", label: "x", amount: 250 }] }), -150);
+  assert.deepEqual(buildTreasury(), EMPTY_TREASURY);
 });

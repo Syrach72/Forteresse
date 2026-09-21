@@ -1,10 +1,20 @@
 import { useState } from "react";
-import { treasuryTotal } from "./treasury-data.js";
+import { bilanInstance, treasuryTotal } from "./treasury-data.js";
 const fmt = (n) => new Intl.NumberFormat("fr-FR").format(n);
-export function Treasury({ treasury, entretienDetail, gold, log, onChange, Modal }) {
+// Budget PARTAGÉ : chaque nouvelle instance ajoute (recettes − dépenses) au
+// solde ; seul l'administrateur modifie les montants (le serveur le revérifie).
+export function Treasury({
+  treasury,
+  entretienDetail,
+  estAdmin = false,
+  gold,
+  log,
+  onChange,
+  Modal,
+}) {
   const [edit, setEdit] = useState(null);
   const [error, setError] = useState("");
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     const value = String(
       new FormData(e.currentTarget).get("amount") || "",
@@ -13,7 +23,7 @@ export function Treasury({ treasury, entretienDetail, gold, log, onChange, Modal
       setError("Saisissez un montant.");
       return;
     }
-    const result = onChange({ id: edit.id, amount: Number(value) });
+    const result = await onChange({ id: edit.id, amount: Number(value) });
     if (result?.error) setError(result.error);
     else setEdit(null);
   }
@@ -36,7 +46,7 @@ export function Treasury({ treasury, entretienDetail, gold, log, onChange, Modal
               )}
             </span>
             <strong>{fmt(c.amount)}</strong>
-            {c.auto ? (
+            {c.auto || !estAdmin ? (
               <span aria-hidden="true" />
             ) : (
               <button
@@ -62,23 +72,32 @@ export function Treasury({ treasury, entretienDetail, gold, log, onChange, Modal
         <div>
           <h2>Recettes</h2>
           <strong>{fmt(treasury.income)} Po</strong>
-          <button
-            className="text-button"
-            onClick={() => {
-              setError("");
-              setEdit({
-                id: "income",
-                label: "Recettes",
-                amount: treasury.income,
-              });
-            }}
-          >
-            Modifier les recettes
-          </button>
+          {estAdmin && (
+            <button
+              className="text-button"
+              onClick={() => {
+                setError("");
+                setEdit({
+                  id: "income",
+                  label: "Recettes",
+                  amount: treasury.income,
+                });
+              }}
+            >
+              Modifier les recettes
+            </button>
+          )}
         </div>
         <div className="treasury-final">
           <h2>Solde</h2>
           <strong>{fmt(gold)} Po</strong>
+          <p className="muted">
+            Chaque nouvelle instance ajoute recettes − dépenses :{" "}
+            <strong>
+              {bilanInstance(treasury) > 0 ? "+" : ""}
+              {fmt(bilanInstance(treasury))} Po
+            </strong>
+          </p>
           {gold < 0 && (
             <p className="error">
               Solde négatif : les achats sont indisponibles tant qu’il n’est
@@ -128,7 +147,7 @@ export function Treasury({ treasury, entretienDetail, gold, log, onChange, Modal
                 {error}
               </p>
             )}
-            <p>Le solde de la compagnie sera recalculé immédiatement.</p>
+            <p>Le nouveau montant s’applique à partir de la prochaine instance.</p>
             <div className="rest-actions">
               <button
                 type="button"
