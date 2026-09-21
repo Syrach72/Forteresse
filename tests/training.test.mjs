@@ -78,8 +78,10 @@ test("une ligne hors des places connues est ignorée", () => {
   assert.deepEqual(trainingIds(state), []);
 });
 import {
+  INITIAL_DORMITORY,
   INITIAL_INFIRMARY,
   SOINS_INSTANCES,
+  buildDorm,
   buildInfirmary,
 } from "../src/dormitory.js";
 test("infirmerie : les soins durent 5 instances", () => {
@@ -106,4 +108,26 @@ test("infirmerie : vide par défaut, lits bornés entre 2 et 3, ligne inconnue i
   assert.equal(buildInfirmary([], undefined).capacity, 2);
   const s = buildInfirmary([{ position: 9, mercenaire_id: "x", restant: 5 }], 3);
   assert.ok(s.beds.every((b) => b === null));
+});
+test("dortoir : les lits viennent de la base, un lit par recrutement, capacité partagée", () => {
+  const rows = [
+    { mercenaire_id: "a", lit: 0 },
+    { mercenaire_id: "b", lit: 3 },
+  ];
+  const d = buildDorm(rows, 6);
+  assert.equal(d.capacity, 6);
+  assert.deepEqual(
+    d.beds.slice(0, 5).map((b) => b?.heroId ?? null),
+    ["a", null, null, "b", null],
+  );
+  assert.equal(d.beds.length, INITIAL_DORMITORY.beds.length);
+  // Le 7e lit débloqué est compté dans la capacité (partagée par tous).
+  assert.equal(buildDorm(rows, 7).capacity, 7);
+});
+test("dortoir : capacité bornée (6 au minimum), lit hors limites ignoré", () => {
+  assert.equal(buildDorm([], undefined).capacity, 6);
+  assert.equal(buildDorm([], 2).capacity, 6);
+  assert.equal(buildDorm([], 99).capacity, 18);
+  const d = buildDorm([{ mercenaire_id: "x", lit: 40 }], 6);
+  assert.ok(d.beds.every((b) => b === null));
 });

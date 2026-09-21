@@ -21,67 +21,23 @@ export const INITIAL_DORMITORY = {
     null,
   ],
 };
-export function updateDormitory(dorm, action) {
-  const next = structuredClone(dorm);
-  if (
-    !Number.isInteger(action.slot) ||
-    action.slot < 0 ||
-    action.slot >= next.capacity
-  )
-    return { error: "Cet emplacement n’est pas débloqué." };
-  if (action.type === "place") {
-    if (next.beds[action.slot])
-      return { error: "Cet emplacement est déjà occupé." };
-    if (!action.heroId) return { error: "Choisissez un mercenaire." };
-    if (next.beds.some((b) => b?.heroId === action.heroId))
-      return { error: "Ce mercenaire est déjà au dortoir." };
-    if (
-      !Number.isInteger(action.remaining) ||
-      action.remaining < 0 ||
-      action.remaining > 5
-    )
-      return { error: "Saisissez une durée entière de 0 à 5." };
-    next.beds[action.slot] = {
-      heroId: action.heroId,
-      remaining: action.remaining,
-    };
-  } else if (action.type === "duration") {
-    if (!next.beds[action.slot]) return { error: "Cet emplacement est vide." };
-    if (
-      !Number.isInteger(action.remaining) ||
-      action.remaining < 0 ||
-      action.remaining > 5
-    )
-      return { error: "Saisissez une durée entière de 0 à 5." };
-    next.beds[action.slot].remaining = action.remaining;
-  } else if (action.type === "release") {
-    next.beds[action.slot] = null;
-  } else return { error: "Action inconnue." };
-  return { state: next };
-}
-
 // Premier lit débloqué et libre du dortoir (indice), ou -1 s'il n'y en a pas :
 // les lits occupés et les lits verrouillés (au-delà de la capacité) ne comptent pas.
 export function firstFreeBed(dorm) {
   return dorm.beds.slice(0, dorm.capacity).findIndex((b) => !b);
 }
 
-// Le lit représente l'embauche d'un mercenaire (rien à voir avec le repos) :
-// un lit par mercenaire recruté. Libère les lits des mercenaires qui ne sont plus
-// recrutés (renvoyés) et place les recrutés sans lit dans les premiers lits
-// libres et débloqués, dans l'ordre de `recruitedIds` (ordre de recrutement).
-export function syncRecruits(dorm, recruitedIds) {
-  const wanted = new Set(recruitedIds);
-  const beds = dorm.beds.map((b) => (b && wanted.has(b.heroId) ? b : null));
-  const placed = new Set(beds.filter(Boolean).map((b) => b.heroId));
-  for (const id of recruitedIds) {
-    if (placed.has(id)) continue;
-    const slot = firstFreeBed({ ...dorm, beds });
-    if (slot < 0) break;
-    beds[slot] = { heroId: id, remaining: 0 };
-    placed.add(id);
-  }
-  return { ...dorm, beds };
+// Dortoir PARTAGÉ : le lit d'un mercenaire est attribué par la base à son
+// recrutement (premier lit libre) et lui reste jusqu'à son renvoi de la
+// compagnie. `rows` = lignes de recrutement { mercenaire_id, lit }, `places` =
+// nombre de lits débloqués (6, ou 7 après déblocage).
+export function buildDorm(rows = [], places = 6) {
+  const state = structuredClone(INITIAL_DORMITORY);
+  state.capacity = Math.max(6, Math.min(state.beds.length, Number(places) || 6));
+  for (const r of rows)
+    if (r.lit >= 0 && r.lit < state.beds.length)
+      state.beds[r.lit] = { heroId: r.mercenaire_id, remaining: 0 };
+  return state;
 }
 
 export const INITIAL_INFIRMARY = {
@@ -100,14 +56,4 @@ export function buildInfirmary(places = [], capacity = 2) {
     if (p.position >= 0 && p.position < state.beds.length)
       state.beds[p.position] = { heroId: p.mercenaire_id, remaining: p.restant };
   return state;
-}
-export function stepDurations(area, delta) {
-  return {
-    ...area,
-    beds: area.beds.map((b) =>
-      b
-        ? { ...b, remaining: Math.max(0, Math.min(5, b.remaining + delta)) }
-        : null,
-    ),
-  };
 }

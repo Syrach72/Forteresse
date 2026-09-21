@@ -450,6 +450,11 @@ video.interior-backdrop {
   object-fit: cover;
   object-position: center;
 }
+/* Infirmerie : vidéo 16:9 recadrée vers la droite pour garder le visage du
+   patient couché (à ~85 % de la largeur de l'image) dans le cadre. */
+.infirmerie video.interior-backdrop {
+  object-position: 88% 50%;
+}
 .marche video.interior-backdrop,
 .castle-map video.interior-backdrop {
   transform: scale(1.18, 1.07);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { ASSETS, LOCATIONS, CLASSES, ITEMS } from "./data";
-import { initialGame, transact, undoLast, RESOURCE_ALIASES, materialQuantity, ingredientQuantity, sellableValue } from "./game";
+import { initialGame, transact, RESOURCE_ALIASES, materialQuantity, ingredientQuantity, sellableValue } from "./game";
 import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
@@ -19,8 +19,8 @@ import {
   INITIAL_INFIRMARY,
   SOINS_INSTANCES,
   buildInfirmary,
+  buildDorm,
   firstFreeBed,
-  syncRecruits,
 } from "./dormitory";
 import { CHARACTER_CLASSES } from "./characters";
 import { Admin } from "./Admin.jsx";
@@ -906,6 +906,9 @@ export function App() {
   const [mercenaires, setMercenaires] = useState([]);
   const [mesRecrutes, setMesRecrutes] = useState(() => new Map());
   const [recrutesServeur, setRecrutesServeur] = useState(() => new Set());
+  // Nom du joueur inscrit sur chaque mercenaire recruté (par n'importe quel
+  // joueur) : le Dortoir est PARTAGÉ, chacun y voit les mêmes lits.
+  const [joueurs, setJoueurs] = useState(() => new Map());
   const tousRecrutes = useMemo(
     () => new Set([...recrutesServeur, ...mesRecrutes.keys()]),
     [recrutesServeur, mesRecrutes],
@@ -925,6 +928,22 @@ export function App() {
         })),
     [mercenaires, mesRecrutes],
   );
+  // Tous les mercenaires recrutés (par n'importe quel joueur), avec le nom du
+  // joueur : ce sont eux qui occupent les lits du Dortoir partagé.
+  const dormPeople = useMemo(
+    () =>
+      mercenaires
+        .filter((m) => tousRecrutes.has(m.id))
+        .map((m) => ({
+          id: m.id,
+          name: m.nom,
+          role: m.classe,
+          portrait: m.portrait || "/assets/icons/lock.png",
+          veterancy: m.veterance ?? 0,
+          player: joueurs.get(m.id) || "",
+        })),
+    [mercenaires, tousRecrutes, joueurs],
+  );
   // Mercenaires recrutés qui ne sont pas au dortoir (ils y gardent leur lit,
   // affiché grisé) : identifiant -> où ils sont. Renvoyer de la compagnie est
   // le seul cas où le lit se libère.
@@ -936,13 +955,6 @@ export function App() {
     for (const b of infirm.beds) if (b) m[b.heroId] = "À l’infirmerie";
     return m;
   }, [training, infirm]);
-  // Un lit du Dortoir par mercenaire recruté : à chaque changement des
-  // recrutements (chargement, recrutement, renvoi), les lits suivent.
-  useEffect(() => {
-    const next = syncRecruits(dormRef.current, [...mesRecrutes.keys()]);
-    dormRef.current = next;
-    setDorm(next);
-  }, [mesRecrutes, dorm.capacity]);
   const [route, setRoute] = useState(location.hash.slice(1) || "forteresse");
   // Or, arsenal, journal et fabrications sont PARTAGÉS (base de données) : ils
   // arrivent par synchroniserEconomie() ; les valeurs de démonstration locales
@@ -969,7 +981,7 @@ export function App() {
   // Recherche du Catalogue global (bouton de l'en-tête, accessible partout).
   const [globalSearch, setGlobalSearch] = useState("");
   // Achats/fabrications faits depuis la fiche ouverte, annulables tant qu'on
-  // ne la quitte pas (cf. undoLast, game.js). Vidée dès que la fiche se
+  // ne la quitte pas (voir partie_annuler, côté serveur). Vidée dès que la fiche se
   // ferme, change d'objet ou que la page change.
   const [undoStack, setUndoStack] = useState([]);
   // Objet visé depuis l'admin (bouton « Placer dans la forge » d'une
@@ -1003,23 +1015,18 @@ export function App() {
   // Compte administrateur (affichage uniquement ; les droits réels sont
   // portés par la base, cf. is_admin()).
   const estAdmin = session?.user?.email?.toLowerCase() === "btestart@aol.com";
-  // Recharge les mercenaires et les recrutements à la connexion, puis à chaque
-  // ouverture d'une page Personnages (pour refléter une création ou un
-  // recrutement fait entre-temps).
+  // Recharge les mercenaires à la connexion, puis à chaque ouverture d'une page
+  // Personnages (pour refléter une création faite entre-temps). Les recrutements
+  // et les lits du Dortoir, eux, arrivent par synchroniserPartage().
   const surPagePersonnages = route.startsWith("personnages/");
   useEffect(() => {
     if (!session?.user) return;
     let annule = false;
     (async () => {
-      const [{ data: merc, error: e1 }, { data: classes, error: e2 }, rec, tous] =
+      const [{ data: merc, error: e1 }, { data: classes, error: e2 }] =
         await Promise.all([
           supabase.from("mercenaire").select("*").order("nom"),
           supabase.from("classe").select("id, nom"),
-          supabase
-            .from("recrutement")
-            .select("mercenaire_id, user_id, nom_joueur")
-            .order("created_at"),
-          supabase.rpc("mercenaires_recrutes"),
         ]);
       if (annule || e1 || e2) return;
       const nomClasse = new Map(classes.map((c) => [c.id, c.nom]));
@@ -1032,27 +1039,13 @@ export function App() {
           veterance: m.veterance ?? 0,
         })),
       );
-      // Table absente (migration pas encore appliquée) : on garde les
-      // recrutements locaux de la session sans les écraser. Sinon la base fait
-      // foi (ordre de recrutement conservé : les lits restent stables).
-      if (!rec.error) {
-        setMesRecrutes(
-          new Map(
-            rec.data
-              .filter((r) => r.user_id === session.user.id)
-              .map((r) => [r.mercenaire_id, r.nom_joueur || ""]),
-          ),
-        );
-      }
-      if (!tous.error) setRecrutesServeur(new Set(tous.data));
     })();
     return () => {
       annule = true;
     };
   }, [session?.user?.id, surPagePersonnages]);
   // Recruter un mercenaire : enregistré pour le joueur connecté (un mercenaire
-  // ne peut être recruté que par un seul joueur). Sans la table recrutement,
-  // repli sur la session en cours. Le mercenaire arrive directement dans le
+  // ne peut être recruté que par un seul joueur). Il arrive directement dans le
   // premier lit libre et débloqué du Dortoir ; sans lit disponible, il ne peut
   // pas être recruté.
   async function recruit(m, nomJoueur) {
@@ -1068,44 +1061,26 @@ export function App() {
       );
       return;
     }
+    // Le numéro de lit est attribué par la base (premier lit libre) ; elle
+    // refuse aussi le recrutement s'il n'y en a plus, ou si un autre joueur
+    // vient de recruter ce mercenaire.
     const { error } = await supabase.from("recrutement").insert({
       mercenaire_id: m.id,
       user_id: session.user.id,
       nom_joueur: joueur,
     });
-    const tableAbsente =
-      error &&
-      (error.code === "PGRST205" ||
-        error.code === "42P01" ||
-        /does not exist|schema cache/i.test(error.message || ""));
-    if (error && error.code === "23505") {
-      setRecrutesServeur((old) => new Set([...old, m.id]));
-      notify(`${m.nom} a déjà été recruté par un autre joueur.`);
-      return;
-    }
-    if (error && !tableAbsente) {
-      notify(`Recrutement impossible : ${error.message}`);
-      return;
-    }
-    // Le lit a pu être pris pendant l'enregistrement : on relit l'état courant
-    // et, s'il n'y a plus de place, on annule le recrutement.
-    const slot = firstFreeBed(dormRef.current);
-    if (slot < 0) {
-      if (!tableAbsente)
-        await supabase
-          .from("recrutement")
-          .delete()
-          .eq("mercenaire_id", m.id)
-          .eq("user_id", session.user.id);
+    await synchroniserPartage();
+    if (error) {
       notify(
-        `Recrutement impossible : aucun lit libre au Dortoir pour ${m.nom}.`,
+        error.code === "23505" && !/lit/.test(error.message || "")
+          ? `${m.nom} a déjà été recruté par un autre joueur.`
+          : `Recrutement impossible : ${error.message}`,
       );
       return;
     }
-    // Le lit est attribué par l'effet `syncRecruits` ci-dessus.
-    setMesRecrutes((old) => new Map(old).set(m.id, joueur));
+    const lit = dormRef.current.beds.findIndex((b) => b?.heroId === m.id);
     notify(
-      `${m.nom} est recruté par ${joueur} et prend place au lit ${slot + 1} du Dortoir${tableAbsente ? " (pour cette session seulement : table de recrutement absente)" : ""}.`,
+      `${m.nom} est recruté par ${joueur} et prend place au lit ${lit + 1} du Dortoir.`,
     );
     // Recrutement réussi : on va directement voir le mercenaire dans son lit.
     location.hash = "dortoirs";
@@ -1132,7 +1107,7 @@ export function App() {
   }
   // Renvoyer un mercenaire recruté : supprime le recrutement (il redevient
   // recrutable, sa carte est dégrisée sur la page de sa classe) et libère son
-  // lit au Dortoir. Sans la table recrutement, repli sur la session en cours.
+  // lit au Dortoir.
   // Règle confirmée par Bruno : le mercenaire conserve sa vétérance et tout ce
   // qui est inscrit sur sa fiche. Seule la ligne `recrutement` est supprimée ;
   // la ligne `mercenaire` n'est jamais modifiée ici. Toute donnée de fiche
@@ -1145,31 +1120,14 @@ export function App() {
       .delete()
       .eq("mercenaire_id", id)
       .eq("user_id", session.user.id);
-    const tableAbsente =
-      error &&
-      (error.code === "PGRST205" ||
-        error.code === "42P01" ||
-        /does not exist|schema cache/i.test(error.message || ""));
-    if (error && !tableAbsente) {
+    if (error) {
       notify(`Renvoi impossible : ${error.message}`);
       return;
     }
     // Renvoyé de la compagnie, il quitte aussi l'entraînement (avec ses élèves
     // s'il en était l'instructeur) et l'infirmerie : la base s'en charge à la
-    // suppression du recrutement.
-    synchroniserPartage();
-    // Le lit et le nom du joueur disparaissent avec le recrutement (l'effet
-    // `syncRecruits` libère le lit).
-    setMesRecrutes((old) => {
-      const next = new Map(old);
-      next.delete(id);
-      return next;
-    });
-    setRecrutesServeur((old) => {
-      const next = new Set(old);
-      next.delete(id);
-      return next;
-    });
+    // suppression du recrutement. Son lit et le nom du joueur disparaissent.
+    await synchroniserPartage();
     notify(
       `${m.nom} est renvoyé : il est de nouveau disponible sur la page ${m.classe || "de sa classe"}.`,
     );
@@ -1520,13 +1478,30 @@ export function App() {
     await Promise.all([synchroniserZonesPartagees(), synchroniserEconomie()]);
   }
   async function synchroniserZonesPartagees() {
-    const [places, reglage, vet, lits, litsReglage] = await Promise.all([
+    const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage] = await Promise.all([
       supabase.from("entrainement_place").select("role, position, mercenaire_id"),
       supabase.from("entrainement_reglage").select("places_eleves").maybeSingle(),
       supabase.from("mercenaire").select("id, veterance"),
       supabase.from("infirmerie_place").select("position, mercenaire_id, restant"),
       supabase.from("infirmerie_reglage").select("places").maybeSingle(),
+      supabase.from("recrutement").select("mercenaire_id, user_id, nom_joueur, lit"),
+      supabase.from("dortoir_reglage").select("places").maybeSingle(),
     ]);
+    if (!rec.error) {
+      // Recrutements et lits du Dortoir : les mêmes pour tous les joueurs.
+      setRecrutesServeur(new Set(rec.data.map((r) => r.mercenaire_id)));
+      setMesRecrutes(
+        new Map(
+          rec.data
+            .filter((r) => r.user_id === session?.user?.id)
+            .map((r) => [r.mercenaire_id, r.nom_joueur || ""]),
+        ),
+      );
+      setJoueurs(new Map(rec.data.map((r) => [r.mercenaire_id, r.nom_joueur || ""])));
+      const d = buildDorm(rec.data, dortoirReglage.data?.places);
+      dormRef.current = d;
+      setDorm(d);
+    }
     if (!lits.error) {
       const next = buildInfirmary(lits.data, litsReglage.data?.places);
       infirmRef.current = next;
@@ -1566,6 +1541,8 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "entrainement_reglage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "infirmerie_place" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "infirmerie_reglage" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "recrutement" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "dortoir_reglage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "partie_etat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "partie_journal" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "atelier_fabrication" }, rafraichir)
@@ -1684,22 +1661,16 @@ export function App() {
     notify("Un lit d’infirmerie est débloqué.");
     return {};
   }
-  // Le lit du dortoir est encore local à chaque navigateur (bloc suivant du
-  // partage) ; sa dépense, elle, est prélevée sur l'or PARTAGÉ.
+  // Le 7e lit du dortoir : capacité partagée, 100 Po prélevées sur l'or commun
+  // dans la même opération.
   async function unlockDorm() {
     if (dormRef.current.capacity !== 6)
       return { error: "Cet emplacement est déjà débloqué." };
-    const { error } = await supabase.rpc("partie_depenser", {
-      p_montant: 100,
-      p_motif: "Emplacement de dortoir débloqué",
-    });
+    const { error } = await supabase.rpc("dortoir_debloquer_place");
     if (error) return { error: error.message };
-    const nextDorm = { ...dormRef.current, capacity: 7 };
-    dormRef.current = nextDorm;
-    setDorm(nextDorm);
     await synchroniserPartage();
     notify("Un nouvel emplacement est débloqué.");
-    return { state: nextDorm };
+    return {};
   }
   function notify(message) {
     setToast(message);
@@ -2313,7 +2284,7 @@ export function App() {
             <Dortoir
               key="dortoir"
               dorm={dorm}
-              warriors={warriors}
+              warriors={dormPeople}
               absences={absences}
               gold={game.gold}
               onUnlock={unlockDorm}
