@@ -21,6 +21,20 @@ export const INITIAL_DORMITORY = {
     null,
   ],
 };
+// Lits du Dortoir : 6 débloqués au départ, les 12 autres se débloquent DANS
+// L'ORDRE contre des pièces d'or de la trésorerie commune (règle de Bruno) :
+// 100 Po les 3 premiers (lits 7 à 9), 150 Po les 3 suivants, 200 Po les 3 d'après
+// et 300 Po les 3 derniers. `slot` = indice du lit (0 à 17). Renvoie null pour
+// un lit déjà débloqué au départ ou hors du dortoir. Le serveur applique la même
+// grille (fonction dortoir_debloquer_place).
+export const LITS_DORTOIR_DEPART = 6;
+export const LITS_DORTOIR_MAX = 18;
+export const PRIX_LITS_DORTOIR = [100, 150, 200, 300];
+export function prixLitDortoir(slot) {
+  if (!Number.isInteger(slot) || slot < LITS_DORTOIR_DEPART || slot >= LITS_DORTOIR_MAX)
+    return null;
+  return PRIX_LITS_DORTOIR[Math.floor((slot - LITS_DORTOIR_DEPART) / 3)];
+}
 // Premier lit débloqué et libre du dortoir (indice), ou -1 s'il n'y en a pas :
 // les lits occupés et les lits verrouillés (au-delà de la capacité) ne comptent pas.
 export function firstFreeBed(dorm) {

@@ -83,6 +83,7 @@ import {
   SOINS_INSTANCES,
   buildDorm,
   buildInfirmary,
+  prixLitDortoir,
 } from "../src/dormitory.js";
 test("infirmerie : les soins durent 5 instances", () => {
   assert.equal(SOINS_INSTANCES, 5);
@@ -130,4 +131,17 @@ test("dortoir : capacité bornée (6 au minimum), lit hors limites ignoré", () 
   assert.equal(buildDorm([], 99).capacity, 18);
   const d = buildDorm([{ mercenaire_id: "x", lit: 40 }], 6);
   assert.ok(d.beds.every((b) => b === null));
+});
+test("dortoir : prix des lits, 100 / 150 / 200 / 300 Po par groupe de trois, dans l'ordre", () => {
+  const attendu = [100, 100, 100, 150, 150, 150, 200, 200, 200, 300, 300, 300];
+  assert.deepEqual(
+    Array.from({ length: 12 }, (_, i) => prixLitDortoir(6 + i)),
+    attendu,
+  );
+  // Total pour débloquer les 12 lits : 3×100 + 3×150 + 3×200 + 3×300.
+  assert.equal(attendu.reduce((a, b) => a + b, 0), 2250);
+});
+test("dortoir : les 6 premiers lits et les lits hors dortoir n'ont pas de prix", () => {
+  for (const slot of [0, 5, 18, 40, -1, 6.5, undefined, null])
+    assert.equal(prixLitDortoir(slot), null);
 });

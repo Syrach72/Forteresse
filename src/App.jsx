@@ -1667,11 +1667,12 @@ export function App() {
     notify("Un lit d’infirmerie est débloqué.");
     return {};
   }
-  // Le 7e lit du dortoir : capacité partagée, 100 Po prélevées sur l'or commun
+  // Déblocage du prochain lit du dortoir : capacité partagée, prix selon le rang
+  // du lit (100, 150, 200 ou 300 Po, voir prixLitDortoir) prélevé sur l'or commun
   // dans la même opération.
   async function unlockDorm() {
-    if (dormRef.current.capacity !== 6)
-      return { error: "Cet emplacement est déjà débloqué." };
+    if (dormRef.current.capacity >= 18)
+      return { error: "Tous les emplacements du dortoir sont déjà débloqués." };
     const { error } = await supabase.rpc("dortoir_debloquer_place");
     if (error) return { error: error.message };
     await synchroniserPartage();

@@ -2,12 +2,11 @@ import { useRef, useState } from "react";
 import { ReferenceCrop, classeRoute } from "./Characters.jsx";
 import { VetBadge } from "./VetBadge.jsx";
 import { useGlassWindows } from "./glassWindows.js";
+import { prixLitDortoir } from "./dormitory.js";
 // Dortoir de la compagnie : un lit = un mercenaire embauché (aucun rapport avec
 // le repos). Le mercenaire y prend place dès qu'il est recruté et le quitte
 // quand il est renvoyé. Le lit affiche sa vétérance et le nom du joueur qui l'a
 // recruté (saisi sur sa fiche).
-const UNLOCK_PRICE = 100;
-const INITIAL_CAPACITY = 6;
 // `absences` : identifiant -> où se trouve le mercenaire quand il n'est pas au
 // dortoir (Instructeur, À l'entraînement, À l'infirmerie). Il garde son lit,
 // affiché grisé ; seul un renvoi de la compagnie libère le lit.
@@ -20,6 +19,8 @@ export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }
   const layerRef = useRef(null);
   const windows = useGlassWindows(boardRef, layerRef, ".bed-cell");
   const hero = (id) => warriors.find((w) => w.id === id);
+  // Prix du lit visé par la fenêtre ouverte (déblocage ou lit verrouillé).
+  const prixPopup = prixLitDortoir(popup?.slot);
   const hired = dorm.beds.filter((b) => b && hero(b.heroId)).length;
   return (
     <>
@@ -46,8 +47,10 @@ export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }
             const merc = hero(bed?.heroId);
             const away = merc ? absences[merc.id] : undefined;
             const locked = slot >= dorm.capacity;
-            const purchasable =
-              slot === INITIAL_CAPACITY && dorm.capacity === INITIAL_CAPACITY;
+            // Les lits se débloquent dans l'ordre : seul le premier lit verrouillé
+            // peut être acheté ; les suivants affichent leur prix.
+            const purchasable = slot === dorm.capacity;
+            const prix = prixLitDortoir(slot);
             return (
               <div className="bed-cell" key={slot}>
                 <button
@@ -55,7 +58,7 @@ export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }
                   onClick={() => {
                     setError("");
                     if (locked)
-                      setPopup({ type: purchasable ? "unlock" : "locked" });
+                      setPopup({ type: purchasable ? "unlock" : "locked", slot });
                     else if (merc)
                       // Même fiche que pour le recrutement (bouton « Renvoyer »).
                       location.hash = `personnages/${classeRoute(merc.role)}/${merc.id}`;
@@ -64,7 +67,7 @@ export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }
                   aria-label={
                     locked
                       ? purchasable
-                        ? `Débloquer le lit ${slot + 1} pour ${UNLOCK_PRICE} pièces d’or`
+                        ? `Débloquer le lit ${slot + 1} pour ${prix} pièces d’or`
                         : `Lit ${slot + 1} verrouillé`
                       : merc
                         ? `${merc.name}, vétérance ${merc.veterancy}${merc.player ? `, joueur ${merc.player}` : ""}${away ? `, ${away.toLowerCase()}` : ""}`
@@ -89,7 +92,7 @@ export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }
                       <span className="bed-lock" aria-hidden="true">
                         <img src="/assets/icons/lock.png" alt="" />
                       </span>
-                      {purchasable && <strong>{UNLOCK_PRICE} Po</strong>}
+                      {prix != null && <strong>{prix} Po</strong>}
                     </>
                   ) : (
                     <span className="free-bed">Lit libre</span>
@@ -124,24 +127,24 @@ export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }
               <p>
                 Débloquez un lit supplémentaire pour embaucher un mercenaire de
                 plus. La trésorerie de la compagnie sera débitée de{" "}
-                <strong>{UNLOCK_PRICE} Po</strong>.
+                <strong>{prixPopup} Po</strong>.
               </p>
               <p>
                 Solde actuel : {gold} Po · Après déblocage :{" "}
-                {Math.max(0, gold - UNLOCK_PRICE)} Po
+                {Math.max(0, gold - prixPopup)} Po
               </p>
               <button
                 className="primary"
-                disabled={gold < UNLOCK_PRICE}
+                disabled={gold < prixPopup}
                 onClick={async () => {
                   const result = await onUnlock();
                   if (result?.error) setError(result.error);
                   else setPopup(null);
                 }}
               >
-                Débloquer pour {UNLOCK_PRICE} Po
+                Débloquer pour {prixPopup} Po
               </button>
-              {gold < UNLOCK_PRICE && (
+              {gold < prixPopup && (
                 <p className="error">
                   La compagnie n’a pas assez de pièces d’or.
                 </p>
@@ -149,8 +152,9 @@ export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }
             </>
           ) : popup.type === "locked" ? (
             <p>
-              Le coût de ce lit n’a pas encore été renseigné par le maître du
-              jeu.
+              Les lits se débloquent dans l’ordre. Celui-ci coûtera{" "}
+              <strong>{prixPopup} Po</strong> une fois les lits précédents
+              débloqués.
             </p>
           ) : (
             <p>
