@@ -17,7 +17,7 @@ export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }
   return (
     <>
       <section
-        className="dorm-board dorm-named"
+        className="dorm-board dorm-named parchment"
         aria-label="Lits des mercenaires embauchés"
       >
         <div className="dorm-title">

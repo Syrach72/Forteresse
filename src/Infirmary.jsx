@@ -45,7 +45,7 @@ export function Infirmary({
   return (
     <>
       <section
-        className="dorm-board infirmary-board"
+        className="dorm-board infirmary-board parchment"
         aria-label="Lits de l'infirmerie"
       >
         <div className="dorm-title">

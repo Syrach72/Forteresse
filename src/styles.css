@@ -2193,7 +2193,7 @@ video.interior-backdrop-boxed {
   min-width: 0;
   aspect-ratio: 1.35;
   border: 3px ridge #987a45;
-  background: #2d2113;
+  background: transparent;
   padding: 7px;
   overflow: hidden;
   isolation: isolate;
@@ -2294,7 +2294,7 @@ video.interior-backdrop-boxed {
     12px/1.2 Georgia,
     serif;
   display: block;
-  background: #2016099c;
+  background: transparent;
   padding: 7px;
 }
 .bed-cell {
@@ -2316,12 +2316,9 @@ video.interior-backdrop-boxed {
   aspect-ratio: 1.2;
   background: transparent;
 }
-/* Fonds opaques retirés : le décor de la page reste visible derrière l'encart
-   et les lits (bordures conservées, ombres légères pour la lisibilité). */
-.dorm-board.dorm-named {
-  background: transparent;
-  box-shadow: none;
-}
+/* Cadre du dortoir : verre dépoli commun à toutes les pages de jeu (classe
+   parchment, voir .interior .parchment) ; les lits, eux, sont entièrement
+   transparents (bordures conservées). */
 .dorm-named .bed-frame {
   display: none;
 }
@@ -2621,9 +2618,7 @@ video.interior-backdrop-boxed {
 }
 .infirmary-board {
   max-width: 410px;
-  background: rgba(225, 215, 181, 0.91);
-  color: var(--ink);
-  border-color: #b5a373;
+  color: #fff;
 }
 .infirmary-board .dorm-title h2 {
   font-size: 24px;
@@ -2637,11 +2632,11 @@ video.interior-backdrop-boxed {
 }
 .infirmary-board .bed-slot {
   aspect-ratio: 0.95;
-  background: #cabb96;
-  border-color: #a69c7a;
+  background: transparent;
+  border: 2px ridge #a99f8e;
 }
 .infirmary-board .bed-frame {
-  opacity: 0.3;
+  display: none;
 }
 .infirmary-board .rest-counter {
   background: #882619;
@@ -2649,16 +2644,15 @@ video.interior-backdrop-boxed {
   border-color: #c48e62;
 }
 .infirmary-board .bed-name {
-  background: #efe0bada;
-  color: #302820;
+  background: #0007;
+  color: #fff;
 }
 .infirmary-board .free-bed {
-  background: #e0d2b1;
-  color: #52452e;
+  background: transparent;
 }
 .infirmary-board .bed-locked > strong {
-  color: #75510d;
-  text-shadow: none;
+  color: #f0cf36;
+  text-shadow: 0 2px 4px #000;
 }
 .infirmerie .available-heroes {
   max-width: 620px;
