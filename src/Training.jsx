@@ -73,9 +73,6 @@ export function Training({
     <section className="training-workspace">
       <div className="training-caption">
         <h2>La cour d’entraînement</h2>
-        <p>
-          Un instructeur, ses élèves. Des compteurs gérés pendant la partie.
-        </p>
       </div>
       <div className="training-cohort">
         {portrait(training.instructor, "instructor", 0)}

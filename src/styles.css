@@ -2668,7 +2668,7 @@ video.interior-backdrop-boxed {
   min-height: 650px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   padding-top: 160px;
   max-width: 1050px;
 }
@@ -2680,6 +2680,7 @@ video.interior-backdrop-boxed {
 .training-caption h2 {
   font-family: Aniron, Georgia, serif;
   font-size: 34px;
+  margin: 0 0 14px;
 }
 .training-cohort {
   display: grid;
