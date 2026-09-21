@@ -9,6 +9,7 @@ import { Training } from "./Training.jsx";
 import {
   INITIAL_TRAINING,
   buildTraining,
+  freeInstructorGroup,
   trainingIds,
 } from "./training-data.js";
 import { Characters } from "./Characters.jsx";
@@ -955,9 +956,10 @@ export function App() {
   // le seul cas où le lit se libère.
   const absences = useMemo(() => {
     const m = {};
-    if (training.instructor) m[training.instructor.heroId] = "Instructeur";
-    for (const s of training.students)
-      if (s) m[s.heroId] = "À l’entraînement";
+    for (const g of [training, training.second]) {
+      if (g.instructor) m[g.instructor.heroId] = "Instructeur";
+      for (const s of g.students) if (s) m[s.heroId] = "À l’entraînement";
+    }
     for (const b of infirm.beds) if (b) m[b.heroId] = "À l’infirmerie";
     return m;
   }, [training, infirm]);
@@ -1485,8 +1487,11 @@ export function App() {
   }
   async function synchroniserZonesPartagees() {
     const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage] = await Promise.all([
-      supabase.from("entrainement_place").select("role, position, mercenaire_id"),
-      supabase.from("entrainement_reglage").select("places_eleves").maybeSingle(),
+      supabase.from("entrainement_place").select("groupe, role, position, mercenaire_id"),
+      supabase
+        .from("entrainement_reglage")
+        .select("places_eleves, groupe2_debloque, places_eleves_2")
+        .maybeSingle(),
       supabase.from("mercenaire").select("id, veterance"),
       supabase.from("infirmerie_place").select("position, mercenaire_id, restant"),
       supabase.from("infirmerie_reglage").select("places").maybeSingle(),
@@ -1514,7 +1519,7 @@ export function App() {
       setInfirm(next);
     }
     if (!places.error) {
-      const next = buildTraining(places.data, reglage.data?.places_eleves);
+      const next = buildTraining(places.data, reglage.data?.places_eleves, reglage.data);
       trainingRef.current = next;
       setTraining(next);
     }
@@ -1584,8 +1589,18 @@ export function App() {
   }
   // Fiche du mercenaire (Dortoir) : bouton « Instructeur ».
   async function chooseInstructor(id) {
+    const groupe = freeInstructorGroup(trainingRef.current);
+    if (!groupe) {
+      notify(
+        trainingRef.current.second.unlocked
+          ? "Les deux instructeurs sont déjà en place : renvoyez-en un d’abord."
+          : "Un instructeur est déjà en place : renvoyez-le d’abord au dortoir.",
+      );
+      return;
+    }
     const { error } = await supabase.rpc("entrainement_choisir_instructeur", {
       p_mercenaire: id,
+      p_groupe: groupe,
     });
     if (error) {
       notify(error.message);
@@ -1598,10 +1613,11 @@ export function App() {
     location.hash = "entrainement";
   }
   // Cellule « Choisir un élève » du terrain d'entraînement.
-  async function chooseStudent(index, id) {
+  async function chooseStudent(index, id, groupe = 1) {
     const { error } = await supabase.rpc("entrainement_choisir_eleve", {
       p_position: index,
       p_mercenaire: id,
+      p_groupe: groupe,
     });
     if (error) return { error: error.message };
     await synchroniserPartage();
@@ -1613,8 +1629,8 @@ export function App() {
   // Renvoi au dortoir : `role` "instructor" (avec ses élèves) ou "student".
   // Réservé au recruteur du mercenaire (ou à l'administrateur), vérifié par le
   // serveur. Les niveaux gagnés sont déjà enregistrés : rien n'est perdu.
-  async function sendBackToDorm(role, index) {
-    const t = trainingRef.current;
+  async function sendBackToDorm(role, index, groupe = 1) {
+    const t = groupe === 2 ? trainingRef.current.second : trainingRef.current;
     const id = role === "instructor" ? t.instructor?.heroId : t.students[index]?.heroId;
     if (!id) return {};
     const { error } = await supabase.rpc("entrainement_renvoyer", { p_mercenaire: id });
@@ -1625,13 +1641,27 @@ export function App() {
     );
     return {};
   }
-  async function unlockTraining() {
-    if (trainingRef.current.capacity >= 3)
-      return { error: "Toutes les places élèves sont ouvertes." };
-    const { error } = await supabase.rpc("entrainement_debloquer_place");
+  // Déblocages du terrain (administrateur seul, vérifié par le serveur) : place
+  // d'élève (100 Po au premier groupe, 300 Po au second) ou instructeur du second
+  // groupe (1000 Po).
+  async function unlockTraining(groupe = 1) {
+    const g = groupe === 2 ? trainingRef.current.second : trainingRef.current;
+    if (g.capacity >= 3) return { error: "Toutes les places élèves sont ouvertes." };
+    const { error } = await supabase.rpc("entrainement_debloquer_place", {
+      p_groupe: groupe,
+    });
     if (error) return { error: error.message };
     await synchroniserPartage();
     notify("Une place élève est débloquée.");
+    return {};
+  }
+  async function unlockSecondGroup() {
+    if (trainingRef.current.second.unlocked)
+      return { error: "Le second groupe d’instruction est déjà débloqué." };
+    const { error } = await supabase.rpc("entrainement_debloquer_groupe2");
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    notify("Le second groupe d’instruction est débloqué.");
     return {};
   }
   // Fiche du mercenaire (Dortoir) : bouton « Soigner ». Le mercenaire prend le
@@ -1659,8 +1689,8 @@ export function App() {
     return {};
   }
   async function unlockInfirm() {
-    if (infirmRef.current.capacity !== 2)
-      return { error: "Cet emplacement est déjà débloqué." };
+    if (infirmRef.current.capacity >= 6)
+      return { error: "Tous les lits de l’infirmerie sont déjà débloqués." };
     const { error } = await supabase.rpc("infirmerie_debloquer_place");
     if (error) return { error: error.message };
     await synchroniserPartage();
@@ -2142,7 +2172,7 @@ export function App() {
           onHeal={healMercenary}
           infirmerieComplete={infirm.beds.slice(0, infirm.capacity).every(Boolean)}
           absences={absences}
-          instructeurEnPlace={!!training.instructor}
+          instructeurEnPlace={freeInstructorGroup(training) === null}
           litLibre={firstFreeBed(dorm) >= 0}
           onUpdate={(id, data) =>
             setWarriors((old) =>
@@ -2285,6 +2315,7 @@ export function App() {
               onChoose={chooseStudent}
               onSendBack={sendBackToDorm}
               onUnlock={unlockTraining}
+              onUnlockGroup={unlockSecondGroup}
               Modal={Modal}
             />
           ) : route === "dortoirs" ? (
@@ -2293,6 +2324,7 @@ export function App() {
               dorm={dorm}
               warriors={dormPeople}
               absences={absences}
+              estAdmin={estAdmin}
               gold={game.gold}
               onUnlock={unlockDorm}
               Modal={Modal}

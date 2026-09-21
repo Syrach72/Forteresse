@@ -54,6 +54,15 @@ export function buildDorm(rows = [], places = 6) {
   return state;
 }
 
+// Lits de l'infirmerie : 2 libres au départ, les 4 autres se débloquent DANS
+// L'ORDRE (administrateur seul) pour 300, 500, 800 puis 1200 Po (règle de Bruno).
+// `slot` = indice du lit (0 à 5) ; null pour un lit déjà libre ou hors infirmerie.
+// Le serveur applique la même grille (fonction infirmerie_debloquer_place).
+export const PRIX_LITS_INFIRMERIE = [300, 500, 800, 1200];
+export function prixLitInfirmerie(slot) {
+  if (!Number.isInteger(slot)) return null;
+  return PRIX_LITS_INFIRMERIE[slot - 2] ?? null;
+}
 export const INITIAL_INFIRMARY = {
   capacity: 2,
   beds: [null, null, null, null, null, null],
@@ -65,7 +74,7 @@ export const SOINS_INSTANCES = 5;
 // { position, mercenaire_id, restant }, `capacity` = lits débloqués (2 ou 3).
 export function buildInfirmary(places = [], capacity = 2) {
   const state = structuredClone(INITIAL_INFIRMARY);
-  state.capacity = Math.max(2, Math.min(3, Number(capacity) || 2));
+  state.capacity = Math.max(2, Math.min(6, Number(capacity) || 2));
   for (const p of places)
     if (p.position >= 0 && p.position < state.beds.length)
       state.beds[p.position] = { heroId: p.mercenaire_id, remaining: p.restant };

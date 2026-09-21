@@ -77,15 +77,22 @@ begin
   exception when others then
     rapport := rapport || E'\nOK aucun lit libre : ' || sqlerrm;
   end;
+  update partie_etat set or_compagnie = 10000 where id;
   v := infirmerie_debloquer_place();
   perform infirmerie_soigner(m_c);
   select position into n from infirmerie_place where mercenaire_id = m_c;
-  rapport := rapport || case when v = 3 and n = 2 then E'\nOK troisieme lit debloque et utilise' else E'\nKO lits ' || v || ' position ' || coalesce(n::text, 'aucune') end;
+  rapport := rapport || case when v = 3 and n = 2 then E'\nOK troisieme lit debloque (300 Po) et utilise' else E'\nKO lits ' || v || ' position ' || coalesce(n::text, 'aucune') end;
+  -- Les lits 4, 5 et 6 coutent 500, 800 et 1200 Po ; pas de 7e lit.
+  perform infirmerie_debloquer_place();
+  perform infirmerie_debloquer_place();
+  v := infirmerie_debloquer_place();
+  select or_compagnie into n from partie_etat;
+  rapport := rapport || case when v = 6 and n = 10000 - 300 - 500 - 800 - 1200 then E'\nOK six lits debloques : 300 + 500 + 800 + 1200 Po' else E'\nKO lits ' || v || ' or ' || n end;
   begin
     perform infirmerie_debloquer_place();
-    rapport := rapport || E'\nKO quatrieme lit debloque';
+    rapport := rapport || E'\nKO septieme lit debloque';
   exception when others then
-    rapport := rapport || E'\nOK pas de quatrieme lit : ' || sqlerrm;
+    rapport := rapport || E'\nOK pas de septieme lit : ' || sqlerrm;
   end;
 
   -- Exclusivite avec l'entrainement.

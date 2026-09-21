@@ -52,8 +52,6 @@ begin
   v := dortoir_debloquer_place();
   select or_compagnie into n from partie_etat;
   rapport := rapport || case when v = 7 and n = 900 then E'\nOK 7e lit debloque : -100 Po' else E'\nKO deblocage : places ' || v || ' or ' || n end;
-  begin perform dortoir_debloquer_place(); rapport := rapport || E'\nKO 8e lit debloque';
-  exception when others then rapport := rapport || E'\nOK pas de 8e lit : ' || sqlerrm; end;
   insert into mercenaire (nom, classe_id, veterance) values ('TEST septieme', c1, 0) returning id into v_id;
   insert into recrutement (mercenaire_id, user_id, nom_joueur) values (v_id, u_admin, 'test');
   select lit into n from recrutement where mercenaire_id = v_id;

@@ -138,8 +138,9 @@ begin
   perform entrainement_debloquer_place();
   select or_compagnie into n from partie_etat;
   rapport := rapport || case when n = 1134 then E'\nOK place eleve : -100 Po sur la tresorerie partagee' else E'\nKO place eleve : or ' || n end;
-  begin perform infirmerie_debloquer_place(); rapport := rapport || case when (select or_compagnie from partie_etat) = 134 then E'\nOK lit d''infirmerie : -1000 Po' else E'\nKO lit infirmerie' end;
+  begin perform infirmerie_debloquer_place(); rapport := rapport || case when (select or_compagnie from partie_etat) = 834 then E'\nOK lit d''infirmerie : -300 Po' else E'\nKO lit infirmerie' end;
   exception when others then rapport := rapport || E'\nKO lit infirmerie refuse : ' || sqlerrm; end;
+  perform partie_or_definir(499);
   begin perform infirmerie_debloquer_place(); rapport := rapport || E'\nKO lit infirmerie sans solde accepte';
   exception when others then rapport := rapport || E'\nOK lit infirmerie sans solde refuse : ' || sqlerrm; end;
 

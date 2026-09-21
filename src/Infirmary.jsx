@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { ReferenceCrop } from "./Characters.jsx";
 import { useGlassWindows } from "./glassWindows.js";
+import { prixLitInfirmerie } from "./dormitory.js";
 // Infirmerie PARTAGÉE : visible par tous les joueurs. Un joueur y envoie son
 // mercenaire depuis sa fiche (bouton « Soigner ») ; il y reste SOINS_INSTANCES
 // instances (le compteur baisse à chaque +1 Instance de l'administrateur), puis
@@ -9,8 +10,9 @@ import { useGlassWindows } from "./glassWindows.js";
 // - people : tous les mercenaires de la compagnie ;
 // - warriors : ceux du joueur connecté (les seuls qu'il peut rappeler avant la
 //   fin des soins, l'administrateur pouvant tout rappeler).
-const INITIAL_CAPACITY = 2;
-const UNLOCK_PRICE = 1000;
+// Les lits verrouillés (dans l'ordre : 300, 500, 800 puis 1200 Po) ne peuvent
+// être débloqués que par l'administrateur (`estAdmin`, vérifié aussi par le
+// serveur) ; les joueurs voient leur prix.
 export function Infirmary({
   infirmary,
   people,
@@ -31,6 +33,8 @@ export function Infirmary({
   const windows = useGlassWindows(boardRef, layerRef, ".bed-slot");
   const hero = (id) => people.find((w) => w.id === id);
   const enSoin = infirmary.beds.filter(Boolean).length;
+  // Prix du lit visé par la fenêtre ouverte (déblocage ou lit verrouillé).
+  const prixPopup = prixLitInfirmerie(popup?.slot) ?? 0;
   const close = () => {
     setPopup(null);
     setError("");
@@ -71,8 +75,8 @@ export function Infirmary({
           {infirmary.beds.map((bed, slot) => {
             const w = bed ? hero(bed.heroId) : null;
             const locked = slot >= infirmary.capacity;
-            const purchasable =
-              slot === INITIAL_CAPACITY && infirmary.capacity === INITIAL_CAPACITY;
+            const prix = prixLitInfirmerie(slot);
+            const purchasable = estAdmin && slot === infirmary.capacity;
             return (
               <button
                 className={`bed-slot ${locked ? "bed-locked" : ""}`}
@@ -87,7 +91,7 @@ export function Infirmary({
                 aria-label={
                   locked
                     ? purchasable
-                      ? `Débloquer le lit ${slot + 1} pour ${UNLOCK_PRICE} pièces d’or`
+                      ? `Débloquer le lit ${slot + 1} pour ${prix} pièces d’or`
                       : `Lit ${slot + 1} verrouillé`
                     : bed
                       ? `${w?.name || "Mercenaire"}, en soin, encore ${bed.remaining} instance${bed.remaining > 1 ? "s" : ""}`
@@ -113,7 +117,7 @@ export function Infirmary({
                     <span className="bed-lock" aria-hidden="true">
                       <img src="/assets/icons/lock.png" alt="" />
                     </span>
-                    {purchasable && <strong>{UNLOCK_PRICE} Po</strong>}
+                    {prix != null && <strong>{prix} Po</strong>}
                   </>
                 ) : (
                   <span className="free-bed">Lit libre</span>
@@ -141,20 +145,20 @@ export function Infirmary({
               <p>
                 Débloquez un lit supplémentaire pour soigner un mercenaire de
                 plus. La trésorerie de la compagnie sera débitée de{" "}
-                <strong>{UNLOCK_PRICE} Po</strong>.
+                <strong>{prixPopup} Po</strong>.
               </p>
               <p>
                 Solde actuel : {gold} Po · Après déblocage :{" "}
-                {Math.max(0, gold - UNLOCK_PRICE)} Po
+                {Math.max(0, gold - prixPopup)} Po
               </p>
               <button
                 className="primary"
-                disabled={gold < UNLOCK_PRICE || enCours}
+                disabled={gold < prixPopup || enCours}
                 onClick={() => agir(() => onUnlock())}
               >
-                Débloquer pour {UNLOCK_PRICE} Po
+                Débloquer pour {prixPopup} Po
               </button>
-              {gold < UNLOCK_PRICE && (
+              {gold < prixPopup && (
                 <p className="error">
                   La compagnie n’a pas assez de pièces d’or.
                 </p>
@@ -162,8 +166,11 @@ export function Infirmary({
             </>
           ) : popup.type === "locked" ? (
             <p>
-              Le coût de ce lit n’a pas encore été renseigné par le maître du
-              jeu.
+              {estAdmin
+                ? "Les lits se débloquent dans l’ordre."
+                : "Seul le maître du jeu peut débloquer un lit, dans l’ordre."}{" "}
+              Celui-ci coûte <strong>{prixPopup} Po</strong>
+              {estAdmin ? " une fois les lits précédents débloqués" : ""}.
             </p>
           ) : popup.type === "bed" && bedPopup ? (
             <>

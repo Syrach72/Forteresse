@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { ReferenceCrop } from "./Characters.jsx";
 import { VetBadge } from "./VetBadge.jsx";
-import { VETERANCE_ECART, eligibleStudents } from "./training-data.js";
+import {
+  PRIX_INSTRUCTEUR_GROUPE_2,
+  PRIX_PLACE_ELEVE,
+  VETERANCE_ECART,
+  eligibleStudents,
+} from "./training-data.js";
 // Terrain d'entraînement PARTAGÉ : visible par tous les joueurs. Un instructeur
 // (choisi depuis la fiche du mercenaire, au Dortoir) et des élèves (choisis
 // ici, dans « Choisir un élève »).
@@ -9,8 +14,13 @@ import { VETERANCE_ECART, eligibleStudents } from "./training-data.js";
 //   participants de chacun) ;
 // - warriors : ceux du joueur connecté, les seuls qu'il peut placer ou renvoyer
 //   (l'administrateur peut tout renvoyer).
-// Les règles sont vérifiées par le serveur (migration
-// 20260921100000_entrainement.sql) ; ici on ne propose que des choix valides.
+// Deux groupes d'instruction (1 = ligne du haut, 2 = ligne du bas, bloquée au
+// départ). Tous les déblocages (place d'élève : 100 Po au premier groupe, 300 Po
+// au second ; instructeur du second groupe : 1000 Po) sont réservés à
+// l'administrateur (`estAdmin`, vérifié aussi par le serveur) ; les joueurs
+// voient les cellules verrouillées et leur prix.
+// Les règles sont vérifiées par le serveur (migrations 20260921100000 et
+// 20260921160000) ; ici on ne propose que des choix valides.
 export function Training({
   training,
   people,
@@ -21,14 +31,16 @@ export function Training({
   onChoose,
   onSendBack,
   onUnlock,
+  onUnlockGroup,
   Modal,
 }) {
+  // popup : { role: "instructor" | "student" | "unlock" | "unlock-group", index, group }
   const [popup, setPopup] = useState(null);
   const [error, setError] = useState("");
   // Une action serveur est en cours : évite les doubles clics.
   const [enCours, setEnCours] = useState(false);
   const hero = (person) => people.find((w) => w.id === person?.heroId);
-  const instructor = hero(training.instructor);
+  const groupe = (g) => (g === 2 ? training.second : training);
   const peutRenvoyer = (w) => estAdmin || warriors.some((x) => x.id === w?.id);
   // Lance une action serveur ; ferme la fenêtre si elle réussit, sinon affiche
   // l'erreur renvoyée.
@@ -40,11 +52,21 @@ export function Training({
     if (result?.error) setError(result.error);
     else close();
   }
-  function portrait(person, role, index) {
+  const close = () => {
+    setPopup(null);
+    setError("");
+  };
+  const ouvrir = (next) => {
+    setError("");
+    setPopup(next);
+  };
+  // Cellule d'instructeur ou d'élève du groupe `g`.
+  function portrait(person, role, index, g) {
     const w = hero(person);
     const isInstructor = role === "instructor";
+    const instr = hero(groupe(g).instructor);
     // Pas d'élève tant qu'aucun instructeur n'est en place.
-    const blocked = !isInstructor && !w && !instructor;
+    const blocked = !isInstructor && !w && !instr;
     const noun = isInstructor ? "instructeur" : "élève";
     return (
       <button
@@ -57,10 +79,7 @@ export function Training({
               ? "Élève : choisissez d’abord un instructeur"
               : `Choisir un ${noun}`
         }
-        onClick={() => {
-          setError("");
-          setPopup({ role, index });
-        }}
+        onClick={() => ouvrir({ role, index, group: g })}
       >
         {w ? (
           <>
@@ -76,20 +95,35 @@ export function Training({
         <small>
           {isInstructor
             ? "Instructeur"
-            : w && instructor
-              ? `Élève · objectif ${instructor.veterancy}`
+            : w && instr
+              ? `Élève · objectif ${instr.veterancy}`
               : "Élève"}
         </small>
       </button>
     );
   }
-  const close = () => {
-    setPopup(null);
-    setError("");
-  };
+  // Cellule verrouillée : cadenas et prix ; cliquable (déblocage pour
+  // l'administrateur, explication pour les joueurs).
+  function verrouillee({ key, aria, libelle, prix, popup: cible, instructeur = false }) {
+    return (
+      <button
+        key={key}
+        className={`training-place parchment training-locked ${instructeur ? "instructor-place" : ""}`}
+        aria-label={aria}
+        onClick={() => ouvrir(cible)}
+      >
+        <span className="training-padlock" aria-hidden="true">
+          <img src="/assets/icons/lock.png" alt="" />
+        </span>
+        <span>{libelle}</span>
+        <strong>{prix} Po</strong>
+        <small>{estAdmin ? "Débloquer" : "Verrouillé"}</small>
+      </button>
+    );
+  }
   // Bouton « Renvoyer au dortoir » (recruteur ou administrateur), sinon
   // l'explication.
-  function renvoi(w, role, index) {
+  function renvoi(w, role, index, g) {
     if (!peutRenvoyer(w))
       return (
         <p className="muted">
@@ -101,31 +135,55 @@ export function Training({
       <button
         className="primary"
         disabled={enCours}
-        onClick={() => agir(() => onSendBack(role, index))}
+        onClick={() => agir(() => onSendBack(role, index, g))}
       >
         Renvoyer au dortoir
       </button>
     );
   }
+  // Fenêtre d'un déblocage : administrateur seul, sinon simple explication.
+  function deblocage({ texte, prix, action }) {
+    if (!estAdmin)
+      return (
+        <p>
+          {texte} Seul le maître du jeu peut débloquer cet emplacement
+          ({prix} Po).
+        </p>
+      );
+    return (
+      <>
+        <p>{texte}</p>
+        <p>
+          Solde actuel : {gold} Po · Après déblocage : {Math.max(0, gold - prix)} Po
+        </p>
+        <button
+          className="primary"
+          disabled={gold < prix || enCours}
+          onClick={() => agir(action)}
+        >
+          Débloquer pour {prix} Po
+        </button>
+        {gold < prix && <p className="error">Trésorerie insuffisante.</p>}
+      </>
+    );
+  }
   // Contenu de la fenêtre selon la cellule cliquée.
   function content() {
+    const g = popup.group || 1;
+    const G = groupe(g);
+    const instructor = hero(G.instructor);
     if (popup.role === "unlock")
-      return (
-        <>
-          <p>
-            Ajouter une place d’élève débite 100 Po de la trésorerie de la
-            compagnie.
-          </p>
-          <button
-            className="primary"
-            disabled={gold < 100 || enCours}
-            onClick={() => agir(() => onUnlock())}
-          >
-            Débloquer pour 100 Po
-          </button>
-          {gold < 100 && <p className="error">Trésorerie insuffisante.</p>}
-        </>
-      );
+      return deblocage({
+        texte: `Ajouter une place d’élève débite ${PRIX_PLACE_ELEVE[g]} Po de la trésorerie de la compagnie.${popup.index !== G.capacity ? " Les places se débloquent dans l’ordre." : ""}`,
+        prix: PRIX_PLACE_ELEVE[g],
+        action: () => onUnlock(g),
+      });
+    if (popup.role === "unlock-group")
+      return deblocage({
+        texte: `Débloquer le second groupe d’instruction (son instructeur) débite ${PRIX_INSTRUCTEUR_GROUPE_2} Po de la trésorerie de la compagnie.`,
+        prix: PRIX_INSTRUCTEUR_GROUPE_2,
+        action: () => onUnlockGroup(),
+      });
     if (popup.role === "instructor") {
       if (!instructor)
         return (
@@ -139,7 +197,7 @@ export function Training({
             </a>
           </>
         );
-      const eleves = training.students.filter(Boolean).length;
+      const eleves = G.students.filter(Boolean).length;
       return (
         <>
           <p>
@@ -153,12 +211,12 @@ export function Training({
               au dortoir, avec leur niveau actuel.
             </p>
           )}
-          {renvoi(instructor, "instructor", 0)}
+          {renvoi(instructor, "instructor", 0, g)}
         </>
       );
     }
     // Élève
-    const w = hero(training.students[popup.index]);
+    const w = hero(G.students[popup.index]);
     if (w)
       return (
         <>
@@ -169,7 +227,7 @@ export function Training({
             vétérance de son instructeur.
           </p>
           <p>Il peut être renvoyé avant : il garde le niveau déjà acquis.</p>
-          {renvoi(w, "student", popup.index)}
+          {renvoi(w, "student", popup.index, g)}
         </>
       );
     const candidats = eligibleStudents(warriors, instructor, training, absents);
@@ -194,11 +252,47 @@ export function Training({
             className="wood-button"
             key={c.id}
             disabled={enCours}
-            onClick={() => agir(() => onChoose(popup.index, c.id))}
+            onClick={() => agir(() => onChoose(popup.index, c.id, g))}
           >
             {c.name} · vétérance {c.veterancy}
           </button>
         ))}
+      </div>
+    );
+  }
+  // Une ligne d'instruction : l'instructeur puis ses trois places d'élèves.
+  function cohorte(g) {
+    const G = groupe(g);
+    const instructeurBloque = g === 2 && !G.unlocked;
+    return (
+      <div
+        className={`training-cohort ${g === 2 ? "training-cohort-second" : ""}`}
+        role="group"
+        aria-label={`Groupe d’instruction ${g}`}
+      >
+        {instructeurBloque
+          ? verrouillee({
+              key: "instructeur",
+              aria: `Second instructeur verrouillé : débloquer pour ${PRIX_INSTRUCTEUR_GROUPE_2} pièces d’or`,
+              libelle: "Instructeur",
+              prix: PRIX_INSTRUCTEUR_GROUPE_2,
+              popup: { role: "unlock-group", group: 2 },
+              instructeur: true,
+            })
+          : portrait(G.instructor, "instructor", 0, g)}
+        {G.students.map((person, index) =>
+          index < G.capacity ? (
+            <div key={index}>{portrait(person, "student", index, g)}</div>
+          ) : (
+            verrouillee({
+              key: index,
+              aria: `Emplacement élève verrouillé : débloquer pour ${PRIX_PLACE_ELEVE[g]} pièces d’or`,
+              libelle: "Emplacement élève",
+              prix: PRIX_PLACE_ELEVE[g],
+              popup: { role: "unlock", index, group: g },
+            })
+          ),
+        )}
       </div>
     );
   }
@@ -207,79 +301,18 @@ export function Training({
       <div className="training-caption">
         <h2>La cour d’entraînement</h2>
       </div>
-      <div className="training-cohort">
-        {portrait(training.instructor, "instructor", 0)}
-        {training.students.map((person, index) =>
-          index < training.capacity ? (
-            <div key={index}>{portrait(person, "student", index)}</div>
-          ) : (
-            <button
-              key={index}
-              className="training-place parchment training-locked"
-              onClick={() => {
-                setError("");
-                setPopup({ role: "unlock", index });
-              }}
-            >
-              <span>Emplacement élève</span>
-              <strong>100 Po</strong>
-              <small>Débloquer</small>
-            </button>
-          ),
-        )}
-      </div>
-      {/* Second groupe d'instruction : mêmes cellules que le premier, entièrement
-          bloquées pour le moment (instructeur, puis 3 places d'élève ; la
-          première serait libre mais reste inutilisable sans instructeur). */}
-      <div
-        className="training-cohort training-cohort-second"
-        role="group"
-        aria-label="Second groupe d’instruction, bloqué pour le moment"
-      >
-        <button
-          className="training-place parchment instructor-place training-blocked"
-          disabled
-          aria-label="Second instructeur : bloqué pour le moment"
-        >
-          <span className="training-padlock" aria-hidden="true">
-            <img src="/assets/icons/lock.png" alt="" />
-          </span>
-          <span>Choisir un instructeur</span>
-          <small>Instructeur</small>
-        </button>
-        <div>
-          <button
-            className="training-place parchment training-blocked"
-            disabled
-            aria-label="Élève : choisissez d’abord un instructeur"
-          >
-            <span>Choisissez d’abord un instructeur</span>
-            <small>Élève</small>
-          </button>
-        </div>
-        {[0, 1].map((i) => (
-          <button
-            key={i}
-            className="training-place parchment training-locked training-blocked"
-            disabled
-            aria-label="Emplacement élève : bloqué pour le moment"
-          >
-            <span className="training-padlock" aria-hidden="true">
-              <img src="/assets/icons/lock.png" alt="" />
-            </span>
-            <span>Emplacement élève</span>
-            <small>Bloqué</small>
-          </button>
-        ))}
-      </div>
+      {cohorte(1)}
+      {cohorte(2)}
       {popup && (
         <Modal
           title={
             popup.role === "unlock"
               ? "Ajouter une place élève"
-              : popup.role === "instructor"
-                ? "Instructeur"
-                : "Élève"
+              : popup.role === "unlock-group"
+                ? "Second instructeur"
+                : popup.role === "instructor"
+                  ? "Instructeur"
+                  : "Élève"
           }
           onClose={close}
         >

@@ -10,7 +10,17 @@ import { prixLitDortoir } from "./dormitory.js";
 // `absences` : identifiant -> où se trouve le mercenaire quand il n'est pas au
 // dortoir (Instructeur, À l'entraînement, À l'infirmerie). Il garde son lit,
 // affiché grisé ; seul un renvoi de la compagnie libère le lit.
-export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }) {
+// Les lits verrouillés ne peuvent être débloqués que par l'administrateur
+// (`estAdmin`, vérifié aussi par le serveur) ; les joueurs voient leur prix.
+export function Dortoir({
+  dorm,
+  warriors,
+  absences = {},
+  estAdmin = false,
+  gold,
+  onUnlock,
+  Modal,
+}) {
   const [popup, setPopup] = useState(null);
   const [error, setError] = useState("");
   // Verre dépoli sur le cadre seulement : les lits sont des fenêtres
@@ -48,8 +58,8 @@ export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }
             const away = merc ? absences[merc.id] : undefined;
             const locked = slot >= dorm.capacity;
             // Les lits se débloquent dans l'ordre : seul le premier lit verrouillé
-            // peut être acheté ; les suivants affichent leur prix.
-            const purchasable = slot === dorm.capacity;
+            // peut être acheté (par l'administrateur) ; les autres affichent leur prix.
+            const purchasable = estAdmin && slot === dorm.capacity;
             const prix = prixLitDortoir(slot);
             return (
               <div className="bed-cell" key={slot}>
@@ -152,9 +162,11 @@ export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }
             </>
           ) : popup.type === "locked" ? (
             <p>
-              Les lits se débloquent dans l’ordre. Celui-ci coûtera{" "}
-              <strong>{prixPopup} Po</strong> une fois les lits précédents
-              débloqués.
+              {estAdmin
+                ? "Les lits se débloquent dans l’ordre."
+                : "Seul le maître du jeu peut débloquer un lit, dans l’ordre."}{" "}
+              Celui-ci coûte <strong>{prixPopup} Po</strong>
+              {estAdmin ? " une fois les lits précédents débloqués" : ""}.
             </p>
           ) : (
             <p>

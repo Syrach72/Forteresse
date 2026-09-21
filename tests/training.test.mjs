@@ -2,9 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   INITIAL_TRAINING,
+  PRIX_INSTRUCTEUR_GROUPE_2,
+  PRIX_PLACE_ELEVE,
   VETERANCE_ECART,
   buildTraining,
   eligibleStudents,
+  freeInstructorGroup,
+  groupOfInstructor,
   studentBlocker,
   trainingIds,
 } from "../src/training-data.js";
@@ -84,6 +88,7 @@ import {
   buildDorm,
   buildInfirmary,
   prixLitDortoir,
+  prixLitInfirmerie,
 } from "../src/dormitory.js";
 test("infirmerie : les soins durent 5 instances", () => {
   assert.equal(SOINS_INSTANCES, 5);
@@ -102,9 +107,10 @@ test("infirmerie : état d'affichage construit depuis les lignes de la base", ()
   assert.deepEqual(state.beds[2], { heroId: "b", remaining: 1 });
   assert.equal(state.beds.length, INITIAL_INFIRMARY.beds.length);
 });
-test("infirmerie : vide par défaut, lits bornés entre 2 et 3, ligne inconnue ignorée", () => {
+test("infirmerie : vide par défaut, lits bornés entre 2 et 6, ligne inconnue ignorée", () => {
   assert.deepEqual(buildInfirmary([], 2), INITIAL_INFIRMARY);
-  assert.equal(buildInfirmary([], 9).capacity, 3);
+  assert.equal(buildInfirmary([], 6).capacity, 6);
+  assert.equal(buildInfirmary([], 9).capacity, 6);
   assert.equal(buildInfirmary([], 0).capacity, 2);
   assert.equal(buildInfirmary([], undefined).capacity, 2);
   const s = buildInfirmary([{ position: 9, mercenaire_id: "x", restant: 5 }], 3);
@@ -144,4 +150,72 @@ test("dortoir : prix des lits, 100 / 150 / 200 / 300 Po par groupe de trois, dan
 test("dortoir : les 6 premiers lits et les lits hors dortoir n'ont pas de prix", () => {
   for (const slot of [0, 5, 18, 40, -1, 6.5, undefined, null])
     assert.equal(prixLitDortoir(slot), null);
+});
+test("infirmerie : les 4 lits verrouillés coûtent 300 / 500 / 800 / 1200 Po dans l'ordre", () => {
+  assert.deepEqual(
+    [2, 3, 4, 5].map((slot) => prixLitInfirmerie(slot)),
+    [300, 500, 800, 1200],
+  );
+  for (const slot of [0, 1, 6, -1, 2.5, undefined, null])
+    assert.equal(prixLitInfirmerie(slot), null);
+});
+const ligne = (groupe, role, position, mercenaire_id) => ({ groupe, role, position, mercenaire_id });
+test("terrain : le second groupe est bloqué au départ, avec ses propres places", () => {
+  assert.equal(INITIAL_TRAINING.second.unlocked, false);
+  assert.equal(INITIAL_TRAINING.second.instructor, null);
+  assert.equal(INITIAL_TRAINING.second.capacity, 1);
+  assert.equal(PRIX_INSTRUCTEUR_GROUPE_2, 1000);
+  assert.deepEqual(PRIX_PLACE_ELEVE, { 1: 100, 2: 300 });
+});
+test("terrain : les lignes de chaque groupe vont dans le bon groupe (groupe 1 par défaut)", () => {
+  const state = buildTraining(
+    [
+      ligne(1, "instructeur", 0, "a"),
+      ligne(1, "eleve", 0, "b"),
+      ligne(2, "instructeur", 0, "c"),
+      ligne(2, "eleve", 1, "d"),
+      { role: "eleve", position: 2, mercenaire_id: "e" },
+    ],
+    3,
+    { groupe2_debloque: true, places_eleves_2: 2 },
+  );
+  assert.equal(state.instructor.heroId, "a");
+  assert.equal(state.students[0].heroId, "b");
+  assert.equal(state.students[2].heroId, "e");
+  assert.equal(state.second.unlocked, true);
+  assert.equal(state.second.capacity, 2);
+  assert.equal(state.second.instructor.heroId, "c");
+  assert.equal(state.second.students[1].heroId, "d");
+  assert.equal(state.second.students[0], null);
+  assert.deepEqual(trainingIds(state).sort(), ["a", "b", "c", "d", "e"]);
+});
+test("terrain : places du second groupe bornées entre 1 et 3", () => {
+  assert.equal(buildTraining([], 1, { places_eleves_2: 9 }).second.capacity, 3);
+  assert.equal(buildTraining([], 1, { places_eleves_2: 0 }).second.capacity, 1);
+  assert.equal(buildTraining([], 1, null).second.unlocked, false);
+});
+test("terrain : un élève du second groupe n'est proposé nulle part ailleurs", () => {
+  const state = buildTraining([ligne(2, "eleve", 0, "novice")], 1, {
+    groupe2_debloque: true,
+  });
+  assert.deepEqual(
+    eligibleStudents(mine, maitre, state).map((w) => w.id),
+    ["egal", "autre"],
+  );
+});
+test("terrain : un nouvel instructeur va dans le premier groupe libre", () => {
+  assert.equal(freeInstructorGroup(vide()), 1);
+  const g1 = buildTraining([ligne(1, "instructeur", 0, "a")]);
+  assert.equal(freeInstructorGroup(g1), null); // second groupe bloqué
+  const g2 = buildTraining([ligne(1, "instructeur", 0, "a")], 1, { groupe2_debloque: true });
+  assert.equal(freeInstructorGroup(g2), 2);
+  const complet = buildTraining(
+    [ligne(1, "instructeur", 0, "a"), ligne(2, "instructeur", 0, "c")],
+    1,
+    { groupe2_debloque: true },
+  );
+  assert.equal(freeInstructorGroup(complet), null);
+  assert.equal(groupOfInstructor(complet, "a"), 1);
+  assert.equal(groupOfInstructor(complet, "c"), 2);
+  assert.equal(groupOfInstructor(complet, "z"), null);
 });

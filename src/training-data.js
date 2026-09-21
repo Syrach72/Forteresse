@@ -12,27 +12,62 @@
 // - l'instructeur reste en place jusqu'à ce qu'on le renvoie.
 // Un participant est { heroId } : la vétérance vit sur le mercenaire (base).
 export const VETERANCE_ECART = 3;
+// Deux groupes d'instruction. Le premier est à la racine de l'état ; le second
+// (`second`) est bloqué au départ : son instructeur se débloque pour 1000 Po,
+// ses places d'élèves 2 et 3 pour 300 Po chacune (administrateur seul, comme
+// tous les déblocages).
+export const PRIX_PLACE_ELEVE = { 1: 100, 2: 300 };
+export const PRIX_INSTRUCTEUR_GROUPE_2 = 1000;
 export const INITIAL_TRAINING = {
   instructor: null,
   students: [null, null, null],
   capacity: 1,
-  secondGroup: false,
+  second: {
+    unlocked: false,
+    instructor: null,
+    students: [null, null, null],
+    capacity: 1,
+  },
 };
 export function trainingIds(state) {
-  return [state.instructor, ...state.students]
+  return [
+    state.instructor,
+    ...state.students,
+    state.second?.instructor,
+    ...(state.second?.students || []),
+  ]
     .filter(Boolean)
     .map((x) => x.heroId);
 }
+// Numéro de groupe (1 ou 2) où se trouve ce mercenaire à titre d'instructeur,
+// ou null.
+export function groupOfInstructor(state, id) {
+  if (state.instructor?.heroId === id) return 1;
+  if (state.second?.instructor?.heroId === id) return 2;
+  return null;
+}
+// Premier groupe capable d'accueillir un nouvel instructeur : débloqué et sans
+// instructeur en place ; null s'il n'y en a pas.
+export function freeInstructorGroup(state) {
+  if (!state.instructor) return 1;
+  if (state.second?.unlocked && !state.second.instructor) return 2;
+  return null;
+}
+const bornePlaces = (n) => Math.max(1, Math.min(3, Number(n) || 1));
 // État d'affichage à partir des lignes de la base : `places` = lignes
-// { role: "instructeur" | "eleve", position, mercenaire_id }, `placesEleves` =
-// nombre de places élèves débloquées (1 à 3).
-export function buildTraining(places = [], placesEleves = 1) {
+// { groupe, role: "instructeur" | "eleve", position, mercenaire_id } (groupe 1
+// par défaut), `placesEleves` = places élèves débloquées du groupe 1 (1 à 3),
+// `reglage2` = { groupe2_debloque, places_eleves_2 } pour le second groupe.
+export function buildTraining(places = [], placesEleves = 1, reglage2 = {}) {
   const state = structuredClone(INITIAL_TRAINING);
-  state.capacity = Math.max(1, Math.min(3, Number(placesEleves) || 1));
+  state.capacity = bornePlaces(placesEleves);
+  state.second.unlocked = !!reglage2?.groupe2_debloque;
+  state.second.capacity = bornePlaces(reglage2?.places_eleves_2);
   for (const p of places) {
-    if (p.role === "instructeur") state.instructor = { heroId: p.mercenaire_id };
-    else if (p.position >= 0 && p.position < state.students.length)
-      state.students[p.position] = { heroId: p.mercenaire_id };
+    const g = p.groupe === 2 ? state.second : state;
+    if (p.role === "instructeur") g.instructor = { heroId: p.mercenaire_id };
+    else if (p.position >= 0 && p.position < g.students.length)
+      g.students[p.position] = { heroId: p.mercenaire_id };
   }
   return state;
 }
