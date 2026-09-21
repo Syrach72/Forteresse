@@ -133,64 +133,6 @@ export function Dormitory({
           })}
         </div>
       </section>
-      <section className="available-heroes parchment">
-        <div className="section-title">
-          <div>
-            <h2>Mercenaires disponibles</h2>
-            <p>
-              Sélectionnez un mercenaire puis une place libre, ou glissez son portrait.
-            </p>
-          </div>
-        </div>
-        <div className="available-grid">
-          {warriors
-            .filter(
-              (w) =>
-                !dorm.beds.some((b) => b?.heroId === w.id) &&
-                !otherOccupied.includes(w.id),
-            )
-            .map((w) => (
-              <button
-                key={w.id}
-                className={`available-hero ${selected === w.id ? "selected" : ""}`}
-                aria-pressed={selected === w.id}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData("text/plain", w.id);
-                  e.dataTransfer.effectAllowed = "move";
-                  setSelected(w.id);
-                }}
-                onClick={() => setSelected(selected === w.id ? null : w.id)}
-              >
-                <ReferenceCrop crop={w.portrait} />
-                <span>{w.name}</span>
-              </button>
-            ))}
-        </div>
-        {warriors.length === 0 ? (
-          <p>
-            {isInfirmary
-              ? "Aucun mercenaire disponible ici pour le moment."
-              : "Aucun mercenaire recruté pour le moment : recrutez-en depuis les pages Personnages."}
-          </p>
-        ) : (
-          warriors.every(
-            (w) =>
-              dorm.beds.some((b) => b?.heroId === w.id) ||
-              otherOccupied.includes(w.id),
-          ) && (
-            <p>
-              Tous les mercenaires sont occupés. Libérez-en un au repos, en soins ou à l’entraînement.
-            </p>
-          )
-        )}
-        {selected && warriors.some((w) => w.id === selected) && (
-          <p role="status" className="placement-status">
-            {warriors.find((w) => w.id === selected)?.name} sélectionné :
-            choisissez un lit libre.
-          </p>
-        )}
-      </section>
       {popup && (
         <Modal
           title={
