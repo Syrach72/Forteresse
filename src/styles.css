@@ -2779,6 +2779,19 @@ video.interior-backdrop-boxed {
   opacity: 0.6;
   cursor: not-allowed;
 }
+/* Second groupe d'instruction (bloqué) : sous le premier, cellules non
+   cliquables, sans surbrillance au survol. */
+.training-cohort-second {
+  margin-top: 16px;
+}
+.training-blocked:hover {
+  background: rgba(240, 233, 219, 0.14);
+}
+.training-padlock img {
+  width: 28px;
+  height: auto;
+  display: block;
+}
 .training-locked strong {
   color: #936d08;
   font-size: 31px;

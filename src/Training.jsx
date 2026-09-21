@@ -228,6 +228,50 @@ export function Training({
           ),
         )}
       </div>
+      {/* Second groupe d'instruction : mêmes cellules que le premier, entièrement
+          bloquées pour le moment (instructeur, puis 3 places d'élève ; la
+          première serait libre mais reste inutilisable sans instructeur). */}
+      <div
+        className="training-cohort training-cohort-second"
+        role="group"
+        aria-label="Second groupe d’instruction, bloqué pour le moment"
+      >
+        <button
+          className="training-place parchment instructor-place training-blocked"
+          disabled
+          aria-label="Second instructeur : bloqué pour le moment"
+        >
+          <span className="training-padlock" aria-hidden="true">
+            <img src="/assets/icons/lock.png" alt="" />
+          </span>
+          <span>Choisir un instructeur</span>
+          <small>Instructeur</small>
+        </button>
+        <div>
+          <button
+            className="training-place parchment training-blocked"
+            disabled
+            aria-label="Élève : choisissez d’abord un instructeur"
+          >
+            <span>Choisissez d’abord un instructeur</span>
+            <small>Élève</small>
+          </button>
+        </div>
+        {[0, 1].map((i) => (
+          <button
+            key={i}
+            className="training-place parchment training-locked training-blocked"
+            disabled
+            aria-label="Emplacement élève : bloqué pour le moment"
+          >
+            <span className="training-padlock" aria-hidden="true">
+              <img src="/assets/icons/lock.png" alt="" />
+            </span>
+            <span>Emplacement élève</span>
+            <small>Bloqué</small>
+          </button>
+        ))}
+      </div>
       {popup && (
         <Modal
           title={
