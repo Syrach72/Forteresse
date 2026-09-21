@@ -79,6 +79,13 @@ function BackdropVideo({ src, ratio, dip, rate = 1 }) {
     const a = ref1.current;
     const b = ref2.current;
     if (!a || !b) return;
+    // Vitesse de lecture réglée à chaque changement de fond : les mêmes éléments
+    // <video> sont réutilisés d'une page à l'autre, donc sans cela le ralenti du
+    // Laboratoire (0,6×) resterait appliqué à la Forge, à l'Infirmerie, etc.
+    for (const v of [a, b]) {
+      v.defaultPlaybackRate = rate;
+      v.playbackRate = rate;
+    }
     if (dip) {
       // Une seule vidéo (lecture en boucle native) ; son opacité descend à 0
       // avant la fin et remonte après le redémarrage, sur le fond noir de la page.
