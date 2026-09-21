@@ -98,38 +98,18 @@ export function Training({
           ),
         )}
       </div>
-      <div className="parchment training-note">
-        <p>
-          Les personnages restent dans leur rôle lorsque le compteur atteint 5.
-          Vous pouvez modifier la durée ou retirer un participant manuellement.
-        </p>
-        <button
-          className="text-button"
-          onClick={() => setPopup({ role: "group" })}
-        >
-          Autre groupe d’instruction · 1 000 Po
-        </button>
-      </div>
       {popup && (
         <Modal
           title={
             popup.role === "unlock"
               ? "Ajouter une place élève"
-              : popup.role === "group"
-                ? "Autre groupe d’instruction"
-                : popup.role === "instructor"
-                  ? "Instructeur"
-                  : "Élève"
+              : popup.role === "instructor"
+                ? "Instructeur"
+                : "Élève"
           }
           onClose={() => setPopup(null)}
         >
-          {popup.role === "group" ? (
-            <p>
-              Le coût affiché dans la capture est de 1 000 Po. Les règles de
-              fonctionnement de ce deuxième groupe restent à préciser avec
-              Bruno.
-            </p>
-          ) : popup.role === "unlock" ? (
+          {popup.role === "unlock" ? (
             <>
               <p>
                 Ajouter une place d’élève débite 100 Po de la trésorerie de la
