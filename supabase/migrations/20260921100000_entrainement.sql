@@ -151,7 +151,7 @@ begin
     raise exception 'Seul son recruteur peut renvoyer ce mercenaire.';
   end if;
   if v_role = 'instructeur' then
-    delete from entrainement_place;
+    delete from entrainement_place where role in ('instructeur', 'eleve');
   else
     delete from entrainement_place where mercenaire_id = p_mercenaire;
   end if;
@@ -283,7 +283,7 @@ begin
     select 1 from entrainement_place
     where role = 'instructeur' and mercenaire_id = old.mercenaire_id
   ) then
-    delete from entrainement_place;
+    delete from entrainement_place where role in ('instructeur', 'eleve');
   else
     delete from entrainement_place where mercenaire_id = old.mercenaire_id;
   end if;
