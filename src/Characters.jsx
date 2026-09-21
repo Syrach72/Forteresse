@@ -70,6 +70,9 @@ export function Characters({
   onRecruit = () => {},
   onDismiss = () => {},
   onSetVeterance = async () => ({}),
+  onSetInstructor = () => {},
+  absences = {},
+  instructeurEnPlace = false,
   litLibre = true,
   nomsJoueur = {},
   onUpdate,
@@ -315,13 +318,30 @@ export function Characters({
                     <span>Nom du joueur</span>
                     <strong>{nomsJoueur[merc.id] || "—"}</strong>
                   </div>
-                  <button
-                    className="wood-button merc-recruit"
-                    type="button"
-                    onClick={() => setPopup({ type: "renvoi" })}
-                  >
-                    Renvoyer
-                  </button>
+                  <div className="merc-actions">
+                    <button
+                      className="wood-button merc-recruit"
+                      type="button"
+                      disabled={!!absences[merc.id] || instructeurEnPlace}
+                      onClick={() => onSetInstructor(merc.id)}
+                    >
+                      Instructeur
+                    </button>
+                    <button
+                      className="wood-button merc-recruit"
+                      type="button"
+                      onClick={() => setPopup({ type: "renvoi" })}
+                    >
+                      Renvoyer
+                    </button>
+                  </div>
+                  <p className="merc-recrute-note">
+                    {absences[merc.id]
+                      ? `${merc.nom} n’est pas au dortoir (${absences[merc.id].toLowerCase()}) : il garde son lit.`
+                      : instructeurEnPlace
+                        ? "Un instructeur est déjà en place au Terrain d’Entraînement."
+                        : `« Instructeur » envoie ${merc.nom} au Terrain d’Entraînement pour former des élèves de sa classe.`}
+                  </p>
                   <p className="merc-recrute-note">
                     {merc.nom} a son lit au Dortoir. Le renvoyer efface le nom
                     du joueur et libère le lit ; il conserve sa vétérance et sa

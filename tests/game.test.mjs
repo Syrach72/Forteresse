@@ -310,7 +310,7 @@ import {
   firstFreeBed,
   syncRecruits,
 } from "../src/dormitory.js";
-import { INITIAL_TRAINING, stepTraining } from "../src/training-data.js";
+import { INITIAL_TRAINING } from "../src/training-data.js";
 import {
   INITIAL_TREASURY,
   changeTreasury,
@@ -327,8 +327,6 @@ test("durées : bornes 0–5, incrément global, aucune sortie automatique", () 
     updateDormitory(area, { type: "duration", slot: 0, remaining: 6 }).error,
     /0 à 5/,
   );
-  const training = { ...INITIAL_TRAINING, instructor: { heroId: "gnaeus", remaining: 2 } };
-  assert.equal(stepTraining(training, 1).instructor.remaining, 3);
 });
 test("le dortoir, l'infirmerie et l'entraînement démarrent vides (les mercenaires viennent du recrutement)", () => {
   assert.ok(INITIAL_DORMITORY.beds.every((b) => b === null));

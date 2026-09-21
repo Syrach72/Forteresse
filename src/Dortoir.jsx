@@ -6,7 +6,10 @@ import { ReferenceCrop, classeRoute } from "./Characters.jsx";
 // recruté (saisi sur sa fiche).
 const UNLOCK_PRICE = 100;
 const INITIAL_CAPACITY = 6;
-export function Dortoir({ dorm, warriors, gold, onUnlock, Modal }) {
+// `absences` : identifiant -> où se trouve le mercenaire quand il n'est pas au
+// dortoir (Instructeur, À l'entraînement, À l'infirmerie). Il garde son lit,
+// affiché grisé ; seul un renvoi de la compagnie libère le lit.
+export function Dortoir({ dorm, warriors, absences = {}, gold, onUnlock, Modal }) {
   const [popup, setPopup] = useState(null);
   const [error, setError] = useState("");
   const hero = (id) => warriors.find((w) => w.id === id);
@@ -27,13 +30,14 @@ export function Dortoir({ dorm, warriors, gold, onUnlock, Modal }) {
         <div className="bed-grid">
           {dorm.beds.map((bed, slot) => {
             const merc = hero(bed?.heroId);
+            const away = merc ? absences[merc.id] : undefined;
             const locked = slot >= dorm.capacity;
             const purchasable =
               slot === INITIAL_CAPACITY && dorm.capacity === INITIAL_CAPACITY;
             return (
               <div className="bed-cell" key={slot}>
                 <button
-                  className={`bed-slot ${locked ? "bed-locked" : ""}`}
+                  className={`bed-slot ${locked ? "bed-locked" : ""} ${away ? "bed-away" : ""}`}
                   onClick={() => {
                     setError("");
                     if (locked)
@@ -49,7 +53,7 @@ export function Dortoir({ dorm, warriors, gold, onUnlock, Modal }) {
                         ? `Débloquer le lit ${slot + 1} pour ${UNLOCK_PRICE} pièces d’or`
                         : `Lit ${slot + 1} verrouillé`
                       : merc
-                        ? `${merc.name}, vétérance ${merc.veterancy}${merc.player ? `, joueur ${merc.player}` : ""}`
+                        ? `${merc.name}, vétérance ${merc.veterancy}${merc.player ? `, joueur ${merc.player}` : ""}${away ? `, ${away.toLowerCase()}` : ""}`
                         : `Lit ${slot + 1} libre`
                   }
                 >
@@ -66,6 +70,7 @@ export function Dortoir({ dorm, warriors, gold, onUnlock, Modal }) {
                         {merc.veterancy}
                       </span>
                       <span className="bed-name">{merc.name}</span>
+                      {away && <span className="bed-away-label">{away}</span>}
                     </>
                   ) : locked ? (
                     <>

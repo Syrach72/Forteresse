@@ -2215,6 +2215,24 @@ video.interior-backdrop-boxed {
   outline: 3px solid #f4cb63;
   outline-offset: 0;
 }
+/* Mercenaire absent du dortoir (entraînement, infirmerie) : lit grisé, la
+   place lui reste réservée. */
+.bed-slot.bed-away {
+  filter: grayscale(1) brightness(0.7);
+}
+.bed-away-label {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  font-size: 12px;
+  line-height: 1.1;
+  text-align: center;
+  color: #fff0c2;
+  background: #000000b3;
+  padding: 3px 2px;
+}
 .bed-portrait {
   height: 88%;
   width: auto;
@@ -2371,6 +2389,16 @@ video.interior-backdrop-boxed {
 .merc-recruit:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+/* Fiche d'un mercenaire recruté : Instructeur / Renvoyer côte à côte. */
+.merc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.merc-actions .merc-recruit {
+  margin-top: 4px;
+  min-width: 150px;
 }
 .available-heroes {
   max-width: 1060px;
@@ -2730,6 +2758,11 @@ video.interior-backdrop-boxed {
 }
 .training-locked {
   min-height: 175px;
+}
+/* Élève impossible à choisir tant qu'aucun instructeur n'est en place. */
+.training-blocked {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .training-locked strong {
   color: #936d08;
