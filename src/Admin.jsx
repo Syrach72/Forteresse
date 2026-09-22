@@ -2493,8 +2493,31 @@ function InvitationsSection() {
   );
 }
 
+// undefined tant que le statut admin n'a pas ete verifie (evite un flash du
+// panneau avant que la reponse serveur arrive), true/false ensuite. Reverifie
+// a chaque changement de session (connexion/deconnexion).
+function useIsAdmin(session) {
+  const [isAdmin, setIsAdmin] = useState(undefined);
+  useEffect(() => {
+    if (!session) {
+      setIsAdmin(undefined);
+      return;
+    }
+    let cancelled = false;
+    setIsAdmin(undefined);
+    supabase.rpc("is_admin").then(({ data, error }) => {
+      if (!cancelled) setIsAdmin(!error && !!data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+  return isAdmin;
+}
+
 export function Admin({ onCraftItem = () => {} }) {
   const session = useSession();
+  const isAdmin = useIsAdmin(session);
   const [tab, setTab] = useState("catalogue");
   const [sauvegardeMsg, setSauvegardeMsg] = useState("");
   const [sauvegardeEnCours, setSauvegardeEnCours] = useState(false);
@@ -2522,6 +2545,30 @@ export function Admin({ onCraftItem = () => {} }) {
     return (
       <main className="admin-page" style={{ backgroundImage: `url(${ASSETS.login})` }}>
         <LoginForm />
+      </main>
+    );
+  if (isAdmin === undefined)
+    return (
+      <main className="admin-page">
+        <p>Chargement…</p>
+      </main>
+    );
+  if (!isAdmin)
+    return (
+      <main className="admin-page" style={{ backgroundImage: `url(${ASSETS.login})` }}>
+        <div className="parchment admin-card">
+          <p className="eyebrow">Administration</p>
+          <h1>Accès réservé</h1>
+          <p className="auth-intro">
+            Le compte {session.user.email} n’a pas accès à cette page.
+          </p>
+          <button className="primary" type="button" onClick={() => supabase.auth.signOut()}>
+            Se déconnecter
+          </button>
+          <a className="text-button" href="#forteresse">
+            Retour au jeu
+          </a>
+        </div>
       </main>
     );
 
