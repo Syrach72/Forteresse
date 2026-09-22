@@ -901,12 +901,20 @@ function CatalogueSection({ onCraftItem }) {
     const armure = !arme && isCategorieArmure(categorieId);
     const bouclier = !arme && isCategorieBouclier(categorieId);
     const alchimique = !arme && isCategorieParmi(categorieId, ["produits alchimiques"]);
+    const gemme = !arme && isCategorieParmi(categorieId, ["gemmes"]);
     const craftable =
       arme ||
       isCategorieParmi(categorieId, ["produits alchimiques", "gemmes", "armures"]);
+    // Achat au marché : armes/armures/produits alchimiques (qui ont aussi une
+    // fabrication) et composants/objets divers (achetés directement, sans
+    // recette), mais jamais les gemmes (obtenues seulement par fabrication,
+    // sertissage ou quête — règle de Bruno).
+    const achetable =
+      (craftable && !gemme) ||
+      isCategorieParmi(categorieId, ["composants", "objet divers"]);
     const racine = racineDe(categories.rows || [], categorieId);
     const atelier = ATELIER_PAR_RACINE[racine?.nom.trim().toLowerCase()] || null;
-    return { arme, armure, bouclier, alchimique, craftable, atelier };
+    return { arme, armure, bouclier, alchimique, gemme, craftable, achetable, atelier };
   }
   function startEdit(row) {
     setEditing(row.id);
@@ -1010,7 +1018,7 @@ function CatalogueSection({ onCraftItem }) {
       }
       icone = result.url;
     }
-    const { arme, armure, bouclier, alchimique, craftable, atelier } = categorieFlags(
+    const { arme, armure, bouclier, alchimique, craftable, achetable, atelier } = categorieFlags(
       form.categorie_id,
     );
     // Un objet qui a une recette doit rester dans une rubrique fabricable :
@@ -1040,7 +1048,7 @@ function CatalogueSection({ onCraftItem }) {
       duree_fabrication_instances: craftable
         ? toIntOrNull(form.duree_fabrication_instances)
         : null,
-      cout_achat_or: craftable ? toIntOrNull(form.cout_achat_or) : null,
+      cout_achat_or: achetable ? toIntOrNull(form.cout_achat_or) : null,
       portee: arme || alchimique ? form.portee.trim() || null : null,
       protection: armure ? form.protection.trim() || null : null,
       type_armure: armure ? form.type_armure || null : null,
@@ -1173,10 +1181,10 @@ function CatalogueSection({ onCraftItem }) {
         </label>
       </div>
       {(() => {
-        const { arme, armure, bouclier, alchimique, craftable, atelier } = categorieFlags(
+        const { arme, armure, bouclier, alchimique, craftable, achetable, atelier } = categorieFlags(
           form.categorie_id,
         );
-        if (!craftable) return null;
+        if (!craftable && !achetable) return null;
         // Cellule de malus (entier négatif ou nul) : Discrétion et Vitesse pour
         // les armures et les boucliers, Esquive pour les boucliers seuls.
         const celluleMalus = (champ, id, libelle) => (
@@ -1196,7 +1204,7 @@ function CatalogueSection({ onCraftItem }) {
         );
         return (
           <>
-          <p className="eyebrow admin-section-label">Fabrication</p>
+          <p className="eyebrow admin-section-label">{craftable ? "Fabrication" : "Achat"}</p>
           <div className="admin-form-grid admin-form-grid-compact">
             {(arme || armure) && (
               <div className="field field-xs">
@@ -1218,36 +1226,40 @@ function CatalogueSection({ onCraftItem }) {
                 </div>
               </div>
             )}
-            <div className="field field-narrow">
-              <label htmlFor="cat-duree-fab">Temps de fabrication (instances)</label>
-              <div className="input-wrap">
-                <input
-                  id="cat-duree-fab"
-                  type="number"
-                  min="1"
-                  max="5"
-                  value={form.duree_fabrication_instances}
-                  onChange={(e) =>
-                    setForm({ ...form, duree_fabrication_instances: e.target.value })
-                  }
-                />
+            {craftable && (
+              <div className="field field-narrow">
+                <label htmlFor="cat-duree-fab">Temps de fabrication (instances)</label>
+                <div className="input-wrap">
+                  <input
+                    id="cat-duree-fab"
+                    type="number"
+                    min="1"
+                    max="5"
+                    value={form.duree_fabrication_instances}
+                    onChange={(e) =>
+                      setForm({ ...form, duree_fabrication_instances: e.target.value })
+                    }
+                  />
+                </div>
               </div>
-            </div>
-            <div className="field field-narrow">
-              <label htmlFor="cat-cout-or">
-                Coût d’achat (pièces d’or)
-                <span className="field-hint">Prix au marché</span>
-              </label>
-              <div className="input-wrap">
-                <input
-                  id="cat-cout-or"
-                  type="number"
-                  min="0"
-                  value={form.cout_achat_or}
-                  onChange={(e) => setForm({ ...form, cout_achat_or: e.target.value })}
-                />
+            )}
+            {achetable && (
+              <div className="field field-narrow">
+                <label htmlFor="cat-cout-or">
+                  Coût d’achat (pièces d’or)
+                  <span className="field-hint">Prix au marché</span>
+                </label>
+                <div className="input-wrap">
+                  <input
+                    id="cat-cout-or"
+                    type="number"
+                    min="0"
+                    value={form.cout_achat_or}
+                    onChange={(e) => setForm({ ...form, cout_achat_or: e.target.value })}
+                  />
+                </div>
               </div>
-            </div>
+            )}
             {(arme || alchimique) && (
               <div className="field field-portee">
                 <label htmlFor="cat-portee">Portée</label>
