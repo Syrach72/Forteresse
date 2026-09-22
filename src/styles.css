@@ -810,10 +810,12 @@ video.interior-backdrop-boxed {
 .inventory-slot-gemmes {
   position: absolute;
   bottom: 3px;
+  left: 4px;
   right: 4px;
   z-index: 3;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: center;
   gap: 2px;
 }
 .inventory-slot-gemmes img {
