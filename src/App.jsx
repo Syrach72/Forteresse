@@ -2920,7 +2920,6 @@ export function App() {
             </>
           ) : route === "stock" ? (
             <section className="stock-panel parchment">
-              <h2>Arsenal de la forteresse</h2>
               <div className="arsenal-tabs">
                 {ARSENAL_TABS.map((t) => (
                   <button
