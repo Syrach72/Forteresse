@@ -1,11 +1,13 @@
 // name : libellé du bouton ; racine : nom de la catégorie racine du catalogue
 // (table categorie) vers laquelle il renvoie ; icon : /assets/icons/market-<icon>.png
+// dual : ouvre Matériaux et Embauche côte à côte (les employés n'achètent
+// pas un objet pour l'arsenal, ils rejoignent la Gestion des Employés).
 const CATEGORIES = [
   { name: "Armes", racine: "Armes", icon: "armes" },
   { name: "Armures", racine: "Armures", icon: "armures" },
   { name: "Objets divers", racine: "Objet divers", icon: "objets-divers" },
   { name: "Composants", racine: "Composants", icon: "composants" },
-  { name: "Matériaux", racine: "Matériaux", icon: "materiaux" },
+  { name: "Matériaux et Embauche", racine: "Matériaux", icon: "materiaux", dual: true },
   { name: "Produits Alchimiques", racine: "Produits Alchimiques", icon: "alchimie" },
 ];
 export function Market({ onCategory }) {

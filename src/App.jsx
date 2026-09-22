@@ -949,6 +949,8 @@ export function App() {
   // Sac à dos de chaque mercenaire (id -> [{objetId, quantite, nom, icone}]),
   // reconstruit à chaque synchronisation partagée (cf. synchroniserEconomie).
   const [sacsDos, setSacsDos] = useState(() => new Map());
+  // Effectif embauché (Gestion des Employés), partagé comme l'arsenal.
+  const [employesRoster, setEmployesRoster] = useState([]);
   const tousRecrutes = useMemo(
     () => new Set([...recrutesServeur, ...mesRecrutes.keys()]),
     [recrutesServeur, mesRecrutes],
@@ -1074,6 +1076,9 @@ export function App() {
   // Sertissage de la Forge : arme et gemme choisies dans l'arsenal, en
   // attente du lancement (rien n'est débité tant que ce n'est que local).
   const [sertStage, setSertStage] = useState({ arme: null, gemme: null });
+  // Quantité à embaucher saisie pour chaque métier (fenêtre Matériaux et
+  // Embauche), remise à 1 par défaut tant que rien n'a été tapé.
+  const [embaucheQty, setEmbaucheQty] = useState({});
   const [search, setSearch] = useState("");
   const [character, setCharacter] = useState("Guerrier");
   const [actionError, setActionError] = useState("");
@@ -1376,7 +1381,7 @@ export function App() {
     const undoId = crypto.randomUUID();
     setInstanceUndo({
       id: undoId,
-      gains: { entrainement: [], infirmerie: [], ateliers: [], budget: 0, quete: null },
+      gains: { entrainement: [], infirmerie: [], ateliers: [], employes: [], budget: 0, quete: null },
     });
     setInstanceTicks((v) => v + 1);
     // Seul l'administrateur fait avancer l'instance (une fois pour tous les
@@ -1417,6 +1422,27 @@ export function App() {
                 `${gains.quete.nom} accomplie : +${gains.quete.or} Po et ${gains.quete.items.length} objet(s) rejoignent l'arsenal.`,
               ]
             : []),
+          ...(() => {
+            if (!gains.employes.length) return [];
+            const cache = catalogueCacheRef.current;
+            const parMateriau = new Map();
+            let entretien = 0;
+            for (const e of gains.employes) {
+              entretien += e.entretien || 0;
+              if (e.produit > 0 && e.materiau_id) {
+                parMateriau.set(
+                  e.materiau_id,
+                  (parMateriau.get(e.materiau_id) || 0) + e.produit,
+                );
+              }
+            }
+            const production = [...parMateriau.entries()]
+              .map(([id, qte]) => `+${qte} ${cache.objets.get(id)?.nom || "Matériau"}`)
+              .join(", ");
+            return [
+              `Les employés ont produit ${production || "rien pour l'instant"}${entretien > 0 ? ` (entretien : −${entretien} Po)` : ""}.`,
+            ];
+          })(),
         ];
         notify(
           phrases.length
@@ -1432,7 +1458,14 @@ export function App() {
     setInstanceTicks((v) => Math.max(0, v - 1));
     setInstanceUndo(null);
     const g = u.gains;
-    if (g.entrainement.length || g.infirmerie.length || g.ateliers.length || g.budget !== 0 || g.quete)
+    if (
+      g.entrainement.length ||
+      g.infirmerie.length ||
+      g.ateliers.length ||
+      g.employes.length ||
+      g.budget !== 0 ||
+      g.quete
+    )
       // Niveaux, compteurs et durées sont en base : le serveur les remet comme
       // avant et replace les mercenaires renvoyés au dortoir.
       enqueueTraining(async () => {
@@ -1447,6 +1480,7 @@ export function App() {
           ["entrainement_annuler_instance", g.entrainement],
           ["infirmerie_annuler_instance", g.infirmerie],
           ["ateliers_annuler_instance", g.ateliers],
+          ["employes_annuler_instance", g.employes],
         ]) {
           if (!gains.length) continue;
           const { error } = await supabase.rpc(fn, { p_gains: gains });
@@ -1498,7 +1532,7 @@ export function App() {
   // Or de la compagnie, arsenal, journal et fabrications en cours : lus en base
   // et reversés dans `game` (même forme qu'avant, pour l'affichage existant).
   async function synchroniserEconomie() {
-    const [etat, inv, lignes, fab, jour, sert] = await Promise.all([
+    const [etat, inv, lignes, fab, jour, sert, emp] = await Promise.all([
       supabase.from("partie_etat").select("or_compagnie").maybeSingle(),
       supabase.from("inventaire").select("id, type, mercenaire_id"),
       supabase.from("ligne_inventaire").select("inventaire_id, objet_id, quantite, gemmes"),
@@ -1512,6 +1546,7 @@ export function App() {
         .from("forge_sertissage")
         .select("arme_objet_id, arme_gemmes, gemme_objet_id, restant")
         .maybeSingle(),
+      supabase.from("employe").select("objet_id, outil, quantite"),
     ]);
     if (etat.error || inv.error || lignes.error || fab.error || !etat.data) return;
     const arsenal = inv.data.find((i) => i.type === "arsenal");
@@ -1535,10 +1570,15 @@ export function App() {
       ...fab.data.map((x) => x.objet_id),
       ...enStock.flatMap((x) => x.gemmes || []),
       ...(sertActif ? [sertActif.arme_objet_id, sertActif.gemme_objet_id, ...(sertActif.arme_gemmes || [])] : []),
+      ...(emp.data || []).map((x) => x.objet_id),
     ];
     if (idsRequis.some((id) => !cache.objets.has(id))) {
       const [o, c] = await Promise.all([
-        supabase.from("objet_catalogue").select("id, nom, icone, categorie_id, cout_achat_or"),
+        supabase
+          .from("objet_catalogue")
+          .select(
+            "id, nom, icone, categorie_id, cout_achat_or, emploi_materiau_id, emploi_production, emploi_production_outil, emploi_outil_id, emploi_entretien",
+          ),
         supabase.from("categorie").select("id, nom, parent_id"),
       ]);
       if (!o.error && !c.error) {
@@ -1629,6 +1669,37 @@ export function App() {
             .filter(Boolean),
         }
       : null;
+    // Effectif embauché (Gestion des Employés) : une entrée par (métier,
+    // avec/sans outil), avec le nom/icône du métier et du matériau produit
+    // (résolus via le cache catalogue), pour l'affichage de la page.
+    const roster = (emp.data || [])
+      .filter((e) => e.quantite > 0)
+      .map((e) => {
+        const o = cache.objets.get(e.objet_id) || {};
+        const materiau = o.emploi_materiau_id ? cache.objets.get(o.emploi_materiau_id) : null;
+        const outilObjet = o.emploi_outil_id ? cache.objets.get(o.emploi_outil_id) : null;
+        const production =
+          e.quantite * ((o.emploi_production || 0) + (e.outil ? o.emploi_production_outil || 0 : 0));
+        return {
+          objetId: e.objet_id,
+          outil: e.outil,
+          quantite: e.quantite,
+          nom: o.nom || "Employé",
+          icone: o.icone || null,
+          coutAchat: o.cout_achat_or ?? null,
+          entretienUnitaire: o.emploi_entretien ?? null,
+          entretienTotal: (o.emploi_entretien || 0) * e.quantite,
+          materiauId: o.emploi_materiau_id || null,
+          materiauNom: materiau?.nom || null,
+          materiauIcone: materiau?.icone || null,
+          production,
+          outilId: o.emploi_outil_id || null,
+          outilNom: outilObjet?.nom || null,
+          outilIcone: outilObjet?.icone || null,
+          productionOutilUnitaire: o.emploi_production_outil ?? null,
+        };
+      });
+    setEmployesRoster(roster);
     const log = (jour.data || []).map((j) => ({
       id: j.id,
       message: j.message,
@@ -1737,6 +1808,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "partie_journal" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "atelier_fabrication" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "employe" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "ligne_inventaire" }, rafraichir)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "mercenaire" }, rafraichir)
       .subscribe();
@@ -1763,6 +1835,7 @@ export function App() {
     const i = await supabase.rpc("infirmerie_instance");
     const a = await supabase.rpc("ateliers_instance");
     const q = await supabase.rpc("quetes_instance");
+    const emp = await supabase.rpc("employes_instance");
     await synchroniserPartage();
     const liste = (r) => (Array.isArray(r.data) ? r.data : []);
     return {
@@ -1770,10 +1843,11 @@ export function App() {
         entrainement: liste(t),
         infirmerie: liste(i),
         ateliers: liste(a),
+        employes: liste(emp),
         budget: e.data?.net || 0,
         quete: q.data || null,
       },
-      erreur: [e.error?.message, t.error?.message, i.error?.message, a.error?.message, q.error?.message]
+      erreur: [e.error?.message, t.error?.message, i.error?.message, a.error?.message, q.error?.message, emp.error?.message]
         .filter(Boolean)
         .join(" "),
     };
@@ -2114,6 +2188,32 @@ export function App() {
     if (!data) return;
     notify(data.message);
   }
+  // Embauche d'un employé (fenêtre Matériaux et Embauche) : rejoint la
+  // Gestion des Employés, jamais l'arsenal.
+  async function actEmbaucher(objet) {
+    const quantite = Math.max(1, Math.round(Number(embaucheQty[objet.id]) || 1));
+    const data = await operationPartagee(() =>
+      supabase.rpc("employe_embaucher", { p_objet: objet.id, p_quantite: quantite }),
+    );
+    if (!data) return;
+    notify(`${quantite} ${objet.nom}(s) embauché(s) : −${quantite * objet.cout_achat_or} Po.`);
+  }
+  // Congédiement définitif (Gestion des Employés), sans remboursement.
+  async function actCongedier(objetId, outil, quantite, nom) {
+    const data = await operationPartagee(() =>
+      supabase.rpc("employe_congedier", { p_objet: objetId, p_outil: outil, p_quantite: quantite }),
+    );
+    if (!data) return;
+    notify(`${quantite} ${nom}(s) congédié(s).`);
+  }
+  // Équipe l'outil spécialisé du métier (consomme l'outil dans l'arsenal).
+  async function actEquiperOutil(objetId, quantite, nom) {
+    const data = await operationPartagee(() =>
+      supabase.rpc("employe_equiper_outil", { p_objet: objetId, p_quantite: quantite }),
+    );
+    if (!data) return;
+    notify(`${quantite} ${nom}(s) équipé(s) de leur outil spécialisé.`);
+  }
   function go(l) {
     if (l.locked) {
       setModal({ type: "locked", place: l });
@@ -2260,7 +2360,7 @@ export function App() {
       while (c?.parent_id) c = categories.find((x) => x.id === c.parent_id);
       return c;
     };
-    const MARKET_BUTTON_ROOTS = ["armes", "armures", "composants", "matériaux", "produits alchimiques", "gemmes"];
+    const MARKET_BUTTON_ROOTS = ["armes", "armures", "composants", "matériaux", "produits alchimiques", "gemmes", "embauche"];
     const isDivers = consultation && racineNom.trim().toLowerCase() === "objet divers";
     const included = (o) =>
       isDivers
@@ -2549,6 +2649,69 @@ export function App() {
             </div>
           </section>
         </main>
+      ) : route === "employes" ? (
+        <main id="main" className="employes-page">
+          <div className="room-top">
+            <a href="#forteresse">‹ Forteresse</a>
+            <h1 ref={titleRef} tabIndex="-1">
+              Gestion des Employés
+            </h1>
+          </div>
+          <section className="parchment employes-panel">
+            {employesRoster.length === 0 ? (
+              <p className="muted">
+                Aucun employé embauché pour le moment. Rendez-vous au Marché,
+                rubrique « Matériaux et Embauche ».
+              </p>
+            ) : (
+              <div className="employes-grid">
+                {employesRoster.map((e) => (
+                  <div className="employe-card parchment" key={`${e.objetId}-${e.outil}`}>
+                    <span className="item-art">{e.icone && <img src={e.icone} alt="" />}</span>
+                    <h3>
+                      {e.nom}
+                      {e.outil ? " (outillé)" : ""}
+                    </h3>
+                    <p className="muted">×{e.quantite}</p>
+                    {e.materiauNom && (
+                      <div className="stat-line">
+                        <span>Production / instance</span>
+                        <strong>
+                          +{e.production} {e.materiauNom}
+                        </strong>
+                      </div>
+                    )}
+                    {e.entretienUnitaire ? (
+                      <div className="stat-line">
+                        <span>Entretien / instance</span>
+                        <strong>−{e.entretienTotal} Po</strong>
+                      </div>
+                    ) : null}
+                    <div className="employe-actions">
+                      {!e.outil && e.outilId && (
+                        <button
+                          className="wood-button"
+                          disabled={busy}
+                          onClick={() => actEquiperOutil(e.objetId, e.quantite, e.nom)}
+                        >
+                          Équiper {e.quantite} · {e.outilNom || "outil"}
+                        </button>
+                      )}
+                      <button
+                        className="wood-button"
+                        disabled={busy}
+                        onClick={() => actCongedier(e.objetId, e.outil, e.quantite, e.nom)}
+                      >
+                        Congédier {e.quantite}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+          {roomNav}
+        </main>
       ) : (
         <main id="main" className={`interior ${route}`}>
           {BACKDROP_VIDEO[route] ? (
@@ -2576,13 +2739,22 @@ export function App() {
           </div>
           {route === "marche" ? (
             <Market
-              onCategory={({ racine }) => {
+              onCategory={(c) => {
+                setActionError("");
+                // Matériaux et Embauche : deux catalogues côte à côte dans
+                // une même fenêtre (les employés ne rejoignent pas
+                // l'arsenal, cf. Gestion des Employés).
+                if (c.dual) {
+                  loadCatalogue("market:Matériaux", "Matériaux");
+                  loadCatalogue("market:Embauche", "Embauche");
+                  setModal({ type: "market-dual" });
+                  return;
+                }
                 // Consultation du catalogue Supabase pour cette catégorie
                 // racine (le mode achat sera traité ensuite).
-                const atelier = `market:${racine}`;
-                setActionError("");
-                loadCatalogue(atelier, racine);
-                setModal({ type: "db-catalogue", atelier, racine, market: true });
+                const atelier = `market:${c.racine}`;
+                loadCatalogue(atelier, c.racine);
+                setModal({ type: "db-catalogue", atelier, racine: c.racine, market: true });
               }}
             />
           ) : route === "quetes" ? (
@@ -3145,6 +3317,8 @@ export function App() {
                 ? modal.slot === "arme"
                   ? "Choisir une arme"
                   : "Choisir une gemme"
+                : modal.type === "market-dual"
+                ? "Matériaux et Embauche"
                 : modal.type === "inventory"
                 ? "Inventaire de la compagnie"
                 : modal.type === "locked"
@@ -3278,6 +3452,124 @@ export function App() {
                     ? "Aucune arme disponible dans l’arsenal (ou déjà sertie de 3 gemmes)."
                     : "Aucune gemme disponible dans l’arsenal."}
                 </p>
+              );
+            })()
+          ) : modal.type === "market-dual" ? (
+            (() => {
+              const materiaux = catalogueByAtelier["market:Matériaux"];
+              const embauche = catalogueByAtelier["market:Embauche"];
+              const stockDe = (objetId) =>
+                game.inventory.find((i) => i.objetId === objetId)?.quantity || 0;
+              return (
+                <div className="market-dual">
+                  <section className="market-dual-col">
+                    <h3>Matériaux</h3>
+                    {!materiaux ? (
+                      <p>Chargement…</p>
+                    ) : materiaux.error ? (
+                      <p className="admin-error">{materiaux.error}</p>
+                    ) : materiaux.items.length === 0 ? (
+                      <p className="muted">Aucun matériau pour le moment.</p>
+                    ) : (
+                      <div className="db-item-list">
+                        {materiaux.items.map((o) => (
+                          <div className="market-dual-row" key={o.id}>
+                            {o.icone ? (
+                              <img className="db-item-icon" src={o.icone} alt="" loading="lazy" decoding="async" />
+                            ) : (
+                              <span className="db-item-icon" aria-hidden="true" />
+                            )}
+                            <span>
+                              {o.nom}
+                              <small className="db-item-tag">Stock : {stockDe(o.id)}</small>
+                            </span>
+                            <button
+                              type="button"
+                              className="wood-button"
+                              disabled={
+                                busy ||
+                                o.cout_achat_or === null ||
+                                o.cout_achat_or === undefined ||
+                                game.gold < o.cout_achat_or
+                              }
+                              onClick={() => actBuyCatalogue(o)}
+                            >
+                              {o.cout_achat_or === null || o.cout_achat_or === undefined
+                                ? "Prix non défini"
+                                : `Acheter · ${o.cout_achat_or} Po`}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                  <section className="market-dual-col">
+                    <h3>Embauche</h3>
+                    {!embauche ? (
+                      <p>Chargement…</p>
+                    ) : embauche.error ? (
+                      <p className="admin-error">{embauche.error}</p>
+                    ) : embauche.items.length === 0 ? (
+                      <p className="muted">Aucun métier proposé pour le moment.</p>
+                    ) : (
+                      <div className="db-item-list">
+                        {embauche.items.map((o) => {
+                          const qty = embaucheQty[o.id] ?? 1;
+                          const cout = (o.cout_achat_or || 0) * qty;
+                          return (
+                            <div className="market-dual-row" key={o.id}>
+                              {o.icone ? (
+                                <img className="db-item-icon" src={o.icone} alt="" loading="lazy" decoding="async" />
+                              ) : (
+                                <span className="db-item-icon" aria-hidden="true" />
+                              )}
+                              <span>
+                                {o.nom}
+                                <small className="db-item-tag">
+                                  {o.cout_achat_or === null || o.cout_achat_or === undefined
+                                    ? "Coût non défini"
+                                    : `${o.cout_achat_or} Po pièce`}
+                                </small>
+                              </span>
+                              <input
+                                type="number"
+                                min="1"
+                                className="market-dual-qty"
+                                aria-label={`Nombre à embaucher, ${o.nom}`}
+                                value={qty}
+                                onChange={(e) => {
+                                  const n = Math.round(Number(e.target.value));
+                                  setEmbaucheQty((prev) => ({
+                                    ...prev,
+                                    [o.id]: Number.isFinite(n) && n > 0 ? n : 1,
+                                  }));
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="wood-button"
+                                disabled={
+                                  busy ||
+                                  o.cout_achat_or === null ||
+                                  o.cout_achat_or === undefined ||
+                                  game.gold < cout
+                                }
+                                onClick={() => actEmbaucher(o)}
+                              >
+                                {o.cout_achat_or === null || o.cout_achat_or === undefined
+                                  ? "Coût non défini"
+                                  : `Embaucher · ${cout} Po`}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <a className="inline-link" href="#employes" onClick={() => setModal(null)}>
+                      Voir la Gestion des Employés
+                    </a>
+                  </section>
+                </div>
               );
             })()
           ) : modal.type === "db-catalogue" ? (

@@ -152,6 +152,11 @@ function emptyCatalogueItem(categorieId = "") {
     parade: "",
     allonge: "",
     type_degats: "",
+    emploi_materiau_id: "",
+    emploi_production: "",
+    emploi_production_outil: "",
+    emploi_outil_id: "",
+    emploi_entretien: "",
   };
 }
 // Malus d'armure (Discrétion, Vitesse) : entier négatif ou nul, 2 chiffres au
@@ -902,19 +907,22 @@ function CatalogueSection({ onCraftItem }) {
     const bouclier = !arme && isCategorieBouclier(categorieId);
     const alchimique = !arme && isCategorieParmi(categorieId, ["produits alchimiques"]);
     const gemme = !arme && isCategorieParmi(categorieId, ["gemmes"]);
+    // Embauche : un métier (Mineur, Bûcheron...) du Marché, page « Matériaux
+    // et Embauche ». Ne rejoint pas l'arsenal, va dans Gestion des Employés.
+    const emploi = !arme && isCategorieParmi(categorieId, ["embauche"]);
     const craftable =
       arme ||
       isCategorieParmi(categorieId, ["produits alchimiques", "gemmes", "armures"]);
     // Achat au marché : armes/armures/produits alchimiques (qui ont aussi une
-    // fabrication) et composants/objets divers (achetés directement, sans
-    // recette), mais jamais les gemmes (obtenues seulement par fabrication,
-    // sertissage ou quête — règle de Bruno).
+    // fabrication), composants/objets divers (achetés directement, sans
+    // recette) et embauche (coût d'embauche), mais jamais les gemmes
+    // (obtenues seulement par fabrication, sertissage ou quête — règle de Bruno).
     const achetable =
       (craftable && !gemme) ||
-      isCategorieParmi(categorieId, ["composants", "objet divers"]);
+      isCategorieParmi(categorieId, ["composants", "objet divers", "embauche"]);
     const racine = racineDe(categories.rows || [], categorieId);
     const atelier = ATELIER_PAR_RACINE[racine?.nom.trim().toLowerCase()] || null;
-    return { arme, armure, bouclier, alchimique, gemme, craftable, achetable, atelier };
+    return { arme, armure, bouclier, alchimique, gemme, emploi, craftable, achetable, atelier };
   }
   function startEdit(row) {
     setEditing(row.id);
@@ -934,6 +942,11 @@ function CatalogueSection({ onCraftItem }) {
       parade: row.parade || "",
       allonge: row.allonge || "",
       type_degats: row.type_degats || "",
+      emploi_materiau_id: row.emploi_materiau_id || "",
+      emploi_production: row.emploi_production ?? "",
+      emploi_production_outil: row.emploi_production_outil ?? "",
+      emploi_outil_id: row.emploi_outil_id || "",
+      emploi_entretien: row.emploi_entretien ?? "",
     });
     setIconFile(null);
     setMsg("");
@@ -1018,7 +1031,7 @@ function CatalogueSection({ onCraftItem }) {
       }
       icone = result.url;
     }
-    const { arme, armure, bouclier, alchimique, craftable, achetable, atelier } = categorieFlags(
+    const { arme, armure, bouclier, alchimique, emploi, craftable, achetable, atelier } = categorieFlags(
       form.categorie_id,
     );
     // Un objet qui a une recette doit rester dans une rubrique fabricable :
@@ -1058,6 +1071,11 @@ function CatalogueSection({ onCraftItem }) {
       parade: bouclier ? form.parade.trim() || null : null,
       allonge: arme ? form.allonge.trim() || null : null,
       type_degats: arme ? form.type_degats.trim() || null : null,
+      emploi_materiau_id: emploi ? form.emploi_materiau_id || null : null,
+      emploi_production: emploi ? toIntOrNull(form.emploi_production) : null,
+      emploi_production_outil: emploi ? toIntOrNull(form.emploi_production_outil) : null,
+      emploi_outil_id: emploi ? form.emploi_outil_id || null : null,
+      emploi_entretien: emploi ? toIntOrNull(form.emploi_entretien) : null,
     };
     const err = editing
       ? await update(editing, values)
@@ -1181,7 +1199,7 @@ function CatalogueSection({ onCraftItem }) {
         </label>
       </div>
       {(() => {
-        const { arme, armure, bouclier, alchimique, craftable, achetable, atelier } = categorieFlags(
+        const { arme, armure, bouclier, alchimique, emploi, craftable, achetable, atelier } = categorieFlags(
           form.categorie_id,
         );
         if (!craftable && !achetable) return null;
@@ -1204,7 +1222,9 @@ function CatalogueSection({ onCraftItem }) {
         );
         return (
           <>
-          <p className="eyebrow admin-section-label">{craftable ? "Fabrication" : "Achat"}</p>
+          <p className="eyebrow admin-section-label">
+            {craftable ? "Fabrication" : emploi ? "Embauche" : "Achat"}
+          </p>
           <div className="admin-form-grid admin-form-grid-compact">
             {(arme || armure) && (
               <div className="field field-xs">
@@ -1361,6 +1381,75 @@ function CatalogueSection({ onCraftItem }) {
             )}
             {bouclier && celluleMalus("malus_esquive", "cat-malus-esquive", "Esquive")}
           </div>
+          {emploi && (
+            <>
+              <p className="eyebrow admin-section-label">Métier</p>
+              <div className="admin-form-grid admin-form-grid-compact">
+                <div className="field">
+                  <label htmlFor="cat-emploi-materiau">Matériau produit</label>
+                  <SearchableSelect
+                    value={form.emploi_materiau_id}
+                    onChange={(v) => setForm({ ...form, emploi_materiau_id: v })}
+                    options={rows
+                      .filter((r) => racineDe(categories.rows || [], r.categorie_id)?.nom === "Matériaux")
+                      .map((r) => ({ value: r.id, label: r.nom }))}
+                    emptyLabel="— Aucun —"
+                    ariaLabel="Matériau produit par ce métier"
+                  />
+                </div>
+                <div className="field field-narrow">
+                  <label htmlFor="cat-emploi-production">Production de base (par instance)</label>
+                  <div className="input-wrap">
+                    <input
+                      id="cat-emploi-production"
+                      type="number"
+                      min="0"
+                      value={form.emploi_production}
+                      onChange={(e) => setForm({ ...form, emploi_production: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="field field-narrow">
+                  <label htmlFor="cat-emploi-production-outil">
+                    Bonus de production avec outil
+                  </label>
+                  <div className="input-wrap">
+                    <input
+                      id="cat-emploi-production-outil"
+                      type="number"
+                      min="0"
+                      value={form.emploi_production_outil}
+                      onChange={(e) => setForm({ ...form, emploi_production_outil: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="field">
+                  <label htmlFor="cat-emploi-outil">Outil spécialisé</label>
+                  <SearchableSelect
+                    value={form.emploi_outil_id}
+                    onChange={(v) => setForm({ ...form, emploi_outil_id: v })}
+                    options={rows.map((r) => ({ value: r.id, label: r.nom }))}
+                    emptyLabel="— Aucun —"
+                    ariaLabel="Outil spécialisé de ce métier"
+                  />
+                </div>
+                <div className="field field-narrow">
+                  <label htmlFor="cat-emploi-entretien">
+                    Coût d’entretien (Po, par instance)
+                  </label>
+                  <div className="input-wrap">
+                    <input
+                      id="cat-emploi-entretien"
+                      type="number"
+                      min="0"
+                      value={form.emploi_entretien}
+                      onChange={(e) => setForm({ ...form, emploi_entretien: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
           {editing ? (
             <RecetteBlock
               key={editing}
