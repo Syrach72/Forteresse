@@ -2887,7 +2887,7 @@ video.interior-backdrop-boxed {
   --vet: 58px;
   position: absolute;
   top: 8px;
-  left: calc(50% - 29px);
+  right: 8px;
   z-index: 1;
 }
 .training-locked {
