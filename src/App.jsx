@@ -2007,6 +2007,31 @@ export function App() {
     }
     location.hash = l.id;
   }
+  // Barre des lieux : aussi affichée sur les pages Personnages (galerie de
+  // classe et fiche d'un mercenaire), pas seulement dans les lieux intérieurs.
+  const roomNav = (
+    <nav className="room-nav" aria-label="Lieux de la forteresse">
+      {LOCATIONS.map((l) => (
+        <button
+          key={l.id}
+          title={l.name}
+          aria-label={l.name}
+          aria-current={l.id === route ? "page" : undefined}
+          className={l.id === route ? "active" : ""}
+          onClick={() => go(l)}
+        >
+          {l.id === "quetes" ? (
+            <span className="sprite asset-sprite" aria-hidden="true">
+              <img src="/assets/icons/quetes-sidebar.png" alt="" />
+            </span>
+          ) : (
+            <Sprite location={l} />
+          )}
+          <span>{l.name}</span>
+        </button>
+      ))}
+    </nav>
+  );
   // Charge le catalogue Supabase (objets rattachés à la catégorie racine
   // donnée + leur recette éventuelle, avec ses ingrédients) à la demande, une
   // seule fois par clé. Contrairement à ITEMS (démo locale), ces objets
@@ -2305,6 +2330,7 @@ export function App() {
         </div>
       </header>
       {route.startsWith("personnages/") ? (
+        <>
         <Characters
           route={route}
           warriors={warriors}
@@ -2332,6 +2358,8 @@ export function App() {
           sacsDos={sacsDos}
           onRendreArsenal={actRendreArsenal}
         />
+        {roomNav}
+        </>
       ) : route === "forteresse" ? (
         <main id="main" className="home">
           <h1 className="sr-only" tabIndex="-1" ref={titleRef}>
@@ -2846,27 +2874,7 @@ export function App() {
               </button>
             </section>
           )}
-          <nav className="room-nav" aria-label="Lieux de la forteresse">
-            {LOCATIONS.map((l) => (
-              <button
-                key={l.id}
-                title={l.name}
-                aria-label={l.name}
-                aria-current={l.id === route ? "page" : undefined}
-                className={l.id === route ? "active" : ""}
-                onClick={() => go(l)}
-              >
-                {l.id === "quetes" ? (
-                  <span className="sprite asset-sprite" aria-hidden="true">
-                    <img src="/assets/icons/quetes-sidebar.png" alt="" />
-                  </span>
-                ) : (
-                  <Sprite location={l} />
-                )}
-                <span>{l.name}</span>
-              </button>
-            ))}
-          </nav>
+          {roomNav}
         </main>
       )}
       {alerteSolde && game.gold < 0 && (
