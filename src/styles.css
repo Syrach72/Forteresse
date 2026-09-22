@@ -720,7 +720,7 @@ video.interior-backdrop-boxed {
 /* Sertissage de puissance (Forge) : deuxième panneau, sous celui de
    fabrication, même largeur/famille de style (equipment-panel). */
 .sertissage-panel {
-  margin: 20px auto 0;
+  margin: 20px 0 0;
 }
 .sertissage-panel .sertissage-result {
   width: 150px;
