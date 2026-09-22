@@ -60,8 +60,9 @@ export function Training({
     setError("");
     setPopup(next);
   };
-  // Cellule d'instructeur ou d'élève du groupe `g`.
-  function portrait(person, role, index, g) {
+  // Cellule d'instructeur ou d'élève du groupe `g`. `cellKey` seulement pour
+  // les élèves (l'instructeur est déjà seul dans la grille, sans .map()).
+  function portrait(person, role, index, g, cellKey) {
     const w = hero(person);
     const isInstructor = role === "instructor";
     const instr = hero(groupe(g).instructor);
@@ -70,7 +71,8 @@ export function Training({
     const noun = isInstructor ? "instructeur" : "élève";
     return (
       <button
-        className={`training-place parchment ${isInstructor ? "instructor-place" : ""} ${blocked ? "training-blocked" : ""}`}
+        key={cellKey}
+        className={`training-place parchment ${isInstructor ? "instructor-place" : ""} ${blocked ? "training-blocked" : ""} ${w ? "training-occupied" : ""}`}
         disabled={blocked}
         aria-label={
           w
@@ -282,7 +284,7 @@ export function Training({
           : portrait(G.instructor, "instructor", 0, g)}
         {G.students.map((person, index) =>
           index < G.capacity ? (
-            <div key={index}>{portrait(person, "student", index, g)}</div>
+            portrait(person, "student", index, g, index)
           ) : (
             verrouillee({
               key: index,

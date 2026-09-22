@@ -2826,14 +2826,21 @@ video.interior-backdrop-boxed {
 }
 .training-cohort {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 200px));
+  justify-content: center;
   gap: 14px;
   align-items: end;
 }
 .training-place {
   position: relative;
   width: 100%;
-  min-height: 250px;
+  /* Hauteur courte par défaut (comme .training-locked) ; seules les cellules
+     occupées par un mercenaire (.training-occupied) reprennent la hauteur
+     "pleine" de la première cellule. Sans cette distinction, un emplacement
+     élève vide mais pas verrouillé (« Choisissez d’abord un instructeur »)
+     s’étirait à la même hauteur qu’une cellule occupée, en rupture avec ses
+     voisines verrouillées de la même ligne. */
+  min-height: 175px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2843,6 +2850,9 @@ video.interior-backdrop-boxed {
   border-radius: 80px 80px 0 0;
   border: 5px ridge #9d947b;
   background: #d4ceb6e6;
+}
+.training-occupied {
+  min-height: 250px;
 }
 .training-place .reference-crop {
   width: 75%;
@@ -2858,6 +2868,11 @@ video.interior-backdrop-boxed {
 }
 .training-place:hover {
   background: #ecd9a1;
+}
+/* Instructeur : nom et libellé en vert, pour le distinguer des élèves. */
+.instructor-place strong,
+.instructor-place small {
+  color: #2f7a3f;
 }
 .training-duration {
   --vet: 58px;
@@ -2888,7 +2903,8 @@ video.interior-backdrop-boxed {
   display: block;
 }
 .training-locked strong {
-  color: #936d08;
+  color: #f0cf36;
+  text-shadow: 0 2px 4px #000;
   font-size: 31px;
 }
 .training-note {
@@ -2941,8 +2957,11 @@ video.interior-backdrop-boxed {
     gap: 12px;
   }
   .training-place {
-    min-height: 230px;
+    min-height: 150px;
     padding: 24px 10px 14px;
+  }
+  .training-occupied {
+    min-height: 230px;
   }
   .training-locked {
     min-height: 150px;
@@ -3269,6 +3288,9 @@ video.interior-backdrop-boxed {
     padding-top: 90px;
   }
   .training-place {
+    min-height: 155px;
+  }
+  .training-occupied {
     min-height: 220px;
   }
   .training-place .reference-crop {
