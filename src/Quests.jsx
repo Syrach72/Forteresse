@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { VetBadge } from "./VetBadge.jsx";
-import { ReferenceCrop } from "./Characters.jsx";
 import { Modal } from "./Modal.jsx";
 import { ITEMS } from "./data.js";
 
@@ -44,7 +43,7 @@ function useQuetes() {
   return { quetes, recompenses, objets, error };
 }
 
-export function Quests({ onInventory, onCampaign, notify = () => {} }) {
+export function Quests({ notify = () => {} }) {
   const { quetes, recompenses, objets, error } = useQuetes();
   const [busy, setBusy] = useState(false);
   // Objet dont la fiche (icône, nom, descriptif) est affichée après un clic
@@ -79,16 +78,6 @@ export function Quests({ onInventory, onCampaign, notify = () => {} }) {
 
   return (
     <section className="quests-workspace">
-      <div className="quest-actions">
-        <button onClick={onInventory}>
-          <ReferenceCrop crop={[473, 50, 70, 63]} source="quests-page" sourceWidth={604} />
-          <span>Arsenal</span>
-        </button>
-        <button onClick={onCampaign}>
-          <ReferenceCrop crop={[551, 49, 49, 64]} source="quests-page" sourceWidth={604} />
-          <span>Inventaires de campagne</span>
-        </button>
-      </div>
       {error && (
         <p className="error" role="alert">
           {error}

@@ -2318,11 +2318,7 @@ export function App() {
               }}
             />
           ) : route === "quetes" ? (
-            <Quests
-              onInventory={() => setModal({ type: "inventory" })}
-              onCampaign={() => setModal({ type: "campaign" })}
-              notify={notify}
-            />
+            <Quests notify={notify} />
           ) : route === "tresorerie" ? (
             <Treasury
               treasury={treasuryAffiche}
