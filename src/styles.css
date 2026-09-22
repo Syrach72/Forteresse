@@ -782,11 +782,13 @@ video.interior-backdrop-boxed {
    cadre de l'icône (celui-ci coupe le débord) pour ne jamais être coupées. */
 .item-art-gemmes {
   position: absolute;
-  top: 4px;
+  bottom: 4px;
+  left: 4px;
   right: 4px;
   z-index: 2;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: center;
   gap: 3px;
 }
 .item-art-gemmes img {
@@ -832,11 +834,13 @@ video.interior-backdrop-boxed {
 }
 .item-detail-gemmes {
   position: absolute;
-  top: 0;
+  bottom: 0;
+  left: 4px;
   right: 4px;
   z-index: 2;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: center;
   gap: 3px;
 }
 .item-detail-gemmes img {
