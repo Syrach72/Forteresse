@@ -2871,11 +2871,17 @@ video.interior-backdrop-boxed {
 .training-place:hover {
   background: #ecd9a1;
 }
-/* Instructeur : nom et libellé en vert, pour le distinguer des élèves.
-   Même remarque de spécificité que .training-locked strong ci-dessous. */
+/* Instructeur : nom et libellé en orange vif (le vert manquait de lisibilité),
+   pour le distinguer des élèves. Même remarque de spécificité que
+   .training-locked strong ci-dessous. Fond verre dépoli teinté légèrement
+   doré, à opacité inchangée (0,14 comme le reste des pages de jeu) : seuls
+   les instructeurs, pas les élèves ni les emplacements verrouillés. */
+.interior .parchment.instructor-place {
+  background: rgba(212, 175, 55, 0.14);
+}
 .interior .parchment.instructor-place strong,
 .interior .parchment.instructor-place small {
-  color: #2f7a3f;
+  color: #ff7a1a;
 }
 .training-duration {
   --vet: 58px;
