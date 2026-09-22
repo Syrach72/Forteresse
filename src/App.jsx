@@ -2253,6 +2253,11 @@ export function App() {
           >
             Se déconnecter
           </a>
+          {session?.user?.email?.toLowerCase() === "btestart@aol.com" && (
+            <a className="nav-admin" href="#admin">
+              Admin.
+            </a>
+          )}
           {CHARACTER_CLASSES.map(([id, label]) => (
             <a
               key={id}
@@ -2272,9 +2277,6 @@ export function App() {
           >
             Forteresse
           </a>
-          {session?.user?.email?.toLowerCase() === "btestart@aol.com" && (
-            <a href="#admin">Administration</a>
-          )}
         </nav>
         <div className="header-treasury">
         <a
@@ -2706,10 +2708,6 @@ export function App() {
           ) : route === "stock" ? (
             <section className="stock-panel parchment">
               <h2>Arsenal de la forteresse</h2>
-              <p>
-                Équipements et consommables de la compagnie. Sélectionnez un
-                objet pour agir.
-              </p>
               <div className="arsenal-tabs">
                 {ARSENAL_TABS.map((t) => (
                   <button

@@ -243,6 +243,15 @@ img {
 .class-nav a.nav-logout:hover {
   background: rgba(190, 40, 40, 0.85);
 }
+.class-nav a.nav-admin {
+  grid-column: span 2;
+  background: rgba(10, 10, 10, 0.82);
+  border-color: #2a2a2a;
+  color: #fff4da;
+}
+.class-nav a.nav-admin:hover {
+  background: rgba(30, 30, 30, 0.9);
+}
 .gold-counter {
   background: var(--wood);
   border: 4px ridge #96703b;
