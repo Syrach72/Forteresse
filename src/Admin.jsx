@@ -2356,6 +2356,347 @@ function EtatMaintien() {
   );
 }
 
+function emptyQuete() {
+  return { nom: "", description: "", veterance_requise: "", recompense_or: "", icone: "" };
+}
+const QUETE_SLOTS = [0, 1, 2, 3, 4];
+
+// Fiche d'une quête : titre, description, vétérance moyenne requise (affichée
+// en jeu avec la pastille laurier déjà utilisée pour les mercenaires),
+// icône de type (à venir, laissée vide tant que Bruno n'en a pas), jusqu'à 5
+// récompenses en objets (chacune un objet du catalogue + une quantité) et une
+// récompense en or. Les récompenses sont remplacées en bloc à chaque
+// enregistrement (supprimées puis réinsérées) plutôt que diffées, comme la
+// recette d'un objet du catalogue.
+function QuetesSection() {
+  const quetes = useTable("quete", { order: "nom" });
+  const recompenses = useTable("quete_recompense", { order: "position" });
+  const catalogue = useTable("objet_catalogue", { order: "nom" });
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(emptyQuete());
+  const [iconFile, setIconFile] = useState(null);
+  // 5 emplacements (position 1 à 5) : null si vide, sinon { objet_id, quantite }.
+  const [slots, setSlots] = useState([null, null, null, null, null]);
+  const [uploading, setUploading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [confirmingId, setConfirmingId] = useState(null);
+
+  if (quetes.error || recompenses.error || catalogue.error)
+    return <p className="admin-error">{quetes.error || recompenses.error || catalogue.error}</p>;
+  if (!quetes.rows || !recompenses.rows || !catalogue.rows) return <p>Chargement…</p>;
+
+  function nomObjet(id) {
+    return catalogue.rows.find((o) => o.id === id)?.nom || "?";
+  }
+  function recompensesDe(queteId) {
+    return recompenses.rows
+      .filter((r) => r.quete_id === queteId)
+      .sort((a, b) => a.position - b.position);
+  }
+  function startEdit(q) {
+    setEditing(q.id);
+    setForm({
+      nom: q.nom,
+      description: q.description || "",
+      veterance_requise: q.veterance_requise ?? "",
+      recompense_or: q.recompense_or ?? "",
+      icone: q.icone || "",
+    });
+    setIconFile(null);
+    const next = [null, null, null, null, null];
+    recompensesDe(q.id).forEach((r) => {
+      next[r.position - 1] = { objet_id: r.objet_id, quantite: r.quantite };
+    });
+    setSlots(next);
+    setMsg("");
+  }
+  function cancel() {
+    setEditing(null);
+    setForm(emptyQuete());
+    setIconFile(null);
+    setSlots([null, null, null, null, null]);
+    setMsg("");
+  }
+  function setSlot(index, patch) {
+    setSlots((prev) =>
+      prev.map((s, i) => (i === index ? { objet_id: "", quantite: 1, ...s, ...patch } : s)),
+    );
+  }
+  function clearSlot(index) {
+    setSlots((prev) => prev.map((s, i) => (i === index ? null : s)));
+  }
+  async function submit(e) {
+    e.preventDefault();
+    if (!form.nom.trim()) {
+      setMsg("Le titre est obligatoire.");
+      return;
+    }
+    let icone = form.icone || null;
+    if (iconFile) {
+      setUploading(true);
+      const result = await uploadImage("catalogue-icones", iconFile, form.nom);
+      setUploading(false);
+      if (result.error) {
+        setMsg(result.error);
+        return;
+      }
+      icone = result.url;
+    }
+    const values = {
+      nom: form.nom,
+      description: form.description || "",
+      veterance_requise: toIntOrNull(form.veterance_requise) ?? 0,
+      recompense_or: toIntOrNull(form.recompense_or) ?? 0,
+      icone,
+    };
+    let queteId = editing;
+    if (editing) {
+      const { error } = await supabase.from("quete").update(values).eq("id", editing);
+      if (error) {
+        setMsg(error.message);
+        return;
+      }
+    } else {
+      const { data, error } = await supabase.from("quete").insert(values).select("id").single();
+      if (error) {
+        setMsg(error.message);
+        return;
+      }
+      queteId = data.id;
+    }
+    const { error: delErr } = await supabase.from("quete_recompense").delete().eq("quete_id", queteId);
+    if (delErr) {
+      setMsg(delErr.message);
+      return;
+    }
+    const lignes = slots
+      .map((s, i) =>
+        s && s.objet_id
+          ? {
+              quete_id: queteId,
+              position: i + 1,
+              objet_id: s.objet_id,
+              quantite: Math.max(1, Math.floor(Number(s.quantite) || 1)),
+            }
+          : null,
+      )
+      .filter(Boolean);
+    if (lignes.length) {
+      const { error: insErr } = await supabase.from("quete_recompense").insert(lignes);
+      if (insErr) {
+        setMsg(insErr.message);
+        return;
+      }
+    }
+    await quetes.reload();
+    await recompenses.reload();
+    cancel();
+  }
+  async function del(id) {
+    const err = await quetes.remove(id);
+    if (err) setMsg(err);
+  }
+  async function remettreDisponible(id) {
+    const err = await quetes.update(id, { terminee_le: null });
+    if (err) setMsg(err);
+  }
+
+  const formEl = (
+    <form className="admin-form" onSubmit={submit}>
+      <h3>{editing ? "Modifier la quête" : "Ajouter une quête"}</h3>
+      <div className="admin-form-grid">
+        <div className="field">
+          <label htmlFor="quete-nom">Titre</label>
+          <div className="input-wrap">
+            <input
+              id="quete-nom"
+              value={form.nom}
+              onChange={(e) => setForm({ ...form, nom: e.target.value })}
+              required
+            />
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="quete-veterance">Vétérance moyenne requise</label>
+          <div className="input-wrap">
+            <input
+              id="quete-veterance"
+              type="number"
+              min="0"
+              value={form.veterance_requise}
+              onChange={(e) => setForm({ ...form, veterance_requise: e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="quete-or">Récompense en or (Po)</label>
+          <div className="input-wrap">
+            <input
+              id="quete-or"
+              type="number"
+              min="0"
+              value={form.recompense_or}
+              onChange={(e) => setForm({ ...form, recompense_or: e.target.value })}
+            />
+          </div>
+        </div>
+      </div>
+      <div className="field">
+        <label htmlFor="quete-desc">Description</label>
+        <textarea
+          id="quete-desc"
+          rows={3}
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="quete-icone">Icône de type (à gauche de la fiche, facultative)</label>
+        <div className="admin-icon-picker">
+          {(iconFile || form.icone) && (
+            <img className="admin-icon" src={iconFile ? URL.createObjectURL(iconFile) : form.icone} alt="" />
+          )}
+          <input
+            id="quete-icone"
+            type="file"
+            accept="image/*"
+            onChange={(e) => setIconFile(e.target.files[0] || null)}
+          />
+          {(iconFile || form.icone) && (
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                setIconFile(null);
+                setForm({ ...form, icone: "" });
+              }}
+            >
+              Retirer l’icône
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="admin-recette-block">
+        <p className="eyebrow admin-section-label">
+          Récompenses en objets (jusqu’à 5, cliquables par les joueurs en jeu)
+        </p>
+        {QUETE_SLOTS.map((i) => (
+          <div className="admin-ingredient-form" key={i}>
+            <select
+              value={slots[i]?.objet_id || ""}
+              onChange={(e) => (e.target.value ? setSlot(i, { objet_id: e.target.value }) : clearSlot(i))}
+            >
+              <option value="">— Emplacement {i + 1} vide —</option>
+              {catalogue.rows.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.nom}
+                </option>
+              ))}
+            </select>
+            {slots[i] && (
+              <>
+                <input
+                  type="number"
+                  min="1"
+                  value={slots[i].quantite}
+                  onChange={(e) => setSlot(i, { quantite: e.target.value })}
+                  aria-label={`Quantité, emplacement ${i + 1}`}
+                />
+                <button type="button" className="text-button" onClick={() => clearSlot(i)}>
+                  Vider
+                </button>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+      {msg && <p className="admin-error">{msg}</p>}
+      <div className="admin-form-actions">
+        <button className="primary" type="submit" disabled={uploading}>
+          {uploading ? "Envoi de l’image…" : editing ? "Enregistrer" : "Ajouter"}
+        </button>
+        {editing && (
+          <button type="button" className="text-button" onClick={cancel}>
+            Annuler
+          </button>
+        )}
+      </div>
+    </form>
+  );
+
+  return (
+    <div>
+      <div className="admin-table-wrap">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Icône</th>
+              <th>Titre</th>
+              <th>Vétérance</th>
+              <th>Or</th>
+              <th>Récompenses</th>
+              <th>État</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {quetes.rows.map((q) => (
+              <Fragment key={q.id}>
+                <tr className={editing === q.id ? "editing" : ""}>
+                  <td>
+                    {q.icone ? (
+                      <img className="admin-icon" src={q.icone} alt="" loading="lazy" decoding="async" />
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>{q.nom}</td>
+                  <td>{q.veterance_requise}</td>
+                  <td>{q.recompense_or}</td>
+                  <td>
+                    {recompensesDe(q.id).length
+                      ? recompensesDe(q.id)
+                          .map((r) => `${nomObjet(r.objet_id)} ×${r.quantite}`)
+                          .join(", ")
+                      : "—"}
+                  </td>
+                  <td>{q.terminee_le ? "Terminée" : q.en_cours ? "En cours" : "Disponible"}</td>
+                  <td className="admin-row-actions">
+                    <button type="button" className="text-button" onClick={() => startEdit(q)}>
+                      Modifier
+                    </button>
+                    {q.terminee_le && (
+                      <button type="button" className="text-button" onClick={() => remettreDisponible(q.id)}>
+                        Remettre disponible
+                      </button>
+                    )}
+                    <DeleteButton
+                      id={q.id}
+                      confirmingId={confirmingId}
+                      onAskConfirm={() => setConfirmingId(q.id)}
+                      onCancel={() => setConfirmingId(null)}
+                      onConfirm={() => {
+                        setConfirmingId(null);
+                        del(q.id);
+                      }}
+                    />
+                  </td>
+                </tr>
+                {editing === q.id && (
+                  <tr className="admin-edit-row">
+                    <td colSpan={7}>{formEl}</td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {!editing && formEl}
+    </div>
+  );
+}
+
 // Inscription sur invitation : l'administrateur crée un code par joueur, le lui
 // transmet, et le joueur le saisit sur « Créer un compte ». Chaque code ne
 // sert qu'une fois ; le contrôle réel est dans la base (déclencheur sur
@@ -2610,6 +2951,9 @@ export function Admin({ onCraftItem = () => {} }) {
         <button className={tab === "arsenal" ? "active" : ""} onClick={() => setTab("arsenal")}>
           Arsenal
         </button>
+        <button className={tab === "quetes" ? "active" : ""} onClick={() => setTab("quetes")}>
+          Quêtes
+        </button>
         <button className={tab === "invitations" ? "active" : ""} onClick={() => setTab("invitations")}>
           Invitations
         </button>
@@ -2635,6 +2979,7 @@ export function Admin({ onCraftItem = () => {} }) {
         )}
         {tab === "mercenaires" && <MercenairesSection />}
         {tab === "arsenal" && <ArsenalSection />}
+        {tab === "quetes" && <QuetesSection />}
         {tab === "invitations" && <InvitationsSection />}
       </div>
     </main>

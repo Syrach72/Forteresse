@@ -1314,7 +1314,7 @@ export function App() {
     const undoId = crypto.randomUUID();
     setInstanceUndo({
       id: undoId,
-      gains: { entrainement: [], infirmerie: [], ateliers: [], budget: 0 },
+      gains: { entrainement: [], infirmerie: [], ateliers: [], budget: 0, quete: null },
     });
     setInstanceTicks((v) => v + 1);
     // Seul l'administrateur fait avancer l'instance (une fois pour tous les
@@ -1346,6 +1346,11 @@ export function App() {
           ...gains.ateliers
             .filter((g) => g.a === 0)
             .map((g) => `La fabrication de l'atelier ${g.atelier} est terminée.`),
+          ...(gains.quete
+            ? [
+                `${gains.quete.nom} accomplie : +${gains.quete.or} Po et ${gains.quete.items.length} objet(s) rejoignent l'arsenal.`,
+              ]
+            : []),
         ];
         notify(
           phrases.length
@@ -1361,7 +1366,7 @@ export function App() {
     setInstanceTicks((v) => Math.max(0, v - 1));
     setInstanceUndo(null);
     const g = u.gains;
-    if (g.entrainement.length || g.infirmerie.length || g.ateliers.length || g.budget !== 0)
+    if (g.entrainement.length || g.infirmerie.length || g.ateliers.length || g.budget !== 0 || g.quete)
       // Niveaux, compteurs et durées sont en base : le serveur les remet comme
       // avant et replace les mercenaires renvoyés au dortoir.
       enqueueTraining(async () => {
@@ -1379,6 +1384,10 @@ export function App() {
         ]) {
           if (!gains.length) continue;
           const { error } = await supabase.rpc(fn, { p_gains: gains });
+          if (error) erreurs.push(error.message);
+        }
+        if (g.quete) {
+          const { error } = await supabase.rpc("quetes_annuler_instance", { p_gains: g.quete });
           if (error) erreurs.push(error.message);
         }
         await synchroniserPartage();
@@ -1619,6 +1628,7 @@ export function App() {
     const t = await supabase.rpc("entrainement_instance");
     const i = await supabase.rpc("infirmerie_instance");
     const a = await supabase.rpc("ateliers_instance");
+    const q = await supabase.rpc("quetes_instance");
     await synchroniserPartage();
     const liste = (r) => (Array.isArray(r.data) ? r.data : []);
     return {
@@ -1627,8 +1637,9 @@ export function App() {
         infirmerie: liste(i),
         ateliers: liste(a),
         budget: e.data?.net || 0,
+        quete: q.data || null,
       },
-      erreur: [e.error?.message, t.error?.message, i.error?.message, a.error?.message]
+      erreur: [e.error?.message, t.error?.message, i.error?.message, a.error?.message, q.error?.message]
         .filter(Boolean)
         .join(" "),
     };
@@ -2341,6 +2352,7 @@ export function App() {
             <Quests
               onInventory={() => setModal({ type: "inventory" })}
               onCampaign={() => setModal({ type: "campaign" })}
+              notify={notify}
             />
           ) : route === "tresorerie" ? (
             <Treasury
@@ -2728,31 +2740,6 @@ export function App() {
                 </div>
                 <strong>1 / 3 PV</strong>
               </div>
-            </section>
-          ) : route === "quetes" ? (
-            <section className="ledger parchment">
-              <p className="eyebrow">Le tableau des aventures</p>
-              <h2>Les ombres du col</h2>
-              <p>
-                Des voyageurs ont disparu sur le chemin du nord. Rassemblez la
-                compagnie et préparez vos équipements avant de franchir les
-                portes.
-              </p>
-              <div className="stat-line">
-                <span>Difficulté</span>
-                <strong>Exploration</strong>
-              </div>
-              <button
-                className="primary"
-                disabled={game.quest || busy}
-                onClick={() => act("quest")}
-              >
-                {game.quest ? "Quête acceptée" : "Accepter la quête"}
-              </button>
-              <p className="muted">
-                Quête de démonstration. Sa résolution sera définie avec le
-                maître du jeu.
-              </p>
             </section>
           ) : (
             <section className="ledger parchment">
