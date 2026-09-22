@@ -995,13 +995,24 @@ export function App() {
   // le seul cas où le lit se libère.
   const absences = useMemo(() => {
     const m = {};
+    const veterance = (id) => mercenaires.find((x) => x.id === id)?.veterance ?? 0;
+    const suite = (n) => (n > 0 ? ` (encore ${n} instance${n > 1 ? "s" : ""})` : "");
     for (const g of [training, training.second]) {
       if (g.instructor) m[g.instructor.heroId] = "Instructeur";
-      for (const s of g.students) if (s) m[s.heroId] = "À l’entraînement";
+      for (const s of g.students) {
+        if (!s) continue;
+        // Un élève gagne 1 point de vétérance par instance jusqu'à rejoindre
+        // celle de son instructeur : l'écart restant = instances restantes.
+        const restant = g.instructor
+          ? Math.max(0, veterance(g.instructor.heroId) - veterance(s.heroId))
+          : 0;
+        m[s.heroId] = `À l’entraînement${suite(restant)}`;
+      }
     }
-    for (const b of infirm.beds) if (b) m[b.heroId] = "À l’infirmerie";
+    for (const b of infirm.beds)
+      if (b) m[b.heroId] = `À l’infirmerie${suite(b.remaining)}`;
     return m;
-  }, [training, infirm]);
+  }, [training, infirm, mercenaires]);
   const [route, setRoute] = useState(location.hash.slice(1) || "forteresse");
   // Or, arsenal, journal et fabrications sont PARTAGÉS (base de données) : ils
   // arrivent par synchroniserEconomie() ; les valeurs de démonstration locales

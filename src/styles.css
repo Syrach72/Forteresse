@@ -2243,23 +2243,21 @@ video.interior-backdrop-boxed {
   outline: 3px solid #f4cb63;
   outline-offset: 0;
 }
-/* Mercenaire absent du dortoir (entraînement, infirmerie) : lit grisé, la
-   place lui reste réservée. */
-.bed-slot.bed-away {
-  filter: grayscale(1) brightness(0.7);
-}
+/* Mercenaire absent du dortoir (entraînement, infirmerie) : la place lui
+   reste réservée. Ni grisé ni assombri (juste le bandeau ci-dessous) : le
+   portrait doit rester lisible. */
 .bed-away-label {
   position: absolute;
   top: 2px;
   left: 0;
   right: 0;
   z-index: 2;
-  font-size: 12px;
-  line-height: 1.1;
+  font-size: 14px;
+  line-height: 1.25;
   text-align: center;
   color: #fff0c2;
   background: #000000b3;
-  padding: 3px 2px;
+  padding: 4px 3px;
 }
 .bed-portrait {
   height: 88%;
@@ -2308,7 +2306,11 @@ video.interior-backdrop-boxed {
   left: -103px;
   top: -144px;
 }
-.bed-locked > strong {
+/* Specificité relevée (comme .training-locked/.instructor-place) : sans les
+   classes .interior .parchment en plus, .interior .parchment strong (plus
+   specifique) imposait du blanc au Dortoir malgre cette regle - seule
+   l'Infirmerie s'en tirait par coincidence de duplicat plus bas. */
+.interior .parchment .bed-locked > strong {
   font-size: 23px;
   color: #f0cf36;
   display: block;
