@@ -907,19 +907,20 @@ function CatalogueSection({ onCraftItem }) {
     const bouclier = !arme && isCategorieBouclier(categorieId);
     const alchimique = !arme && isCategorieParmi(categorieId, ["produits alchimiques"]);
     const gemme = !arme && isCategorieParmi(categorieId, ["gemmes"]);
-    // Embauche : un métier (Mineur, Bûcheron...) du Marché, page « Matériaux
-    // et Embauche ». Ne rejoint pas l'arsenal, va dans Gestion des Employés.
-    const emploi = !arme && isCategorieParmi(categorieId, ["embauche"]);
+    // Collecte : un métier (Mineur, Bûcheron, Tanneur...) du Marché, page
+    // « Matériaux et Embauche ». Ne rejoint pas l'arsenal, va dans Gestion
+    // des Employés.
+    const emploi = !arme && isCategorieParmi(categorieId, ["collecte"]);
     const craftable =
       arme ||
       isCategorieParmi(categorieId, ["produits alchimiques", "gemmes", "armures"]);
     // Achat au marché : armes/armures/produits alchimiques (qui ont aussi une
     // fabrication), composants/objets divers (achetés directement, sans
-    // recette) et embauche (coût d'embauche), mais jamais les gemmes
+    // recette) et collecte (coût d'embauche), mais jamais les gemmes
     // (obtenues seulement par fabrication, sertissage ou quête — règle de Bruno).
     const achetable =
       (craftable && !gemme) ||
-      isCategorieParmi(categorieId, ["composants", "objet divers", "embauche"]);
+      isCategorieParmi(categorieId, ["composants", "objet divers", "collecte"]);
     const racine = racineDe(categories.rows || [], categorieId);
     const atelier = ATELIER_PAR_RACINE[racine?.nom.trim().toLowerCase()] || null;
     return { arme, armure, bouclier, alchimique, gemme, emploi, craftable, achetable, atelier };

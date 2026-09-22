@@ -2360,7 +2360,7 @@ export function App() {
       while (c?.parent_id) c = categories.find((x) => x.id === c.parent_id);
       return c;
     };
-    const MARKET_BUTTON_ROOTS = ["armes", "armures", "composants", "matériaux", "produits alchimiques", "gemmes", "embauche"];
+    const MARKET_BUTTON_ROOTS = ["armes", "armures", "composants", "matériaux", "produits alchimiques", "gemmes", "collecte"];
     const isDivers = consultation && racineNom.trim().toLowerCase() === "objet divers";
     const included = (o) =>
       isDivers
@@ -2746,7 +2746,10 @@ export function App() {
                 // l'arsenal, cf. Gestion des Employés).
                 if (c.dual) {
                   loadCatalogue("market:Matériaux", "Matériaux");
-                  loadCatalogue("market:Embauche", "Embauche");
+                  // La rubrique catalogue s'appelle "Collecte" (déjà créée
+                  // par Bruno avec Bûcheron/Mineur/Tanneur dedans) ; le
+                  // libellé affiché au joueur reste « Embauche ».
+                  loadCatalogue("market:Collecte", "Collecte");
                   setModal({ type: "market-dual" });
                   return;
                 }
@@ -3457,7 +3460,7 @@ export function App() {
           ) : modal.type === "market-dual" ? (
             (() => {
               const materiaux = catalogueByAtelier["market:Matériaux"];
-              const embauche = catalogueByAtelier["market:Embauche"];
+              const embauche = catalogueByAtelier["market:Collecte"];
               const stockDe = (objetId) =>
                 game.inventory.find((i) => i.objetId === objetId)?.quantity || 0;
               return (
