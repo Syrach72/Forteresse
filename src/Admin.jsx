@@ -196,7 +196,14 @@ async function uploadImage(bucket, originalFile, seed) {
   const file = bucket === "catalogue-icones" ? await reduireIcone(originalFile) : originalFile;
   const ext = (file.name.split(".").pop() || "png").toLowerCase();
   const path = `${(seed || "image").replace(/[^a-z0-9-]/gi, "-")}-${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+  // Le nom du fichier contient déjà un timestamp unique : un même chemin ne
+  // désigne jamais deux contenus différents. On peut donc dire au navigateur
+  // de garder l'image en cache longtemps (1 an) sans risque d'affichage
+  // périmé, ce qui réduit le trafic "Cached Egress" facturé par Supabase.
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {
+    upsert: true,
+    cacheControl: "31536000",
+  });
   if (error) return { error: error.message };
   const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return { url: data.publicUrl };
