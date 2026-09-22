@@ -1078,6 +1078,31 @@ video.interior-backdrop-boxed {
   color: var(--ink);
   text-align: center;
 }
+/* Envoi vers le sac à dos d'un mercenaire (Composants/Objet divers). */
+.item-detail-sac {
+  margin-top: 14px;
+}
+.item-detail-sac > label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.item-detail-sac-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.item-detail-sac-row select {
+  flex: 1;
+  min-width: 180px;
+  min-height: 40px;
+  border: 1px solid #8b7b61;
+  border-radius: 2px;
+  background: rgba(255, 253, 245, 0.6);
+  font: 15px Georgia, serif;
+  color: var(--ink);
+  padding: 0 8px;
+}
 .inline-link {
   display: block;
   margin-top: 20px;
@@ -2423,6 +2448,76 @@ video.interior-backdrop-boxed {
 .merc-actions .merc-recruit {
   margin-top: 4px;
   min-width: 150px;
+}
+/* Icône du sac à dos, à côté d'Instructeur/Soigner/Renvoyer. */
+.merc-sac-dos {
+  width: 52px;
+  height: 52px;
+  padding: 4px;
+  flex: none;
+  border: 3px ridge var(--wood);
+  border-radius: 6px;
+  background: rgba(255, 253, 245, 0.5);
+  cursor: pointer;
+}
+.merc-sac-dos:hover {
+  background: rgba(255, 253, 245, 0.8);
+}
+.merc-sac-dos img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+/* Contenu du sac à dos (modale) : 9 emplacements, 3x3. */
+.sac-dos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+.sac-dos-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 96px;
+  padding: 10px 6px;
+  border: 2px ridge var(--edge);
+  border-radius: 4px;
+  background: rgba(255, 253, 245, 0.4);
+  text-align: center;
+  justify-content: center;
+}
+.sac-dos-slot img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.sac-dos-qty {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #000c;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.sac-dos-nom {
+  font-size: 13px;
+  line-height: 1.2;
+}
+.sac-dos-slot-vide {
+  border-style: dashed;
+  opacity: 0.5;
+}
+@media (max-width: 680px) {
+  .sac-dos-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 .available-heroes {
   max-width: 1060px;

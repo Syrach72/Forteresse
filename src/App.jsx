@@ -292,14 +292,27 @@ function arsenalCategoryOf(own) {
 // (équiper/vendre/détruire, cf. commentaire plus bas). Composant à part,
 // avec son propre état de quantité à prélever, pour que ce champ reparte
 // à 1 à chaque nouvel objet ouvert (clé = id de l'objet côté appelant).
-function ItemActionPanel({ game, id, onSell, onDestroy, busy, error }) {
+function ItemActionPanel({
+  game,
+  id,
+  onSell,
+  onDestroy,
+  onSendToBackpack,
+  mercenairesRecrutes = [],
+  busy,
+  error,
+}) {
   const [qty, setQty] = useState(1);
   const [confirmDestroy, setConfirmDestroy] = useState(false);
+  const [mercenaireCible, setMercenaireCible] = useState("");
   const own = game.inventory.find((i) => i.id === id);
   if (!own) return <p>Cet objet n’est plus dans l’arsenal.</p>;
   const { art } = inventoryItemInfo(own);
   const valeur = sellableValue(own);
   const gain = valeur === null ? null : Math.floor((valeur * qty) / 2);
+  // Seuls les composants alchimiques et les objets divers peuvent rejoindre
+  // un sac à dos (règle de Bruno) ; revérifié côté serveur dans tous les cas.
+  const versSac = own.categorie === "Composants" || own.categorie === "Objet divers";
   return (
     <>
       <div className="item-detail-art">{art}</div>
@@ -373,6 +386,33 @@ function ItemActionPanel({ game, id, onSell, onDestroy, busy, error }) {
               onClick={() => setConfirmDestroy(false)}
             >
               Non
+            </button>
+          </div>
+        </div>
+      )}
+      {versSac && (
+        <div className="item-detail-sac">
+          <label htmlFor="item-sac-mercenaire">Envoyer au sac à dos de</label>
+          <div className="item-detail-sac-row">
+            <select
+              id="item-sac-mercenaire"
+              value={mercenaireCible}
+              onChange={(e) => setMercenaireCible(e.target.value)}
+            >
+              <option value="">Choisir un mercenaire…</option>
+              {mercenairesRecrutes.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+            <button
+              className="wood-button"
+              type="button"
+              disabled={busy || !mercenaireCible}
+              onClick={() => onSendToBackpack(own.id, mercenaireCible, qty)}
+            >
+              Envoyer ×{qty}
             </button>
           </div>
         </div>
@@ -883,9 +923,25 @@ export function App() {
   // Nom du joueur inscrit sur chaque mercenaire recruté (par n'importe quel
   // joueur) : le Dortoir est PARTAGÉ, chacun y voit les mêmes lits.
   const [joueurs, setJoueurs] = useState(() => new Map());
+  // Sac à dos de chaque mercenaire (id -> [{objetId, quantite, nom, icone}]),
+  // reconstruit à chaque synchronisation partagée (cf. synchroniserEconomie).
+  const [sacsDos, setSacsDos] = useState(() => new Map());
   const tousRecrutes = useMemo(
     () => new Set([...recrutesServeur, ...mesRecrutes.keys()]),
     [recrutesServeur, mesRecrutes],
+  );
+  // Mercenaires recrutés, pour le choix du sac à dos destinataire depuis
+  // l'Arsenal (n'importe lequel : pas seulement ceux du joueur courant, la
+  // compagnie est partagée).
+  const mercenairesRecrutes = useMemo(
+    () =>
+      mercenaires
+        .filter((m) => recrutesServeur.has(m.id))
+        .map((m) => ({
+          id: m.id,
+          label: joueurs.get(m.id) ? `${m.nom} (${joueurs.get(m.id)})` : m.nom,
+        })),
+    [mercenaires, recrutesServeur, joueurs],
   );
   const warriors = useMemo(
     () =>
@@ -1403,7 +1459,7 @@ export function App() {
   async function synchroniserEconomie() {
     const [etat, inv, lignes, fab, jour] = await Promise.all([
       supabase.from("partie_etat").select("or_compagnie").maybeSingle(),
-      supabase.from("inventaire").select("id, type"),
+      supabase.from("inventaire").select("id, type, mercenaire_id"),
       supabase.from("ligne_inventaire").select("inventaire_id, objet_id, quantite"),
       supabase.from("atelier_fabrication").select("atelier, objet_id, quantite, restant"),
       supabase
@@ -1417,8 +1473,14 @@ export function App() {
     const enStock = lignes.data.filter(
       (l) => l.inventaire_id === arsenal?.id && l.quantite > 0,
     );
+    // Sacs à dos (un inventaire type "campagne" par mercenaire, cf. migration
+    // 20260922120000_sac_a_dos.sql) : regroupés par mercenaire_id pour la fiche.
+    const sacsParInventaire = inv.data.filter((i) => i.type === "campagne" && i.mercenaire_id);
+    const lignesSacs = lignes.data.filter(
+      (l) => sacsParInventaire.some((s) => s.id === l.inventaire_id) && l.quantite > 0,
+    );
     const cache = catalogueCacheRef.current;
-    if ([...enStock, ...fab.data].some((x) => !cache.objets.has(x.objet_id))) {
+    if ([...enStock, ...lignesSacs, ...fab.data].some((x) => !cache.objets.has(x.objet_id))) {
       const [o, c] = await Promise.all([
         supabase.from("objet_catalogue").select("id, nom, icone, categorie_id, cout_achat_or"),
         supabase.from("categorie").select("id, nom, parent_id"),
@@ -1434,6 +1496,22 @@ export function App() {
         cur = cache.categories.find((c) => c.id === cur.parent_id);
       return cur?.nom || null;
     };
+    const sacs = new Map();
+    for (const s of sacsParInventaire) {
+      const items = lignesSacs
+        .filter((l) => l.inventaire_id === s.id)
+        .map((l) => {
+          const o = cache.objets.get(l.objet_id);
+          return {
+            objetId: l.objet_id,
+            quantite: l.quantite,
+            nom: o?.nom || "Objet",
+            icone: o?.icone || null,
+          };
+        });
+      sacs.set(s.mercenaire_id, items);
+    }
+    setSacsDos(sacs);
     const inventory = [];
     for (const l of enStock) {
       const id = `catalogue:${l.objet_id}`;
@@ -1850,6 +1928,39 @@ export function App() {
     setModal(null);
     notify(`Vente de ${nom} ×${quantity} : +${data.gain} Po.`);
   }
+  // Sac à dos d'un mercenaire (fiche des Personnages) : envoi depuis l'Arsenal
+  // (Composants/Objet divers uniquement, vérifié aussi côté serveur) et retour
+  // sans restriction. Le serveur revalide tout (catégorie, place, empilement à
+  // 3) ; operationPartagee affiche l'erreur telle quelle en cas de refus.
+  async function actEnvoyerSac(id, mercenaireId, quantity) {
+    const objet = objetDe(id);
+    if (!objet) {
+      setActionError("Cet objet ne peut pas rejoindre un sac à dos.");
+      return;
+    }
+    const nom = nomDe(id);
+    const data = await operationPartagee(() =>
+      supabase.rpc("sac_dos_envoyer", {
+        p_mercenaire: mercenaireId,
+        p_objet: objet,
+        p_quantite: quantity,
+      }),
+    );
+    if (!data) return;
+    notify(`${nom} ×${quantity} envoyé au sac à dos.`);
+  }
+  async function actRendreArsenal(mercenaireId, objetId, quantity) {
+    const nom = sacsDos.get(mercenaireId)?.find((i) => i.objetId === objetId)?.nom || "L’objet";
+    const data = await operationPartagee(() =>
+      supabase.rpc("sac_dos_retirer", {
+        p_mercenaire: mercenaireId,
+        p_objet: objetId,
+        p_quantite: quantity,
+      }),
+    );
+    if (!data) return;
+    notify(`${nom} ×${quantity} rendu à l’arsenal.`);
+  }
   // Achat d'un objet du catalogue depuis le Marché : le coût d'achat est
   // décompté de la trésorerie partagée et l'objet rejoint l'arsenal commun.
   async function actBuyCatalogue(arme) {
@@ -2207,6 +2318,8 @@ export function App() {
           }
           Modal={Modal}
           notify={notify}
+          sacsDos={sacsDos}
+          onRendreArsenal={actRendreArsenal}
         />
       ) : route === "forteresse" ? (
         <main id="main" className="home">
@@ -3106,6 +3219,8 @@ export function App() {
               id={modal.id}
               onSell={actSell}
               onDestroy={actDestroy}
+              onSendToBackpack={actEnvoyerSac}
+              mercenairesRecrutes={mercenairesRecrutes}
               busy={busy}
               error={actionError}
             />

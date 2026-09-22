@@ -82,6 +82,8 @@ export function Characters({
   onUpdate,
   Modal,
   notify,
+  sacsDos = new Map(),
+  onRendreArsenal = () => {},
 }) {
   const [, classId, heroId] = route.split("/");
   const cls = CHARACTER_CLASSES.find((c) => c[0] === classId);
@@ -348,6 +350,15 @@ export function Characters({
                     >
                       Renvoyer
                     </button>
+                    <button
+                      className="merc-sac-dos"
+                      type="button"
+                      onClick={() => setPopup({ type: "sac" })}
+                      aria-label={`Sac à dos de ${merc.nom}`}
+                      title="Sac à dos"
+                    >
+                      <img src="/assets/icons/sac-a-dos.webp" alt="" />
+                    </button>
                   </div>
                   <p className="merc-recrute-note">
                     {absences[merc.id]
@@ -612,11 +623,42 @@ export function Characters({
               ? "Modifier la fiche"
               : popup.type === "renvoi"
                 ? `Renvoyer ${merc?.nom || "le mercenaire"}`
-                : popup.title
+                : popup.type === "sac"
+                  ? `Sac à dos de ${merc?.nom || "le mercenaire"}`
+                  : popup.title
           }
           onClose={() => setPopup(null)}
         >
-          {popup.type === "renvoi" ? (
+          {popup.type === "sac" ? (
+            <>
+              <p className="muted">
+                9 emplacements, jusqu’à 3 par objet. Envoyé depuis l’Arsenal
+                (composants alchimiques et objets divers uniquement) ; rendu
+                à l’arsenal ci-dessous, sans restriction.
+              </p>
+              <div className="sac-dos-grid">
+                {Array.from({ length: 9 }, (_, i) => (sacsDos.get(merc.id) || [])[i] || null).map(
+                  (item, i) =>
+                    item ? (
+                      <div className="sac-dos-slot" key={item.objetId}>
+                        {item.icone && <img src={item.icone} alt="" />}
+                        <span className="sac-dos-qty">×{item.quantite}</span>
+                        <span className="sac-dos-nom">{item.nom}</span>
+                        <button
+                          type="button"
+                          className="text-button"
+                          onClick={() => onRendreArsenal(merc.id, item.objetId, item.quantite)}
+                        >
+                          Rendre à l’arsenal
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="sac-dos-slot sac-dos-slot-vide" key={`vide-${i}`} aria-hidden="true" />
+                    ),
+                )}
+              </div>
+            </>
+          ) : popup.type === "renvoi" ? (
             <>
               <p>
                 <strong>{merc?.nom}</strong> quitte la compagnie : son lit et le
