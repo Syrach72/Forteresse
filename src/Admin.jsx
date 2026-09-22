@@ -268,8 +268,12 @@ function SearchableSelect({ value, onChange, options, emptyLabel = "—", ariaLa
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
   const selected = options.find((o) => o.value === value);
-  const q = query.trim().toLowerCase();
-  const filtered = q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
+  // Recherche insensible aux accents : les joueurs ne tapent pas toujours
+  // "Épée" avec l'accent, et « objet_catalogue » contient beaucoup de noms
+  // accentués (Épée, Défenseur, Griffe de troll…).
+  const normaliser = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const q = normaliser(query.trim());
+  const filtered = q ? options.filter((o) => normaliser(o.label).includes(q)) : options;
   const groupes = [];
   const index = new Map();
   for (const o of filtered) {
