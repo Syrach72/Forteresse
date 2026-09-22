@@ -689,6 +689,40 @@ function CatalogueSection({ onCraftItem }) {
   const [msg, setMsg] = useState("");
   const [filterCategorie, setFilterCategorie] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
+  const [bulkRecache, setBulkRecache] = useState(null); // { i, total, echecs } pendant le traitement, sinon null
+  const [confirmingBulk, setConfirmingBulk] = useState(false);
+
+  // Reprend chaque icône déjà en ligne (comme le bouton "Réenregistrer"
+  // individuel) pour lui appliquer le nouveau cache navigateur 1 an. Ne
+  // touche pas aux objets sans icône. Continue même si un objet échoue
+  // (image supprimée manuellement du bucket, etc.) et récapitule à la fin.
+  async function reencacherTout() {
+    setConfirmingBulk(false);
+    const cibles = rows.filter((r) => r.icone);
+    const echecs = [];
+    for (let i = 0; i < cibles.length; i++) {
+      const r = cibles[i];
+      setBulkRecache({ i: i + 1, total: cibles.length, echecs: echecs.length });
+      try {
+        const res = await fetch(r.icone);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const original = await res.blob();
+        const reduit = await reduireIcone(new File([original], "icone", { type: original.type }));
+        const result = await uploadImage("catalogue-icones", reduit, r.code_unique);
+        if (result.error) throw new Error(result.error);
+        const err = await update(r.id, { icone: result.url });
+        if (err) throw new Error(err);
+      } catch (e) {
+        echecs.push(`${r.nom} (${r.code_unique}) : ${e.message || e}`);
+      }
+    }
+    setBulkRecache(null);
+    setMsg(
+      echecs.length
+        ? `${cibles.length - echecs.length}/${cibles.length} icônes réenregistrées. Échecs : ${echecs.join(" · ")}`
+        : `${cibles.length} icônes réenregistrées avec le nouveau cache.`,
+    );
+  }
 
   function nomCategorie(id) {
     return categories.rows?.find((c) => c.id === id)?.nom || "?";
@@ -1343,6 +1377,30 @@ function CatalogueSection({ onCraftItem }) {
           {categoryTreeOptions(null, 0)}
         </select>
       </div>
+      <div className="admin-bulk-recache">
+        {bulkRecache ? (
+          <p className="muted">
+            Réenregistrement en cours… {bulkRecache.i}/{bulkRecache.total}
+            {bulkRecache.echecs ? ` (${bulkRecache.echecs} échec${bulkRecache.echecs > 1 ? "s" : ""})` : ""}
+          </p>
+        ) : confirmingBulk ? (
+          <p>
+            Réenregistrer les {rows.filter((r) => r.icone).length} icônes existantes avec le nouveau cache
+            (1 an) ? Aucun changement visuel, mais ça prend quelques minutes.{" "}
+            <button type="button" className="text-button" onClick={reencacherTout}>
+              Confirmer
+            </button>{" "}
+            <button type="button" className="text-button" onClick={() => setConfirmingBulk(false)}>
+              Annuler
+            </button>
+          </p>
+        ) : (
+          <button type="button" className="text-button" onClick={() => setConfirmingBulk(true)}>
+            Réenregistrer toutes les icônes (cache prolongé)
+          </button>
+        )}
+      </div>
+      {msg && !bulkRecache && !confirmingBulk && <p className="admin-error">{msg}</p>}
       {filterCategorie && !visibleRows.length && (
         <p className="muted">Aucun objet dans cette catégorie.</p>
       )}
