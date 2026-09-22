@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { VetBadge } from "./VetBadge.jsx";
 import { ReferenceCrop } from "./Characters.jsx";
+import { Modal } from "./Modal.jsx";
 import { ITEMS } from "./data.js";
 
 const REWARD_SLOTS = [0, 1, 2, 3, 4];
@@ -19,7 +20,7 @@ function useQuetes() {
     const [q, r, o] = await Promise.all([
       supabase.from("quete").select("*").order("nom"),
       supabase.from("quete_recompense").select("*"),
-      supabase.from("objet_catalogue").select("id, nom, icone"),
+      supabase.from("objet_catalogue").select("id, nom, icone, description"),
     ]);
     const err = q.error || r.error || o.error;
     if (err) {
@@ -46,6 +47,9 @@ function useQuetes() {
 export function Quests({ onInventory, onCampaign, notify = () => {} }) {
   const { quetes, recompenses, objets, error } = useQuetes();
   const [busy, setBusy] = useState(false);
+  // Objet dont la fiche (icône, nom, descriptif) est affichée après un clic
+  // sur son emplacement de récompense ; null = aucune fiche ouverte.
+  const [ficheObjet, setFicheObjet] = useState(null);
 
   function objet(id) {
     return objets?.find((o) => o.id === id);
@@ -54,12 +58,6 @@ export function Quests({ onInventory, onCampaign, notify = () => {} }) {
     return (recompenses || [])
       .filter((r) => r.quete_id === queteId)
       .sort((a, b) => a.position - b.position);
-  }
-  // Une icône de récompense cliquée rappelle simplement ce qu'elle rapporte
-  // (les objets/l'or ne rejoignent l'arsenal/la trésorerie qu'au +1 Instance,
-  // sur décision de l'administrateur : ce n'est pas une action du joueur).
-  function voirRecompense(libelle) {
-    notify(libelle);
   }
   async function choisir(id) {
     if (busy) return;
@@ -132,8 +130,8 @@ export function Quests({ onInventory, onCampaign, notify = () => {} }) {
                         key={i}
                         className="quest-reward-slot"
                         disabled={!o}
-                        onClick={() => o && voirRecompense(`Récompense : ${o.nom} ×${r.quantite}.`)}
-                        aria-label={o ? `${o.nom}, quantité ${r.quantite}` : "Emplacement vide"}
+                        onClick={() => o && setFicheObjet({ ...o, quantite: r.quantite })}
+                        aria-label={o ? `${o.nom}, quantité ${r.quantite} : voir le descriptif` : "Emplacement vide"}
                       >
                         {o?.icone && <img src={o.icone} alt="" />}
                         {r && <span className="quest-reward-qty">×{r.quantite}</span>}
@@ -144,7 +142,7 @@ export function Quests({ onInventory, onCampaign, notify = () => {} }) {
                     type="button"
                     className="quest-reward-slot quest-reward-or"
                     disabled={!q.recompense_or}
-                    onClick={() => q.recompense_or && voirRecompense(`Récompense : ${q.recompense_or} Po.`)}
+                    onClick={() => q.recompense_or && notify(`Récompense : ${q.recompense_or} Po.`)}
                     aria-label={q.recompense_or ? `${q.recompense_or} pièces d’or` : "Pas de récompense en or"}
                   >
                     {q.recompense_or ? <span>{q.recompense_or} Po</span> : null}
@@ -168,6 +166,13 @@ export function Quests({ onInventory, onCampaign, notify = () => {} }) {
             );
           })}
         </div>
+      )}
+      {ficheObjet && (
+        <Modal title={ficheObjet.nom} onClose={() => setFicheObjet(null)}>
+          {ficheObjet.icone && <img className="db-item-art" src={ficheObjet.icone} alt={ficheObjet.nom} />}
+          <p>{ficheObjet.description || "Description à définir."}</p>
+          <p className="muted">Récompense de la quête : ×{ficheObjet.quantite}.</p>
+        </Modal>
       )}
     </section>
   );

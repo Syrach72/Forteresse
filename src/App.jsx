@@ -25,6 +25,7 @@ import {
 } from "./dormitory";
 import { CHARACTER_CLASSES } from "./characters";
 import { Admin } from "./Admin.jsx";
+import { Modal } from "./Modal.jsx";
 import { supabase } from "./supabaseClient";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
 const BACKDROP_VIDEO = {
@@ -655,38 +656,6 @@ function CatalogueItemDetail({
           </p>
         ))}
     </>
-  );
-}
-function Modal({ title, children, onClose }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const prev = document.activeElement;
-    ref.current.showModal();
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-      prev?.focus();
-    };
-  }, []);
-  return (
-    <dialog
-      ref={ref}
-      onCancel={(e) => {
-        e.preventDefault();
-        onClose();
-      }}
-      aria-labelledby="dialog-title"
-      className="parchment modal"
-    >
-      <div className="modal-heading">
-        <h2 id="dialog-title">{title}</h2>
-        <button className="text-button" onClick={onClose}>
-          Fermer
-        </button>
-      </div>
-      {children}
-    </dialog>
   );
 }
 function Auth({ signup, onEnter }) {
