@@ -2869,9 +2869,10 @@ video.interior-backdrop-boxed {
 .training-place:hover {
   background: #ecd9a1;
 }
-/* Instructeur : nom et libellé en vert, pour le distinguer des élèves. */
-.instructor-place strong,
-.instructor-place small {
+/* Instructeur : nom et libellé en vert, pour le distinguer des élèves.
+   Même remarque de spécificité que .training-locked strong ci-dessous. */
+.interior .parchment.instructor-place strong,
+.interior .parchment.instructor-place small {
   color: #2f7a3f;
 }
 .training-duration {
@@ -2902,7 +2903,10 @@ video.interior-backdrop-boxed {
   height: auto;
   display: block;
 }
-.training-locked strong {
+/* Specificité relevée : .interior .parchment strong (deux classes) impose du
+   blanc par défaut et l'emporterait sinon sur .training-locked strong (une
+   classe), malgré l'ordre dans la feuille de styles. */
+.interior .parchment.training-locked strong {
   color: #f0cf36;
   text-shadow: 0 2px 4px #000;
   font-size: 31px;
