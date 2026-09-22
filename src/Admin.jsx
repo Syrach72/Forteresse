@@ -1451,29 +1451,33 @@ function CatalogueSection({ onCraftItem }) {
               </div>
             </>
           )}
-          {editing ? (
-            <RecetteBlock
-              key={editing}
-              objet={rows.find((r) => r.id === editing)}
-              atelier={atelier}
-              objets={rows}
-              categories={categories.rows}
-              recettes={recettes}
-              ingredients={ingredients}
-              onCraftItem={onCraftItem}
-            />
-          ) : (
-            <RecetteBlock
-              key="nouveau"
-              atelier={atelier}
-              objets={rows}
-              categories={categories.rows}
-              recettes={recettes}
-              ingredients={ingredients}
-              brouillon={brouillon}
-              setBrouillon={setBrouillon}
-            />
-          )}
+          {/* Recette : uniquement les rubriques fabricables (Armes, Armures,
+              Produits Alchimiques, Gemmes). Composants/Objet divers/Collecte
+              s'achètent ou se collectent, ils n'ont pas de recette. */}
+          {craftable &&
+            (editing ? (
+              <RecetteBlock
+                key={editing}
+                objet={rows.find((r) => r.id === editing)}
+                atelier={atelier}
+                objets={rows}
+                categories={categories.rows}
+                recettes={recettes}
+                ingredients={ingredients}
+                onCraftItem={onCraftItem}
+              />
+            ) : (
+              <RecetteBlock
+                key="nouveau"
+                atelier={atelier}
+                objets={rows}
+                categories={categories.rows}
+                recettes={recettes}
+                ingredients={ingredients}
+                brouillon={brouillon}
+                setBrouillon={setBrouillon}
+              />
+            ))}
           </>
         );
       })()}
