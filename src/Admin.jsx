@@ -1284,6 +1284,20 @@ function CatalogueSection({ onCraftItem }) {
             accept="image/*"
             onChange={(e) => setIconFile(e.target.files[0] || null)}
           />
+          {form.icone && !iconFile && (
+            <button
+              type="button"
+              className="text-button"
+              onClick={async () => {
+                const res = await fetch(form.icone);
+                const blob = await res.blob();
+                const ext = blob.type.split("/")[1] || "png";
+                setIconFile(new File([blob], `icone.${ext}`, { type: blob.type || "image/png" }));
+              }}
+            >
+              Réenregistrer (cache prolongé)
+            </button>
+          )}
           {(iconFile || form.icone) && (
             <button
               type="button"
