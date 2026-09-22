@@ -282,6 +282,11 @@ const LEGACY_TYPE_TAB_LABELS = {
   Potions: "Produits Alchimiques",
   Formules: "Divers",
 };
+// Une arme sertie vaut plus cher à la revente : ×2 pour 1 gemme, ×3 pour 2,
+// ×5 pour 3 (règle de Bruno). Même formule côté serveur (partie_vendre).
+function multiplicateurSertissage(nombreGemmes) {
+  return { 1: 2, 2: 3, 3: 5 }[nombreGemmes] || 1;
+}
 function arsenalCategoryOf(own) {
   const legacy = ITEMS.find((x) => x.id === own.id);
   if (legacy) return LEGACY_TYPE_TAB_LABELS[legacy.type] || "Divers";
@@ -309,22 +314,27 @@ function ItemActionPanel({
   if (!own) return <p>Cet objet n’est plus dans l’arsenal.</p>;
   const { art } = inventoryItemInfo(own);
   const valeur = sellableValue(own);
-  const gain = valeur === null ? null : Math.floor((valeur * qty) / 2);
+  // Une arme sertie vaut plus cher à la revente (règle de Bruno) : même
+  // multiplicateur que le serveur (partie_vendre), appliqué ici seulement
+  // pour l'affichage.
+  const multiplicateur = multiplicateurSertissage(own.gemmes?.length || 0);
+  const gain = valeur === null ? null : Math.floor((valeur * qty * multiplicateur) / 2);
   // Seuls les composants alchimiques et les objets divers peuvent rejoindre
   // un sac à dos (règle de Bruno) ; revérifié côté serveur dans tous les cas.
   const versSac = own.categorie === "Composants" || own.categorie === "Objet divers";
   return (
     <>
-      <div className="item-detail-art">
-        {art}
-        {own.gemmesIcones?.length > 0 && (
-          <span className="item-detail-gemmes" aria-hidden="true">
-            {own.gemmesIcones.map((src, i) => (
-              <img key={i} src={src} alt="" />
-            ))}
-          </span>
-        )}
-      </div>
+      <div className="item-detail-art">{art}</div>
+      {own.gemmesInfo?.length > 0 && (
+        <div className="item-detail-gemmes">
+          {own.gemmesInfo.map((g, i) => (
+            <span className="item-detail-gemme" key={i}>
+              {g.icone && <img src={g.icone} alt="" />}
+              <small>{g.nom}</small>
+            </span>
+          ))}
+        </div>
+      )}
       <p>
         Quantité : {own.quantity}
         {own.equipped ? " · Équipé" : ""}
@@ -360,7 +370,9 @@ function ItemActionPanel({
           title={
             gain === null
               ? "Valeur non définie : vente impossible"
-              : `Vendre pour ${gain} Po (moitié de la valeur)`
+              : multiplicateur > 1
+                ? `Vendre pour ${gain} Po (moitié de la valeur ×${multiplicateur}, arme sertie)`
+                : `Vendre pour ${gain} Po (moitié de la valeur)`
           }
           onClick={() => onSell(own.id, qty)}
         >
@@ -429,7 +441,9 @@ function ItemActionPanel({
       <p className="muted">
         {gain === null
           ? "Valeur non définie : cet objet ne peut pas être vendu au Marché."
-          : `Vente au Marché : ${gain} Po pour ${qty} (moitié de la valeur, ${valeur} Po pièce).`}
+          : multiplicateur > 1
+            ? `Vente au Marché : ${gain} Po pour ${qty} (moitié de la valeur ×${multiplicateur} pour ${own.gemmes.length} gemme(s) sertie(s), ${valeur} Po pièce nue).`
+            : `Vente au Marché : ${gain} Po pour ${qty} (moitié de la valeur, ${valeur} Po pièce).`}
       </p>
       {error && (
         <p role="alert" className="error">
@@ -1574,6 +1588,9 @@ export function App() {
         objetId: l.objet_id,
         gemmes,
         gemmesIcones: gemmes.map((g) => cache.objets.get(g)?.icone).filter(Boolean),
+        gemmesInfo: gemmes
+          .map((g) => ({ icone: cache.objets.get(g)?.icone, nom: cache.objets.get(g)?.nom || "Gemme" }))
+          .filter((g) => g.icone),
         quantity: l.quantite,
         equipped: false,
         nom: o?.nom || "Objet",

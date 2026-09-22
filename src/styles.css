@@ -829,28 +829,30 @@ video.interior-backdrop-boxed {
   background: #1c130a;
   box-shadow: 0 1px 2px #000a;
 }
-.item-detail-art {
-  position: relative;
-}
 .item-detail-gemmes {
-  position: absolute;
-  bottom: 0;
-  left: 4px;
-  right: 4px;
-  z-index: 2;
   display: flex;
-  flex-direction: row;
   justify-content: center;
-  gap: 3px;
+  gap: 14px;
+  margin: 0 0 16px;
 }
-.item-detail-gemmes img {
-  width: 22px;
-  height: 22px;
+.item-detail-gemme {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.item-detail-gemme img {
+  width: 26px;
+  height: 26px;
   object-fit: contain;
   border-radius: 50%;
   border: 1px solid #2a1a08;
   background: #1c130a;
   box-shadow: 0 1px 2px #000a;
+}
+.item-detail-gemme small {
+  font-size: 12px;
+  color: var(--muted);
 }
 .room-caption {
   position: absolute;
@@ -1181,6 +1183,22 @@ video.interior-backdrop-boxed {
 .item-detail-art .item-art,
 .item-detail-art .sprite {
   width: 100%;
+}
+.item-detail-art .item-art {
+  /* Un objet du catalogue (icône unique, pas de crop) n'a qu'une image
+     positionnée en absolu : sans hauteur propre, le cadre s'effondrait à
+     0px (icône invisible, gemmes collées au trait du haut). */
+  aspect-ratio: 1;
+  border: 3px ridge #8a775c;
+  border-radius: 8px;
+  background: #ded0b5;
+}
+.item-detail-art .item-art > img:first-child {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 .item-detail-actions {
   display: flex;
