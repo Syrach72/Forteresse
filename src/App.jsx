@@ -315,7 +315,16 @@ function ItemActionPanel({
   const versSac = own.categorie === "Composants" || own.categorie === "Objet divers";
   return (
     <>
-      <div className="item-detail-art">{art}</div>
+      <div className="item-detail-art">
+        {art}
+        {own.gemmesIcones?.length > 0 && (
+          <span className="item-detail-gemmes" aria-hidden="true">
+            {own.gemmesIcones.map((src, i) => (
+              <img key={i} src={src} alt="" />
+            ))}
+          </span>
+        )}
+      </div>
       <p>
         Quantité : {own.quantity}
         {own.equipped ? " · Équipé" : ""}
@@ -1048,6 +1057,9 @@ export function App() {
   const [pendingCraftTarget, setPendingCraftTarget] = useState(null);
   const [filter, setFilter] = useState("Tout");
   const [arsenalTab, setArsenalTab] = useState("Général");
+  // Sertissage de la Forge : arme et gemme choisies dans l'arsenal, en
+  // attente du lancement (rien n'est débité tant que ce n'est que local).
+  const [sertStage, setSertStage] = useState({ arme: null, gemme: null });
   const [search, setSearch] = useState("");
   const [character, setCharacter] = useState("Guerrier");
   const [actionError, setActionError] = useState("");
@@ -1381,7 +1393,11 @@ export function App() {
             .map((g) => `${nom(g.mercenaire_id)} est soigné et retrouve sa place au dortoir.`),
           ...gains.ateliers
             .filter((g) => g.a === 0)
-            .map((g) => `La fabrication de l'atelier ${g.atelier} est terminée.`),
+            .map((g) =>
+              g.atelier === "sertissage"
+                ? "Le sertissage à la forge est terminé."
+                : `La fabrication de l'atelier ${g.atelier} est terminée.`,
+            ),
           ...(gains.quete
             ? [
                 `${gains.quete.nom} accomplie : +${gains.quete.or} Po et ${gains.quete.items.length} objet(s) rejoignent l'arsenal.`,
@@ -1468,16 +1484,20 @@ export function App() {
   // Or de la compagnie, arsenal, journal et fabrications en cours : lus en base
   // et reversés dans `game` (même forme qu'avant, pour l'affichage existant).
   async function synchroniserEconomie() {
-    const [etat, inv, lignes, fab, jour] = await Promise.all([
+    const [etat, inv, lignes, fab, jour, sert] = await Promise.all([
       supabase.from("partie_etat").select("or_compagnie").maybeSingle(),
       supabase.from("inventaire").select("id, type, mercenaire_id"),
-      supabase.from("ligne_inventaire").select("inventaire_id, objet_id, quantite"),
+      supabase.from("ligne_inventaire").select("inventaire_id, objet_id, quantite, gemmes"),
       supabase.from("atelier_fabrication").select("atelier, objet_id, quantite, restant"),
       supabase
         .from("partie_journal")
         .select("id, message, montant, created_at")
         .order("created_at", { ascending: false })
         .limit(50),
+      supabase
+        .from("forge_sertissage")
+        .select("arme_objet_id, arme_gemmes, gemme_objet_id, restant")
+        .maybeSingle(),
     ]);
     if (etat.error || inv.error || lignes.error || fab.error || !etat.data) return;
     const arsenal = inv.data.find((i) => i.type === "arsenal");
@@ -1491,7 +1511,18 @@ export function App() {
       (l) => sacsParInventaire.some((s) => s.id === l.inventaire_id) && l.quantite > 0,
     );
     const cache = catalogueCacheRef.current;
-    if ([...enStock, ...lignesSacs, ...fab.data].some((x) => !cache.objets.has(x.objet_id))) {
+    // Ids d'objets à connaître : lignes d'arsenal/sacs/fabrications, plus les
+    // gemmes serties sur une arme (dans la colonne gemmes, pas leur propre
+    // ligne) et l'éventuel sertissage en cours à la forge.
+    const sertActif = sert.data?.arme_objet_id ? sert.data : null;
+    const idsRequis = [
+      ...enStock.map((x) => x.objet_id),
+      ...lignesSacs.map((x) => x.objet_id),
+      ...fab.data.map((x) => x.objet_id),
+      ...enStock.flatMap((x) => x.gemmes || []),
+      ...(sertActif ? [sertActif.arme_objet_id, sertActif.gemme_objet_id, ...(sertActif.arme_gemmes || [])] : []),
+    ];
+    if (idsRequis.some((id) => !cache.objets.has(id))) {
       const [o, c] = await Promise.all([
         supabase.from("objet_catalogue").select("id, nom, icone, categorie_id, cout_achat_or"),
         supabase.from("categorie").select("id, nom, parent_id"),
@@ -1525,7 +1556,13 @@ export function App() {
     setSacsDos(sacs);
     const inventory = [];
     for (const l of enStock) {
-      const id = `catalogue:${l.objet_id}`;
+      // Une arme sertie (gemmes non vide) est un exemplaire distinct de la
+      // même arme nue : identifiant et ligne d'inventaire séparés, pour ne
+      // jamais les additionner l'un dans l'autre.
+      const gemmes = l.gemmes && l.gemmes.length ? l.gemmes : [];
+      const id = gemmes.length
+        ? `catalogue:${l.objet_id}:gemmes:${gemmes.join(",")}`
+        : `catalogue:${l.objet_id}`;
       const deja = inventory.find((x) => x.id === id);
       if (deja) {
         deja.quantity += l.quantite;
@@ -1534,6 +1571,9 @@ export function App() {
       const o = cache.objets.get(l.objet_id);
       inventory.push({
         id,
+        objetId: l.objet_id,
+        gemmes,
+        gemmesIcones: gemmes.map((g) => cache.objets.get(g)?.icone).filter(Boolean),
         quantity: l.quantite,
         equipped: false,
         nom: o?.nom || "Objet",
@@ -1555,6 +1595,23 @@ export function App() {
       };
       durations[x.atelier] = x.restant;
     }
+    // Sertissage en cours à la forge (table forge_sertissage, une seule
+    // ligne) : null tant que personne n'en a lancé un.
+    const sertissage = sertActif
+      ? {
+          armeObjetId: sertActif.arme_objet_id,
+          armeGemmesAvant: sertActif.arme_gemmes || [],
+          gemmeObjetId: sertActif.gemme_objet_id,
+          restant: sertActif.restant,
+          armeNom: cache.objets.get(sertActif.arme_objet_id)?.nom || "Arme",
+          armeIcone: cache.objets.get(sertActif.arme_objet_id)?.icone || null,
+          gemmeNom: cache.objets.get(sertActif.gemme_objet_id)?.nom || "Gemme",
+          gemmeIcone: cache.objets.get(sertActif.gemme_objet_id)?.icone || null,
+          gemmesIconesAvant: (sertActif.arme_gemmes || [])
+            .map((idg) => cache.objets.get(idg)?.icone)
+            .filter(Boolean),
+        }
+      : null;
     const log = (jour.data || []).map((j) => ({
       id: j.id,
       message: j.message,
@@ -1567,6 +1624,7 @@ export function App() {
       inventory,
       craftingQueue,
       durations,
+      sertissage,
       log,
     };
     gameRef.current = g;
@@ -1661,6 +1719,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "budget_poste" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "partie_journal" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "atelier_fabrication" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "ligne_inventaire" }, rafraichir)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "mercenaire" }, rafraichir)
       .subscribe();
@@ -1869,13 +1928,18 @@ export function App() {
       setBusy(false);
     }
   }
-  // Identifiant d'objet du catalogue depuis une ligne d'arsenal (`catalogue:<id>`).
-  const objetDe = (invId) =>
-    typeof invId === "string" && invId.startsWith("catalogue:")
-      ? invId.slice("catalogue:".length)
-      : null;
-  const nomDe = (invId) =>
-    gameRef.current.inventory.find((i) => i.id === invId)?.nom || "L’objet";
+  // Identifiant d'objet du catalogue et gemmes serties (le cas échéant)
+  // depuis une ligne d'arsenal : lus directement sur l'entrée d'inventaire
+  // (plutôt que ré-analysés depuis son id composite), pour cibler la bonne
+  // ligne (arme nue ou sertie) côté serveur.
+  const ligneInventaire = (invId) =>
+    gameRef.current.inventory.find((i) => i.id === invId);
+  const objetDe = (invId) => ligneInventaire(invId)?.objetId || null;
+  const gemmesDe = (invId) => {
+    const g = ligneInventaire(invId)?.gemmes;
+    return g && g.length ? g : null;
+  };
+  const nomDe = (invId) => ligneInventaire(invId)?.nom || "L’objet";
   // Fabrication d'un objet du catalogue : ingrédients retirés de l'arsenal ;
   // livraison immédiate, ou mise en file dans l'atelier si l'objet a une durée.
   async function actCatalogue(arme) {
@@ -1917,7 +1981,11 @@ export function App() {
     }
     const nom = nomDe(id);
     const data = await operationPartagee(() =>
-      supabase.rpc("partie_detruire", { p_objet: objet, p_quantite: quantity }),
+      supabase.rpc("partie_detruire", {
+        p_objet: objet,
+        p_quantite: quantity,
+        p_gemmes: gemmesDe(id),
+      }),
     );
     if (!data) return;
     setModal(null);
@@ -1933,7 +2001,11 @@ export function App() {
     }
     const nom = nomDe(id);
     const data = await operationPartagee(() =>
-      supabase.rpc("partie_vendre", { p_objet: objet, p_quantite: quantity }),
+      supabase.rpc("partie_vendre", {
+        p_objet: objet,
+        p_quantite: quantity,
+        p_gemmes: gemmesDe(id),
+      }),
     );
     if (!data) return;
     setModal(null);
@@ -1998,6 +2070,31 @@ export function App() {
     // Vide la case locale de démonstration : elle ne doit pas se remettre
     // prête à refabriquer toute seule après la livraison.
     setSelection(null);
+    notify(data.message);
+  }
+  // Sertissage de puissance (Forge) : lance le sertissage de l'arme et de la
+  // gemme choisies dans l'arsenal (staging purement local jusque-là, rien
+  // n'est débité avant ce clic) ; toujours 1 instance.
+  async function actSertirLancer() {
+    if (!sertStage.arme || !sertStage.gemme) return;
+    const data = await operationPartagee(() =>
+      supabase.rpc("sertissage_lancer", {
+        p_arme_objet: sertStage.arme.objetId,
+        p_arme_gemmes: sertStage.arme.gemmes,
+        p_gemme_objet: sertStage.gemme.objetId,
+      }),
+    );
+    if (!data) return;
+    setSertStage({ arme: null, gemme: null });
+    notify("Sertissage lancé à la forge.");
+  }
+  // Sertissage terminé (durée d'instance à 0) : l'arme sertie rejoint
+  // l'arsenal, la forge est libérée.
+  async function actSertirRecuperer() {
+    const data = await operationPartagee(() =>
+      supabase.rpc("sertissage_recuperer"),
+    );
+    if (!data) return;
     notify(data.message);
   }
   function go(l) {
@@ -2704,6 +2801,122 @@ export function App() {
                   {WORKSHOP_TEXT[route].catalogue} ›
                 </button>
               </div>
+              {route === "forge" && (
+                <section className="equipment-panel parchment sertissage-panel">
+                  <p className="eyebrow">Sertissage de puissance</p>
+                  {game.sertissage ? (
+                    <>
+                      <span className="item-art sertissage-result">
+                        {game.sertissage.armeIcone && (
+                          <img src={game.sertissage.armeIcone} alt="" />
+                        )}
+                        <span className="item-art-gemmes" aria-hidden="true">
+                          {[...game.sertissage.gemmesIconesAvant, game.sertissage.gemmeIcone]
+                            .filter(Boolean)
+                            .map((src, i) => (
+                              <img key={i} src={src} alt="" />
+                            ))}
+                        </span>
+                      </span>
+                      <h2>{game.sertissage.armeNom}</h2>
+                      <div className="stat-line">
+                        <span>Durée d’instance restante</span>
+                        <strong>{game.sertissage.restant}</strong>
+                      </div>
+                      <button
+                        className="primary"
+                        disabled={busy || game.sertissage.restant > 0}
+                        onClick={actSertirRecuperer}
+                      >
+                        {game.sertissage.restant > 0
+                          ? "Sertissage en cours…"
+                          : "Envoyer à l’Arsenal"}
+                      </button>
+                      <p className="muted">
+                        {game.sertissage.restant > 0
+                          ? `Sertissage en cours : encore ${game.sertissage.restant} instance(s) avant de pouvoir l’envoyer à l’arsenal.`
+                          : "Sertissage terminé : cliquez sur « Envoyer à l’Arsenal » pour libérer la forge."}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="muted">
+                        Placez une arme et une gemme prélevées dans l’arsenal :
+                        une arme peut recevoir jusqu’à 3 gemmes. Le sertissage
+                        compte toujours pour 1 instance, en parallèle d’une
+                        fabrication en cours.
+                      </p>
+                      <div className="sertissage-slots">
+                        <button
+                          type="button"
+                          className="sertissage-slot"
+                          onClick={() => setModal({ type: "sertissage-pick", slot: "arme" })}
+                        >
+                          {sertStage.arme ? (
+                            <>
+                              <span className="item-art">
+                                <img src={sertStage.arme.icone} alt="" />
+                                {sertStage.arme.gemmes.length > 0 && (
+                                  <span className="item-art-gemmes" aria-hidden="true">
+                                    {sertStage.arme.gemmes
+                                      .map((idg) => catalogueCacheRef.current.objets.get(idg)?.icone)
+                                      .filter(Boolean)
+                                      .map((src, i) => (
+                                        <img key={i} src={src} alt="" />
+                                      ))}
+                                  </span>
+                                )}
+                              </span>
+                              <small className="sertissage-slot-label">{sertStage.arme.nom}</small>
+                            </>
+                          ) : (
+                            <span className="sertissage-slot-empty">Choisir une arme</span>
+                          )}
+                        </button>
+                        <span className="sertissage-plus" aria-hidden="true">+</span>
+                        <button
+                          type="button"
+                          className="sertissage-slot"
+                          onClick={() => setModal({ type: "sertissage-pick", slot: "gemme" })}
+                        >
+                          {sertStage.gemme ? (
+                            <>
+                              <span className="item-art">
+                                <img src={sertStage.gemme.icone} alt="" />
+                              </span>
+                              <small className="sertissage-slot-label">{sertStage.gemme.nom}</small>
+                            </>
+                          ) : (
+                            <span className="sertissage-slot-empty">Choisir une gemme</span>
+                          )}
+                        </button>
+                      </div>
+                      <div className="sertissage-actions">
+                        <button
+                          type="button"
+                          className="wood-button"
+                          disabled={!sertStage.arme && !sertStage.gemme}
+                          onClick={() => setSertStage({ arme: null, gemme: null })}
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          className="primary"
+                          disabled={busy || !sertStage.arme || !sertStage.gemme}
+                          onClick={actSertirLancer}
+                        >
+                          Lancer le sertissage
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {actionError && (
+                    <p role="alert" className="error">
+                      {actionError}
+                    </p>
+                  )}
+                </section>
+              )}
             </>
           ) : route === "stock" ? (
             <section className="stock-panel parchment">
@@ -2744,6 +2957,13 @@ export function App() {
                             title={name}
                           >
                             {art}
+                            {own.gemmesIcones?.length > 0 && (
+                              <span className="inventory-slot-gemmes" aria-hidden="true">
+                                {own.gemmesIcones.map((src, i) => (
+                                  <img key={i} src={src} alt="" />
+                                ))}
+                              </span>
+                            )}
                             <span className="inventory-slot-name" aria-hidden="true">
                               {name}
                             </span>
@@ -2903,6 +3123,10 @@ export function App() {
                   : modal.global
                     ? "Catalogue"
                     : `Catalogue : ${modal.racine}`
+                : modal.type === "sertissage-pick"
+                ? modal.slot === "arme"
+                  ? "Choisir une arme"
+                  : "Choisir une gemme"
                 : modal.type === "inventory"
                 ? "Inventaire de la compagnie"
                 : modal.type === "locked"
@@ -2986,6 +3210,58 @@ export function App() {
                 }}
               />
             </>
+          ) : modal.type === "sertissage-pick" ? (
+            (() => {
+              // Uniquement des objets déjà dans l'arsenal, jamais achetés ni
+              // fabriqués ici : le sertissage prélève, il ne produit pas.
+              const categorieVoulue = modal.slot === "arme" ? "Armes" : "Gemmes";
+              const candidats = game.inventory.filter(
+                (own) =>
+                  arsenalCategoryOf(own) === categorieVoulue &&
+                  own.quantity > 0 &&
+                  (modal.slot !== "arme" || (own.gemmes?.length || 0) < 3),
+              );
+              return candidats.length ? (
+                <div className="db-item-list">
+                  {candidats.map((own) => (
+                    <button
+                      key={own.id}
+                      type="button"
+                      className="db-item-row"
+                      onClick={() => {
+                        setSertStage((s) => ({
+                          ...s,
+                          [modal.slot]: {
+                            objetId: own.objetId,
+                            gemmes: own.gemmes || [],
+                            nom: own.nom,
+                            icone: own.icone,
+                          },
+                        }));
+                        setModal(null);
+                      }}
+                    >
+                      {own.icone ? (
+                        <img className="db-item-icon" src={own.icone} alt="" loading="lazy" decoding="async" />
+                      ) : (
+                        <span className="db-item-icon" aria-hidden="true" />
+                      )}
+                      <span>{own.nom}</span>
+                      <small className="db-item-tag">
+                        ×{own.quantity}
+                        {own.gemmes?.length ? ` · ${own.gemmes.length} gemme(s) déjà sertie(s)` : ""}
+                      </small>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="muted">
+                  {modal.slot === "arme"
+                    ? "Aucune arme disponible dans l’arsenal (ou déjà sertie de 3 gemmes)."
+                    : "Aucune gemme disponible dans l’arsenal."}
+                </p>
+              );
+            })()
           ) : modal.type === "db-catalogue" ? (
             (() => {
               const entry = catalogueByAtelier[modal.atelier];
