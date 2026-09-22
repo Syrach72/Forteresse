@@ -544,6 +544,69 @@
 .admin-ingredient-form input[type="number"] {
   width: 80px;
 }
+/* SearchableSelect : remplace les <select> natifs à plus de 270 entrées
+   (objets du catalogue) par un champ texte qui filtre une liste déroulante. */
+.searchable-select {
+  position: relative;
+  min-width: 220px;
+}
+.admin-ingredient-form .searchable-select input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #8b7b61;
+  border-radius: 2px;
+  background: rgba(255, 253, 245, 0.35);
+  font: 15px Georgia, serif;
+  color: var(--ink);
+  padding: 0 10px;
+}
+.searchable-select-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--paper-light);
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+.searchable-select-list li {
+  margin: 0;
+}
+.searchable-select-group {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.searchable-select-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 12px;
+  border: none;
+  background: none;
+  font: 15px Georgia, serif;
+  color: var(--ink);
+  cursor: pointer;
+}
+.searchable-select-list button:hover,
+.searchable-select-list button.active {
+  background: var(--paper);
+}
+.searchable-select-empty {
+  padding: 7px 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
 
 /* Lignes d'état entre les onglets et le parchemin (fond sombre) : suivi du
    maintien actif, résultat de la sauvegarde. */

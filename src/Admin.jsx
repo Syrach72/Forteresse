@@ -248,6 +248,103 @@ function DeleteButton({ id, label = "Supprimer", confirmingId, onAskConfirm, onC
     </button>
   );
 }
+// Sélecteur avec recherche : les menus d'objets du catalogue dépassent 270
+// entrées, illisibles en <select> natif. Un champ texte filtre la liste au
+// fur et à mesure de la frappe (sous-chaîne, insensible à la casse) ; option
+// vide toujours proposée en premier. `options` accepte un `group` optionnel
+// par entrée pour reconstituer un regroupement façon <optgroup>.
+function SearchableSelect({ value, onChange, options, emptyLabel = "—", ariaLabel, className = "" }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const wrapRef = useRef(null);
+  useEffect(() => {
+    function onDocClick(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+        setQuery("");
+      }
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+  const selected = options.find((o) => o.value === value);
+  const q = query.trim().toLowerCase();
+  const filtered = q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
+  const groupes = [];
+  const index = new Map();
+  for (const o of filtered) {
+    const cle = o.group || "";
+    if (!index.has(cle)) {
+      index.set(cle, groupes.length);
+      groupes.push({ nom: cle, options: [] });
+    }
+    groupes[index.get(cle)].options.push(o);
+  }
+  function choisir(o) {
+    onChange(o ? o.value : "");
+    setOpen(false);
+    setQuery("");
+  }
+  return (
+    <div className={`searchable-select ${className}`.trim()} ref={wrapRef}>
+      <input
+        type="text"
+        role="combobox"
+        aria-expanded={open}
+        aria-label={ariaLabel}
+        value={open ? query : selected?.label || ""}
+        placeholder={emptyLabel}
+        onFocus={(e) => {
+          setOpen(true);
+          setQuery("");
+          e.target.select();
+        }}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            setOpen(false);
+            setQuery("");
+            e.currentTarget.blur();
+          }
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (filtered[0]) choisir(filtered[0]);
+          }
+        }}
+      />
+      {open && (
+        <ul className="searchable-select-list" role="listbox">
+          <li>
+            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => choisir(null)}>
+              {emptyLabel}
+            </button>
+          </li>
+          {groupes.map((g) => (
+            <Fragment key={g.nom || "_"}>
+              {g.nom && <li className="searchable-select-group">{g.nom}</li>}
+              {g.options.map((o) => (
+                <li key={o.value}>
+                  <button
+                    type="button"
+                    className={o.value === value ? "active" : ""}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => choisir(o)}
+                  >
+                    {o.label}
+                  </button>
+                </li>
+              ))}
+            </Fragment>
+          ))}
+          {!filtered.length && <li className="searchable-select-empty">Aucun résultat.</li>}
+        </ul>
+      )}
+    </div>
+  );
+}
 function NamedListSection({ table, singular, blockedBy, hierarchical = false }) {
   const { rows, error, insert, update, remove } = useTable(table, {
     order: "nom",
@@ -614,22 +711,13 @@ function RecetteBlock({
         <p className="muted">Aucun ingrédient renseigné pour l’instant.</p>
       )}
       <div className="admin-ingredient-form">
-        <select
+        <SearchableSelect
           value={choix.objet_id}
-          onChange={(e) => setChoix({ ...choix, objet_id: e.target.value })}
-          aria-label="Ingrédient à ajouter"
-        >
-          <option value="">Ingrédient…</option>
-          {groupes.map((g) => (
-            <optgroup key={g.nom} label={g.nom}>
-              {g.options.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.nom}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+          onChange={(v) => setChoix({ ...choix, objet_id: v })}
+          options={groupes.flatMap((g) => g.options.map((o) => ({ value: o.id, label: o.nom, group: g.nom })))}
+          emptyLabel="Ingrédient…"
+          ariaLabel="Ingrédient à ajouter"
+        />
         <input
           type="number"
           min="1"
@@ -2238,14 +2326,13 @@ function ArsenalSection() {
             <option value="">Toutes les catégories</option>
             {categoryTreeOptions(null, 0)}
           </select>
-          <select value={objetId} onChange={(e) => setObjetId(e.target.value)}>
-            <option value="">Objet…</option>
-            {formObjets.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.nom}
-              </option>
-            ))}
-          </select>
+          <SearchableSelect
+            value={objetId}
+            onChange={setObjetId}
+            options={formObjets.map((o) => ({ value: o.id, label: o.nom }))}
+            emptyLabel="Objet…"
+            ariaLabel="Objet"
+          />
           <input
             type="number"
             min="1"
@@ -2582,17 +2669,13 @@ function QuetesSection() {
         </p>
         {QUETE_SLOTS.map((i) => (
           <div className="admin-ingredient-form" key={i}>
-            <select
+            <SearchableSelect
               value={slots[i]?.objet_id || ""}
-              onChange={(e) => (e.target.value ? setSlot(i, { objet_id: e.target.value }) : clearSlot(i))}
-            >
-              <option value="">— Emplacement {i + 1} vide —</option>
-              {catalogue.rows.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.nom}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => (v ? setSlot(i, { objet_id: v }) : clearSlot(i))}
+              options={catalogue.rows.map((o) => ({ value: o.id, label: o.nom }))}
+              emptyLabel={`— Emplacement ${i + 1} vide —`}
+              ariaLabel={`Objet, emplacement ${i + 1}`}
+            />
             {slots[i] && (
               <>
                 <input
