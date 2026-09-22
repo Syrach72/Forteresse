@@ -131,7 +131,6 @@ export const LOCATIONS = [
   },
 ];
 export const CLASSES = [
-  "Légende",
   "Guerrier",
   "Roublard",
   "Rôdeur",

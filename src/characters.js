@@ -1,5 +1,4 @@
 export const CHARACTER_CLASSES = [
-  ["legende", "Légende"],
   ["guerrier", "Guerrier"],
   ["roublard", "Roublard"],
   ["rodeur", "Rôdeur"],
