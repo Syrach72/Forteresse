@@ -298,9 +298,6 @@ export function Training({
   }
   return (
     <section className="training-workspace">
-      <div className="training-caption">
-        <h2>La cour d’entraînement</h2>
-      </div>
       {cohorte(1)}
       {cohorte(2)}
       {popup && (
