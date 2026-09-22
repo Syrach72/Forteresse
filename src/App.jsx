@@ -2966,7 +2966,9 @@ export function App() {
                             <span className="inventory-slot-name" aria-hidden="true">
                               {name}
                             </span>
-                            <b>{own.quantity}</b>
+                            {/* Un exemplaire serti ne s'empile jamais (toujours 1) :
+                                inutile d'afficher le nombre, ça laisse la place aux gemmes. */}
+                            {!own.gemmes?.length && <b>{own.quantity}</b>}
                             {own.equipped && <small>Équipé</small>}
                           </button>
                         );

@@ -809,7 +809,7 @@ video.interior-backdrop-boxed {
 }
 .inventory-slot-gemmes {
   position: absolute;
-  top: 20px;
+  bottom: 3px;
   right: 4px;
   z-index: 3;
   display: flex;
@@ -817,8 +817,8 @@ video.interior-backdrop-boxed {
   gap: 2px;
 }
 .inventory-slot-gemmes img {
-  width: 15px;
-  height: 15px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
   border-radius: 50%;
   border: 1px solid #2a1a08;
