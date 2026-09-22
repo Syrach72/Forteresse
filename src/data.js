@@ -14,7 +14,22 @@ export const ASSETS = {
   mage: "/assets/references/mage-tower.png",
 };
 // Coordonnées relatives au décor, hors barre de navigation (756 × 581).
+// L'ordre de ce tableau pilote celui de la barre latérale (.room-nav) ; il
+// n'a aucune incidence sur la position des tuiles du château, placées via
+// leurs propres x/y (position absolue). Ordre demandé par Bruno (2026-09-22) :
+// arsenal / dortoirs / infirmerie / entraînement / forge / armurerie / tour
+// du mage / laboratoire / trésorerie / marché / quêtes.
 export const LOCATIONS = [
+  {
+    id: "stock",
+    name: "Arsenal",
+    x: 38,
+    y: 66.5,
+    w: 15.6,
+    h: 21,
+    icon: [45, 389, 61, 49],
+    description: "L’inventaire de la forteresse.",
+  },
   {
     id: "dortoirs",
     name: "Dortoirs",
@@ -24,26 +39,6 @@ export const LOCATIONS = [
     h: 21,
     icon: [49, 83, 55, 48],
     description: "Les compagnons de la forteresse.",
-  },
-  {
-    id: "mage",
-    name: "Tour du Mage",
-    x: 39.2,
-    y: 16.5,
-    w: 15.6,
-    h: 21,
-    icon: [244, 99, 42, 51],
-    description: "Formules et arcanes du mage de la compagnie.",
-  },
-  {
-    id: "tresorerie",
-    name: "Trésorerie",
-    x: 39,
-    y: 32,
-    w: 15.6,
-    h: 21,
-    icon: [211, 260, 50, 50],
-    description: "Le registre des pièces d’or.",
   },
   {
     id: "infirmerie",
@@ -56,24 +51,14 @@ export const LOCATIONS = [
     description: "Repos et soins des compagnons.",
   },
   {
-    id: "stock",
-    name: "Arsenal",
-    x: 38,
-    y: 66.5,
+    id: "entrainement",
+    name: "Terrain d’Entraînement",
+    x: 87.6,
+    y: 85.6,
     w: 15.6,
     h: 21,
-    icon: [45, 389, 61, 49],
-    description: "L’inventaire de la forteresse.",
-  },
-  {
-    id: "armurerie",
-    name: "Armurerie",
-    x: 51.35,
-    y: 66.5,
-    w: 15.6,
-    h: 21,
-    icon: [205, 399, 56, 61],
-    description: "Armures, protections et équipements.",
+    icon: [637, 487, 47, 52],
+    description: "L’instructeur et ses élèves.",
   },
   {
     id: "forge",
@@ -86,6 +71,26 @@ export const LOCATIONS = [
     description: "Des ressources aux armes.",
   },
   {
+    id: "armurerie",
+    name: "Armurerie",
+    x: 51.35,
+    y: 66.5,
+    w: 15.6,
+    h: 21,
+    icon: [205, 399, 56, 61],
+    description: "Armures, protections et équipements.",
+  },
+  {
+    id: "mage",
+    name: "Tour du Mage",
+    x: 39.2,
+    y: 16.5,
+    w: 15.6,
+    h: 21,
+    icon: [244, 99, 42, 51],
+    description: "Formules et arcanes du mage de la compagnie.",
+  },
+  {
     id: "alchimie",
     name: "Laboratoire Alchimiste",
     x: 89.3,
@@ -96,6 +101,16 @@ export const LOCATIONS = [
     description: "Potions et composants mystérieux.",
   },
   {
+    id: "tresorerie",
+    name: "Trésorerie",
+    x: 39,
+    y: 32,
+    w: 15.6,
+    h: 21,
+    icon: [211, 260, 50, 50],
+    description: "Le registre des pièces d’or.",
+  },
+  {
     id: "marche",
     name: "Marché",
     x: 10.2,
@@ -104,16 +119,6 @@ export const LOCATIONS = [
     h: 21,
     icon: [43, 509, 59, 54],
     description: "Achetez de quoi préparer l’aventure.",
-  },
-  {
-    id: "entrainement",
-    name: "Terrain d’Entraînement",
-    x: 87.6,
-    y: 85.6,
-    w: 15.6,
-    h: 21,
-    icon: [637, 487, 47, 52],
-    description: "L’instructeur et ses élèves.",
   },
   {
     id: "quetes",
