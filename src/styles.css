@@ -361,6 +361,14 @@ img {
      bouton à toutes les largeurs ; à 15cqw / 8,5px mini il débordait. */
   font-size: clamp(5.5px, 12cqw, 14px);
   line-height: 1.1;
+  /* Texte blanc à léger bord noir (règle de Bruno) : lisible quel que soit
+     le fond derrière la tuile. */
+  color: #fff;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
 }
 @media (max-width: 1000px) {
   .location {
@@ -385,6 +393,23 @@ img {
 }
 .quest-sign:hover {
   filter: brightness(1.15);
+}
+.quest-sign.header-quests span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 6%;
+  font-family: Aniron, Georgia, serif;
+  font-size: clamp(13px, 1.6vw, 18px);
+  pointer-events: none;
+  color: #fff;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000;
 }
 .lock-mark {
   font-family: Georgia, serif;

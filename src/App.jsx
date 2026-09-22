@@ -2541,6 +2541,7 @@ export function App() {
         {route === "forteresse" && (
           <button className="quest-sign header-quests" aria-label="Quêtes" onClick={() => { location.hash = "quetes"; }}>
             <img src="/assets/references/quests.png" alt="" />
+            <span>Quête</span>
           </button>
         )}
         </div>

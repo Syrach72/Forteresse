@@ -111,6 +111,16 @@ export const LOCATIONS = [
     description: "Le registre des pièces d’or.",
   },
   {
+    id: "employes",
+    name: "Gestion des Employés",
+    x: 39,
+    y: 47.5,
+    w: 15.6,
+    h: 21,
+    icon: [0, 0, 60, 60],
+    description: "Mineurs, bûcherons et tanneurs de la compagnie.",
+  },
+  {
     id: "marche",
     name: "Marché",
     x: 10.2,
