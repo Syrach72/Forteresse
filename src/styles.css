@@ -494,10 +494,6 @@ video.interior-backdrop {
   transform: scale(1.18, 1.07);
   transform-origin: top left;
 }
-.dortoirs video.interior-backdrop-boxed {
-  transform: translateX(-50%) scale(1.18, 1.07);
-  transform-origin: top left;
-}
 .armurerie video.interior-backdrop-boxed {
   transform: translateX(-50%) scale(1.24, 1.14);
   transform-origin: 35% 55%;

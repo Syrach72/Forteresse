@@ -41,7 +41,6 @@ const BACKDROP_VIDEO = {
 };
 const BACKDROP_VIDEO_RATIO = {
   armurerie: "1 / 1",
-  dortoirs: "1 / 1",
   entrainement: "1 / 1",
   tresorerie: "1 / 1",
 };
