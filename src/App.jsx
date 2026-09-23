@@ -38,6 +38,7 @@ const BACKDROP_VIDEO = {
   marche: "/assets/video/marche-anime.mp4",
   tresorerie: "/assets/video/tresorerie-anime.mp4",
   dortoirs: "/assets/video/dortoir-anime.mp4",
+  quetes: "/assets/video/quetes-anime.mp4",
 };
 const BACKDROP_VIDEO_RATIO = {
   armurerie: "1 / 1",
