@@ -138,7 +138,6 @@ function emptyCatalogueItem(categorieId = "") {
     categorie_id: categorieId,
     description: "",
     empilable: true,
-    utilisable: true,
     icone: "",
     veterance_requise: "",
     duree_fabrication_instances: "",
@@ -1190,14 +1189,6 @@ function CatalogueSection({ onCraftItem }) {
           />
           Empilable
         </label>
-        <label className="admin-checkbox">
-          <input
-            type="checkbox"
-            checked={form.utilisable}
-            onChange={(e) => setForm({ ...form, utilisable: e.target.checked })}
-          />
-          Utilisable
-        </label>
       </div>
       {(() => {
         const { arme, armure, bouclier, alchimique, emploi, craftable, achetable, atelier } = categorieFlags(
@@ -1611,7 +1602,6 @@ function CatalogueSection({ onCraftItem }) {
               <th>Code</th>
               <th>Catégorie</th>
               <th>Empilable</th>
-              <th>Utilisable</th>
               <th></th>
             </tr>
           </thead>
@@ -1630,7 +1620,6 @@ function CatalogueSection({ onCraftItem }) {
                   <td>{r.code_unique}</td>
                   <td>{nomCategorie(r.categorie_id)}</td>
                   <td>{r.empilable ? "Oui" : "Non"}</td>
-                  <td>{r.utilisable ? "Oui" : "Non"}</td>
                   <td className="admin-row-actions">
                     <button type="button" className="text-button" onClick={() => startEdit(r)}>
                       Modifier
