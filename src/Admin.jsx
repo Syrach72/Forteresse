@@ -151,6 +151,7 @@ function emptyCatalogueItem(categorieId = "") {
     parade: "",
     allonge: "",
     type_degats: "",
+    deux_mains: false,
     emploi_materiau_id: "",
     emploi_production: "",
     emploi_production_outil: "",
@@ -942,6 +943,7 @@ function CatalogueSection({ onCraftItem }) {
       parade: row.parade || "",
       allonge: row.allonge || "",
       type_degats: row.type_degats || "",
+      deux_mains: !!row.deux_mains,
       emploi_materiau_id: row.emploi_materiau_id || "",
       emploi_production: row.emploi_production ?? "",
       emploi_production_outil: row.emploi_production_outil ?? "",
@@ -1071,6 +1073,7 @@ function CatalogueSection({ onCraftItem }) {
       parade: bouclier ? form.parade.trim() || null : null,
       allonge: arme ? form.allonge.trim() || null : null,
       type_degats: arme ? form.type_degats.trim() || null : null,
+      deux_mains: arme ? !!form.deux_mains : false,
       emploi_materiau_id: emploi ? form.emploi_materiau_id || null : null,
       emploi_production: emploi ? toIntOrNull(form.emploi_production) : null,
       emploi_production_outil: emploi ? toIntOrNull(form.emploi_production_outil) : null,
@@ -1312,6 +1315,19 @@ function CatalogueSection({ onCraftItem }) {
                       }
                     />
                   </div>
+                </div>
+                <div className="field field-xs">
+                  <label htmlFor="cat-deux-mains">Deux Mains</label>
+                  <select
+                    id="cat-deux-mains"
+                    value={form.deux_mains ? "oui" : "non"}
+                    onChange={(e) =>
+                      setForm({ ...form, deux_mains: e.target.value === "oui" })
+                    }
+                  >
+                    <option value="non">Non</option>
+                    <option value="oui">Oui</option>
+                  </select>
                 </div>
               </>
             )}
