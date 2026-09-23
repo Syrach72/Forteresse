@@ -489,6 +489,12 @@ video.interior-backdrop {
 .infirmerie video.interior-backdrop {
   object-position: 88% 50%;
 }
+/* Dortoirs : vidéo 16:9 recadrée vers la droite pour masquer le mercenaire
+   au premier plan à gauche (aiguisant sa lame), hors-sujet une fois le lit
+   recadré derrière l'encart des lits. */
+.dortoirs video.interior-backdrop {
+  object-position: 85% 50%;
+}
 .marche video.interior-backdrop,
 .castle-map video.interior-backdrop {
   transform: scale(1.18, 1.07);
