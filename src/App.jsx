@@ -57,11 +57,13 @@ const WORKSHOP_TEXT = {
     eyebrow: "Le feu donne forme",
     destination: "à la forge",
     catalogue: "Catalogue des armes",
+    objets: "Catalogue des objets",
   },
   armurerie: {
     eyebrow: "À l’abri de l’acier",
     destination: "à l’armurerie",
     catalogue: "Catalogue des armures",
+    objets: "Catalogue des objets",
   },
   alchimie: {
     eyebrow: "Les alambics s’éveillent",
@@ -1318,7 +1320,7 @@ export function App() {
   // rend définitifs les achats et fabrications qui y ont été faits.
   useEffect(() => {
     setUndoStack([]);
-  }, [modal?.type, modal?.detailId, modal?.atelier, route]);
+  }, [modal?.type, modal?.detailId, modal?.atelier, modal?.cle, route]);
   function sendToForge(objetId, atelier) {
     const targetRoute = ATELIER_ROUTE[atelier];
     if (!targetRoute) return;
@@ -1329,7 +1331,8 @@ export function App() {
     if (!pendingCraftTarget) return;
     const { atelier } = pendingCraftTarget;
     if (route !== ATELIER_ROUTE[atelier]) return;
-    loadCatalogue(atelier, ATELIER_RACINE[atelier]);
+    loadCatalogue(atelier, ATELIER_RACINE[atelier], "hors-objets");
+    loadCatalogue(`${atelier}:objets`, ATELIER_RACINE[atelier], "objets");
   }, [pendingCraftTarget, route]);
   useEffect(() => {
     if (!pendingCraftTarget) return;
@@ -1337,8 +1340,17 @@ export function App() {
     const targetRoute = ATELIER_ROUTE[atelier];
     if (route !== targetRoute) return;
     const entry = catalogueByAtelier[atelier];
-    if (!entry) return;
-    setModal({ type: "db-catalogue", atelier, racine: ATELIER_RACINE[atelier], detailId: objetId });
+    const entryObjets = catalogueByAtelier[`${atelier}:objets`];
+    if (!entry || !entryObjets) return;
+    const estObjet = !!entryObjets.items?.some((i) => i.id === objetId);
+    setModal({
+      type: "db-catalogue",
+      atelier,
+      cle: estObjet ? `${atelier}:objets` : atelier,
+      racine: ATELIER_RACINE[atelier],
+      titre: estObjet ? WORKSHOP_TEXT[targetRoute]?.objets : undefined,
+      detailId: objetId,
+    });
     setPendingCraftTarget(null);
   }, [pendingCraftTarget, route, catalogueByAtelier]);
   function transferCampaign(heroId, id, direction) {
@@ -2365,7 +2377,9 @@ export function App() {
   // viennent réellement de l'admin. Clés : un atelier (forge, armurerie,
   // alchimie, magie), "market:<catégorie>" (Marché) ou "global" (Catalogue de
   // l'en-tête : tout ce qui est achetable ou fabricable, toutes rubriques).
-  async function loadCatalogue(atelier, racineNom) {
+  // `mode` (ateliers Forge/Armurerie) : "objets" = seulement la sous-catégorie « Objets » de la
+  // rubrique ; "hors-objets" = tout le reste (armes / armures). Sans `mode` : tout.
+  async function loadCatalogue(atelier, racineNom, mode) {
     if (catalogueByAtelier[atelier]) return;
     const consultation = atelier.startsWith("market:");
     const global = atelier === "global";
@@ -2420,6 +2434,15 @@ export function App() {
       return node?.nom || racineNom;
     };
     const objetById = new Map(objets.map((o) => [o.id, o]));
+    // Sous-catégorie « Objets » d'Armes / Armures : pas d'arme ni d'armure (pas de stats de combat).
+    const estSousObjets = (categorieId) => {
+      let current = categories.find((c) => c.id === categorieId);
+      while (current) {
+        if (current.parent_id && current.nom.trim().toLowerCase() === "objets") return true;
+        current = categories.find((c) => c.id === current.parent_id);
+      }
+      return false;
+    };
     // Armure = sous la rubrique « Armures », boucliers exclus (même règle que
     // l'admin) : affiche protection et type à la place de la portée.
     const estArmure = (categorieId) => {
@@ -2475,10 +2498,12 @@ export function App() {
     };
     const MARKET_BUTTON_ROOTS = ["armes", "armures", "composants", "matériaux", "produits alchimiques", "gemmes", "collecte"];
     const isDivers = consultation && racineNom.trim().toLowerCase() === "objet divers";
+    const estGroupeObjets = (o) => groupName(o.categorie_id).trim().toLowerCase() === "objets";
     const included = (o) =>
       isDivers
         ? !MARKET_BUTTON_ROOTS.includes((rootOf(o.categorie_id)?.nom || "").trim().toLowerCase())
-        : isUnderRacine(o.categorie_id);
+        : isUnderRacine(o.categorie_id) &&
+          (mode === "objets" ? estGroupeObjets(o) : mode === "hors-objets" ? !estGroupeObjets(o) : true);
     // Catalogue global : onglet = catégorie de niveau 2 sous la racine propre
     // à chaque objet (même principe que groupName, racine par racine).
     const groupeSousRacine = (categorieId, root) => {
@@ -2509,9 +2534,9 @@ export function App() {
         // Atelier de fabrication (forge/armurerie/alchimie/magie), tel que
         // défini par la recette : null si l'objet n'a pas de recette.
         atelier: recette?.atelier || null,
-        estArme: estArme(o.categorie_id),
+        estArme: estArme(o.categorie_id) && !estSousObjets(o.categorie_id),
         estAlchimique: estAlchimique(o.categorie_id),
-        estArmure: estArmure(o.categorie_id),
+        estArmure: estArmure(o.categorie_id) && !estSousObjets(o.categorie_id),
         estBouclier: estBouclier(o.categorie_id),
         groupe: global
           ? groupeSousRacine(o.categorie_id, root)
@@ -3126,12 +3151,28 @@ export function App() {
                     // base (recette.atelier) est "magie".
                     const atelier = route === "mage" ? "magie" : route;
                     const racine = ATELIER_RACINE[atelier];
-                    loadCatalogue(atelier, racine);
+                    loadCatalogue(atelier, racine, WORKSHOP_TEXT[route].objets ? "hors-objets" : undefined);
                     setModal({ type: "db-catalogue", atelier, racine });
                   }}
                 >
                   {WORKSHOP_TEXT[route].catalogue} ›
                 </button>
+                {/* Forge et Armurerie : « Catalogue des objets » (sous-catégorie Objets), même
+                    principe que les armes et les armures : fiche, coût, recette, fabrication. */}
+                {WORKSHOP_TEXT[route].objets && (
+                  <button
+                    className="catalog-button catalog-button-objets wood-button"
+                    onClick={() => {
+                      const atelier = route;
+                      const racine = ATELIER_RACINE[atelier];
+                      const cle = `${atelier}:objets`;
+                      loadCatalogue(cle, racine, "objets");
+                      setModal({ type: "db-catalogue", atelier, cle, racine, titre: WORKSHOP_TEXT[route].objets });
+                    }}
+                  >
+                    {WORKSHOP_TEXT[route].objets} ›
+                  </button>
+                )}
               </div>
               {route === "forge" && (
                 <section className="equipment-panel parchment sertissage-panel">
@@ -3450,12 +3491,12 @@ export function App() {
               ? "Catalogue"
               : modal.type === "db-catalogue"
                 ? modal.detailId
-                  ? catalogueByAtelier[modal.atelier]?.items?.find(
+                  ? catalogueByAtelier[modal.cle || modal.atelier]?.items?.find(
                       (i) => i.id === modal.detailId,
                     )?.nom || modal.racine
                   : modal.global
                     ? "Catalogue"
-                    : `Catalogue : ${modal.racine}`
+                    : modal.titre || `Catalogue : ${modal.racine}`
                 : modal.type === "sertissage-pick"
                 ? modal.slot === "arme"
                   ? "Choisir une arme"
@@ -3717,7 +3758,7 @@ export function App() {
             })()
           ) : modal.type === "db-catalogue" ? (
             (() => {
-              const entry = catalogueByAtelier[modal.atelier];
+              const entry = catalogueByAtelier[modal.cle || modal.atelier];
               const detailItem =
                 modal.detailId &&
                 entry?.items?.find((i) => i.id === modal.detailId);
@@ -3803,10 +3844,9 @@ export function App() {
                       return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
                     return a.localeCompare(b, "fr");
                   });
-                  const activeTab = groups.includes(
-                    catalogueTabByAtelier[modal.atelier],
-                  )
-                    ? catalogueTabByAtelier[modal.atelier]
+                  const cleOnglet = modal.cle || modal.atelier;
+                  const activeTab = groups.includes(catalogueTabByAtelier[cleOnglet])
+                    ? catalogueTabByAtelier[cleOnglet]
                     : groups[0];
                   // Catalogue global : une recherche couvre toutes les rubriques
                   // (les onglets sont alors sans objet).
@@ -3847,7 +3887,7 @@ export function App() {
                               onClick={() =>
                                 setCatalogueTabByAtelier((prev) => ({
                                   ...prev,
-                                  [modal.atelier]: g,
+                                  [cleOnglet]: g,
                                 }))
                               }
                             >

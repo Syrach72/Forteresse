@@ -153,6 +153,7 @@ function emptyCatalogueItem(categorieId = "") {
     allonge: "",
     type_degats: "",
     deux_mains: false,
+    legere: false,
     emploi_materiau_id: "",
     emploi_production: "",
     emploi_production_outil: "",
@@ -902,10 +903,22 @@ function CatalogueSection({ onCraftItem }) {
     }
     return dansArmures;
   }
+  // « Objets » : sous-catégorie de niveau 2 des rubriques Armes et Armures (« Catalogue des
+  // objets » des pages Forge et Armurerie). Un objet de cette sous-catégorie n'est ni une arme
+  // ni une armure (pas de stats de combat) mais se fabrique dans l'atelier de sa rubrique.
+  function isCategorieObjets(categorieId) {
+    let current = categories.rows?.find((c) => c.id === categorieId);
+    while (current) {
+      if (current.parent_id && current.nom.trim().toLowerCase() === "objets") return true;
+      current = categories.rows.find((c) => c.id === current.parent_id);
+    }
+    return false;
+  }
   function categorieFlags(categorieId) {
-    const arme = isCategorieArme(categorieId);
-    const armure = !arme && isCategorieArmure(categorieId);
-    const bouclier = !arme && isCategorieBouclier(categorieId);
+    const objet = isCategorieObjets(categorieId) && isCategorieParmi(categorieId, ["armes", "armures"]);
+    const arme = !objet && isCategorieArme(categorieId);
+    const armure = !arme && !objet && isCategorieArmure(categorieId);
+    const bouclier = !arme && !objet && isCategorieBouclier(categorieId);
     const alchimique = !arme && isCategorieParmi(categorieId, ["produits alchimiques"]);
     const gemme = !arme && isCategorieParmi(categorieId, ["gemmes"]);
     // Collecte : un métier (Mineur, Bûcheron, Tanneur...) du Marché, page
@@ -914,6 +927,7 @@ function CatalogueSection({ onCraftItem }) {
     const emploi = !arme && isCategorieParmi(categorieId, ["collecte"]);
     const craftable =
       arme ||
+      objet ||
       isCategorieParmi(categorieId, ["produits alchimiques", "gemmes", "armures"]);
     // Achat au marché : armes/armures/produits alchimiques (qui ont aussi une
     // fabrication), composants/objets divers (achetés directement, sans
@@ -945,6 +959,7 @@ function CatalogueSection({ onCraftItem }) {
       allonge: row.allonge || "",
       type_degats: row.type_degats || "",
       deux_mains: !!row.deux_mains,
+      legere: !!row.legere,
       emploi_materiau_id: row.emploi_materiau_id || "",
       emploi_production: row.emploi_production ?? "",
       emploi_production_outil: row.emploi_production_outil ?? "",
@@ -1075,6 +1090,7 @@ function CatalogueSection({ onCraftItem }) {
       allonge: arme ? form.allonge.trim() || null : null,
       type_degats: arme ? form.type_degats.trim() || null : null,
       deux_mains: arme ? !!form.deux_mains : false,
+      legere: arme ? !!form.legere : false,
       emploi_materiau_id: emploi ? form.emploi_materiau_id || null : null,
       emploi_production: emploi ? toIntOrNull(form.emploi_production) : null,
       emploi_production_outil: emploi ? toIntOrNull(form.emploi_production_outil) : null,
@@ -1325,6 +1341,17 @@ function CatalogueSection({ onCraftItem }) {
                     onChange={(e) =>
                       setForm({ ...form, deux_mains: e.target.value === "oui" })
                     }
+                  >
+                    <option value="non">Non</option>
+                    <option value="oui">Oui</option>
+                  </select>
+                </div>
+                <div className="field field-xs">
+                  <label htmlFor="cat-legere">Légère</label>
+                  <select
+                    id="cat-legere"
+                    value={form.legere ? "oui" : "non"}
+                    onChange={(e) => setForm({ ...form, legere: e.target.value === "oui" })}
                   >
                     <option value="non">Non</option>
                     <option value="oui">Oui</option>

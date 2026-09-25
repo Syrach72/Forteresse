@@ -4773,3 +4773,20 @@ a.merc-card:hover {
 .admin-zero {
   padding: 8px 0;
 }
+
+/* Forge / Armurerie : deuxième bouton de catalogue (« Catalogue des objets »), sous le premier. */
+.catalog-button + .catalog-button-objets {
+  top: 84px;
+}
+@media (max-width: 1100px) {
+  .catalog-button + .catalog-button-objets {
+    top: 68px;
+  }
+}
+@media (max-width: 680px) {
+  .catalog-button + .catalog-button-objets {
+    top: 62px;
+    left: 0;
+    right: auto;
+  }
+}
