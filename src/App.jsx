@@ -39,6 +39,7 @@ const BACKDROP_VIDEO = {
   tresorerie: "/assets/video/tresorerie-anime.mp4",
   dortoirs: "/assets/video/dortoir-anime.mp4",
   quetes: "/assets/video/quetes-anime.mp4",
+  stock: "/assets/video/arsenal-anime.mp4",
 };
 // Fond animé des pages Connexion / Inscription (herse figée ouverte) ; l'image
 // coastal-castle.jpg reste affichée derrière tant que la vidéo n'est pas chargée.
@@ -47,6 +48,7 @@ const BACKDROP_VIDEO_RATIO = {
   armurerie: "1 / 1",
   entrainement: "1 / 1",
   tresorerie: "1 / 1",
+  stock: "1728 / 1632",
 };
 const WORKSHOP_TEXT = {
   forge: {
