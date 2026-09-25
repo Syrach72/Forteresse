@@ -28,6 +28,7 @@ import { Admin } from "./Admin.jsx";
 import { Modal } from "./Modal.jsx";
 import { supabase } from "./supabaseClient";
 import { useGlassWindows } from "./glassWindows.js";
+import { useSessions, SessionBar, EcranSession } from "./Sessions.jsx";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
 const BACKDROP_VIDEO = {
   alchimie: "/assets/video/alchimiste-anime2.mp4",
@@ -1145,6 +1146,9 @@ export function App() {
   // Compte administrateur (affichage uniquement ; les droits réels sont
   // portés par la base, cf. is_admin()).
   const estAdmin = session?.user?.email?.toLowerCase() === "btestart@aol.com";
+  // Sessions de jeu (équipes indépendantes) : session choisie, écrans d'attente,
+  // lancement par le MJ au premier « +1 Instance ».
+  const sess = useSessions(session?.user?.id, estAdmin);
   // Recharge les mercenaires à la connexion, puis à chaque ouverture d'une page
   // Personnages (pour refléter une création faite entre-temps). Les recrutements
   // et les lits du Dortoir, eux, arrivent par synchroniserPartage().
@@ -1404,6 +1408,20 @@ export function App() {
   }
   const defaultDurations = { forge: 5, armurerie: 3, alchimie: 2, mage: 0 };
   function decreaseInstances() {
+    // Session pas encore lancée : le premier clic du MJ la lance (copie du contenu
+    // et état de départ), sans faire avancer aucun compteur ; il ne s'annule pas.
+    if (sess.courante && !sess.courante.lancee_le) {
+      if (!estAdmin) return;
+      sess.lancer(sess.courante.id).then((r) => {
+        if (r.error) {
+          notify(r.error);
+          return;
+        }
+        notify(`La partie « ${sess.courante.nom} » est lancée.`);
+        setTimeout(() => location.reload(), 900);
+      });
+      return;
+    }
     // Le terrain d'entraînement, l'infirmerie et les ateliers (durées des
     // fabrications) sont partagés et écrits en base : `gains` (ce que le
     // serveur a renvoyé) est complété par la file d'opérations et sert à
@@ -2550,6 +2568,7 @@ export function App() {
       <a className="skip" href="#main">
         Aller au contenu
       </a>
+      <SessionBar sess={sess} estAdmin={estAdmin} />
       <header className="game-header">
         <nav className="class-nav" aria-label="Personnages">
           <a
@@ -2641,7 +2660,9 @@ export function App() {
         )}
         </div>
       </header>
-      {route.startsWith("personnages/") ? (
+      {sess.ecran ? (
+        <EcranSession sess={sess} estAdmin={estAdmin} />
+      ) : route.startsWith("personnages/") ? (
         <>
         <Characters
           route={route}

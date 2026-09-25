@@ -4666,3 +4666,83 @@ a.merc-card:hover {
 .quest-merc-plus {
   color: #9a9376;
 }
+
+/* Sessions : bandeau du haut et écrans d'attente / de choix. */
+.session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 4px 14px;
+  background: #1b150e;
+  color: #f0dfb5;
+  border-bottom: 1px solid #6c5a38;
+  font-size: 15px;
+}
+.session-bar small {
+  color: #bfae84;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+}
+.session-bar-nom strong {
+  font-family: Aniron, Georgia, serif;
+  font-size: 17px;
+  font-weight: 400;
+}
+.session-bar-attente {
+  color: #e0be28;
+  font-style: normal;
+}
+.session-bar-choix select {
+  background: #2c2418;
+  color: #f0dfb5;
+  border: 1px solid #8a7548;
+  padding: 3px 8px;
+  font: inherit;
+  max-width: 260px;
+}
+.session-bar-erreur {
+  color: #ff9d8a;
+  font-size: 14px;
+}
+.session-ecran {
+  display: grid;
+  place-items: center;
+  min-height: calc(100dvh - 140px);
+  padding-bottom: 45px;
+}
+.session-carte {
+  width: min(560px, 100%);
+  padding: 30px 32px;
+  text-align: center;
+}
+.session-carte h1 {
+  font-size: 34px;
+  margin-bottom: 12px;
+}
+.session-attente {
+  font-size: 22px;
+}
+.session-liste {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+.session-liste small {
+  display: block;
+  font-size: 14px;
+  opacity: 0.85;
+}
+.session-rejoindre {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  text-align: left;
+}
+.session-rejoindre input {
+  padding: 8px 10px;
+  font: 18px Georgia, serif;
+  letter-spacing: 0.08em;
+}
