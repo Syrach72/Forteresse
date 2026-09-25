@@ -4488,10 +4488,10 @@ a.merc-card:hover {
 }
 
 /* Arsenal : on voit d'abord le fond animé ; le panneau et ses objets
-   apparaissent après 2 s, en fondu sur 1 s. */
+   apparaissent après 1 s, en fondu sur 1 s. */
 @media (prefers-reduced-motion: no-preference) {
   .stock .stock-panel {
-    animation: arsenal-reveal 1s ease-out 2s backwards;
+    animation: arsenal-reveal 1s ease-out 1s backwards;
   }
 }
 @keyframes arsenal-reveal {
