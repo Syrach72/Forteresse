@@ -1400,6 +1400,23 @@ video.interior-backdrop-boxed {
   background-position: center;
   position: relative;
   padding: 70px 20px;
+  isolation: isolate;
+  overflow: hidden;
+}
+.auth-video {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-video {
+    display: none;
+  }
 }
 .auth-back {
   position: absolute;

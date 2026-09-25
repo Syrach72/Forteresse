@@ -40,6 +40,9 @@ const BACKDROP_VIDEO = {
   dortoirs: "/assets/video/dortoir-anime.mp4",
   quetes: "/assets/video/quetes-anime.mp4",
 };
+// Fond animé des pages Connexion / Inscription (herse figée ouverte) ; l'image
+// coastal-castle.jpg reste affichée derrière tant que la vidéo n'est pas chargée.
+const AUTH_VIDEO = "/assets/video/connexion-anime.mp4";
 const BACKDROP_VIDEO_RATIO = {
   armurerie: "1 / 1",
   entrainement: "1 / 1",
@@ -74,7 +77,7 @@ const BACKDROP_LOOP_FADE = 1.1;
 const BACKDROP_VIDEO_DIP = { alchimie: 0.4 };
 // Vitesse de lecture (1 = normale) : le Laboratoire est ralenti.
 const BACKDROP_VIDEO_RATE = { alchimie: 0.6 };
-function BackdropVideo({ src, ratio, dip, rate = 1 }) {
+function BackdropVideo({ src, ratio, dip, rate = 1, baseClass = "interior-backdrop" }) {
   const ref1 = useRef(null);
   const ref2 = useRef(null);
   useEffect(() => {
@@ -162,7 +165,7 @@ function BackdropVideo({ src, ratio, dip, rate = 1 }) {
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [src, ratio, dip, rate]);
-  const className = `interior-backdrop${ratio ? " interior-backdrop-boxed" : ""}`;
+  const className = `${baseClass}${ratio ? " interior-backdrop-boxed" : ""}`;
   const style = ratio ? { aspectRatio: ratio } : undefined;
   return (
     <>
@@ -801,6 +804,7 @@ function Auth({ signup, onEnter }) {
         className="auth-page"
         style={{ backgroundImage: `url(${ASSETS.login})` }}
       >
+        <BackdropVideo src={AUTH_VIDEO} baseClass="auth-video" />
         <div className="auth-card parchment">
           <h1>Vérifiez vos e-mails</h1>
           <p className="auth-intro">
@@ -819,6 +823,7 @@ function Auth({ signup, onEnter }) {
       className="auth-page"
       style={{ backgroundImage: `url(${ASSETS.login})` }}
     >
+      <BackdropVideo src={AUTH_VIDEO} baseClass="auth-video" />
       <form className="auth-card parchment" onSubmit={submit} noValidate>
         <h1>{signup ? "Créer un compte" : "Connexion"}</h1>
         {["email", "password", ...(signup ? ["pseudo", "invitation"] : [])].map((name) => (
