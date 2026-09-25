@@ -1,5 +1,5 @@
 // name : libellé du bouton ; racine : nom de la catégorie racine du catalogue
-// (table categorie) vers laquelle il renvoie ; icon : /assets/icons/market-<icon>.png
+// (table categorie) vers laquelle il renvoie ; icon : /assets/icons/market-<icon>.webp
 // dual : ouvre Matériaux et Embauche côte à côte (les employés n'achètent
 // pas un objet pour l'arsenal, ils rejoignent la Gestion des Employés).
 const CATEGORIES = [
@@ -20,7 +20,7 @@ export function Market({ onCategory }) {
           onClick={() => onCategory(c)}
         >
           <span className="sprite asset-sprite">
-            <img src={`/assets/icons/market-${c.icon}.png`} alt="" />
+            <img src={`/assets/icons/market-${c.icon}.webp`} alt="" />
           </span>
           <span>{c.name}</span>
         </button>

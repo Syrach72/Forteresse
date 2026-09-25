@@ -204,14 +204,14 @@ function Sprite({ location, className = "" }) {
   if (l?.id === "quetes")
     return (
       <span className={`sprite asset-sprite ${className}`} aria-hidden="true">
-        <img src="/assets/references/quests.png" alt="" />
+        <img src="/assets/references/quests.webp" alt="" />
       </span>
     );
   if (!l?.icon) return null;
   const assetId = l.id === "alchimie" ? "magic-items" : l.id;
   if (assetId !== "quetes") return (
     <span className={`sprite asset-sprite ${className}`} aria-hidden="true">
-      <img src={`/assets/icons/${assetId}.png`} alt="" />
+      <img src={`/assets/icons/${assetId}.webp`} alt="" />
     </span>
   );
   const [x, y, w, h] = l.icon;
@@ -222,7 +222,7 @@ function Sprite({ location, className = "" }) {
       style={{ aspectRatio: `${w}/${h}` }}
     >
       <img
-        src="/assets/references/castle.png"
+        src="/assets/references/castle.webp"
         alt=""
         style={{
           width: `${(756 / w) * 100}%`,
@@ -1001,7 +1001,7 @@ export function App() {
           id: m.id,
           name: m.nom,
           role: m.classe,
-          portrait: m.portrait || "/assets/icons/lock.png",
+          portrait: m.portrait || "/assets/icons/lock.webp",
           veterancy: m.veterance ?? 0,
           player: mesRecrutes.get(m.id) || "",
           notes: "",
@@ -1018,7 +1018,7 @@ export function App() {
           id: m.id,
           name: m.nom,
           role: m.classe,
-          portrait: m.portrait || "/assets/icons/lock.png",
+          portrait: m.portrait || "/assets/icons/lock.webp",
           veterancy: m.veterance ?? 0,
           player: joueurs.get(m.id) || "",
         })),
@@ -1538,7 +1538,7 @@ export function App() {
         id: m.id,
         name: m.nom,
         role: m.classe,
-        portrait: m.portrait || "/assets/icons/lock.png",
+        portrait: m.portrait || "/assets/icons/lock.webp",
         veterancy: m.veterance ?? 0,
       })),
     [mercenaires],
@@ -2273,7 +2273,7 @@ export function App() {
         >
           {l.id === "quetes" ? (
             <span className="sprite asset-sprite" aria-hidden="true">
-              <img src="/assets/icons/quetes-sidebar.png" alt="" />
+              <img src="/assets/icons/quetes-sidebar.webp" alt="" />
             </span>
           ) : (
             <Sprite location={l} />
@@ -2536,7 +2536,7 @@ export function App() {
           aria-label={`Trésorerie : ${game.gold} pièces d’or${game.gold < 0 ? " (solde négatif)" : ""}`}
         >
           <span className="coin" aria-hidden="true">
-            <img src="/assets/gold-coin.png" alt="" />
+            <img src="/assets/gold-coin.webp" alt="" />
           </span>
           <span>
             {money(game.gold)} <small>Po</small>
@@ -2577,7 +2577,7 @@ export function App() {
         )}
         {route === "forteresse" && (
           <button className="quest-sign header-quests" aria-label="Quêtes" onClick={() => { location.hash = "quetes"; }}>
-            <img src="/assets/references/quests.png" alt="" />
+            <img src="/assets/references/quests.webp" alt="" />
             <span>Quête</span>
           </button>
         )}
@@ -2641,7 +2641,7 @@ export function App() {
                 aria-label={`${l.name}${l.locked ? " — verrouillé" : ""}`}
               >
                 {l.id === "quetes" ? (
-                  <img src="/assets/references/quests.png" alt="Quêtes" />
+                  <img src="/assets/references/quests.webp" alt="Quêtes" />
                 ) : (
                   <>
                     <Sprite location={l} />
@@ -2656,7 +2656,7 @@ export function App() {
                     </span>
                     {l.locked && (
                       <span className="lock-mark" aria-hidden="true">
-                        <img src="/assets/icons/lock.png" alt="" />
+                        <img src="/assets/icons/lock.webp" alt="" />
                       </span>
                     )}
                   </>

@@ -1,6 +1,6 @@
 // Recettes et quantités de démonstration : à remplacer par les règles de Bruno.
 export const INGREDIENTS = [
-  { id: 'mushroom', name: 'Champignon', image: '/assets/icons/mushroom.png' },
+  { id: 'mushroom', name: 'Champignon', image: '/assets/icons/mushroom.webp' },
   { id: 'worm', name: 'Ver mystique' },
   { id: 'scorpion', name: 'Scorpion' },
   { id: 'spider', name: 'Araignée' },

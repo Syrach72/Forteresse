@@ -43,7 +43,7 @@ export function ReferenceCrop({
     >
       <img
         alt=""
-        src={`/assets/references/${source}.png`}
+        src={`/assets/references/${source}.webp`}
         style={{
           width: `${(sourceWidth / w) * 100}%`,
           maxWidth: "none",

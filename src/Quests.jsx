@@ -238,7 +238,7 @@ export function Quests({
                       >
                         {e ? (
                           <>
-                            <img src={p?.portrait || "/assets/icons/lock.png"} alt="" />
+                            <img src={p?.portrait || "/assets/icons/lock.webp"} alt="" />
                             <span className="quest-merc-nom">{p?.name || "?"}</span>
                           </>
                         ) : (

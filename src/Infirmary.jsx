@@ -98,7 +98,7 @@ export function Infirmary({
                 }
               >
                 <span className="bed-frame" aria-hidden="true">
-                  <img src="/assets/references/dormitory.png" alt="" />
+                  <img src="/assets/references/dormitory.webp" alt="" />
                 </span>
                 {bed ? (
                   <>
@@ -114,7 +114,7 @@ export function Infirmary({
                 ) : locked ? (
                   <>
                     <span className="bed-lock" aria-hidden="true">
-                      <img src="/assets/icons/lock.png" alt="" />
+                      <img src="/assets/icons/lock.webp" alt="" />
                     </span>
                     {prix != null && <strong>{prix} Po</strong>}
                   </>

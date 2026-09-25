@@ -1,17 +1,17 @@
 export const ASSETS = {
-  castle: "/assets/castle-original.jpg",
+  castle: "/assets/castle-original.webp",
   login: "/assets/coastal-castle.jpg",
   quests: "/assets/references/quests-page.png",
-  training: "/assets/references/training.png",
-  dormitory: "/assets/references/dormitory.png",
-  armory: "/assets/references/armory.png",
-  forge: "/assets/references/forge.png",
-  infirmary: "/assets/references/infirmary.png",
+  training: "/assets/references/training.webp",
+  dormitory: "/assets/references/dormitory.webp",
+  armory: "/assets/references/armory.webp",
+  forge: "/assets/references/forge.webp",
+  infirmary: "/assets/references/infirmary.webp",
   alchemy: "/assets/references/alchemy.png",
-  treasury: "/assets/references/treasury.png",
-  market: "/assets/references/market-square.png",
-  parchment: "/assets/references/parchment-map.png",
-  mage: "/assets/references/mage-tower.png",
+  treasury: "/assets/references/treasury.webp",
+  market: "/assets/references/market-square.webp",
+  parchment: "/assets/references/parchment-map.webp",
+  mage: "/assets/references/mage-tower.webp",
 };
 // Coordonnées relatives au décor, hors barre de navigation (756 × 581).
 // L'ordre de ce tableau pilote celui de la barre latérale (.room-nav) ; il

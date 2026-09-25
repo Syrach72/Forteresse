@@ -115,7 +115,7 @@ export function Training({
         onClick={() => ouvrir(cible)}
       >
         <span className="training-padlock" aria-hidden="true">
-          <img src="/assets/icons/lock.png" alt="" />
+          <img src="/assets/icons/lock.webp" alt="" />
         </span>
         <span>{libelle}</span>
         <strong>{prix} Po</strong>

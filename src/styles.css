@@ -193,7 +193,7 @@ img {
   display: flex;
   gap: 5px;
   padding: 4px;
-  background: url("/assets/references/parchment-map.png") center/cover;
+  background: url("/assets/references/parchment-map.webp") center/cover;
   border-bottom: 3px ridge #aa9672;
   position: relative;
   z-index: 3;
@@ -1910,7 +1910,7 @@ video.interior-backdrop-boxed {
   }
 }
 .gold-counter {
-  background: transparent url("/assets/gold-frame.png") center/cover
+  background: transparent url("/assets/gold-frame.webp") center/cover
     no-repeat;
   box-shadow: none;
   border: 0;
