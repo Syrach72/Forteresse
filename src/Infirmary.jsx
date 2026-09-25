@@ -66,7 +66,6 @@ export function Infirmary({
           aria-hidden="true"
         />
         <div className="dorm-title">
-          <h2>Infirmerie de la compagnie</h2>
           <span>
             {enSoin} en soin · {infirmary.capacity} places débloquées
           </span>

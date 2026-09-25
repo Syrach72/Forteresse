@@ -46,7 +46,6 @@ export function Dortoir({
           aria-hidden="true"
         />
         <div className="dorm-title">
-          <h2>Dortoirs de la compagnie</h2>
           <span>
             {hired} embauché{hired > 1 ? "s" : ""} · {dorm.capacity} lits
             débloqués
