@@ -1,8 +1,10 @@
 # Sessions (parties indépendantes) — conception
 
-Décidé avec Bruno le 2026-09-25. Rien n'est partagé entre deux sessions ; le contenu
-d'une session (catalogue, recettes, mercenaires, quêtes, budget, valeurs de départ)
-est une COPIE de la « base de départ » faite au lancement de la session.
+Décidé avec Bruno le 2026-09-25. L'ÉTAT de jeu n'est jamais partagé entre deux sessions.
+**Le catalogue (objets, catégories, classes, recettes, mercenaires, quêtes) est UN SEUL,
+commun à toutes les sessions** (migration `20260925230000_catalogue_partage.sql`, même
+jour) : ce que Bruno crée ou modifie est visible partout. Seuls le budget, l'or et l'arsenal
+de départ (base de départ) sont copiés dans une session à son lancement.
 
 ## Règles de Bruno
 - Bruno est l'unique MJ (= administrateur global) de toutes les sessions.
@@ -12,25 +14,27 @@ est une COPIE de la « base de départ » faite au lancement de la session.
   « +1 Instance » ; les joueurs voient « en attente du MJ » et ne peuvent rien faire.
   Le premier clic **lance** la session (copie du contenu + état de départ), n'avance aucun
   compteur, ne s'annule pas. Le budget de l'instance ne joue qu'à partir du clic suivant.
-- Ensuite la session est indépendante : Bruno peut modifier son contenu sans toucher les
-  autres ; « Envoyer à la session » ajoute à la main un élément de la base à une session.
+- Ensuite l'état de la session est indépendant (or, arsenal, recrutements, vétérance, quêtes…).
+  Un même mercenaire ou objet peut servir dans plusieurs sessions.
 - Tout est permanent. Seul le MJ peut « remettre à zéro » : la session redevient non lancée
   (sauvegarde automatique avant, confirmation forte).
 - Code d'invitation lié à une session, à usage unique, généré et envoyé par Bruno ;
   « Rejoindre une session » pour un compte existant.
-- Les données de test actuelles deviennent la **« Session test »** (déjà lancée) ; la base
-  de départ est une copie de ce contenu. Rien n'est effacé.
+- Les données de test actuelles sont la **« Session test »** (déjà lancée). Son contenu a été
+  fusionné dans le catalogue partagé (union ; en cas de conflit la Session test l'emporte).
 
 ## Architecture (base de données)
 - `session`, `session_membre`, `session_active` (session choisie par chaque utilisateur,
   + `contexte_base` pour Bruno éditant la base).
-- Tables de **contenu** : `session_id` NULL = base de départ ; sinon copie de la session.
-  categorie, classe, objet_catalogue, recette, ingredient_recette, mercenaire, quete,
-  quete_recompense, budget_poste (+ `base_depart`, `base_depart_ligne` : or et arsenal de
-  départ, base uniquement).
-- Tables d'**état** : `session_id` NOT NULL. partie_etat, partie_journal, atelier_fabrication,
-  forge_sertissage, employe, inventaire, ligne_inventaire (via inventaire), recrutement,
-  entrainement_*, infirmerie_*, dortoir_reglage, quete_mercenaire.
+- **Catalogue partagé** (lecture pour tous, écriture MJ) : categorie, classe, objet_catalogue,
+  recette, ingredient_recette, mercenaire, quete, quete_recompense. Plus de `session_id`.
+- **État par session** : `mercenaire_etat` (vétérance ; repli sur la valeur de la fiche, fonction
+  `_vet()`, modifiée par `mercenaire_definir_veterance`), `quete_etat` (en_cours, instances
+  restantes, terminée), plus partie_etat, partie_journal, atelier_fabrication, forge_sertissage,
+  employe, inventaire, ligne_inventaire, recrutement, entrainement_*, infirmerie_*,
+  dortoir_reglage, quete_mercenaire. Unicités « par session » (ex. recrutement (session, mercenaire)).
+- `budget_poste` : lignes de départ (session_id NULL) copiées dans la session au lancement ;
+  `base_depart`, `base_depart_ligne` : or et arsenal de départ.
 - Isolation par RLS : `ctx_session()` = session active de l'utilisateur (membre, ou admin),
   `ctx_est_base()` = Bruno en contexte base. Fonctionne aussi pour Realtime (qui n'a pas
   d'en-têtes HTTP, d'où le choix de stocker la session active en base plutôt que dans un
@@ -40,8 +44,10 @@ est une COPIE de la « base de départ » faite au lancement de la session.
   session active, sans réécrire leur code. **Toute nouvelle fonction qui touche des
   tables de session doit appartenir à `fortress_fn`** (sinon, propriétaire `postgres` =
   contourne la RLS et voit toutes les sessions). Un test SQL vérifie ce point.
-- `_cloner_contenu(source, cible)` copie le contenu (avec remappage des identifiants) :
-  utilisé par `session_lancer` et par la migration initiale.
+- `_cloner_contenu` et `session_envoyer` ont été supprimés (plus de copie de contenu).
+- « Objet divers » : les objets qui ont une recette se fabriquent à la forge OU à l'armurerie
+  (`partie_fabriquer(p_objet, p_atelier)`, atelier exigé pour cette rubrique) ; bouton « Catalogue
+  des objets » sur les deux pages.
 - Compatible avec l'ancien client : la migration met tout le monde sur « Session test ».
 
 ## Étapes (toutes faites le 2026-09-25)
@@ -71,3 +77,9 @@ avec un code dans l'interface ; l'isolation Realtime entre deux navigateurs.
   (voir le garde-fou dans les tests), sinon elle contourne l'isolation.
 - Les tests SQL s'exécutent dans l'éditeur Supabase en une transaction annulée (voir la mémoire
   `reference_supabase_sql_procedure`).
+
+## Catalogue partagé (2026-09-25)
+Migration appliquée en production, 40 vérifications OK à blanc (`tests/sessions_isolation.sql`
+réécrit) et 28 après application. Sauvegarde avant : `2026-09-25_avant_catalogue_partage` (hors
+dépôt). Les anciens tests SQL (quetes_instances, entrainement_regles…) supposent l'ancien modèle : à
+revalider avant réutilisation.
