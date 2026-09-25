@@ -421,6 +421,8 @@ function ItemActionPanel({
           <p>
             Détruire définitivement {qty} × {inventoryItemInfo(own).name} ? Cette action est
             irréversible.
+            {["Armes", "Armures", "Objet divers"].includes(own.categorie) &&
+              " La moitié des composants de sa recette (arrondie à l’inférieur) retourne à l’arsenal."}
           </p>
           <div className="item-destroy-actions">
             <button
@@ -2209,7 +2211,7 @@ export function App() {
     );
     if (!data) return;
     setModal(null);
-    notify(`Destruction de ${nom} ×${quantity}.`);
+    notify(data.message || `Destruction de ${nom} ×${quantity}.`);
   }
   // Vente d'un objet de l'arsenal au Marché : la moitié de sa valeur est
   // créditée à la trésorerie partagée.
