@@ -2528,9 +2528,13 @@ video.interior-backdrop-boxed {
   outline: 3px solid #f4cb63;
   outline-offset: 0;
 }
-/* Mercenaire absent du dortoir (entraînement, infirmerie) : la place lui
-   reste réservée. Ni grisé ni assombri (juste le bandeau ci-dessous) : le
-   portrait doit rester lisible. */
+/* Mercenaire absent du dortoir (instructeur, entraînement, infirmerie) : la
+   place lui reste réservée. Son portrait et le bandeau du nom du joueur sont
+   grisés ; le bandeau d'état ci-dessous (« Instructeur »...) reste lisible. */
+.bed-away .bed-portrait,
+.bed-player-away {
+  filter: grayscale(1) brightness(0.8);
+}
 .bed-away-label {
   position: absolute;
   top: 2px;

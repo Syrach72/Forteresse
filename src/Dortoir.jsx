@@ -109,7 +109,7 @@ export function Dortoir({
                 </button>
                 {!locked && (
                   <div
-                    className="bed-player"
+                    className={`bed-player${away ? " bed-player-away" : ""}`}
                     title={merc?.player ? "Joueur" : undefined}
                   >
                     {merc?.player || " "}
