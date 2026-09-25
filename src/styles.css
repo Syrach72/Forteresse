@@ -4634,3 +4634,14 @@ a.merc-card:hover {
     font-size: 9px;
   }
 }
+
+/* La fenêtre de choix d'un mercenaire est dans .interior : sans ceci ses textes
+   prendraient le blanc contouré du verre dépoli, illisible sur le fond crème. */
+.interior .parchment .quest-merc-candidat span,
+.interior .parchment .quest-merc-candidat small {
+  color: #1c150d;
+  text-shadow: none;
+}
+.interior .parchment .quest-merc-candidat small {
+  color: #5b4b33;
+}
