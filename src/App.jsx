@@ -27,6 +27,7 @@ import { CHARACTER_CLASSES } from "./characters";
 import { Admin } from "./Admin.jsx";
 import { Modal } from "./Modal.jsx";
 import { supabase } from "./supabaseClient";
+import { useGlassWindows } from "./glassWindows.js";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
 const BACKDROP_VIDEO = {
   alchimie: "/assets/video/alchimiste-anime2.mp4",
@@ -174,6 +175,25 @@ function BackdropVideo({ src, ratio, dip, rate = 1, baseClass = "interior-backdr
       <video ref={ref1} className={className} style={style} src={src} muted playsInline />
       <video ref={ref2} className={className} style={style} src={src} muted playsInline />
     </>
+  );
+}
+// Grille de l'Arsenal : le fond marron reste opaque, mais chaque case d'objet
+// y est découpée comme une fenêtre (même mécanique que les lits du Dortoir,
+// glassWindows.js) : on y voit le verre dépoli du cadre, donc le décor flouté.
+function GlassGrid({ children }) {
+  const gridRef = useRef(null);
+  const layerRef = useRef(null);
+  const windows = useGlassWindows(gridRef, layerRef, ".inventory-slot");
+  return (
+    <div ref={gridRef} className="inventory-grid inventory-grid-glass">
+      <div
+        ref={layerRef}
+        className="inventory-brown"
+        style={windows ? { clipPath: `path(evenodd, "${windows}")` } : undefined}
+        aria-hidden="true"
+      />
+      {children}
+    </div>
   );
 }
 function Sprite({ location, className = "" }) {
@@ -3140,7 +3160,7 @@ export function App() {
                         (own) => arsenalCategoryOf(own) === arsenalTab,
                       );
                 return (
-                  <div className="inventory-grid">
+                  <GlassGrid>
                     {shown.length ? (
                       shown.map((own) => {
                         const { name, art } = inventoryItemInfo(own);
@@ -3180,7 +3200,7 @@ export function App() {
                           : "L’arsenal est vide. Les objets achetés ou fabriqués s’y ajoutent automatiquement."}
                       </p>
                     )}
-                  </div>
+                  </GlassGrid>
                 );
               })()}
             </section>

@@ -1091,8 +1091,8 @@ video.interior-backdrop-boxed {
   left: 0;
   right: 0;
   z-index: 2;
-  padding: 3px 3px 8px;
-  font-size: 11.5px;
+  padding: 3px 3px 9px;
+  font-size: 14.5px;
   font-weight: 700;
   line-height: 1.1;
   text-align: center;
@@ -4455,4 +4455,30 @@ a.merc-card:hover {
   50% {
     opacity: 0.35;
   }
+}
+
+/* Arsenal : fond marron opaque de la grille (couche découpée, cf. GlassGrid)
+   et cases d'objets en verre dépoli, comme le cadre. */
+.inventory-grid-glass {
+  position: relative;
+  isolation: isolate;
+  background: none;
+}
+.inventory-brown {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: #493c29;
+}
+.inventory-grid-glass .inventory-slot {
+  background: transparent;
+}
+.inventory-grid-glass .inventory-slot:not(.empty):hover {
+  background: rgba(221, 199, 126, 0.26);
+}
+/* Arsenal : fond décalé vers la gauche pour qu'une flamme (l'applique de
+   l'arche) tombe dans une case en verre dépoli, sans vide à droite. */
+.stock video.interior-backdrop-boxed {
+  transform: translateX(-54%);
 }
