@@ -44,11 +44,30 @@ est une COPIE de la « base de départ » faite au lancement de la session.
   utilisé par `session_lancer` et par la migration initiale.
 - Compatible avec l'ancien client : la migration met tout le monde sur « Session test ».
 
-## Étapes
-0. Sauvegarde complète (fait : `../sauvegardes/2026-09-25_avant_sessions/`).
-1. Migration SQL + tests d'isolation (rollback puis application).
-2. Client : sélecteur de session, nom en haut, écran d'attente, invitations par session,
-   « Rejoindre une session », lancement au premier +1 Instance.
-3. Administration : contexte Base / session, création de session, « Envoyer à la session »,
-   arsenal/or de départ de la base, remise à zéro.
-4. Bascule : appliquer la migration puis publier le client, vérifier sur le site.
+## Étapes (toutes faites le 2026-09-25)
+0. Sauvegarde complète (`../sauvegardes/2026-09-25_avant_sessions/`, hors dépôt).
+1. Migration `20260925200000_sessions.sql` + test `tests/sessions_isolation.sql` (36 vérifications),
+   appliquée en production.
+2. Client (`src/Sessions.jsx`) : bandeau « Session … » avec sélecteur, écrans « en attente du
+   MJ » / « choix » / « aucune session », « Rejoindre une session » (code), lancement au premier
+   « +1 Instance » du MJ (sans compteur, sans « Annuler »), attente des joueurs par relecture
+   toutes les 8 s puis rechargement.
+3. Administration (`src/Admin.jsx`) : menu « Vous modifiez » (Base de départ ou une session),
+   onglet Sessions (créer, ouvrir, jouer/diriger, renommer, inviter, remettre à zéro avec nom à
+   retaper), « Envoyer à la session » (`20260925210000_session_envoyer.sql`, test
+   `tests/session_envoyer.sql`), or et arsenal de départ de la base (onglet Arsenal en contexte
+   Base), invitations liées à une session.
+4. Vérifié sur le site : création d'une session, écran d'attente MJ, lancement (1000 Po, arsenal de
+   départ, 18 lits vides, 6 quêtes, 10 postes de budget), retour à la Session test intacte, contexte
+   Base, invitation, remise à zéro ; la session de test a ensuite été supprimée.
+
+## Non vérifié à l'écran (couvert seulement par les tests SQL)
+Le point de vue d'un joueur non-admin (écran d'attente, « Rejoindre une session ») et l'inscription
+avec un code dans l'interface ; l'isolation Realtime entre deux navigateurs.
+
+## À savoir
+- L'arsenal de départ de la base ne reprend pas les armes serties (gemmes) de l'arsenal d'origine.
+- Nouvelle fonction SQL touchant des tables de session : `alter function ... owner to fortress_fn`
+  (voir le garde-fou dans les tests), sinon elle contourne l'isolation.
+- Les tests SQL s'exécutent dans l'éditeur Supabase en une transaction annulée (voir la mémoire
+  `reference_supabase_sql_procedure`).
