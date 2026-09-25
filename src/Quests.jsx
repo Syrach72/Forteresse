@@ -3,6 +3,7 @@ import { supabase } from "./supabaseClient";
 import { VetBadge } from "./VetBadge.jsx";
 import { Modal } from "./Modal.jsx";
 import { ITEMS } from "./data.js";
+import { chargerQuetes } from "./etat.js";
 
 const REWARD_SLOTS = [0, 1, 2, 3, 4];
 // Jusqu’à 6 mercenaires engagés par quête (positions 0 à 5).
@@ -20,7 +21,7 @@ function useQuetes() {
   const [error, setError] = useState("");
   async function reload() {
     const [q, r, o, e] = await Promise.all([
-      supabase.from("quete").select("*").order("nom"),
+      chargerQuetes(),
       supabase.from("quete_recompense").select("*"),
       supabase.from("objet_catalogue").select("id, nom, icone, description"),
       supabase.from("quete_mercenaire").select("quete_id, position, mercenaire_id"),
@@ -41,6 +42,7 @@ function useQuetes() {
     const canal = supabase
       .channel("quetes-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "quete_etat" }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_recompense" }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_mercenaire" }, reload)
       .subscribe();

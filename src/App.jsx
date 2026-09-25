@@ -28,6 +28,7 @@ import { Admin } from "./Admin.jsx";
 import { Modal } from "./Modal.jsx";
 import { supabase } from "./supabaseClient";
 import { useGlassWindows } from "./glassWindows.js";
+import { chargerMercenaires, chargerVeterances, chargerQueteEnCours } from "./etat.js";
 import { useSessions, SessionBar, EcranSession } from "./Sessions.jsx";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
 const BACKDROP_VIDEO = {
@@ -1161,7 +1162,7 @@ export function App() {
     (async () => {
       const [{ data: merc, error: e1 }, { data: classes, error: e2 }] =
         await Promise.all([
-          supabase.from("mercenaire").select("*").order("nom"),
+          chargerMercenaires(),
           supabase.from("classe").select("id, nom"),
         ]);
       if (annule || e1 || e2) return;
@@ -1227,14 +1228,12 @@ export function App() {
     const n = Number(value);
     if (String(value).trim() === "" || !Number.isInteger(n) || n < 0 || n > 999)
       return { error: "Saisissez un entier de 0 à 999." };
-    const { data, error } = await supabase
-      .from("mercenaire")
-      .update({ veterance: n })
-      .eq("id", id)
-      .select("id");
+    // La vétérance est propre à la session (mercenaire_etat) ; le catalogue partagé ne change pas.
+    const { error } = await supabase.rpc("mercenaire_definir_veterance", {
+      p_mercenaire: id,
+      p_valeur: n,
+    });
     if (error) return { error: error.message };
-    if (!data?.length)
-      return { error: "Modification refusée : droits administrateur requis." };
     setMercenaires((old) =>
       old.map((m) => (m.id === id ? { ...m, veterance: n } : m)),
     );
@@ -1315,6 +1314,8 @@ export function App() {
   // (valeurs de l'enum recette.atelier) : sert à faire atterrir le
   // bouton admin « Placer dans la forge » sur la bonne page.
   const ATELIER_ROUTE = { forge: "forge", armurerie: "armurerie", alchimie: "alchimie", magie: "mage" };
+  // Rubrique du catalogue dont les objets se fabriquent à la forge OU à l'armurerie.
+  const RACINE_OBJETS = "Objet divers";
   const ATELIER_RACINE = { forge: "Armes", armurerie: "Armures", alchimie: "Produits Alchimiques", magie: "Gemmes" };
   // Quitter la fiche (fermer, retour à la liste, autre objet, autre page)
   // rend définitifs les achats et fabrications qui y ont été faits.
@@ -1331,8 +1332,8 @@ export function App() {
     if (!pendingCraftTarget) return;
     const { atelier } = pendingCraftTarget;
     if (route !== ATELIER_ROUTE[atelier]) return;
-    loadCatalogue(atelier, ATELIER_RACINE[atelier], "hors-objets");
-    loadCatalogue(`${atelier}:objets`, ATELIER_RACINE[atelier], "objets");
+    loadCatalogue(atelier, ATELIER_RACINE[atelier]);
+    loadCatalogue(`${atelier}:objets`, RACINE_OBJETS, true);
   }, [pendingCraftTarget, route]);
   useEffect(() => {
     if (!pendingCraftTarget) return;
@@ -1347,7 +1348,7 @@ export function App() {
       type: "db-catalogue",
       atelier,
       cle: estObjet ? `${atelier}:objets` : atelier,
-      racine: ATELIER_RACINE[atelier],
+      racine: estObjet ? RACINE_OBJETS : ATELIER_RACINE[atelier],
       titre: estObjet ? WORKSHOP_TEXT[targetRoute]?.objets : undefined,
       detailId: objetId,
     });
@@ -1805,12 +1806,12 @@ export function App() {
         .from("entrainement_reglage")
         .select("places_eleves, groupe2_debloque, places_eleves_2")
         .maybeSingle(),
-      supabase.from("mercenaire").select("id, veterance"),
+      chargerVeterances(),
       supabase.from("infirmerie_place").select("position, mercenaire_id, restant"),
       supabase.from("infirmerie_reglage").select("places").maybeSingle(),
       supabase.from("recrutement").select("mercenaire_id, user_id, nom_joueur, lit"),
       supabase.from("dortoir_reglage").select("places").maybeSingle(),
-      supabase.from("quete").select("id, nom, en_cours, instances_requises, instances_restantes").eq("en_cours", true).maybeSingle(),
+      chargerQueteEnCours(),
       supabase.from("quete_mercenaire").select("quete_id, position, mercenaire_id"),
     ]);
     if (!quete.error) setQueteEnCours(quete.data || null);
@@ -1841,7 +1842,7 @@ export function App() {
       setTraining(next);
     }
     if (!vet.error) {
-      const parId = new Map(vet.data.map((m) => [m.id, m.veterance ?? 0]));
+      const parId = vet.data;
       setMercenaires((old) =>
         old.map((m) =>
           parId.has(m.id) && parId.get(m.id) !== m.veterance
@@ -1878,6 +1879,8 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "employe" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "quete_etat" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_etat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_mercenaire" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "ligne_inventaire" }, rafraichir)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "mercenaire" }, rafraichir)
@@ -2158,9 +2161,10 @@ export function App() {
   const nomDe = (invId) => ligneInventaire(invId)?.nom || "L’objet";
   // Fabrication d'un objet du catalogue : ingrédients retirés de l'arsenal ;
   // livraison immédiate, ou mise en file dans l'atelier si l'objet a une durée.
-  async function actCatalogue(arme) {
+  // `atelier` : atelier choisi (forge ou armurerie) pour les objets de la rubrique Objet divers.
+  async function actCatalogue(arme, atelier = null) {
     const data = await operationPartagee(() =>
-      supabase.rpc("partie_fabriquer", { p_objet: arme.id }),
+      supabase.rpc("partie_fabriquer", { p_objet: arme.id, p_atelier: atelier }),
     );
     if (!data) return;
     // La fiche reste ouverte (fabrication lancée ou livrée tout de suite) pour
@@ -2377,9 +2381,10 @@ export function App() {
   // viennent réellement de l'admin. Clés : un atelier (forge, armurerie,
   // alchimie, magie), "market:<catégorie>" (Marché) ou "global" (Catalogue de
   // l'en-tête : tout ce qui est achetable ou fabricable, toutes rubriques).
-  // `mode` (ateliers Forge/Armurerie) : "objets" = seulement la sous-catégorie « Objets » de la
-  // rubrique ; "hors-objets" = tout le reste (armes / armures). Sans `mode` : tout.
-  async function loadCatalogue(atelier, racineNom, mode) {
+  // `seulementFabricables` (« Catalogue des objets » de la Forge et de l'Armurerie) : les objets de
+  // la rubrique « Objet divers » qui ont une recette ; ils se fabriquent indifféremment à la forge
+  // ou à l'armurerie, selon la page d'où l'on ouvre le catalogue.
+  async function loadCatalogue(atelier, racineNom, seulementFabricables = false) {
     if (catalogueByAtelier[atelier]) return;
     const consultation = atelier.startsWith("market:");
     const global = atelier === "global";
@@ -2434,15 +2439,6 @@ export function App() {
       return node?.nom || racineNom;
     };
     const objetById = new Map(objets.map((o) => [o.id, o]));
-    // Sous-catégorie « Objets » d'Armes / Armures : pas d'arme ni d'armure (pas de stats de combat).
-    const estSousObjets = (categorieId) => {
-      let current = categories.find((c) => c.id === categorieId);
-      while (current) {
-        if (current.parent_id && current.nom.trim().toLowerCase() === "objets") return true;
-        current = categories.find((c) => c.id === current.parent_id);
-      }
-      return false;
-    };
     // Armure = sous la rubrique « Armures », boucliers exclus (même règle que
     // l'admin) : affiche protection et type à la place de la portée.
     const estArmure = (categorieId) => {
@@ -2498,12 +2494,10 @@ export function App() {
     };
     const MARKET_BUTTON_ROOTS = ["armes", "armures", "composants", "matériaux", "produits alchimiques", "gemmes", "collecte"];
     const isDivers = consultation && racineNom.trim().toLowerCase() === "objet divers";
-    const estGroupeObjets = (o) => groupName(o.categorie_id).trim().toLowerCase() === "objets";
     const included = (o) =>
       isDivers
         ? !MARKET_BUTTON_ROOTS.includes((rootOf(o.categorie_id)?.nom || "").trim().toLowerCase())
-        : isUnderRacine(o.categorie_id) &&
-          (mode === "objets" ? estGroupeObjets(o) : mode === "hors-objets" ? !estGroupeObjets(o) : true);
+        : isUnderRacine(o.categorie_id);
     // Catalogue global : onglet = catégorie de niveau 2 sous la racine propre
     // à chaque objet (même principe que groupName, racine par racine).
     const groupeSousRacine = (categorieId, root) => {
@@ -2534,9 +2528,9 @@ export function App() {
         // Atelier de fabrication (forge/armurerie/alchimie/magie), tel que
         // défini par la recette : null si l'objet n'a pas de recette.
         atelier: recette?.atelier || null,
-        estArme: estArme(o.categorie_id) && !estSousObjets(o.categorie_id),
+        estArme: estArme(o.categorie_id),
         estAlchimique: estAlchimique(o.categorie_id),
-        estArmure: estArmure(o.categorie_id) && !estSousObjets(o.categorie_id),
+        estArmure: estArmure(o.categorie_id),
         estBouclier: estBouclier(o.categorie_id),
         groupe: global
           ? groupeSousRacine(o.categorie_id, root)
@@ -2557,7 +2551,10 @@ export function App() {
               (it.cout_achat_or !== null && it.cout_achat_or !== undefined) ||
               it.ingredientsList.length > 0,
           )
-      : objets.filter((o) => o.actif !== false && included(o)).map(construire);
+      : objets
+          .filter((o) => o.actif !== false && included(o))
+          .map(construire)
+          .filter((it) => !seulementFabricables || it.atelier);
     setCatalogueByAtelier((prev) => ({ ...prev, [atelier]: { items, error: "" } }));
   }
   // null si aucune commande locale n'est en cours pour Forge/Armurerie (cf.
@@ -3151,23 +3148,22 @@ export function App() {
                     // base (recette.atelier) est "magie".
                     const atelier = route === "mage" ? "magie" : route;
                     const racine = ATELIER_RACINE[atelier];
-                    loadCatalogue(atelier, racine, WORKSHOP_TEXT[route].objets ? "hors-objets" : undefined);
+                    loadCatalogue(atelier, racine);
                     setModal({ type: "db-catalogue", atelier, racine });
                   }}
                 >
                   {WORKSHOP_TEXT[route].catalogue} ›
                 </button>
-                {/* Forge et Armurerie : « Catalogue des objets » (sous-catégorie Objets), même
-                    principe que les armes et les armures : fiche, coût, recette, fabrication. */}
+                {/* Forge et Armurerie : « Catalogue des objets » (rubrique Objet divers), fabriqués
+                    indifféremment ici ou dans l'autre atelier : fiche, coût, recette, fabrication. */}
                 {WORKSHOP_TEXT[route].objets && (
                   <button
                     className="catalog-button catalog-button-objets wood-button"
                     onClick={() => {
                       const atelier = route;
-                      const racine = ATELIER_RACINE[atelier];
                       const cle = `${atelier}:objets`;
-                      loadCatalogue(cle, racine, "objets");
-                      setModal({ type: "db-catalogue", atelier, cle, racine, titre: WORKSHOP_TEXT[route].objets });
+                      loadCatalogue(cle, RACINE_OBJETS, true);
+                      setModal({ type: "db-catalogue", atelier, cle, racine: RACINE_OBJETS, titre: WORKSHOP_TEXT[route].objets });
                     }}
                   >
                     {WORKSHOP_TEXT[route].objets} ›
@@ -3772,9 +3768,10 @@ export function App() {
                     {(() => {
                       // Atelier de fabrication de CET objet (celui de sa
                       // recette) ; dans un atelier, à défaut, celui de la page.
-                      const atelierItem =
-                        detailItem.atelier ||
-                        (modal.global || modal.market ? null : modal.atelier);
+                      const atelierItem = modal.cle?.endsWith(":objets")
+                        ? modal.atelier
+                        : detailItem.atelier ||
+                          (modal.global || modal.market ? null : modal.atelier);
                       const routeItem = ATELIER_ROUTE[atelierItem];
                       return (
                         <CatalogueItemDetail
@@ -3793,7 +3790,7 @@ export function App() {
                                 : "Fabriquer"
                           }
                           onBuy={actBuyCatalogue}
-                          onCraft={(a) => actCatalogue(a, routeItem)}
+                          onCraft={(a) => actCatalogue(a, atelierItem)}
                           onCollect={() => actCollect(routeItem)}
                           undo={undoStack[undoStack.length - 1] || null}
                           onUndo={undoCatalogue}

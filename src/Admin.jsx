@@ -11,6 +11,9 @@ const ATELIER_PAR_RACINE = {
   armures: "armurerie",
   "produits alchimiques": "alchimie",
   gemmes: "magie",
+  // Objet divers : se fabrique à la forge OU à l'armurerie (au choix du joueur) ; "forge" n'est que la
+  // valeur enregistrée sur la recette.
+  "objet divers": "forge",
 };
 // Rubriques dont les objets peuvent entrer dans une recette. Les Produits
 // Alchimiques y figurent : plusieurs recettes existantes en consomment.
@@ -903,32 +906,21 @@ function CatalogueSection({ onCraftItem }) {
     }
     return dansArmures;
   }
-  // « Objets » : sous-catégorie de niveau 2 des rubriques Armes et Armures (« Catalogue des
-  // objets » des pages Forge et Armurerie). Un objet de cette sous-catégorie n'est ni une arme
-  // ni une armure (pas de stats de combat) mais se fabrique dans l'atelier de sa rubrique.
-  function isCategorieObjets(categorieId) {
-    let current = categories.rows?.find((c) => c.id === categorieId);
-    while (current) {
-      if (current.parent_id && current.nom.trim().toLowerCase() === "objets") return true;
-      current = categories.rows.find((c) => c.id === current.parent_id);
-    }
-    return false;
-  }
   function categorieFlags(categorieId) {
-    const objet = isCategorieObjets(categorieId) && isCategorieParmi(categorieId, ["armes", "armures"]);
-    const arme = !objet && isCategorieArme(categorieId);
-    const armure = !arme && !objet && isCategorieArmure(categorieId);
-    const bouclier = !arme && !objet && isCategorieBouclier(categorieId);
+    const arme = isCategorieArme(categorieId);
+    const armure = !arme && isCategorieArmure(categorieId);
+    const bouclier = !arme && isCategorieBouclier(categorieId);
     const alchimique = !arme && isCategorieParmi(categorieId, ["produits alchimiques"]);
     const gemme = !arme && isCategorieParmi(categorieId, ["gemmes"]);
     // Collecte : un métier (Mineur, Bûcheron, Tanneur...) du Marché, page
     // « Matériaux et Embauche ». Ne rejoint pas l'arsenal, va dans Gestion
     // des Employés.
     const emploi = !arme && isCategorieParmi(categorieId, ["collecte"]);
+    // « Objet divers » : achetable, et fabricable indifféremment à la forge ou à l'armurerie
+    // (boutons « Catalogue des objets » de ces deux pages) quand il a une recette.
     const craftable =
       arme ||
-      objet ||
-      isCategorieParmi(categorieId, ["produits alchimiques", "gemmes", "armures"]);
+      isCategorieParmi(categorieId, ["produits alchimiques", "gemmes", "armures", "objet divers"]);
     // Achat au marché : armes/armures/produits alchimiques (qui ont aussi une
     // fabrication), composants/objets divers (achetés directement, sans
     // recette) et collecte (coût d'embauche), mais jamais les gemmes
@@ -2092,7 +2084,9 @@ function MercenairesSection() {
           </div>
           {["veterance", "attaque", "defense", "esprit", "mouvement", "mana", "sante"].map((field) => (
             <div className="field" key={field}>
-              <label htmlFor={`merc-${field}`}>{field[0].toUpperCase() + field.slice(1)}</label>
+              <label htmlFor={`merc-${field}`}>
+                {field === "veterance" ? "Vétérance de départ" : field[0].toUpperCase() + field.slice(1)}
+              </label>
               <div className="input-wrap">
                 <input
                   id={`merc-${field}`}
@@ -2137,7 +2131,7 @@ function MercenairesSection() {
               <th>Portrait</th>
               <th>Nom</th>
               <th>Classe</th>
-              <th>Vétérance</th>
+              <th>Vétérance de départ</th>
               <th></th>
             </tr>
           </thead>
@@ -2600,6 +2594,8 @@ const QUETE_SLOTS = [0, 1, 2, 3, 4];
 // recette d'un objet du catalogue.
 function QuetesSection() {
   const quetes = useTable("quete", { order: "nom" });
+  // Avancement propre à la session choisie (vide dans le contexte « base de départ »).
+  const etats = useTable("quete_etat", { order: "quete_id", key: "quete_id" });
   const recompenses = useTable("quete_recompense", { order: "position" });
   const catalogue = useTable("objet_catalogue", { order: "nom" });
   const [editing, setEditing] = useState(null);
@@ -2611,9 +2607,10 @@ function QuetesSection() {
   const [msg, setMsg] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
 
-  if (quetes.error || recompenses.error || catalogue.error)
-    return <p className="admin-error">{quetes.error || recompenses.error || catalogue.error}</p>;
-  if (!quetes.rows || !recompenses.rows || !catalogue.rows) return <p>Chargement…</p>;
+  if (quetes.error || recompenses.error || catalogue.error || etats.error)
+    return <p className="admin-error">{quetes.error || recompenses.error || catalogue.error || etats.error}</p>;
+  if (!quetes.rows || !recompenses.rows || !catalogue.rows || !etats.rows) return <p>Chargement…</p>;
+  const etatDe = (id) => etats.rows.find((e) => e.quete_id === id);
 
   function nomObjet(id) {
     return catalogue.rows.find((o) => o.id === id)?.nom || "?";
@@ -2729,7 +2726,7 @@ function QuetesSection() {
     if (err) setMsg(err);
   }
   async function remettreDisponible(id) {
-    const err = await quetes.update(id, { terminee_le: null });
+    const err = await etats.remove(id);
     if (err) setMsg(err);
   }
 
@@ -2904,17 +2901,17 @@ function QuetesSection() {
                       : "—"}
                   </td>
                   <td>
-                    {q.terminee_le
+                    {etatDe(q.id)?.terminee_le
                       ? "Terminée"
-                      : q.en_cours
-                        ? `En cours (reste ${q.instances_restantes ?? q.instances_requises ?? 1})`
+                      : etatDe(q.id)?.en_cours
+                        ? `En cours (reste ${etatDe(q.id).instances_restantes ?? q.instances_requises ?? 1})`
                         : "Disponible"}
                   </td>
                   <td className="admin-row-actions">
                     <button type="button" className="text-button" onClick={() => startEdit(q)}>
                       Modifier
                     </button>
-                    {q.terminee_le && (
+                    {etatDe(q.id)?.terminee_le && (
                       <button type="button" className="text-button" onClick={() => remettreDisponible(q.id)}>
                         Remettre disponible
                       </button>
@@ -3112,8 +3109,10 @@ function InvitationsSection({ sess, sessionInitiale }) {
 // Sessions (parties indépendantes, voir docs/SESSIONS.md)
 // ---------------------------------------------------------------------------
 
-// Ce que le MJ modifie : la base de départ ou une session. Les onglets de contenu
-// (catalogue, catégories, classes, mercenaires, quêtes) agissent sur ce contexte.
+// Ce que le MJ consulte : la base de départ ou une session. Le catalogue (objets, catégories,
+// classes, mercenaires, quêtes) est commun à toutes les sessions et ne dépend pas de ce choix ;
+// il détermine seulement l'onglet Arsenal (or et arsenal de départ, ou ceux de la session) et
+// l'état de jeu (vétérance, avancement des quêtes) que vous modifiez.
 function ContexteAdmin({ sess }) {
   const [erreur, setErreur] = useState("");
   const valeur = sess.base ? "__base" : sess.courante?.id || "";
@@ -3122,18 +3121,18 @@ function ContexteAdmin({ sess }) {
   if (sess.base) {
     classe += " admin-contexte-base";
     texte =
-      "Vous modifiez la BASE de départ. Les sessions déjà lancées ne changent pas ; les sessions pas encore lancées prendront ces changements à leur lancement.";
+      "Base de départ : l’or, l’arsenal et le budget donnés à chaque session à son lancement. Le catalogue (objets, catégories, classes, mercenaires, quêtes) est commun à toutes les sessions, quel que soit ce choix.";
   } else if (sess.courante?.lancee_le) {
     classe += " admin-contexte-session";
-    texte = `Vous modifiez la session « ${sess.courante.nom} » : seule cette session est touchée.`;
+    texte = `Session « ${sess.courante.nom} » : l’or, l’arsenal, la vétérance et les quêtes que vous modifiez ne concernent que cette session. Le catalogue est commun à toutes les sessions.`;
   } else if (sess.courante) {
     classe += " admin-contexte-attente";
-    texte = `La session « ${sess.courante.nom} » n’est pas encore lancée : elle copiera la base à son lancement. Modifiez la base de départ.`;
+    texte = `La session « ${sess.courante.nom} » n’est pas encore lancée : elle prendra l’or, l’arsenal et le budget de la base de départ à son lancement. Le catalogue est commun à toutes les sessions.`;
   }
   return (
     <div className={classe}>
       <label>
-        <strong>Vous modifiez :</strong>{" "}
+        <strong>Vous consultez :</strong>{" "}
         <select
           value={valeur}
           onChange={async (e) => {
@@ -3160,8 +3159,7 @@ function ContexteAdmin({ sess }) {
   );
 }
 
-// Onglet Sessions : créer, ouvrir, renommer, inviter, remettre à zéro, et envoyer un élément
-// de la base à une session déjà lancée.
+// Onglet Sessions : créer, ouvrir, renommer, inviter, remettre à zéro.
 function SessionsSection({ sess, onInviter }) {
   const [nom, setNom] = useState("");
   const [msg, setMsg] = useState("");
@@ -3359,98 +3357,7 @@ function SessionsSection({ sess, onInviter }) {
           </tbody>
         </table>
       </div>
-      <EnvoyerASession sess={sess} />
     </div>
-  );
-}
-
-// « Envoyer à la session » : ajoute à la main un élément de la base (objet + recette,
-// mercenaire, quête) dans une session déjà lancée, avec ses dépendances.
-function EnvoyerASession({ sess }) {
-  const [objets, setObjets] = useState([]);
-  const [mercs, setMercs] = useState([]);
-  const [quetes, setQuetes] = useState([]);
-  const [cible, setCible] = useState("");
-  const [type, setType] = useState("objet");
-  const [element, setElement] = useState("");
-  const [msg, setMsg] = useState("");
-  const [occupe, setOccupe] = useState(false);
-  useEffect(() => {
-    if (!sess.base) return;
-    supabase.from("objet_catalogue").select("id, nom").order("nom").then(({ data }) => setObjets(data || []));
-    supabase.from("mercenaire").select("id, nom").order("nom").then(({ data }) => setMercs(data || []));
-    supabase.from("quete").select("id, nom").order("nom").then(({ data }) => setQuetes(data || []));
-  }, [sess.base]);
-  const lancees = sess.sessions.filter((x) => x.lancee_le);
-  if (!sess.base)
-    return (
-      <div className="admin-form">
-        <h3>Envoyer à la session</h3>
-        <p className="muted">
-          Pour ajouter à la main un élément de la base à une session déjà lancée, passez d’abord en
-          « Base de départ » (menu « Vous modifiez » en haut de la page).
-        </p>
-      </div>
-    );
-  const liste = type === "objet" ? objets : type === "mercenaire" ? mercs : quetes;
-  async function envoyer(e) {
-    e.preventDefault();
-    if (!cible || !element || occupe) return;
-    setOccupe(true);
-    setMsg("");
-    const { data, error } = await supabase.rpc("session_envoyer", { p_session: cible, p_type: type, p_id: element });
-    setOccupe(false);
-    if (error) {
-      setMsg(error.message);
-      return;
-    }
-    setMsg(
-      `« ${data.nom} » a été ajouté à la session${data.objets_ajoutes > 0 ? ` (${data.objets_ajoutes} objet${data.objets_ajoutes > 1 ? "s" : ""} au total, avec leurs dépendances)` : ""}.`,
-    );
-    setElement("");
-  }
-  return (
-    <form className="admin-form" onSubmit={envoyer}>
-      <h3>Envoyer à la session</h3>
-      <p>
-        Ajoute un élément de la base à une session déjà lancée, avec ce dont il dépend (catégories,
-        ingrédients, recette, classe, récompenses). Rien n’est écrasé : un élément déjà présent est refusé.
-      </p>
-      <div className="admin-ingredient-form">
-        <select aria-label="Session" value={cible} onChange={(e) => setCible(e.target.value)}>
-          <option value="">Session…</option>
-          {lancees.map((x) => (
-            <option key={x.id} value={x.id}>
-              {x.nom}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Type d’élément"
-          value={type}
-          onChange={(e) => {
-            setType(e.target.value);
-            setElement("");
-          }}
-        >
-          <option value="objet">Objet (avec sa recette)</option>
-          <option value="mercenaire">Mercenaire</option>
-          <option value="quete">Quête</option>
-        </select>
-        <SearchableSelect
-          value={element}
-          onChange={setElement}
-          options={liste.map((o) => ({ value: o.id, label: o.nom }))}
-          emptyLabel="Élément de la base…"
-          ariaLabel="Élément de la base"
-        />
-        <button className="primary" type="submit" disabled={!cible || !element || occupe}>
-          Envoyer à la session
-        </button>
-      </div>
-      {!lancees.length && <p className="muted">Aucune session lancée pour le moment.</p>}
-      {msg && <p className="admin-error">{msg}</p>}
-    </form>
   );
 }
 
@@ -3643,8 +3550,8 @@ export function Admin({ onCraftItem = () => {} }) {
     setSauvegardeEnCours(false);
   }
 
-  // Contenu (catalogue, quêtes…) : celui de la base, ou celui d'une session déjà lancée.
-  const contenuIndisponible = !sess.base && !sess.courante?.lancee_le;
+  // Le catalogue est commun ; seul l'arsenal dépend du contexte (base, ou session déjà lancée).
+  const arsenalIndisponible = !sess.base && !sess.courante?.lancee_le;
   if (session === undefined)
     return (
       <main className="admin-page">
@@ -3748,14 +3655,14 @@ export function Admin({ onCraftItem = () => {} }) {
           />
         )}
         {tab !== "sessions" && tab !== "invitations" && !sess.pret && <p>Chargement…</p>}
-        {tab !== "sessions" && tab !== "invitations" && sess.pret && contenuIndisponible && (
+        {tab === "arsenal" && sess.pret && arsenalIndisponible && (
           <p className="muted">
-            Ce contenu se modifie dans la <strong>base de départ</strong> ou dans une session déjà
-            lancée : choisissez-en une avec le menu « Vous modifiez » en haut de la page.
+            L’arsenal se modifie dans la <strong>base de départ</strong> ou dans une session déjà
+            lancée : choisissez-en une avec le menu « Vous consultez » en haut de la page.
           </p>
         )}
-        {sess.pret && !contenuIndisponible && tab === "catalogue" && <CatalogueSection onCraftItem={onCraftItem} />}
-        {sess.pret && !contenuIndisponible && tab === "categories" && (
+        {sess.pret && tab === "catalogue" && <CatalogueSection onCraftItem={onCraftItem} />}
+        {sess.pret && tab === "categories" && (
           <NamedListSection
             table="categorie"
             singular="catégorie"
@@ -3763,12 +3670,12 @@ export function Admin({ onCraftItem = () => {} }) {
             hierarchical
           />
         )}
-        {sess.pret && !contenuIndisponible && tab === "classes" && (
+        {sess.pret && tab === "classes" && (
           <NamedListSection table="classe" singular="classe" blockedBy="des mercenaires" />
         )}
-        {sess.pret && !contenuIndisponible && tab === "mercenaires" && <MercenairesSection />}
-        {sess.pret && !contenuIndisponible && tab === "arsenal" && (sess.base ? <DepartBaseSection /> : <ArsenalSection />)}
-        {sess.pret && !contenuIndisponible && tab === "quetes" && <QuetesSection />}
+        {sess.pret && tab === "mercenaires" && <MercenairesSection />}
+        {sess.pret && !arsenalIndisponible && tab === "arsenal" && (sess.base ? <DepartBaseSection /> : <ArsenalSection />)}
+        {sess.pret && tab === "quetes" && <QuetesSection />}
         {tab === "invitations" && <InvitationsSection sess={sess} sessionInitiale={sessionInvit} />}
       </div>
     </main>
