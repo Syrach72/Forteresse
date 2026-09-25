@@ -625,12 +625,6 @@ function CatalogueItemDetail({
       <h2>{item.nom}</h2>
       <p>{item.description || "Description à définir."}</p>
       <CombatStats item={item} />
-      {showBuy && (
-        <div className="stat-line">
-          <span>Coût d’achat</span>
-          <strong>{coutDefini ? `${cout} Po` : "à définir"}</strong>
-        </div>
-      )}
       {showCraft && (
         <>
           <div className="workshop-duration">
