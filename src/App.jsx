@@ -967,6 +967,10 @@ export function App() {
   // Nom du joueur inscrit sur chaque mercenaire recruté (par n'importe quel
   // joueur) : le Dortoir est PARTAGÉ, chacun y voit les mêmes lits.
   const [joueurs, setJoueurs] = useState(() => new Map());
+  // Quête en cours (compteur d’instances) et mercenaires qui y sont engagés :
+  // ils sont absents du dortoir (lit grisé), comme à l’entraînement.
+  const [queteEnCours, setQueteEnCours] = useState(null);
+  const [mercsEnQuete, setMercsEnQuete] = useState([]);
   // Sac à dos de chaque mercenaire (id -> [{objetId, quantite, nom, icone}]),
   // reconstruit à chaque synchronisation partagée (cf. synchroniserEconomie).
   const [sacsDos, setSacsDos] = useState(() => new Map());
@@ -1057,8 +1061,10 @@ export function App() {
     }
     for (const b of infirm.beds)
       if (b) m[b.heroId] = `À l’infirmerie${suite(b.remaining)}`;
+    for (const e of mercsEnQuete)
+      m[e.mercenaire_id] = `En quête${suite(queteEnCours?.instances_restantes ?? 0)}`;
     return m;
-  }, [training, infirm, mercenaires]);
+  }, [training, infirm, mercenaires, mercsEnQuete, queteEnCours]);
   const [route, setRoute] = useState(location.hash.slice(1) || "forteresse");
   // Or, arsenal, journal et fabrications sont PARTAGÉS (base de données) : ils
   // arrivent par synchroniserEconomie() ; les valeurs de démonstration locales
@@ -1439,9 +1445,13 @@ export function App() {
                 : `La fabrication de l'atelier ${g.atelier} est terminée.`,
             ),
           ...(gains.quete
-            ? [
-                `${gains.quete.nom} accomplie : +${gains.quete.or} Po et ${gains.quete.items.length} objet(s) rejoignent l'arsenal.`,
-              ]
+            ? gains.quete.termine === false
+              ? [
+                  `${gains.quete.nom} : encore ${gains.quete.apres} instance${gains.quete.apres > 1 ? "s" : ""} requise${gains.quete.apres > 1 ? "s" : ""}.`,
+                ]
+              : [
+                  `${gains.quete.nom} accomplie : +${gains.quete.or} Po et ${gains.quete.items.length} objet(s) rejoignent l'arsenal${gains.quete.mercenaires?.length ? `, ${gains.quete.mercenaires.length} mercenaire(s) retournent au dortoir` : ""}.`,
+                ]
             : []),
           ...(() => {
             if (!gains.employes.length) return [];
@@ -1756,7 +1766,7 @@ export function App() {
     setTreasury(next);
   }
   async function synchroniserZonesPartagees() {
-    const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage] = await Promise.all([
+    const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage, quete, queteMercs] = await Promise.all([
       supabase.from("entrainement_place").select("groupe, role, position, mercenaire_id"),
       supabase
         .from("entrainement_reglage")
@@ -1767,7 +1777,11 @@ export function App() {
       supabase.from("infirmerie_reglage").select("places").maybeSingle(),
       supabase.from("recrutement").select("mercenaire_id, user_id, nom_joueur, lit"),
       supabase.from("dortoir_reglage").select("places").maybeSingle(),
+      supabase.from("quete").select("id, nom, en_cours, instances_requises, instances_restantes").eq("en_cours", true).maybeSingle(),
+      supabase.from("quete_mercenaire").select("quete_id, position, mercenaire_id"),
     ]);
+    if (!quete.error) setQueteEnCours(quete.data || null);
+    if (!queteMercs.error) setMercsEnQuete(queteMercs.data || []);
     if (!rec.error) {
       // Recrutements et lits du Dortoir : les mêmes pour tous les joueurs.
       setRecrutesServeur(new Set(rec.data.map((r) => r.mercenaire_id)));
@@ -1830,6 +1844,8 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "atelier_fabrication" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "employe" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "quete_mercenaire" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "ligne_inventaire" }, rafraichir)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "mercenaire" }, rafraichir)
       .subscribe();
@@ -2787,7 +2803,14 @@ export function App() {
               }}
             />
           ) : route === "quetes" ? (
-            <Quests notify={notify} />
+            <Quests
+              notify={notify}
+              candidats={(estAdmin ? dormPeople : warriors).filter((w) => !absences[w.id])}
+              personnes={dormPeople}
+              mesIds={new Set(warriors.map((w) => w.id))}
+              estAdmin={estAdmin}
+              onChanged={synchroniserPartage}
+            />
           ) : route === "tresorerie" ? (
             <Treasury
               treasury={treasuryAffiche}

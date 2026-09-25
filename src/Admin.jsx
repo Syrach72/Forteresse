@@ -2559,7 +2559,7 @@ function EtatMaintien() {
 }
 
 function emptyQuete() {
-  return { nom: "", description: "", veterance_requise: "", recompense_or: "", icone: "" };
+  return { nom: "", description: "", veterance_requise: "", instances_requises: "1", recompense_or: "", icone: "" };
 }
 const QUETE_SLOTS = [0, 1, 2, 3, 4];
 
@@ -2601,6 +2601,7 @@ function QuetesSection() {
       nom: q.nom,
       description: q.description || "",
       veterance_requise: q.veterance_requise ?? "",
+      instances_requises: q.instances_requises ?? 1,
       recompense_or: q.recompense_or ?? "",
       icone: q.icone || "",
     });
@@ -2648,6 +2649,7 @@ function QuetesSection() {
       nom: form.nom,
       description: form.description || "",
       veterance_requise: toIntOrNull(form.veterance_requise) ?? 0,
+      instances_requises: Math.min(99, Math.max(1, toIntOrNull(form.instances_requises) ?? 1)),
       recompense_or: toIntOrNull(form.recompense_or) ?? 0,
       icone,
     };
@@ -2727,6 +2729,19 @@ function QuetesSection() {
               min="0"
               value={form.veterance_requise}
               onChange={(e) => setForm({ ...form, veterance_requise: e.target.value })}
+            />
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="quete-instances">Instances requises</label>
+          <div className="input-wrap">
+            <input
+              id="quete-instances"
+              type="number"
+              min="1"
+              max="99"
+              value={form.instances_requises}
+              onChange={(e) => setForm({ ...form, instances_requises: e.target.value })}
             />
           </div>
         </div>
@@ -2831,6 +2846,7 @@ function QuetesSection() {
               <th>Icône</th>
               <th>Titre</th>
               <th>Vétérance</th>
+              <th>Instances</th>
               <th>Or</th>
               <th>Récompenses</th>
               <th>État</th>
@@ -2850,6 +2866,7 @@ function QuetesSection() {
                   </td>
                   <td>{q.nom}</td>
                   <td>{q.veterance_requise}</td>
+                  <td>{q.instances_requises ?? 1}</td>
                   <td>{q.recompense_or}</td>
                   <td>
                     {recompensesDe(q.id).length
@@ -2858,7 +2875,13 @@ function QuetesSection() {
                           .join(", ")
                       : "—"}
                   </td>
-                  <td>{q.terminee_le ? "Terminée" : q.en_cours ? "En cours" : "Disponible"}</td>
+                  <td>
+                    {q.terminee_le
+                      ? "Terminée"
+                      : q.en_cours
+                        ? `En cours (reste ${q.instances_restantes ?? q.instances_requises ?? 1})`
+                        : "Disponible"}
+                  </td>
                   <td className="admin-row-actions">
                     <button type="button" className="text-button" onClick={() => startEdit(q)}>
                       Modifier
@@ -2882,7 +2905,7 @@ function QuetesSection() {
                 </tr>
                 {editing === q.id && (
                   <tr className="admin-edit-row">
-                    <td colSpan={7}>{formEl}</td>
+                    <td colSpan={8}>{formEl}</td>
                   </tr>
                 )}
               </Fragment>

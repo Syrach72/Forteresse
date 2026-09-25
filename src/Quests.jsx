@@ -5,6 +5,8 @@ import { Modal } from "./Modal.jsx";
 import { ITEMS } from "./data.js";
 
 const REWARD_SLOTS = [0, 1, 2, 3, 4];
+// Jusqu’à 6 mercenaires engagés par quête (positions 0 à 5).
+const MERC_SLOTS = [0, 1, 2, 3, 4, 5];
 
 // Charge les quêtes, leurs récompenses en objets et le catalogue (pour les
 // icônes/noms des récompenses), puis se tient à jour en direct : la sélection
@@ -14,14 +16,16 @@ function useQuetes() {
   const [quetes, setQuetes] = useState(null);
   const [recompenses, setRecompenses] = useState(null);
   const [objets, setObjets] = useState(null);
+  const [engages, setEngages] = useState([]);
   const [error, setError] = useState("");
   async function reload() {
-    const [q, r, o] = await Promise.all([
+    const [q, r, o, e] = await Promise.all([
       supabase.from("quete").select("*").order("nom"),
       supabase.from("quete_recompense").select("*"),
       supabase.from("objet_catalogue").select("id, nom, icone, description"),
+      supabase.from("quete_mercenaire").select("quete_id, position, mercenaire_id"),
     ]);
-    const err = q.error || r.error || o.error;
+    const err = q.error || r.error || o.error || e.error;
     if (err) {
       setError(err.message);
       return;
@@ -30,6 +34,7 @@ function useQuetes() {
     setQuetes(q.data);
     setRecompenses(r.data);
     setObjets(o.data);
+    setEngages(e.data);
   }
   useEffect(() => {
     reload();
@@ -37,18 +42,35 @@ function useQuetes() {
       .channel("quetes-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_recompense" }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "quete_mercenaire" }, reload)
       .subscribe();
     return () => supabase.removeChannel(canal);
   }, []);
-  return { quetes, recompenses, objets, error };
+  return { quetes, recompenses, objets, engages, error, reload };
 }
 
-export function Quests({ notify = () => {} }) {
-  const { quetes, recompenses, objets, error } = useQuetes();
+// `candidats` : mercenaires que le joueur peut engager (siens, ou tous pour
+// l'administrateur) et qui sont au dortoir (ni instructeur, ni à l'entraînement,
+// ni à l'infirmerie, ni déjà en quête). `personnes` : tous les mercenaires
+// recrutés, pour afficher ceux qui sont engagés. `mesIds` : ceux que le joueur
+// peut retirer de la quête. `onChanged` relit l'état partagé (Dortoir grisé).
+export function Quests({
+  notify = () => {},
+  candidats = [],
+  personnes = [],
+  mesIds = new Set(),
+  estAdmin = false,
+  onChanged = () => {},
+}) {
+  const { quetes, recompenses, objets, engages, error, reload } = useQuetes();
   const [busy, setBusy] = useState(false);
   // Objet dont la fiche (icône, nom, descriptif) est affichée après un clic
   // sur son emplacement de récompense ; null = aucune fiche ouverte.
   const [ficheObjet, setFicheObjet] = useState(null);
+  // Fenêtre des mercenaires : { queteId, position, mercId } — mercId absent =
+  // emplacement libre (liste des mercenaires à engager), présent = mercenaire
+  // engagé (bouton « Retirer »).
+  const [choixMerc, setChoixMerc] = useState(null);
 
   function objet(id) {
     return objets?.find((o) => o.id === id);
@@ -71,6 +93,40 @@ export function Quests({ notify = () => {} }) {
     const { error } = await supabase.rpc("quete_annuler_choix");
     setBusy(false);
     if (error) notify(error.message);
+    else onChanged();
+  }
+  function engagesDe(queteId) {
+    return engages.filter((e) => e.quete_id === queteId);
+  }
+  function personne(id) {
+    return personnes.find((p) => p.id === id);
+  }
+  async function engager(position, mercId) {
+    if (busy) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("quete_engager", {
+      p_position: position,
+      p_mercenaire: mercId,
+    });
+    setBusy(false);
+    setChoixMerc(null);
+    if (error) notify(error.message);
+    else {
+      await reload();
+      onChanged();
+    }
+  }
+  async function retirer(mercId) {
+    if (busy) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("quete_retirer", { p_mercenaire: mercId });
+    setBusy(false);
+    setChoixMerc(null);
+    if (error) notify(error.message);
+    else {
+      await reload();
+      onChanged();
+    }
   }
 
   const visibles = (quetes || []).filter((q) => !q.terminee_le && q.actif !== false);
@@ -90,6 +146,11 @@ export function Quests({ notify = () => {} }) {
           {visibles.map((q) => {
             const indisponible = uneEnCours && !q.en_cours;
             const rewards = recompensesDe(q.id);
+            const engagesQuete = engagesDe(q.id);
+            // Le compteur se décompte une fois la quête choisie (« +1 Instance »).
+            const restantes = q.en_cours
+              ? (q.instances_restantes ?? q.instances_requises ?? 1)
+              : (q.instances_requises ?? 1);
             return (
               <article
                 key={q.id}
@@ -102,6 +163,16 @@ export function Quests({ notify = () => {} }) {
                     <span className="quest-type-icon quest-type-icon-vide" aria-hidden="true" />
                   )}
                   <h2>{q.nom}</h2>
+                  {/* Nombre d'instances requises : décompté par le bouton
+                      « +1 Instance » une fois la quête choisie. */}
+                  <div
+                    className="quest-instances"
+                    role="status"
+                    aria-label={`Instances requises : ${restantes}`}
+                  >
+                    <small>Instances requises</small>
+                    <strong>{restantes}</strong>
+                  </div>
                 </header>
                 <VetBadge
                   className="quest-vet"
@@ -109,6 +180,7 @@ export function Quests({ notify = () => {} }) {
                   aria-label={`Vétérance moyenne requise : ${q.veterance_requise}`}
                 />
                 <p>{q.description}</p>
+                <h3 className="quest-section-title">Récompenses attendues</h3>
                 <div className="quest-rewards" aria-label="Récompenses attendues">
                   {REWARD_SLOTS.map((i) => {
                     const r = rewards.find((x) => x.position === i + 1);
@@ -137,6 +209,47 @@ export function Quests({ notify = () => {} }) {
                     {q.recompense_or ? <span>{q.recompense_or} Po</span> : null}
                   </button>
                 </div>
+                <h3 className="quest-section-title">
+                  Mercenaires engagés pour cette quête
+                </h3>
+                <div className="quest-mercs" aria-label="Mercenaires engagés pour cette quête">
+                  {MERC_SLOTS.map((i) => {
+                    const e = engagesQuete.find((x) => x.position === i);
+                    const p = e && personne(e.mercenaire_id);
+                    return (
+                      <button
+                        type="button"
+                        key={i}
+                        className={`quest-merc-slot${e ? " quest-merc-pris" : ""}`}
+                        disabled={!q.en_cours || (!e && busy)}
+                        title={
+                          q.en_cours
+                            ? undefined
+                            : "Choisissez d’abord cette quête pour y engager des mercenaires."
+                        }
+                        onClick={() =>
+                          setChoixMerc({ queteId: q.id, position: i, mercId: e?.mercenaire_id })
+                        }
+                        aria-label={
+                          e
+                            ? `${p?.name || "Mercenaire"} engagé : voir`
+                            : `Emplacement ${i + 1} libre : engager un mercenaire`
+                        }
+                      >
+                        {e ? (
+                          <>
+                            <img src={p?.portrait || "/assets/icons/lock.png"} alt="" />
+                            <span className="quest-merc-nom">{p?.name || "?"}</span>
+                          </>
+                        ) : (
+                          <span className="quest-merc-plus" aria-hidden="true">
+                            +
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
                 {q.en_cours ? (
                   <button type="button" className="wood-button quest-choix" onClick={annuler} disabled={busy}>
                     Annuler le choix
@@ -155,6 +268,65 @@ export function Quests({ notify = () => {} }) {
             );
           })}
         </div>
+      )}
+      {choixMerc && !choixMerc.mercId && (
+        <Modal title="Engager un mercenaire" onClose={() => setChoixMerc(null)}>
+          {candidats.length ? (
+            <>
+              <p className="muted">
+                Mercenaires du dortoir disponibles : une fois engagé, il quitte le
+                dortoir (son lit lui reste) jusqu’à la fin de la quête.
+              </p>
+              <div className="quest-merc-choix">
+                {candidats.map((c) => (
+                  <button
+                    type="button"
+                    key={c.id}
+                    className="quest-merc-candidat"
+                    disabled={busy}
+                    onClick={() => engager(choixMerc.position, c.id)}
+                  >
+                    <img src={c.portrait} alt="" />
+                    <span>
+                      {c.name}
+                      <small>
+                        {c.role ? `${c.role} · ` : ""}vétérance {c.veterancy}
+                      </small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p>
+              Aucun mercenaire disponible au dortoir
+              {estAdmin ? "" : " (vous ne pouvez engager que ceux que vous avez recrutés)"}.
+            </p>
+          )}
+        </Modal>
+      )}
+      {choixMerc?.mercId && (
+        <Modal
+          title={personne(choixMerc.mercId)?.name || "Mercenaire engagé"}
+          onClose={() => setChoixMerc(null)}
+        >
+          <p>
+            Ce mercenaire est engagé dans cette quête. Il retournera au dortoir à la
+            fin de la quête (ou si vous le retirez).
+          </p>
+          {mesIds.has(choixMerc.mercId) || estAdmin ? (
+            <button
+              type="button"
+              className="primary"
+              disabled={busy}
+              onClick={() => retirer(choixMerc.mercId)}
+            >
+              Retirer de la quête
+            </button>
+          ) : (
+            <p className="muted">Seul son recruteur peut le retirer de la quête.</p>
+          )}
+        </Modal>
       )}
       {ficheObjet && (
         <Modal title={ficheObjet.nom} onClose={() => setFicheObjet(null)}>
