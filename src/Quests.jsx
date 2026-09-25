@@ -84,6 +84,17 @@ export function Quests({
     const { error } = await supabase.rpc("quete_choisir", { p_quete: id });
     setBusy(false);
     if (error) notify(error.message);
+    return !error;
+  }
+  // Clic sur une case libre de « Mercenaires engagés » : si la quête n'est pas
+  // encore choisie elle l'est d'abord (« Annuler le choix » la libère), puis on
+  // ouvre le Dortoir pour y choisir le mercenaire.
+  async function ouvrirDortoir(q) {
+    if (busy) return;
+    if (!q.en_cours && !(await choisir(q.id))) return;
+    await reload();
+    onChanged();
+    onChoisirMercenaire();
   }
   async function annuler() {
     if (busy) return;
@@ -204,16 +215,18 @@ export function Quests({
                         type="button"
                         key={i}
                         className={`quest-merc-slot${e ? " quest-merc-pris" : ""}`}
-                        disabled={!q.en_cours}
+                        disabled={indisponible}
                         title={
-                          q.en_cours
-                            ? undefined
-                            : "Choisissez d’abord cette quête pour y engager des mercenaires."
+                          indisponible
+                            ? "Une autre quête est en cours : annulez-la d’abord."
+                            : e || q.en_cours
+                              ? undefined
+                              : "Choisit cette quête et ouvre le dortoir."
                         }
                         onClick={() =>
                           e
                             ? setChoixMerc({ queteId: q.id, position: i, mercId: e.mercenaire_id })
-                            : onChoisirMercenaire()
+                            : ouvrirDortoir(q)
                         }
                         aria-label={
                           e
