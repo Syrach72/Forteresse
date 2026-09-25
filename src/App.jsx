@@ -971,6 +971,9 @@ export function App() {
   // ils sont absents du dortoir (lit grisé), comme à l’entraînement.
   const [queteEnCours, setQueteEnCours] = useState(null);
   const [mercsEnQuete, setMercsEnQuete] = useState([]);
+  // Vrai quand le joueur vient d'une case « Mercenaires engagés » de la page
+  // Quêtes : le Dortoir affiche alors « Retour aux quêtes ».
+  const [retourQuetes, setRetourQuetes] = useState(false);
   // Sac à dos de chaque mercenaire (id -> [{objetId, quantite, nom, icone}]),
   // reconstruit à chaque synchronisation partagée (cf. synchroniserEconomie).
   const [sacsDos, setSacsDos] = useState(() => new Map());
@@ -1857,6 +1860,11 @@ export function App() {
   useEffect(() => {
     if (session?.user && !auth) synchroniserPartage();
   }, [route, session?.user?.id]);
+  // Le bouton « Retour aux quêtes » du Dortoir ne vaut que le temps du parcours
+  // Quêtes > Dortoir > fiche du mercenaire.
+  useEffect(() => {
+    if (route !== "dortoirs" && !route.startsWith("personnages/")) setRetourQuetes(false);
+  }, [route]);
   // +1 Instance sur les zones partagées (administrateur) : au terrain
   // d'entraînement le serveur fait gagner 1 point de vétérance à chaque élève
   // et renvoie au dortoir celui qui rejoint son instructeur (l'instructeur
@@ -1989,6 +1997,56 @@ export function App() {
     await synchroniserPartage();
     notify(`${peopleRef.current.find((w) => w.id === id)?.name} retourne au dortoir.`);
     return {};
+  }
+  // Bouton « Quête » de la fiche : engage le mercenaire dans la quête en cours
+  // (premier emplacement libre), puis retour à la page Quêtes. Règles vérifiées
+  // par le serveur ; « Annuler cet ordre » (rappelerAuDortoir) le défait.
+  async function engagerQuete(id) {
+    const quete = queteEnCours;
+    if (!quete) {
+      notify("Choisissez d’abord une quête sur la page Quêtes.");
+      return;
+    }
+    const pris = new Set(
+      mercsEnQuete.filter((e) => e.quete_id === quete.id).map((e) => e.position),
+    );
+    const position = [0, 1, 2, 3, 4, 5].find((p) => !pris.has(p));
+    if (position === undefined) {
+      notify("Les 6 places de cette quête sont déjà prises.");
+      return;
+    }
+    const { error } = await supabase.rpc("quete_engager", {
+      p_position: position,
+      p_mercenaire: id,
+    });
+    if (error) {
+      notify(error.message);
+      return;
+    }
+    await synchroniserPartage();
+    notify(
+      `${peopleRef.current.find((w) => w.id === id)?.name} est engagé dans la quête « ${quete.nom} ».`,
+    );
+    location.hash = "quetes";
+  }
+  // « Annuler cet ordre » (fiche du mercenaire) : le mercenaire retourne au
+  // dortoir, quelle que soit sa mission (instructeur, entraînement, infirmerie
+  // ou quête). Son recruteur ou l'administrateur, vérifié par le serveur.
+  async function rappelerAuDortoir(id) {
+    const enQuete = mercsEnQuete.some((e) => e.mercenaire_id === id);
+    const aInfirmerie = infirmRef.current.beds.some((b) => b?.heroId === id);
+    const fn = enQuete
+      ? "quete_retirer"
+      : aInfirmerie
+        ? "infirmerie_renvoyer"
+        : "entrainement_renvoyer";
+    const { error } = await supabase.rpc(fn, { p_mercenaire: id });
+    if (error) {
+      notify(error.message);
+      return;
+    }
+    await synchroniserPartage();
+    notify(`${peopleRef.current.find((w) => w.id === id)?.name} retourne au dortoir.`);
   }
   async function unlockInfirm() {
     if (infirmRef.current.capacity >= 6)
@@ -2598,6 +2656,14 @@ export function App() {
           onSetVeterance={setVeterance}
           onSetInstructor={chooseInstructor}
           onHeal={healMercenary}
+          onQuete={engagerQuete}
+          onRappel={rappelerAuDortoir}
+          queteEnCours={queteEnCours}
+          queteComplete={
+            queteEnCours
+              ? mercsEnQuete.filter((e) => e.quete_id === queteEnCours.id).length >= 6
+              : false
+          }
           infirmerieComplete={infirm.beds.slice(0, infirm.capacity).every(Boolean)}
           absences={absences}
           instructeurEnPlace={freeInstructorGroup(training) === null}
@@ -2805,7 +2871,10 @@ export function App() {
           ) : route === "quetes" ? (
             <Quests
               notify={notify}
-              candidats={(estAdmin ? dormPeople : warriors).filter((w) => !absences[w.id])}
+              onChoisirMercenaire={() => {
+                setRetourQuetes(true);
+                location.hash = "dortoirs";
+              }}
               personnes={dormPeople}
               mesIds={new Set(warriors.map((w) => w.id))}
               estAdmin={estAdmin}
@@ -2844,6 +2913,7 @@ export function App() {
               estAdmin={estAdmin}
               gold={game.gold}
               onUnlock={unlockDorm}
+              retourQuetes={retourQuetes}
               Modal={Modal}
             />
           ) : route === "infirmerie" ? (

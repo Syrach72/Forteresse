@@ -19,6 +19,7 @@ export function Dortoir({
   estAdmin = false,
   gold,
   onUnlock,
+  retourQuetes = false,
   Modal,
 }) {
   const [popup, setPopup] = useState(null);
@@ -46,6 +47,16 @@ export function Dortoir({
           aria-hidden="true"
         />
         <div className="dorm-title">
+          {retourQuetes && (
+            <a className="wood-button dorm-retour" href="#quetes">
+              ‹ Retour aux quêtes
+            </a>
+          )}
+          {retourQuetes && (
+            <span className="dorm-consigne">
+              Cliquez sur un mercenaire, puis sur « Quête » dans sa fiche.
+            </span>
+          )}
           <span>
             {hired} embauché{hired > 1 ? "s" : ""} · {dorm.capacity} lits
             débloqués

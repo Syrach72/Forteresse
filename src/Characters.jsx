@@ -76,6 +76,10 @@ export function Characters({
   absences = {},
   instructeurEnPlace = false,
   onHeal = () => {},
+  onQuete = () => {},
+  onRappel = () => {},
+  queteEnCours = null,
+  queteComplete = false,
   infirmerieComplete = false,
   litLibre = true,
   nomsJoueur = {},
@@ -346,6 +350,21 @@ export function Characters({
                     <button
                       className="wood-button merc-recruit"
                       type="button"
+                      disabled={!!absences[merc.id] || !queteEnCours || queteComplete}
+                      title={
+                        !queteEnCours
+                          ? "Choisissez d’abord une quête sur la page Quêtes."
+                          : queteComplete
+                            ? "Les 6 places de la quête sont prises."
+                            : `Engager dans « ${queteEnCours.nom} »`
+                      }
+                      onClick={() => onQuete(merc.id)}
+                    >
+                      Quête
+                    </button>
+                    <button
+                      className="wood-button merc-recruit"
+                      type="button"
                       onClick={() => setPopup({ type: "renvoi" })}
                     >
                       Renvoyer
@@ -360,10 +379,19 @@ export function Characters({
                       <img src="/assets/icons/sac-a-dos.webp" alt="" />
                     </button>
                   </div>
+                  {absences[merc.id] && (
+                    <button
+                      className="wood-button merc-annuler"
+                      type="button"
+                      onClick={() => onRappel(merc.id)}
+                    >
+                      Annuler cet ordre : retour au dortoir
+                    </button>
+                  )}
                   <p className="merc-recrute-note">
                     {absences[merc.id]
                       ? `${merc.nom} n’est pas au dortoir (${absences[merc.id].toLowerCase()}) : il garde son lit.`
-                      : `« Instructeur » l’envoie former des élèves de sa classe${instructeurEnPlace ? " (un instructeur est déjà en place)" : ""} ; « Soigner » l’envoie à l’infirmerie pour ${SOINS_INSTANCES} instances${infirmerieComplete ? " (aucun lit libre pour le moment)" : ""}.`}
+                      : `« Instructeur » l’envoie former des élèves de sa classe${instructeurEnPlace ? " (un instructeur est déjà en place)" : ""} ; « Soigner » l’envoie à l’infirmerie pour ${SOINS_INSTANCES} instances${infirmerieComplete ? " (aucun lit libre pour le moment)" : ""} ; « Quête » l’engage dans la quête en cours${queteEnCours ? ` (${queteEnCours.nom})` : " (aucune quête choisie pour le moment)"}.`}
                   </p>
                   <p className="merc-recrute-note">
                     {merc.nom} a son lit au Dortoir. Le renvoyer efface le nom

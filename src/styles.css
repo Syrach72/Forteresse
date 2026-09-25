@@ -4645,3 +4645,21 @@ a.merc-card:hover {
 .interior .parchment .quest-merc-candidat small {
   color: #5b4b33;
 }
+
+/* Dortoir ouvert depuis une case « Mercenaires engagés » : bouton de retour. */
+.dorm-retour {
+  display: inline-block;
+  text-decoration: none;
+  padding: 8px 14px;
+  font-size: 16px;
+}
+.dorm-consigne {
+  flex: 1;
+  font-size: 15px;
+}
+.dorm-title {
+  flex-wrap: wrap;
+}
+.merc-annuler {
+  margin-top: 10px;
+}

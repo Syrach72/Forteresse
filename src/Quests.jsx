@@ -49,14 +49,13 @@ function useQuetes() {
   return { quetes, recompenses, objets, engages, error, reload };
 }
 
-// `candidats` : mercenaires que le joueur peut engager (siens, ou tous pour
-// l'administrateur) et qui sont au dortoir (ni instructeur, ni à l'entraînement,
-// ni à l'infirmerie, ni déjà en quête). `personnes` : tous les mercenaires
-// recrutés, pour afficher ceux qui sont engagés. `mesIds` : ceux que le joueur
+// Une case libre de « Mercenaires engagés » ouvre le Dortoir (`onChoisirMercenaire`) :
+// on y choisit un mercenaire, puis le bouton « Quête » de sa fiche l'engage.
+// `personnes` : tous les mercenaires recrutés, pour afficher ceux qui sont engagés. `mesIds` : ceux que le joueur
 // peut retirer de la quête. `onChanged` relit l'état partagé (Dortoir grisé).
 export function Quests({
   notify = () => {},
-  candidats = [],
+  onChoisirMercenaire = () => {},
   personnes = [],
   mesIds = new Set(),
   estAdmin = false,
@@ -67,9 +66,8 @@ export function Quests({
   // Objet dont la fiche (icône, nom, descriptif) est affichée après un clic
   // sur son emplacement de récompense ; null = aucune fiche ouverte.
   const [ficheObjet, setFicheObjet] = useState(null);
-  // Fenêtre des mercenaires : { queteId, position, mercId } — mercId absent =
-  // emplacement libre (liste des mercenaires à engager), présent = mercenaire
-  // engagé (bouton « Retirer »).
+  // Fenêtre d'un mercenaire déjà engagé : { queteId, position, mercId } (bouton
+  // « Retirer de la quête » = annuler l'ordre).
   const [choixMerc, setChoixMerc] = useState(null);
 
   function objet(id) {
@@ -100,21 +98,6 @@ export function Quests({
   }
   function personne(id) {
     return personnes.find((p) => p.id === id);
-  }
-  async function engager(position, mercId) {
-    if (busy) return;
-    setBusy(true);
-    const { error } = await supabase.rpc("quete_engager", {
-      p_position: position,
-      p_mercenaire: mercId,
-    });
-    setBusy(false);
-    setChoixMerc(null);
-    if (error) notify(error.message);
-    else {
-      await reload();
-      onChanged();
-    }
   }
   async function retirer(mercId) {
     if (busy) return;
@@ -221,19 +204,21 @@ export function Quests({
                         type="button"
                         key={i}
                         className={`quest-merc-slot${e ? " quest-merc-pris" : ""}`}
-                        disabled={!q.en_cours || (!e && busy)}
+                        disabled={!q.en_cours}
                         title={
                           q.en_cours
                             ? undefined
                             : "Choisissez d’abord cette quête pour y engager des mercenaires."
                         }
                         onClick={() =>
-                          setChoixMerc({ queteId: q.id, position: i, mercId: e?.mercenaire_id })
+                          e
+                            ? setChoixMerc({ queteId: q.id, position: i, mercId: e.mercenaire_id })
+                            : onChoisirMercenaire()
                         }
                         aria-label={
                           e
                             ? `${p?.name || "Mercenaire"} engagé : voir`
-                            : `Emplacement ${i + 1} libre : engager un mercenaire`
+                            : `Emplacement ${i + 1} libre : choisir un mercenaire au dortoir`
                         }
                       >
                         {e ? (
@@ -269,43 +254,7 @@ export function Quests({
           })}
         </div>
       )}
-      {choixMerc && !choixMerc.mercId && (
-        <Modal title="Engager un mercenaire" onClose={() => setChoixMerc(null)}>
-          {candidats.length ? (
-            <>
-              <p className="muted">
-                Mercenaires du dortoir disponibles : une fois engagé, il quitte le
-                dortoir (son lit lui reste) jusqu’à la fin de la quête.
-              </p>
-              <div className="quest-merc-choix">
-                {candidats.map((c) => (
-                  <button
-                    type="button"
-                    key={c.id}
-                    className="quest-merc-candidat"
-                    disabled={busy}
-                    onClick={() => engager(choixMerc.position, c.id)}
-                  >
-                    <img src={c.portrait} alt="" />
-                    <span>
-                      {c.name}
-                      <small>
-                        {c.role ? `${c.role} · ` : ""}vétérance {c.veterancy}
-                      </small>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
-            <p>
-              Aucun mercenaire disponible au dortoir
-              {estAdmin ? "" : " (vous ne pouvez engager que ceux que vous avez recrutés)"}.
-            </p>
-          )}
-        </Modal>
-      )}
-      {choixMerc?.mercId && (
+      {choixMerc && (
         <Modal
           title={personne(choixMerc.mercId)?.name || "Mercenaire engagé"}
           onClose={() => setChoixMerc(null)}
