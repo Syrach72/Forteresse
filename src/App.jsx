@@ -2678,7 +2678,11 @@ export function App() {
           </section>
         </main>
       ) : route === "employes" ? (
-        <main id="main" className="employes-page">
+        <main id="main" className="interior employes-page">
+          <div
+            className="interior-backdrop"
+            style={{ backgroundImage: "url(/assets/employes-fond.jpg)" }}
+          />
           <div className="room-top">
             <a href="#forteresse">‹ Forteresse</a>
             <h1 ref={titleRef} tabIndex="-1">
