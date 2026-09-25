@@ -4746,3 +4746,30 @@ a.merc-card:hover {
   font: 18px Georgia, serif;
   letter-spacing: 0.08em;
 }
+
+/* Administration : contexte (base de départ / session) et remise à zéro. */
+.admin-contexte {
+  margin: 10px 0;
+  padding: 10px 14px;
+  border-left: 5px solid #8a7548;
+  background: rgba(255, 255, 255, 0.5);
+}
+.admin-contexte p {
+  margin: 6px 0 0;
+}
+.admin-contexte-base {
+  border-left-color: #c47a1a;
+}
+.admin-contexte-session {
+  border-left-color: #2f7a4a;
+}
+.admin-contexte-attente {
+  border-left-color: #a8a8a8;
+}
+.admin-contexte select {
+  min-width: 260px;
+  padding: 4px 8px;
+}
+.admin-zero {
+  padding: 8px 0;
+}

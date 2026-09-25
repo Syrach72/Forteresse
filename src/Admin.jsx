@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { ASSETS } from "./data";
+import { useSessions } from "./Sessions.jsx";
 
 // Atelier de fabrication d'un objet, déduit de la rubrique racine de sa
 // catégorie (vérifié sur les recettes existantes : aucune exception). Il n'y
@@ -2514,8 +2515,8 @@ function genererCodeInvitation() {
   return Array.from(tirage, (n) => ALPHABET_INVITATION[n % ALPHABET_INVITATION.length]).join("");
 }
 const formaterCode = (code) => `${code.slice(0, 4)}-${code.slice(4)}`;
-function messageInvitation(code) {
-  return `Rejoins la forteresse : ${location.origin}/#inscription — code d’invitation : ${formaterCode(code)}`;
+function messageInvitation(code, nomSession) {
+  return `Rejoins la partie ${nomSession ? `« ${nomSession} » ` : ""}de la forteresse : ${location.origin}/#inscription — code d’invitation : ${formaterCode(code)}. (Si tu as déjà un compte : connecte-toi, puis « Rejoindre une session » en haut de l’écran.)`;
 }
 
 // Suivi du maintien actif de la base (voir api/keepalive.js) : heure du dernier
@@ -2922,17 +2923,22 @@ function QuetesSection() {
 // transmet, et le joueur le saisit sur « Créer un compte ». Chaque code ne
 // sert qu'une fois ; le contrôle réel est dans la base (déclencheur sur
 // auth.users, voir la migration invitations).
-function InvitationsSection() {
+function InvitationsSection({ sess, sessionInitiale }) {
   const { rows, error, insert, remove } = useTable("invitation", { order: "cree_le", key: "code" });
+  const [sessionId, setSessionId] = useState(sessionInitiale || sess.courante?.id || "");
+  useEffect(() => {
+    if (sessionInitiale) setSessionId(sessionInitiale);
+  }, [sessionInitiale]);
+  const nomSession = (id) => sess.sessions.find((x) => x.id === id)?.nom || "";
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState("");
   const [dernier, setDernier] = useState(null);
   const [copie, setCopie] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
 
-  async function copier(code) {
+  async function copier(code, idSession) {
     try {
-      await navigator.clipboard.writeText(messageInvitation(code));
+      await navigator.clipboard.writeText(messageInvitation(code, nomSession(idSession)));
       setCopie(code);
       setTimeout(() => setCopie(""), 2500);
     } catch {
@@ -2942,13 +2948,17 @@ function InvitationsSection() {
   async function creer(e) {
     e.preventDefault();
     setMsg("");
+    if (!sessionId) {
+      setMsg("Choisissez la session que ce joueur rejoindra.");
+      return;
+    }
     const code = genererCodeInvitation();
-    const err = await insert({ code, note: note.trim() || null });
+    const err = await insert({ code, note: note.trim() || null, session_id: sessionId });
     if (err) {
       setMsg(err);
       return;
     }
-    setDernier(code);
+    setDernier({ code, session: sessionId });
     setNote("");
   }
   async function supprimer(code) {
@@ -2964,13 +2974,27 @@ function InvitationsSection() {
   return (
     <div>
       <p>
-        Personne ne peut créer de compte sans code d’invitation. Créez un code
-        par joueur et transmettez-le lui : il le saisit sur la page « Créer un
-        compte ». Chaque code ne sert qu’une fois.
+        Personne ne peut créer de compte sans code d’invitation. Un code est lié à une
+        session : créez-en un par joueur et transmettez-le lui. Il le saisit sur la page
+        « Créer un compte » (nouveau joueur) ou dans « Rejoindre une session » (joueur qui a
+        déjà un compte). Chaque code ne sert qu’une fois.
       </p>
       <form className="admin-form" onSubmit={creer}>
         <h3>Nouvelle invitation</h3>
         <div className="admin-form-grid">
+          <div className="field">
+            <label htmlFor="inv-session">Session à rejoindre</label>
+            <div className="input-wrap">
+              <select id="inv-session" value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
+                <option value="">— choisir —</option>
+                {sess.sessions.map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div className="field">
             <label htmlFor="inv-note">Pour qui ? (facultatif, pour vous retrouver)</label>
             <div className="input-wrap">
@@ -2993,11 +3017,11 @@ function InvitationsSection() {
       {dernier && (
         <div className="undo-banner" role="status">
           <p>
-            Invitation créée : <strong>{formaterCode(dernier)}</strong>
+            Invitation créée pour « {nomSession(dernier.session)} » : <strong>{formaterCode(dernier.code)}</strong>
           </p>
-          <p>{messageInvitation(dernier)}</p>
-          <button className="text-button" type="button" onClick={() => copier(dernier)}>
-            {copie === dernier ? "Message copié ✓" : "Copier le message"}
+          <p>{messageInvitation(dernier.code, nomSession(dernier.session))}</p>
+          <button className="text-button" type="button" onClick={() => copier(dernier.code, dernier.session)}>
+            {copie === dernier.code ? "Message copié ✓" : "Copier le message"}
           </button>
         </div>
       )}
@@ -3006,6 +3030,7 @@ function InvitationsSection() {
           <thead>
             <tr>
               <th>Code</th>
+              <th>Session</th>
               <th>Pour</th>
               <th>Créée le</th>
               <th>État</th>
@@ -3018,13 +3043,14 @@ function InvitationsSection() {
                 <td>
                   <strong>{formaterCode(r.code)}</strong>
                 </td>
+                <td>{nomSession(r.session_id) || "—"}</td>
                 <td>{r.note || "—"}</td>
                 <td>{formatDate(r.cree_le)}</td>
                 <td>{r.utilise_par || r.utilise_le ? `Utilisée le ${formatDate(r.utilise_le)}` : "Disponible"}</td>
                 <td className="admin-row-actions">
                   {!r.utilise_le && (
                     <>
-                      <button type="button" className="text-button" onClick={() => copier(r.code)}>
+                      <button type="button" className="text-button" onClick={() => copier(r.code, r.session_id)}>
                         {copie === r.code ? "Copié ✓" : "Copier le message"}
                       </button>
                       <DeleteButton
@@ -3045,12 +3071,503 @@ function InvitationsSection() {
             ))}
             {!triees.length && (
               <tr>
-                <td colSpan={5}>Aucune invitation pour l’instant.</td>
+                <td colSpan={6}>Aucune invitation pour l’instant.</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sessions (parties indépendantes, voir docs/SESSIONS.md)
+// ---------------------------------------------------------------------------
+
+// Ce que le MJ modifie : la base de départ ou une session. Les onglets de contenu
+// (catalogue, catégories, classes, mercenaires, quêtes) agissent sur ce contexte.
+function ContexteAdmin({ sess }) {
+  const [erreur, setErreur] = useState("");
+  const valeur = sess.base ? "__base" : sess.courante?.id || "";
+  let texte = "Choisissez ce que vous modifiez : la base de départ ou une session.";
+  let classe = "admin-contexte";
+  if (sess.base) {
+    classe += " admin-contexte-base";
+    texte =
+      "Vous modifiez la BASE de départ. Les sessions déjà lancées ne changent pas ; les sessions pas encore lancées prendront ces changements à leur lancement.";
+  } else if (sess.courante?.lancee_le) {
+    classe += " admin-contexte-session";
+    texte = `Vous modifiez la session « ${sess.courante.nom} » : seule cette session est touchée.`;
+  } else if (sess.courante) {
+    classe += " admin-contexte-attente";
+    texte = `La session « ${sess.courante.nom} » n’est pas encore lancée : elle copiera la base à son lancement. Modifiez la base de départ.`;
+  }
+  return (
+    <div className={classe}>
+      <label>
+        <strong>Vous modifiez :</strong>{" "}
+        <select
+          value={valeur}
+          onChange={async (e) => {
+            setErreur("");
+            const v = e.target.value;
+            if (!v) return;
+            const r = await sess.choisir(v === "__base" ? null : v);
+            if (r.error) setErreur(r.error);
+          }}
+        >
+          {!valeur && <option value="">— choisir —</option>}
+          <option value="__base">Base de départ</option>
+          {sess.sessions.map((x) => (
+            <option key={x.id} value={x.id}>
+              Session : {x.nom}
+              {x.lancee_le ? "" : " (pas encore lancée)"}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p>{texte}</p>
+      {erreur && <p className="admin-error">{erreur}</p>}
+    </div>
+  );
+}
+
+// Onglet Sessions : créer, ouvrir, renommer, inviter, remettre à zéro, et envoyer un élément
+// de la base à une session déjà lancée.
+function SessionsSection({ sess, onInviter }) {
+  const [nom, setNom] = useState("");
+  const [msg, setMsg] = useState("");
+  const [membres, setMembres] = useState({});
+  const [renommer, setRenommer] = useState(null); // { id, nom }
+  const [zero, setZero] = useState(null); // { id, nom, saisie }
+  const [occupe, setOccupe] = useState(false);
+
+  async function chargerMembres() {
+    const { data } = await supabase.from("session_membre").select("session_id");
+    const c = {};
+    (data || []).forEach((m) => {
+      c[m.session_id] = (c[m.session_id] || 0) + 1;
+    });
+    setMembres(c);
+  }
+  useEffect(() => {
+    chargerMembres();
+  }, [sess.sessions.length]);
+
+  async function creer(e) {
+    e.preventDefault();
+    if (!nom.trim() || occupe) return;
+    setOccupe(true);
+    setMsg("");
+    const { error } = await supabase.rpc("session_creer", { p_nom: nom.trim() });
+    setOccupe(false);
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    setNom("");
+    setMsg(`Session « ${nom.trim()} » créée. Elle sera lancée par votre premier « +1 Instance » dans cette session.`);
+    await sess.recharger();
+  }
+  async function enregistrerNom(e) {
+    e.preventDefault();
+    if (!renommer?.nom.trim()) return;
+    const { error } = await supabase.rpc("session_renommer", { p_session: renommer.id, p_nom: renommer.nom });
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    setRenommer(null);
+    await sess.recharger();
+  }
+  async function remettreAZero() {
+    if (!zero || zero.saisie.trim().toLowerCase() !== zero.nom.trim().toLowerCase()) return;
+    setOccupe(true);
+    const { error } = await supabase.rpc("session_reinitialiser", { p_session: zero.id });
+    setOccupe(false);
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    setMsg(`La session « ${zero.nom} » est remise à zéro (sauvegarde automatique faite) : elle attend un nouveau lancement.`);
+    setZero(null);
+    if (sess.courante?.id === zero.id) location.reload();
+    else await sess.recharger();
+  }
+
+  return (
+    <div>
+      <p>
+        Chaque session est une partie indépendante (équipe, or, arsenal, dortoir, quêtes…). Une session
+        neuve attend : votre premier <strong>« +1 Instance »</strong> dedans la lance en copiant la base de
+        départ ; les joueurs jouent ensuite.
+      </p>
+      <form className="admin-form" onSubmit={creer}>
+        <h3>Nouvelle session</h3>
+        <div className="admin-ingredient-form">
+          <input
+            aria-label="Nom de la session"
+            placeholder="Nom de la session (ex. Équipe du vendredi)"
+            value={nom}
+            maxLength={60}
+            onChange={(e) => setNom(e.target.value)}
+          />
+          <button className="primary" type="submit" disabled={!nom.trim() || occupe}>
+            Créer la session
+          </button>
+        </div>
+        {msg && <p className="admin-error">{msg}</p>}
+      </form>
+      <div className="admin-table-wrap">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Session</th>
+              <th>État</th>
+              <th>Joueurs</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {sess.sessions.map((x) => (
+              <Fragment key={x.id}>
+                <tr className={sess.courante?.id === x.id ? "editing" : ""}>
+                  <td>
+                    <strong>{x.nom}</strong>
+                    {sess.courante?.id === x.id && " (session ouverte)"}
+                  </td>
+                  <td>{x.lancee_le ? `Lancée le ${new Date(x.lancee_le).toLocaleDateString("fr-FR")}` : "En attente du lancement"}</td>
+                  <td>{membres[x.id] || 0}</td>
+                  <td className="admin-row-actions">
+                    <button type="button" className="text-button" onClick={() => sess.choisir(x.id)}>
+                      Ouvrir
+                    </button>
+                    <a
+                      className="text-button"
+                      href="#forteresse"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        await supabase.rpc("session_choisir", { p_session: x.id });
+                        location.hash = "forteresse";
+                        location.reload();
+                      }}
+                    >
+                      Jouer / diriger
+                    </a>
+                    <button type="button" className="text-button" onClick={() => setRenommer({ id: x.id, nom: x.nom })}>
+                      Renommer
+                    </button>
+                    <button type="button" className="text-button" onClick={() => onInviter(x.id)}>
+                      Inviter
+                    </button>
+                    <button
+                      type="button"
+                      className="text-button text-button-danger"
+                      onClick={() => setZero({ id: x.id, nom: x.nom, saisie: "" })}
+                    >
+                      Remettre à zéro
+                    </button>
+                  </td>
+                </tr>
+                {renommer?.id === x.id && (
+                  <tr className="admin-edit-row">
+                    <td colSpan={4}>
+                      <form className="admin-ingredient-form" onSubmit={enregistrerNom}>
+                        <input
+                          aria-label="Nouveau nom"
+                          value={renommer.nom}
+                          maxLength={60}
+                          onChange={(e) => setRenommer({ ...renommer, nom: e.target.value })}
+                        />
+                        <button className="text-button" type="submit">
+                          Enregistrer le nom
+                        </button>
+                        <button className="text-button" type="button" onClick={() => setRenommer(null)}>
+                          Annuler
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                )}
+                {zero?.id === x.id && (
+                  <tr className="admin-edit-row">
+                    <td colSpan={4}>
+                      <div className="admin-zero">
+                        <p>
+                          <strong>Remise à zéro de « {x.nom} »</strong> : or, arsenal, recrutements, lits, quêtes,
+                          fabrications et contenu de la session seront effacés ; la session redeviendra « en attente
+                          du lancement » et reprendra la base au prochain « +1 Instance ». Une sauvegarde
+                          automatique est faite juste avant. Pour confirmer, tapez le nom de la session :
+                        </p>
+                        <div className="admin-ingredient-form">
+                          <input
+                            aria-label="Nom de la session pour confirmer"
+                            value={zero.saisie}
+                            onChange={(e) => setZero({ ...zero, saisie: e.target.value })}
+                          />
+                          <button
+                            className="text-button text-button-danger"
+                            type="button"
+                            disabled={occupe || zero.saisie.trim().toLowerCase() !== x.nom.trim().toLowerCase()}
+                            onClick={remettreAZero}
+                          >
+                            Remettre à zéro
+                          </button>
+                          <button className="text-button" type="button" onClick={() => setZero(null)}>
+                            Annuler
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            ))}
+            {!sess.sessions.length && (
+              <tr>
+                <td colSpan={4}>Aucune session pour l’instant.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <EnvoyerASession sess={sess} />
+    </div>
+  );
+}
+
+// « Envoyer à la session » : ajoute à la main un élément de la base (objet + recette,
+// mercenaire, quête) dans une session déjà lancée, avec ses dépendances.
+function EnvoyerASession({ sess }) {
+  const [objets, setObjets] = useState([]);
+  const [mercs, setMercs] = useState([]);
+  const [quetes, setQuetes] = useState([]);
+  const [cible, setCible] = useState("");
+  const [type, setType] = useState("objet");
+  const [element, setElement] = useState("");
+  const [msg, setMsg] = useState("");
+  const [occupe, setOccupe] = useState(false);
+  useEffect(() => {
+    if (!sess.base) return;
+    supabase.from("objet_catalogue").select("id, nom").order("nom").then(({ data }) => setObjets(data || []));
+    supabase.from("mercenaire").select("id, nom").order("nom").then(({ data }) => setMercs(data || []));
+    supabase.from("quete").select("id, nom").order("nom").then(({ data }) => setQuetes(data || []));
+  }, [sess.base]);
+  const lancees = sess.sessions.filter((x) => x.lancee_le);
+  if (!sess.base)
+    return (
+      <div className="admin-form">
+        <h3>Envoyer à la session</h3>
+        <p className="muted">
+          Pour ajouter à la main un élément de la base à une session déjà lancée, passez d’abord en
+          « Base de départ » (menu « Vous modifiez » en haut de la page).
+        </p>
+      </div>
+    );
+  const liste = type === "objet" ? objets : type === "mercenaire" ? mercs : quetes;
+  async function envoyer(e) {
+    e.preventDefault();
+    if (!cible || !element || occupe) return;
+    setOccupe(true);
+    setMsg("");
+    const { data, error } = await supabase.rpc("session_envoyer", { p_session: cible, p_type: type, p_id: element });
+    setOccupe(false);
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    setMsg(
+      `« ${data.nom} » a été ajouté à la session${data.objets_ajoutes > 0 ? ` (${data.objets_ajoutes} objet${data.objets_ajoutes > 1 ? "s" : ""} au total, avec leurs dépendances)` : ""}.`,
+    );
+    setElement("");
+  }
+  return (
+    <form className="admin-form" onSubmit={envoyer}>
+      <h3>Envoyer à la session</h3>
+      <p>
+        Ajoute un élément de la base à une session déjà lancée, avec ce dont il dépend (catégories,
+        ingrédients, recette, classe, récompenses). Rien n’est écrasé : un élément déjà présent est refusé.
+      </p>
+      <div className="admin-ingredient-form">
+        <select aria-label="Session" value={cible} onChange={(e) => setCible(e.target.value)}>
+          <option value="">Session…</option>
+          {lancees.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.nom}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Type d’élément"
+          value={type}
+          onChange={(e) => {
+            setType(e.target.value);
+            setElement("");
+          }}
+        >
+          <option value="objet">Objet (avec sa recette)</option>
+          <option value="mercenaire">Mercenaire</option>
+          <option value="quete">Quête</option>
+        </select>
+        <SearchableSelect
+          value={element}
+          onChange={setElement}
+          options={liste.map((o) => ({ value: o.id, label: o.nom }))}
+          emptyLabel="Élément de la base…"
+          ariaLabel="Élément de la base"
+        />
+        <button className="primary" type="submit" disabled={!cible || !element || occupe}>
+          Envoyer à la session
+        </button>
+      </div>
+      {!lancees.length && <p className="muted">Aucune session lancée pour le moment.</p>}
+      {msg && <p className="admin-error">{msg}</p>}
+    </form>
+  );
+}
+
+// Arsenal de départ de la base : or et objets donnés à chaque session à son lancement.
+function DepartBaseSection() {
+  const departLignes = useTable("base_depart_ligne", { order: "objet_id", key: "objet_id" });
+  const catalogue = useTable("objet_catalogue", { order: "nom" });
+  const [or, setOr] = useState(null);
+  const [saisieOr, setSaisieOr] = useState("");
+  const [objetId, setObjetId] = useState("");
+  const [quantite, setQuantite] = useState("");
+  const [msg, setMsg] = useState("");
+  const [confirmingId, setConfirmingId] = useState(null);
+  useEffect(() => {
+    supabase
+      .from("base_depart")
+      .select("or_compagnie")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setOr(data.or_compagnie);
+          setSaisieOr(String(data.or_compagnie));
+        }
+      });
+  }, []);
+  async function enregistrerOr(e) {
+    e.preventDefault();
+    const n = Number(saisieOr);
+    if (String(saisieOr).trim() === "" || !Number.isInteger(n) || n < 0 || n > 100000000) {
+      setMsg("Saisissez un entier de 0 à 100 000 000.");
+      return;
+    }
+    const { error } = await supabase.from("base_depart").update({ or_compagnie: n }).eq("id", true);
+    if (error) setMsg(error.message);
+    else {
+      setOr(n);
+      setMsg("Or de départ enregistré.");
+    }
+  }
+  if (departLignes.error || catalogue.error)
+    return <p className="admin-error">{departLignes.error || catalogue.error}</p>;
+  if (!departLignes.rows || !catalogue.rows) return <p>Chargement…</p>;
+  const nomObjet = (id) => catalogue.rows.find((o) => o.id === id)?.nom || "?";
+  async function ajouter(e) {
+    e.preventDefault();
+    const n = Math.floor(Number(quantite));
+    if (!objetId || !(n > 0)) {
+      setMsg("Choisissez un objet et une quantité supérieure à zéro.");
+      return;
+    }
+    const { error } = await supabase.from("base_depart_ligne").upsert({ objet_id: objetId, quantite: n }, { onConflict: "objet_id" });
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    await departLignes.reload();
+    setMsg("");
+    setObjetId("");
+    setQuantite("");
+  }
+  return (
+    <div>
+      <p>
+        Valeurs de départ de la <strong>base</strong> : chaque session les reçoit à son lancement (premier
+        « +1 Instance »). Elles ne changent pas les sessions déjà lancées.
+      </p>
+      <form className="admin-form" onSubmit={enregistrerOr} noValidate>
+        <h3>Or de départ</h3>
+        <div className="admin-ingredient-form">
+          <input
+            type="number"
+            min="0"
+            step="1"
+            aria-label="Or de départ"
+            value={saisieOr}
+            onChange={(e) => setSaisieOr(e.target.value)}
+          />
+          <button className="text-button" type="submit">
+            Enregistrer l’or de départ
+          </button>
+        </div>
+        {or !== null && <p className="muted">Valeur actuelle : {or} Po.</p>}
+      </form>
+      <div className="admin-table-wrap">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Objet de départ</th>
+              <th>Quantité</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {departLignes.rows.map((l) => (
+              <tr key={l.objet_id}>
+                <td>{nomObjet(l.objet_id)}</td>
+                <td>{l.quantite}</td>
+                <td className="admin-row-actions">
+                  <DeleteButton
+                    id={l.objet_id}
+                    confirmingId={confirmingId}
+                    onAskConfirm={() => setConfirmingId(l.objet_id)}
+                    onCancel={() => setConfirmingId(null)}
+                    onConfirm={async () => {
+                      setConfirmingId(null);
+                      const err = await departLignes.remove(l.objet_id);
+                      if (err) setMsg(err);
+                    }}
+                  />
+                </td>
+              </tr>
+            ))}
+            {!departLignes.rows.length && (
+              <tr>
+                <td colSpan={3}>Aucun objet de départ : les sessions démarrent avec un arsenal vide.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <form className="admin-form" onSubmit={ajouter}>
+        <h3>Ajouter ou remplacer un objet de départ</h3>
+        <div className="admin-ingredient-form">
+          <SearchableSelect
+            value={objetId}
+            onChange={setObjetId}
+            options={catalogue.rows.map((o) => ({ value: o.id, label: o.nom }))}
+            emptyLabel="Objet…"
+            ariaLabel="Objet"
+          />
+          <input
+            type="number"
+            min="1"
+            step="1"
+            placeholder="Quantité"
+            value={quantite}
+            onChange={(e) => setQuantite(e.target.value)}
+          />
+          <button className="text-button" type="submit">
+            Enregistrer
+          </button>
+        </div>
+        {msg && <p className="admin-error">{msg}</p>}
+      </form>
     </div>
   );
 }
@@ -3080,7 +3597,9 @@ function useIsAdmin(session) {
 export function Admin({ onCraftItem = () => {} }) {
   const session = useSession();
   const isAdmin = useIsAdmin(session);
-  const [tab, setTab] = useState("catalogue");
+  const sess = useSessions(session?.user?.id, true);
+  const [tab, setTab] = useState("sessions");
+  const [sessionInvit, setSessionInvit] = useState("");
   const [sauvegardeMsg, setSauvegardeMsg] = useState("");
   const [sauvegardeEnCours, setSauvegardeEnCours] = useState(false);
   async function sauvegarder() {
@@ -3097,6 +3616,8 @@ export function Admin({ onCraftItem = () => {} }) {
     setSauvegardeEnCours(false);
   }
 
+  // Contenu (catalogue, quêtes…) : celui de la base, ou celui d'une session déjà lancée.
+  const contenuIndisponible = !sess.base && !sess.courante?.lancee_le;
   if (session === undefined)
     return (
       <main className="admin-page">
@@ -3156,7 +3677,11 @@ export function Admin({ onCraftItem = () => {} }) {
           </a>
         </div>
       </header>
+      <ContexteAdmin sess={sess} />
       <nav className="admin-tabs">
+        <button className={tab === "sessions" ? "active" : ""} onClick={() => setTab("sessions")}>
+          Sessions
+        </button>
         <button className={tab === "catalogue" ? "active" : ""} onClick={() => setTab("catalogue")}>
           Catalogue
         </button>
@@ -3186,8 +3711,24 @@ export function Admin({ onCraftItem = () => {} }) {
         </p>
       )}
       <div className="admin-content parchment">
-        {tab === "catalogue" && <CatalogueSection onCraftItem={onCraftItem} />}
-        {tab === "categories" && (
+        {tab === "sessions" && (
+          <SessionsSection
+            sess={sess}
+            onInviter={(id) => {
+              setSessionInvit(id);
+              setTab("invitations");
+            }}
+          />
+        )}
+        {tab !== "sessions" && tab !== "invitations" && !sess.pret && <p>Chargement…</p>}
+        {tab !== "sessions" && tab !== "invitations" && sess.pret && contenuIndisponible && (
+          <p className="muted">
+            Ce contenu se modifie dans la <strong>base de départ</strong> ou dans une session déjà
+            lancée : choisissez-en une avec le menu « Vous modifiez » en haut de la page.
+          </p>
+        )}
+        {sess.pret && !contenuIndisponible && tab === "catalogue" && <CatalogueSection onCraftItem={onCraftItem} />}
+        {sess.pret && !contenuIndisponible && tab === "categories" && (
           <NamedListSection
             table="categorie"
             singular="catégorie"
@@ -3195,13 +3736,13 @@ export function Admin({ onCraftItem = () => {} }) {
             hierarchical
           />
         )}
-        {tab === "classes" && (
+        {sess.pret && !contenuIndisponible && tab === "classes" && (
           <NamedListSection table="classe" singular="classe" blockedBy="des mercenaires" />
         )}
-        {tab === "mercenaires" && <MercenairesSection />}
-        {tab === "arsenal" && <ArsenalSection />}
-        {tab === "quetes" && <QuetesSection />}
-        {tab === "invitations" && <InvitationsSection />}
+        {sess.pret && !contenuIndisponible && tab === "mercenaires" && <MercenairesSection />}
+        {sess.pret && !contenuIndisponible && tab === "arsenal" && (sess.base ? <DepartBaseSection /> : <ArsenalSection />)}
+        {sess.pret && !contenuIndisponible && tab === "quetes" && <QuetesSection />}
+        {tab === "invitations" && <InvitationsSection sess={sess} sessionInitiale={sessionInvit} />}
       </div>
     </main>
   );
