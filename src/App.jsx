@@ -1727,7 +1727,7 @@ export function App() {
         supabase
           .from("objet_catalogue")
           .select(
-            "id, nom, icone, description, categorie_id, cout_achat_or, emploi_materiau_id, emploi_production, emploi_production_outil, emploi_outil_id, emploi_entretien, portee, allonge, type_degats, legere, deux_mains, protection, type_armure, malus_discretion, malus_vitesse, malus_esquive, parade",
+            "id, nom, icone, description, categorie_id, cout_achat_or, emploi_materiau_id, emploi_production, emploi_production_outil, emploi_outil_id, emploi_entretien, portee, allonge, type_degats, legere, deux_mains, protection, type_armure, malus_discretion, malus_vitesse, malus_esquive, parade, arme_icone_1, arme_icone_2",
           ),
         supabase.from("categorie").select("id, nom, parent_id"),
       ]);
@@ -1787,6 +1787,8 @@ export function App() {
         malusVitesse: o.malus_vitesse ?? null,
         malusEsquive: o.malus_esquive ?? null,
         parade: o.parade ?? null,
+        armeIcone1: o.arme_icone_1 || null,
+        armeIcone2: o.arme_icone_2 || null,
       };
     }
     setEquipements(equip);

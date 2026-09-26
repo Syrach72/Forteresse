@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { ASSETS } from "./data";
 import { useSessions } from "./Sessions.jsx";
-import { TableauCompetences } from "./MercFiche.jsx";
+import { TableauCompetences, ICONE_ARME_PAR_DEFAUT } from "./MercFiche.jsx";
 
 // Atelier de fabrication d'un objet, déduit de la rubrique racine de sa
 // catégorie (vérifié sur les recettes existantes : aucune exception). Il n'y
@@ -144,6 +144,8 @@ function emptyCatalogueItem(categorieId = "") {
     description: "",
     empilable: true,
     icone: "",
+    arme_icone_1: "",
+    arme_icone_2: "",
     veterance_requise: "",
     duree_fabrication_instances: "",
     cout_achat_or: "",
@@ -788,6 +790,8 @@ function CatalogueSection({ onCraftItem }) {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyCatalogueItem());
   const [iconFile, setIconFile] = useState(null);
+  // Icônes de l'arme (2 au plus), en attente d'envoi.
+  const [armeIconeFiles, setArmeIconeFiles] = useState([null, null]);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
   const [filterCategorie, setFilterCategorie] = useState("");
@@ -935,10 +939,13 @@ function CatalogueSection({ onCraftItem }) {
   }
   function startEdit(row) {
     setEditing(row.id);
+    setArmeIconeFiles([null, null]);
     setForm({
       ...row,
       description: row.description || "",
       icone: row.icone || "",
+      arme_icone_1: row.arme_icone_1 || "",
+      arme_icone_2: row.arme_icone_2 || "",
       veterance_requise: row.veterance_requise ?? "",
       duree_fabrication_instances: row.duree_fabrication_instances ?? "",
       cout_achat_or: row.cout_achat_or ?? "",
@@ -967,6 +974,7 @@ function CatalogueSection({ onCraftItem }) {
     setBrouillon(BROUILLON_VIDE);
     setForm(emptyCatalogueItem(categories.rows?.[0]?.id || ""));
     setIconFile(null);
+    setArmeIconeFiles([null, null]);
     setMsg("");
   }
   // Ajoute l'objet puis, s'il est fabricable et que le brouillon a des
@@ -1045,6 +1053,21 @@ function CatalogueSection({ onCraftItem }) {
     const { arme, armure, bouclier, alchimique, emploi, craftable, achetable, atelier } = categorieFlags(
       form.categorie_id,
     );
+    // Icônes de l'arme : envoyées ici, une par emplacement.
+    const armeIcones = [form.arme_icone_1 || null, form.arme_icone_2 || null];
+    if (arme) {
+      for (let k = 0; k < 2; k++) {
+        if (!armeIconeFiles[k]) continue;
+        setUploading(true);
+        const result = await uploadImage("catalogue-icones", armeIconeFiles[k], `${form.code_unique}-arme${k + 1}`);
+        setUploading(false);
+        if (result.error) {
+          setMsg(result.error);
+          return;
+        }
+        armeIcones[k] = result.url;
+      }
+    }
     // Un objet qui a une recette doit rester dans une rubrique fabricable :
     // sinon la recette deviendrait invisible tout en restant en base.
     const recette = editing
@@ -1080,6 +1103,8 @@ function CatalogueSection({ onCraftItem }) {
       malus_vitesse: armure || bouclier ? malusOuNull(form.malus_vitesse) : null,
       malus_esquive: bouclier ? malusOuNull(form.malus_esquive) : null,
       parade: arme || bouclier ? form.parade.trim() || null : null,
+      arme_icone_1: arme ? armeIcones[0] : null,
+      arme_icone_2: arme ? armeIcones[1] : null,
       allonge: arme ? form.allonge.trim() || null : null,
       type_degats: arme ? form.type_degats.trim() || null : null,
       deux_mains: arme ? !!form.deux_mains : false,
@@ -1574,6 +1599,53 @@ function CatalogueSection({ onCraftItem }) {
           )}
         </div>
       </div>
+      {categorieFlags(form.categorie_id).arme && (
+        <div className="field">
+          <label>Icônes de l’arme (2 au plus, côte à côte)</label>
+          <p className="muted">
+            Elles s’affichent sur l’arme portée par un mercenaire et ne se modifient pas sur sa fiche. La première, si
+            elle est vide, reprend l’icône de Puissance.
+          </p>
+          <div className="admin-arme-icones">
+            {[0, 1].map((k) => {
+              const cle = k === 0 ? "arme_icone_1" : "arme_icone_2";
+              const fichier = armeIconeFiles[k];
+              const url = fichier ? URL.createObjectURL(fichier) : form[cle] || (k === 0 ? ICONE_ARME_PAR_DEFAUT : "");
+              return (
+                <div className="admin-arme-icone" key={k}>
+                  <span className="admin-arme-icone-titre">Icône {k + 1}{k === 0 ? "" : " (facultative)"}</span>
+                  {url ? (
+                    <img className="admin-icon" src={url} alt="" />
+                  ) : (
+                    <span className="admin-arme-icone-vide">Aucune</span>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    aria-label={`Icône ${k + 1} de l’arme`}
+                    onChange={(e) => {
+                      const f = e.target.files[0] || null;
+                      setArmeIconeFiles((old) => old.map((x, i) => (i === k ? f : x)));
+                    }}
+                  />
+                  {(fichier || form[cle]) && (
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() => {
+                        setArmeIconeFiles((old) => old.map((x, i) => (i === k ? null : x)));
+                        setForm({ ...form, [cle]: "" });
+                      }}
+                    >
+                      {k === 0 ? "Remettre l’icône de Puissance" : "Retirer cette icône"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {msg && <p className="admin-error">{msg}</p>}
       <div className="admin-form-actions">
         <button className="primary" type="submit" disabled={uploading}>

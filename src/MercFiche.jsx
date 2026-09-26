@@ -5,6 +5,9 @@ import { Fragment } from "react";
 // passives puis 5 actives). Partagé entre la fiche joueur (Characters.jsx) et
 // l'éditeur de l'administration (Admin.jsx).
 
+// Icône de base d'une arme quand le catalogue n'en précise pas : celle de Puissance.
+export const ICONE_ARME_PAR_DEFAUT = "/assets/icons/puissance.webp";
+
 export const NIVEAUX_VETERANCE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 // Une cellule du tableau : le cadre fourni, la vétérance requise de sa ligne
@@ -163,7 +166,15 @@ export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
             <div className="equip-slot" key={i}>
               {icone(o)}
               <div className="equip-texte">
-                <strong>{o.nom}</strong>
+                <strong className="equip-nom">
+                  {o.nom}
+                  {/* Icônes liées à l'arme (catalogue) : jusqu'à deux, côte à côte ; non modifiables ici. */}
+                  <span className="equip-arme-icones">
+                    {[o.armeIcone1 || ICONE_ARME_PAR_DEFAUT, o.armeIcone2].filter(Boolean).map((src, k) => (
+                      <img key={k} src={src} alt="" />
+                    ))}
+                  </span>
+                </strong>
                 {o.description && <p className="equip-description">{o.description}</p>}
                 <dl className="equip-stats">
                   {aUneValeur(o.portee) && (

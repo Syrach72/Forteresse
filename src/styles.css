@@ -5130,3 +5130,18 @@ a.merc-card:hover {
   height: auto;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 }
+.equip-nom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.equip-arme-icones {
+  display: inline-flex;
+  gap: 3px;
+}
+.equip-arme-icones img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
