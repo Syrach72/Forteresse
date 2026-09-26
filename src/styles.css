@@ -5544,3 +5544,39 @@ a.merc-card:hover {
 .merc-fiche > .merc-bloc {
   margin-top: 0;
 }
+
+/* Sac à dos agrandi : fenêtre plus large, emplacements, icônes et textes x1,5. */
+.modal-sac {
+  width: min(1000px, calc(100% - 30px));
+}
+.modal-sac .muted {
+  font-size: 20px;
+}
+.modal-sac .sac-dos-grid {
+  gap: 16px;
+}
+.modal-sac .sac-dos-slot {
+  min-height: 170px;
+  padding: 16px 10px;
+  gap: 8px;
+}
+.modal-sac .sac-dos-slot img {
+  width: 76px;
+  height: 76px;
+}
+.modal-sac .sac-dos-nom {
+  font-size: 20px;
+}
+.modal-sac .sac-dos-qty {
+  min-width: 26px;
+  padding: 2px 7px;
+  font-size: 19px;
+}
+.modal-sac .sac-dos-slot .sac-dos-gemmes img {
+  width: 27px;
+  height: 27px;
+}
+.modal-sac .sac-dos-slot .text-button,
+.modal-sac .sac-dos-equiper {
+  font-size: 19px;
+}

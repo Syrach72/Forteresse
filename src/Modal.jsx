@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export function Modal({ title, children, onClose }) {
+export function Modal({ title, children, onClose, className = "" }) {
   const ref = useRef(null);
   useEffect(() => {
     const prev = document.activeElement;
@@ -20,7 +20,7 @@ export function Modal({ title, children, onClose }) {
         onClose();
       }}
       aria-labelledby="dialog-title"
-      className="parchment modal"
+      className={`parchment modal${className ? ` ${className}` : ""}`}
     >
       <div className="modal-heading">
         <h2 id="dialog-title">{title}</h2>

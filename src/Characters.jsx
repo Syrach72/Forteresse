@@ -821,6 +821,7 @@ export function Characters({
       )}
       {popup && (
         <Modal
+          className={popup.type === "sac" ? "modal-sac" : ""}
           title={
             popup.type === "edit"
               ? "Modifier la fiche"
