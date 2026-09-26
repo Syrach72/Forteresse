@@ -5443,3 +5443,21 @@ a.merc-card:hover {
 .equip-slot-vide {
   font-size: 20px;
 }
+
+/* Gemmes d'une arme ×1,5 (33 → 50 px) ; elles se chevauchent un peu pour que trois gemmes tiennent sur l'icône. */
+.equip-slot-arme .equip-gemmes {
+  right: -8px;
+  bottom: -8px;
+  gap: 0;
+}
+.equip-slot-arme .equip-gemmes img {
+  width: 50px;
+  height: 50px;
+}
+.equip-slot-arme .equip-gemmes img + img {
+  margin-left: -14px;
+}
+.equip-gemmes img {
+  width: 36px;
+  height: 36px;
+}
