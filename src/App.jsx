@@ -1200,8 +1200,6 @@ export function App() {
           velocite: m.defense ?? null,
           mental: m.esprit ?? null,
           mouvement: m.mouvement ?? null,
-          energieMax: m.mana ?? null,
-          santeMax: m.sante ?? null,
           // Valeurs en cours (propres à la session) ; null = pas encore modifiées.
           energieActuelle: m.energie_actuelle ?? null,
           santeActuelle: m.sante_actuelle ?? null,

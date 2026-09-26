@@ -2225,7 +2225,7 @@ function MercenairesSection() {
               />
             )}
           </div>
-          {["veterance", "attaque", "defense", "esprit", "mouvement", "mana", "sante"].map((field) => (
+          {["veterance", "attaque", "defense", "esprit", "mouvement"].map((field) => (
             <div className="field" key={field}>
               <label htmlFor={`merc-${field}`}>
                 {LIBELLES_MERCENAIRE[field]}
@@ -2241,6 +2241,10 @@ function MercenairesSection() {
             </div>
           ))}
         </div>
+        <p className="muted">
+          Énergie Max = Mental × vétérance et Santé Max = Puissance × vétérance (jamais moins de 6) : elles se calculent
+          toutes seules sur la fiche, il n’y a rien à saisir.
+        </p>
         {msg && <p className="admin-error">{msg}</p>}
         <div className="admin-form-actions">
           <button className="primary" type="submit" disabled={uploading}>

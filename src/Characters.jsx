@@ -104,6 +104,11 @@ export function Characters({
   const [, classId, heroId] = route.split("/");
   const cls = CHARACTER_CLASSES.find((c) => c[0] === classId);
   const merc = mercenaires.find((m) => m.id === heroId);
+  // Énergie Max = Mental × vétérance ; Santé Max = Puissance × vétérance ; dans les deux cas le
+  // résultat ne descend jamais sous 6 (règle de Bruno). Calculés, jamais saisis.
+  const maxAuto = (base, vet) => Math.max(6, (base ?? 0) * (vet ?? 1));
+  const energieMax = merc ? maxAuto(merc.mental, merc.veterance) : null;
+  const santeMax = merc ? maxAuto(merc.puissance, merc.veterance) : null;
   const hero = merc ? undefined : warriors.find((w) => w.id === heroId);
   // Fiche d'un mercenaire recruté : réservée à son recruteur et à l'admin.
   const accesFiche = (id) => !tousRecrutes.includes(id) || recrutes.includes(id) || estAdmin;
@@ -120,10 +125,10 @@ export function Characters({
   const [santeAct, setSanteAct] = useState("");
   const [actuelError, setActuelError] = useState("");
   useEffect(() => {
-    setEnergieAct(String(merc?.energieActuelle ?? merc?.energieMax ?? ""));
-    setSanteAct(String(merc?.santeActuelle ?? merc?.santeMax ?? ""));
+    setEnergieAct(String(merc?.energieActuelle ?? energieMax ?? ""));
+    setSanteAct(String(merc?.santeActuelle ?? santeMax ?? ""));
     setActuelError("");
-  }, [merc?.id, merc?.energieActuelle, merc?.santeActuelle, merc?.energieMax, merc?.santeMax]);
+  }, [merc?.id, merc?.energieActuelle, merc?.santeActuelle, energieMax, santeMax]);
   useEffect(() => {
     setVet(String(merc?.veterance ?? ""));
     setVetError("");
@@ -353,8 +358,8 @@ export function Characters({
                   ["Vélocité", merc.velocite],
                   ["Mental", merc.mental],
                   ["Mouvement", merc.mouvement === null || merc.mouvement === undefined ? null : `${merc.mouvement}c`],
-                  ["Santé Max", merc.santeMax],
-                  ["Énergie Max", merc.energieMax],
+                  ["Santé Max", santeMax],
+                  ["Énergie Max", energieMax],
                 ].map(([libelle, valeur]) => (
                   <div className="stat-line" key={libelle}>
                     <span>{libelle}</span>
@@ -414,8 +419,8 @@ export function Characters({
                       className="wood-button"
                       type="submit"
                       disabled={
-                        santeAct === String(merc.santeActuelle ?? merc.santeMax ?? "") &&
-                        energieAct === String(merc.energieActuelle ?? merc.energieMax ?? "")
+                        santeAct === String(merc.santeActuelle ?? santeMax ?? "") &&
+                        energieAct === String(merc.energieActuelle ?? energieMax ?? "")
                       }
                     >
                       Enregistrer la santé et l’énergie
@@ -430,11 +435,11 @@ export function Characters({
                   <>
                     <div className="stat-line">
                       <span>Santé Actuelle</span>
-                      <strong>{merc.santeActuelle ?? merc.santeMax ?? "—"}</strong>
+                      <strong>{merc.santeActuelle ?? santeMax ?? "—"}</strong>
                     </div>
                     <div className="stat-line">
                       <span>Énergie Actuelle</span>
-                      <strong>{merc.energieActuelle ?? merc.energieMax ?? "—"}</strong>
+                      <strong>{merc.energieActuelle ?? energieMax ?? "—"}</strong>
                     </div>
                   </>
                 )}
