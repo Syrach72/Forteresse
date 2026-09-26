@@ -443,45 +443,6 @@ export function Characters({
                   orbes
                 );
               })()}
-              {/* Vétérance : réservée au MJ (le joueur ne la modifie pas). */}
-              {estAdmin && (
-                <form
-                  className="stat-line merc-veterance-edit"
-                  noValidate
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const result = await onSetVeterance(merc.id, vet);
-                    setVetError(result?.error || "");
-                  }}
-                >
-                  <label htmlFor="merc-veterance">Vétérance (MJ)</label>
-                  <span>
-                    <input
-                      id="merc-veterance"
-                      type="number"
-                      min="1"
-                      max="999"
-                      step="1"
-                      value={vet}
-                      aria-invalid={!!vetError}
-                      aria-describedby={vetError ? "merc-veterance-error" : undefined}
-                      onChange={(e) => setVet(e.target.value)}
-                    />
-                    <button
-                      className="wood-button"
-                      type="submit"
-                      disabled={vet === String(merc.veterance ?? "")}
-                    >
-                      Enregistrer
-                    </button>
-                  </span>
-                </form>
-              )}
-              {vetError && (
-                <p id="merc-veterance-error" className="error" role="alert">
-                  {vetError}
-                </p>
-              )}
             </div>
             {/* Zone pleine largeur, sous le portrait : actions, recrutement. */}
             <div className="merc-pleine-largeur">
@@ -565,15 +526,6 @@ export function Characters({
                     Recrutement : {COUT_RECRUTEMENT_PAR_VETERANCE} Po × vétérance {merc.veterance ?? 1} ={" "}
                     <strong>{COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po</strong>, prélevés sur la
                     trésorerie. Renvoyé, il faudra le payer de nouveau pour le recruter.
-                    {estAdmin && vet !== String(merc.veterance ?? "") && (
-                      <>
-                        {" "}
-                        <strong className="error">
-                          Le coût suit la vétérance enregistrée ({merc.veterance ?? 1}) : cliquez sur « Enregistrer »
-                          pour appliquer {vet || "la nouvelle valeur"}.
-                        </strong>
-                      </>
-                    )}
                   </p>
                   <label htmlFor="merc-nom-joueur">Nom du joueur</label>
                   <input

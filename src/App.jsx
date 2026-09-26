@@ -1566,7 +1566,7 @@ export function App() {
                   `${gains.quete.nom} : encore ${gains.quete.apres} instance${gains.quete.apres > 1 ? "s" : ""} requise${gains.quete.apres > 1 ? "s" : ""}.`,
                 ]
               : [
-                  `${gains.quete.nom} accomplie : +${gains.quete.or} Po et ${gains.quete.items.length} objet(s) rejoignent l'arsenal${gains.quete.mercenaires?.length ? `, ${gains.quete.mercenaires.length} mercenaire(s) retournent au dortoir` : ""}.`,
+                  `${gains.quete.nom} accomplie : +${gains.quete.or} Po et ${gains.quete.items.length} objet(s) rejoignent l'arsenal${gains.quete.mercenaires?.length ? `, ${gains.quete.mercenaires.length} mercenaire(s) retournent au dortoir (+1 de vétérance pour ${gains.quete.mercenaires.filter((m) => m.veterance_apres > m.veterance_avant).length})` : ""}.`,
                 ]
             : []),
           ...(() => {

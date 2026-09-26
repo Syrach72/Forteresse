@@ -1782,7 +1782,7 @@ function emptyMercenaire(classeId = "") {
 // noms : attaque = Puissance, defense = Vélocité, esprit = Mental, mana = Énergie Max,
 // sante = Santé Max ; le mouvement s'exprime en cases).
 const LIBELLES_MERCENAIRE = {
-  veterance: "Vétérance de départ",
+  veterance: "Vétérance",
   attaque: "Puissance",
   defense: "Vélocité",
   esprit: "Mental",
@@ -2112,6 +2112,17 @@ function MercenairesSection() {
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
+  // Vétérance de chaque mercenaire dans la session consultée (mercenaire_etat) ; hors session
+  // (base de départ) c'est la valeur inscrite sur la fiche du catalogue.
+  const [vetSession, setVetSession] = useState(() => new Map());
+  async function chargerVetSession() {
+    const { data } = await supabase.from("mercenaire_etat").select("mercenaire_id, veterance");
+    setVetSession(new Map((data || []).map((x) => [x.mercenaire_id, x.veterance])));
+  }
+  useEffect(() => {
+    chargerVetSession();
+  }, []);
+  const vetEff = (m) => vetSession.get(m.id) ?? m.veterance;
 
   async function recropCurrent() {
     if (portraitFile) {
@@ -2135,7 +2146,7 @@ function MercenairesSection() {
       classe_id: m.classe_id || "",
       sous_classe: m.sous_classe || "",
       portrait: m.portrait || "",
-      veterance: m.veterance ?? "",
+      veterance: vetEff(m) ?? "",
       attaque: m.attaque ?? "",
       defense: m.defense ?? "",
       esprit: m.esprit ?? "",
@@ -2182,11 +2193,31 @@ function MercenairesSection() {
       mana: toIntOrNull(form.mana),
       sante: toIntOrNull(form.sante),
     };
+    // En modification, la vétérance passe par la fonction serveur : elle change celle de la
+    // session consultée (ou la valeur de départ de la fiche dans la base de départ).
+    const nouvelleVet = Math.max(1, toIntOrNull(form.veterance) ?? 1);
+    const ancienne = editing ? mercenaires.rows.find((m) => m.id === editing) : null;
+    if (editing) delete values.veterance;
     const err = editing
       ? await mercenaires.update(editing, values)
       : await mercenaires.insert(values);
-    if (err) setMsg(err);
-    else cancel();
+    if (err) {
+      setMsg(err);
+      return;
+    }
+    if (editing && ancienne && nouvelleVet !== vetEff(ancienne)) {
+      const { error } = await supabase.rpc("mercenaire_definir_veterance", {
+        p_mercenaire: editing,
+        p_valeur: nouvelleVet,
+      });
+      if (error) {
+        setMsg(error.message);
+        return;
+      }
+      await mercenaires.reload();
+      await chargerVetSession();
+    }
+    cancel();
   }
   async function del(id) {
     const err = await mercenaires.remove(id);
@@ -2342,7 +2373,7 @@ function MercenairesSection() {
               <th>Portrait</th>
               <th>Nom</th>
               <th>Classe</th>
-              <th>Vétérance de départ</th>
+              <th>Vétérance</th>
               <th></th>
             </tr>
           </thead>
@@ -2359,7 +2390,7 @@ function MercenairesSection() {
                   </td>
                   <td>{m.nom}</td>
                   <td>{nomClasse(m.classe_id)}</td>
-                  <td>{m.veterance ?? "—"}</td>
+                  <td>{vetEff(m) ?? "—"}</td>
                   <td className="admin-row-actions">
                     <button type="button" className="text-button" onClick={() => startEdit(m)}>
                       Modifier
