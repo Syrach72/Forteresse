@@ -5737,3 +5737,35 @@ a.merc-card:hover {
     gap: 7px;
   }
 }
+
+/* Barre latérale des lieux (PC, souris) : au survol, le nom du lieu s'affiche à gauche de l'icône,
+   à côté de la barre et sans mordre sur l'icône. */
+@media (min-width: 681px) and (hover: hover) {
+  .room-nav button {
+    position: relative;
+  }
+  .room-nav button > span:not(.sprite) {
+    display: block;
+    position: absolute;
+    top: 50%;
+    right: calc(100% + 12px);
+    z-index: 30;
+    transform: translateY(-50%);
+    padding: 6px 12px;
+    border: 2px ridge #b8964e;
+    background: #2b1d10;
+    color: #f5e6b8;
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 120ms ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+  }
+  .room-nav button:hover > span:not(.sprite),
+  .room-nav button:focus-visible > span:not(.sprite) {
+    opacity: 1;
+  }
+}

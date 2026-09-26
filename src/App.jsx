@@ -1611,16 +1611,10 @@ export function App() {
     setInstanceTicks((v) => Math.max(0, v - 1));
     setInstanceUndo(null);
     const g = u.gains;
-    if (
-      g.entrainement.length ||
-      g.infirmerie.length ||
-      g.ateliers.length ||
-      g.employes.length ||
-      g.budget !== 0 ||
-      g.quete
-    )
-      // Niveaux, compteurs et durées sont en base : le serveur les remet comme
-      // avant et replace les mercenaires renvoyés au dortoir.
+    // Niveaux, compteurs et durées sont en base : le serveur les remet comme
+    // avant et replace les mercenaires renvoyés au dortoir. Le compteur d'instances
+    // du journal recule toujours (chaque +1 Instance l'avait fait avancer).
+    {
       enqueueTraining(async () => {
         const erreurs = [];
         if (g.budget !== 0) {
@@ -1643,9 +1637,14 @@ export function App() {
           const { error } = await supabase.rpc("quetes_annuler_instance", { p_gains: g.quete });
           if (error) erreurs.push(error.message);
         }
+        {
+          const { error } = await supabase.rpc("journal_instance_annuler");
+          if (error) erreurs.push(error.message);
+        }
         await synchroniserPartage();
         if (erreurs.length) throw new Error(erreurs.join(" "));
       });
+    }
     notify("Dernier +1 Instance annulé.");
   }
   // Les opérations d'entraînement du +1 Instance (et son annulation) passent
@@ -1694,7 +1693,7 @@ export function App() {
         .from("partie_journal")
         .select("id, message, montant, created_at")
         .order("created_at", { ascending: false })
-        .limit(50),
+        .limit(300),
       supabase
         .from("forge_sertissage")
         .select("arme_objet_id, arme_gemmes, gemme_objet_id, restant")

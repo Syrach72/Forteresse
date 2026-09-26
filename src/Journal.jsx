@@ -1,7 +1,7 @@
 const fmt = (n) => new Intl.NumberFormat("fr-FR").format(n);
 // Journal de la compagnie (partagé) : achats, fabrications, déblocages, budget de chaque
-// instance, quêtes… Les 50 derniers mouvements, du plus récent au plus ancien. Auparavant affiché
-// en bas de la Trésorerie.
+// instance, quêtes… du plus récent au plus ancien. Le serveur n'en garde que les activités des
+// 5 dernières instances (l'instance en cours et les 4 précédentes) : les plus anciennes s'effacent.
 export function Journal({ log }) {
   return (
     <section className="journal-page parchment">
@@ -19,7 +19,8 @@ export function Journal({ log }) {
         <p>Aucun mouvement pour le moment.</p>
       )}
       <p className="muted">
-        Le solde regroupe les achats, les déblocages et le budget de chaque instance.
+        Seules les activités des 5 dernières instances sont conservées : les plus anciennes
+        s’effacent. Le solde regroupe les achats, les déblocages et le budget de chaque instance.
       </p>
     </section>
   );
