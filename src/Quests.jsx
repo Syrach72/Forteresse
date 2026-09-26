@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
-import { VetBadge } from "./VetBadge.jsx";
 import { Modal } from "./Modal.jsx";
 import { ITEMS } from "./data.js";
 import { chargerQuetes } from "./etat.js";
@@ -8,6 +7,37 @@ import { chargerQuetes } from "./etat.js";
 const REWARD_SLOTS = [0, 1, 2, 3, 4];
 // Jusqu’à 6 mercenaires engagés par quête (positions 0 à 5).
 const MERC_SLOTS = [0, 1, 2, 3, 4, 5];
+
+// Jauge de difficulté (informative, ne bloque rien : le MJ décide à la table). Ratio =
+// (somme des vétérances des mercenaires engagés ÷ 4) ÷ FP de la quête ; 1 est le ratio optimal.
+// Compteur interne de −10 à +10 (invisible), 0 = ratio 1 = centre de la zone blanche :
+// compteur = (ratio − 1) × 10, borné. Rouge (< −3,5) : trop dure ; blanc : autorisée ; vert
+// (> +3,5) : trop facile.
+const ZONE_BLANCHE = 3.5;
+export function compteurDifficulte(sommeVeterances, fp) {
+  const ratio = sommeVeterances / 4 / Math.max(1, Number(fp) || 1);
+  return Math.max(-10, Math.min(10, (ratio - 1) * 10));
+}
+function zoneDifficulte(compteur) {
+  return compteur < -ZONE_BLANCHE ? "dure" : compteur > ZONE_BLANCHE ? "facile" : "equilibree";
+}
+const TEXTE_ZONE = {
+  dure: "Quête trop difficile pour les mercenaires engagés",
+  equilibree: "Difficulté adaptée aux mercenaires engagés",
+  facile: "Quête trop facile pour les mercenaires engagés",
+};
+function JaugeDifficulte({ somme, fp }) {
+  const compteur = compteurDifficulte(somme, fp);
+  const zone = zoneDifficulte(compteur);
+  const position = ((compteur + 10) / 20) * 100;
+  return (
+    <div className="quest-jauge" role="img" aria-label={TEXTE_ZONE[zone]} title={TEXTE_ZONE[zone]}>
+      <div className="quest-jauge-barre">
+        <span className="quest-jauge-marqueur" style={{ left: `${position}%` }} />
+      </div>
+    </div>
+  );
+}
 
 // Charge les quêtes, leurs récompenses en objets et le catalogue (pour les
 // icônes/noms des récompenses), puis se tient à jour en direct : la sélection
@@ -170,11 +200,15 @@ export function Quests({
                     <strong>{restantes}</strong>
                   </div>
                 </header>
-                <VetBadge
-                  className="quest-vet"
-                  value={q.veterance_requise}
-                  aria-label={`Vétérance moyenne requise : ${q.veterance_requise}`}
-                />
+                {/* Facteur de puissance (FP) de la quête, sur la tuile de pierre. */}
+                <span
+                  className={`quest-fp${String(q.facteur_puissance ?? "").length > 2 ? " quest-fp-long" : ""}`}
+                  role="img"
+                  aria-label={`Facteur de puissance : ${q.facteur_puissance ?? 1}`}
+                  title="Facteur de puissance"
+                >
+                  {q.facteur_puissance ?? 1}
+                </span>
                 <p>{q.description}</p>
                 <h3 className="quest-section-title">Récompenses attendues</h3>
                 <div className="quest-rewards" aria-label="Récompenses attendues">
@@ -250,6 +284,12 @@ export function Quests({
                     );
                   })}
                 </div>
+                {q.en_cours && (
+                  <JaugeDifficulte
+                    fp={q.facteur_puissance}
+                    somme={engagesQuete.reduce((t, e) => t + (personne(e.mercenaire_id)?.veterancy ?? 0), 0)}
+                  />
+                )}
                 {q.en_cours ? (
                   <button type="button" className="wood-button quest-choix" onClick={annuler} disabled={busy}>
                     Annuler le choix

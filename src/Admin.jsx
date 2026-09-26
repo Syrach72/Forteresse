@@ -2797,7 +2797,7 @@ function EtatMaintien() {
 }
 
 function emptyQuete() {
-  return { nom: "", description: "", veterance_requise: "", instances_requises: "1", recompense_or: "", icone: "" };
+  return { nom: "", description: "", facteur_puissance: "1", instances_requises: "1", recompense_or: "", icone: "" };
 }
 const QUETE_SLOTS = [0, 1, 2, 3, 4];
 
@@ -2841,7 +2841,7 @@ function QuetesSection() {
     setForm({
       nom: q.nom,
       description: q.description || "",
-      veterance_requise: q.veterance_requise ?? "",
+      facteur_puissance: q.facteur_puissance ?? 1,
       instances_requises: q.instances_requises ?? 1,
       recompense_or: q.recompense_or ?? "",
       icone: q.icone || "",
@@ -2889,7 +2889,7 @@ function QuetesSection() {
     const values = {
       nom: form.nom,
       description: form.description || "",
-      veterance_requise: toIntOrNull(form.veterance_requise) ?? 0,
+      facteur_puissance: Math.max(1, toIntOrNull(form.facteur_puissance) ?? 1),
       instances_requises: Math.min(99, Math.max(1, toIntOrNull(form.instances_requises) ?? 1)),
       recompense_or: toIntOrNull(form.recompense_or) ?? 0,
       icone,
@@ -2962,14 +2962,14 @@ function QuetesSection() {
           </div>
         </div>
         <div className="field">
-          <label htmlFor="quete-veterance">Vétérance moyenne requise</label>
+          <label htmlFor="quete-fp">Facteur de puissance (FP)</label>
           <div className="input-wrap">
             <input
-              id="quete-veterance"
+              id="quete-fp"
               type="number"
-              min="0"
-              value={form.veterance_requise}
-              onChange={(e) => setForm({ ...form, veterance_requise: e.target.value })}
+              min="1"
+              value={form.facteur_puissance}
+              onChange={(e) => setForm({ ...form, facteur_puissance: e.target.value })}
             />
           </div>
         </div>
@@ -3086,7 +3086,7 @@ function QuetesSection() {
             <tr>
               <th>Icône</th>
               <th>Titre</th>
-              <th>Vétérance</th>
+              <th>FP</th>
               <th>Instances</th>
               <th>Or</th>
               <th>Récompenses</th>
@@ -3106,7 +3106,7 @@ function QuetesSection() {
                     )}
                   </td>
                   <td>{q.nom}</td>
-                  <td>{q.veterance_requise}</td>
+                  <td>{q.facteur_puissance ?? 1}</td>
                   <td>{q.instances_requises ?? 1}</td>
                   <td>{q.recompense_or}</td>
                   <td>

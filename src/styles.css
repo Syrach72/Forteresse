@@ -5207,3 +5207,64 @@ a.merc-card:hover {
 .fiche-objet-description {
   white-space: pre-line;
 }
+
+/* Quêtes : tuile de pierre avec le facteur de puissance (FP), à la place du laurier de vétérance. */
+.quest-fp {
+  position: absolute;
+  right: -19px;
+  top: -31px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  background: url(/assets/icons/tuile-fp.webp) center / 100% 100% no-repeat;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.55));
+  color: #f5e9c8;
+  font: 700 30px Georgia, serif;
+  text-shadow: 0 1px 3px #000, 0 0 6px #000;
+}
+.quest-fp-long {
+  font-size: 22px;
+}
+@media (max-width: 640px) {
+  .quest-fp {
+    width: 56px;
+    height: 56px;
+    right: -15px;
+    font-size: 24px;
+  }
+}
+/* Jauge de difficulté : rouge (trop dure) | blanc (autorisée) | vert (trop facile). */
+.quest-jauge {
+  margin: 14px 0 4px;
+}
+.quest-jauge-barre {
+  position: relative;
+  height: 14px;
+  border: 2px solid #1a1d1e;
+  border-radius: 8px;
+  background: linear-gradient(
+    to right,
+    #a5281c 0%,
+    #a5281c 32.5%,
+    #efe9d6 32.5%,
+    #efe9d6 67.5%,
+    #3f9a45 67.5%,
+    #3f9a45 100%
+  );
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+.quest-jauge-marqueur {
+  position: absolute;
+  top: -7px;
+  width: 6px;
+  height: 26px;
+  margin-left: -3px;
+  border: 1px solid #000;
+  border-radius: 3px;
+  background: #f0c94f;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
+  transition: left 0.45s ease;
+}
