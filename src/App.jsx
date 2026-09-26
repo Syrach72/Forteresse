@@ -23,7 +23,7 @@ import {
   buildDorm,
   firstFreeBed,
 } from "./dormitory";
-import { CHARACTER_CLASSES } from "./characters";
+import { CHARACTER_CLASSES, COUT_RECRUTEMENT_PAR_VETERANCE } from "./characters";
 import { Admin } from "./Admin.jsx";
 import { Modal } from "./Modal.jsx";
 import { supabase } from "./supabaseClient";
@@ -1013,7 +1013,7 @@ export function App() {
           name: m.nom,
           role: m.classe,
           portrait: m.portrait || "/assets/icons/lock.webp",
-          veterancy: m.veterance ?? 0,
+          veterancy: m.veterance ?? 1,
           player: mesRecrutes.get(m.id) || "",
           notes: "",
         })),
@@ -1030,7 +1030,7 @@ export function App() {
           name: m.nom,
           role: m.classe,
           portrait: m.portrait || "/assets/icons/lock.webp",
-          veterancy: m.veterance ?? 0,
+          veterancy: m.veterance ?? 1,
           player: joueurs.get(m.id) || "",
         })),
     [mercenaires, tousRecrutes, joueurs],
@@ -1056,7 +1056,7 @@ export function App() {
   // le seul cas où le lit se libère.
   const absences = useMemo(() => {
     const m = {};
-    const veterance = (id) => mercenaires.find((x) => x.id === id)?.veterance ?? 0;
+    const veterance = (id) => mercenaires.find((x) => x.id === id)?.veterance ?? 1;
     const suite = (n) => (n > 0 ? ` (encore ${n} instance${n > 1 ? "s" : ""})` : "");
     for (const g of [training, training.second]) {
       if (g.instructor) m[g.instructor.heroId] = "Instructeur";
@@ -1193,7 +1193,7 @@ export function App() {
           nom: m.nom,
           classe: nomClasse.get(m.classe_id) || "",
           portrait: m.portrait || null,
-          veterance: m.veterance ?? 0,
+          veterance: m.veterance ?? 1,
         })),
       );
     })();
@@ -1218,13 +1218,20 @@ export function App() {
       );
       return;
     }
-    // Le numéro de lit est attribué par la base (premier lit libre) ; elle
-    // refuse aussi le recrutement s'il n'y en a plus, ou si un autre joueur
-    // vient de recruter ce mercenaire.
-    const { error } = await supabase.from("recrutement").insert({
-      mercenaire_id: m.id,
-      user_id: session.user.id,
-      nom_joueur: joueur,
+    // Recrutement payant : 100 Po × vétérance, prélevés sur la trésorerie. La base paie et
+    // recrute dans la même opération ; le numéro de lit est attribué par elle (premier lit
+    // libre) et elle refuse si la trésorerie manque, s'il n'y a plus de lit ou si un autre
+    // joueur vient de recruter ce mercenaire.
+    const cout = COUT_RECRUTEMENT_PAR_VETERANCE * (m.veterance ?? 1);
+    if (game.gold < cout) {
+      notify(
+        `Recrutement impossible : ${m.nom} coûte ${cout} Po (100 Po × vétérance ${m.veterance ?? 1}) et la trésorerie n’en compte que ${game.gold}.`,
+      );
+      return;
+    }
+    const { data, error } = await supabase.rpc("mercenaire_recruter", {
+      p_mercenaire: m.id,
+      p_nom_joueur: joueur,
     });
     await synchroniserPartage();
     if (error) {
@@ -1237,7 +1244,7 @@ export function App() {
     }
     const lit = dormRef.current.beds.findIndex((b) => b?.heroId === m.id);
     notify(
-      `${m.nom} est recruté par ${joueur} et prend place au lit ${lit + 1} du Dortoir.`,
+      `${m.nom} est recruté par ${joueur} (−${data?.cout ?? cout} Po) et prend place au lit ${lit + 1} du Dortoir.`,
     );
     // Recrutement réussi : on va directement voir le mercenaire dans son lit.
     location.hash = "dortoirs";
@@ -1246,8 +1253,8 @@ export function App() {
   // (la base n'autorise l'écriture sur `mercenaire` qu'à l'admin : is_admin()).
   async function setVeterance(id, value) {
     const n = Number(value);
-    if (String(value).trim() === "" || !Number.isInteger(n) || n < 0 || n > 999)
-      return { error: "Saisissez un entier de 0 à 999." };
+    if (String(value).trim() === "" || !Number.isInteger(n) || n < 1 || n > 999)
+      return { error: "Saisissez un entier de 1 à 999 (la vétérance minimale est 1)." };
     // La vétérance est propre à la session (mercenaire_etat) ; le catalogue partagé ne change pas.
     const { error } = await supabase.rpc("mercenaire_definir_veterance", {
       p_mercenaire: id,
@@ -1620,7 +1627,7 @@ export function App() {
         name: m.nom,
         role: m.classe,
         portrait: m.portrait || "/assets/icons/lock.webp",
-        veterancy: m.veterance ?? 0,
+        veterancy: m.veterance ?? 1,
       })),
     [mercenaires],
   );
@@ -2838,6 +2845,7 @@ export function App() {
           onDesequiper={actDesequiper}
           erreur={actionError}
           onClearError={() => setActionError("")}
+          or={game.gold}
           busy={busy}
         />
         {roomNav}

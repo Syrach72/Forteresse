@@ -4867,13 +4867,14 @@ a.merc-card:hover {
 }
 .equip-texte {
   min-width: 0;
+  color: #000;
   font-size: 15px;
   line-height: 1.25;
 }
 .equip-description {
   margin: 2px 0 4px;
-  color: var(--muted);
-  font-size: 14px;
+  color: #000;
+  font-size: 15px;
 }
 .equip-stats {
   display: flex;
@@ -4886,7 +4887,7 @@ a.merc-card:hover {
   gap: 4px;
 }
 .equip-stats dt {
-  color: var(--muted);
+  color: #000;
 }
 .equip-stats dt::after {
   content: " :";
@@ -4902,7 +4903,7 @@ a.merc-card:hover {
   font-size: 13px;
 }
 .equip-oui {
-  color: var(--wood);
+  color: #000;
   font-weight: 700;
 }
 .equip-non {
@@ -4910,6 +4911,7 @@ a.merc-card:hover {
 }
 .equip-retirer {
   padding: 0;
+  color: #000;
   font-size: 14px;
 }
 @media (max-width: 900px) {
@@ -5026,4 +5028,8 @@ a.merc-card:hover {
   .equip-grille {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+.merc-cout-recrutement {
+  margin: 0 0 8px;
+  font-size: 16px;
 }

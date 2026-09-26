@@ -74,3 +74,7 @@ export const WEAPONS = [
   },
 ];
 export const LEVELS = [0, 1, 2, 3, 5, 7, 9, 10, 12, 14, 16, 18, 20];
+
+// Recruter un mercenaire coûte 100 Po × sa vétérance (règle de Bruno ; même valeur côté serveur,
+// fonction mercenaire_recruter).
+export const COUT_RECRUTEMENT_PAR_VETERANCE = 100;

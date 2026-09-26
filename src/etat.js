@@ -22,7 +22,7 @@ export async function chargerMercenaires(colonnes = "*") {
 export async function chargerVeterances() {
   const { data, error } = await chargerMercenaires("id, veterance");
   if (error) return { error };
-  return { data: new Map(data.map((m) => [m.id, m.veterance ?? 0])) };
+  return { data: new Map(data.map((m) => [m.id, m.veterance ?? 1])) };
 }
 
 // Quêtes du catalogue avec leur état dans la session : en_cours, instances_restantes, terminee_le.

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { CHARACTER_CLASSES, WEAPONS, LEVELS } from "./characters";
+import { CHARACTER_CLASSES, WEAPONS, LEVELS, COUT_RECRUTEMENT_PAR_VETERANCE } from "./characters";
 import { ASSETS } from "./data";
 import { SOINS_INSTANCES } from "./dormitory.js";
 import { VetBadge } from "./VetBadge.jsx";
@@ -96,6 +96,7 @@ export function Characters({
   onEquiper = () => {},
   onDesequiper = () => {},
   erreur = "",
+  or = 0,
   onClearError = () => {},
   busy = false,
 }) {
@@ -305,7 +306,7 @@ export function Characters({
                     <input
                       id="merc-veterance"
                       type="number"
-                      min="0"
+                      min="1"
                       max="999"
                       step="1"
                       value={vet}
@@ -408,7 +409,8 @@ export function Characters({
                   <p className="merc-recrute-note">
                     {merc.nom} a son lit au Dortoir. Le renvoyer efface le nom
                     du joueur et libère le lit ; il conserve sa vétérance et sa
-                    fiche.
+                    fiche. Le recruter de nouveau coûterait{" "}
+                    {COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po.
                   </p>
                 </div>
               ) : tousRecrutes.includes(merc.id) ? (
@@ -424,6 +426,11 @@ export function Characters({
                       onRecruit(merc, nomJoueur.trim());
                   }}
                 >
+                  <p className="merc-cout-recrutement">
+                    Recrutement : {COUT_RECRUTEMENT_PAR_VETERANCE} Po × vétérance {merc.veterance ?? 1} ={" "}
+                    <strong>{COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po</strong>, prélevés sur la
+                    trésorerie. Renvoyé, il faudra le payer de nouveau pour le recruter.
+                  </p>
                   <label htmlFor="merc-nom-joueur">Nom du joueur</label>
                   <input
                     id="merc-nom-joueur"
@@ -438,14 +445,16 @@ export function Characters({
                   <button
                     className="wood-button merc-recruit"
                     type="submit"
-                    disabled={!litLibre || !nomJoueur.trim()}
+                    disabled={!litLibre || !nomJoueur.trim() || or < COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)}
                   >
-                    Recruter
+                    Recruter · {COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po
                   </button>
                   <p id="merc-recruit-help" className="merc-recrute-note">
                     {!litLibre
                       ? `Aucun lit libre au Dortoir : libérez un lit ou débloquez-en un pour recruter ${merc.nom}.`
-                      : !nomJoueur.trim()
+                      : or < COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)
+                        ? `Trésorerie insuffisante : ${COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po sont nécessaires (la compagnie en possède ${or}).`
+                        : !nomJoueur.trim()
                         ? "Inscrivez votre nom pour pouvoir recruter ce mercenaire. Il restera affiché sur lui jusqu’à son renvoi."
                         : `${merc.nom} prendra place dans un lit du Dortoir.`}
                   </p>
@@ -475,17 +484,17 @@ export function Characters({
             <h2 id="merc-competences-titre">Compétences</h2>
             <p className="muted">
               Une ligne par niveau de vétérance ; les compétences d’une ligne se débloquent quand la vétérance de {merc.nom}{" "}
-              ({merc.veterance ?? 0}) l’atteint.
+              ({merc.veterance ?? 1}) l’atteint.
             </p>
             <TableauCompetences
               cellules={competences.get(merc.id) || []}
-              veterance={merc.veterance ?? 0}
+              veterance={merc.veterance ?? 1}
               onCell={(c) =>
                 setPopup({
                   type: "competence",
                   title: c.competence?.nom || "Cellule vide",
                   cellule: c,
-                  veterance: merc.veterance ?? 0,
+                  veterance: merc.veterance ?? 1,
                 })
               }
             />

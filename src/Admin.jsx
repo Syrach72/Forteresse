@@ -1693,7 +1693,7 @@ function emptyMercenaire(classeId = "") {
     nom: "",
     classe_id: classeId,
     portrait: "",
-    veterance: "",
+    veterance: "1",
     attaque: "",
     defense: "",
     esprit: "",
@@ -2086,7 +2086,8 @@ function MercenairesSection() {
       nom: form.nom,
       classe_id: form.classe_id || null,
       portrait,
-      veterance: toIntOrNull(form.veterance),
+      // Aucun mercenaire n'a moins de 1 de vétérance.
+      veterance: Math.max(1, toIntOrNull(form.veterance) ?? 1),
       attaque: toIntOrNull(form.attaque),
       defense: toIntOrNull(form.defense),
       esprit: toIntOrNull(form.esprit),
