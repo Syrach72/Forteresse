@@ -5539,3 +5539,8 @@ a.merc-card:hover {
 .personnages-cadre {
   position: relative;
 }
+
+/* Les rubriques touchent leurs onglets (pas d'espace entre la barre d'onglets et le panneau). */
+.merc-fiche > .merc-bloc {
+  margin-top: 0;
+}
