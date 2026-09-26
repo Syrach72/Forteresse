@@ -146,9 +146,13 @@ export function Characters({
   const [onglet, setOnglet] = useState("general");
   // Nom du mercenaire (avec le nom du joueur), répété en haut de chaque rubrique de la fiche.
   const titreMerc = merc ? (
-    <h1 className="merc-nom" tabIndex="-1" ref={title}>
-      {merc.nom}
-      {nomsJoueur[merc.id] ? ` (${nomsJoueur[merc.id]})` : ""}
+    <h1 className={`merc-nom${onglet !== "general" ? " merc-nom-vet" : ""}`} tabIndex="-1" ref={title}>
+      {/* Équipement et Compétences : la vétérance est rappelée juste avant le nom (sur Général, elle est sur le portrait). */}
+      {onglet !== "general" && <VetBadge className="merc-vet-titre" value={merc.veterance} />}
+      <span>
+        {merc.nom}
+        {nomsJoueur[merc.id] ? ` (${nomsJoueur[merc.id]})` : ""}
+      </span>
     </h1>
   ) : null;
   useEffect(() => {

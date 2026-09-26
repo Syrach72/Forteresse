@@ -5699,3 +5699,13 @@ a.merc-card:hover {
 .merc-carac-unite {
   font-weight: 400;
 }
+
+/* Rubriques Équipement et Compétences : icône de vétérance juste avant le nom. */
+.merc-nom-vet {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.merc-vet-titre {
+  --vet: 58px;
+}
