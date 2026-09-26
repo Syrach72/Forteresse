@@ -116,6 +116,13 @@ export function Characters({
   const maxAuto = (base, vet) => Math.max(6, (base ?? 0) * (vet ?? 1));
   const energieMax = merc ? maxAuto(merc.mental, merc.veterance) : null;
   const santeMax = merc ? maxAuto(merc.puissance, merc.veterance) : null;
+  // Nom du mercenaire (avec le nom du joueur), répété en haut de chaque rubrique de la fiche.
+  const titreMerc = merc ? (
+    <h1 className="merc-nom" tabIndex="-1" ref={title}>
+      {merc.nom}
+      {nomsJoueur[merc.id] ? ` (${nomsJoueur[merc.id]})` : ""}
+    </h1>
+  ) : null;
   const hero = merc ? undefined : warriors.find((w) => w.id === heroId);
   // Fiche d'un mercenaire recruté : réservée à son recruteur et à l'admin.
   const accesFiche = (id) => !tousRecrutes.includes(id) || recrutes.includes(id) || estAdmin;
@@ -322,6 +329,7 @@ export function Characters({
           </div>
           {onglet === "general" && (
           <section className="merc-sheet parchment" id="merc-rubrique-general" role="tabpanel" aria-labelledby="merc-onglet-general">
+            <div className="merc-titre-rubrique">{titreMerc}</div>
             <div className="merc-colonne-gauche">
               <div className="merc-portrait-cadre">
                 <span className="merc-portrait merc-portrait-grand">
@@ -351,10 +359,6 @@ export function Characters({
               </div>
             </div>
             <div className="merc-colonne-droite">
-              <h1 className="merc-nom" tabIndex="-1" ref={title}>
-                {merc.nom}
-                {nomsJoueur[merc.id] ? ` (${nomsJoueur[merc.id]})` : ""}
-              </h1>
               <div className="stat-line">
                 <span>Classe</span>
                 <strong>
@@ -605,6 +609,7 @@ export function Characters({
           )}
           {onglet === "equipement" && tousRecrutes.includes(merc.id) && (
             <section className="merc-bloc parchment" id="merc-rubrique-equipement" role="tabpanel" aria-labelledby="merc-onglet-equipement">
+              {titreMerc}
               <div className="merc-bloc-entete">
                 <h2 id="merc-equipement-titre">Équipement</h2>
                 {/* Sac à dos (inventaire) : dans la rubrique Équipement. */}
@@ -638,6 +643,7 @@ export function Characters({
           )}
           {onglet === "competences" && (
           <section className="merc-bloc parchment" id="merc-rubrique-competences" role="tabpanel" aria-labelledby="merc-onglet-competences">
+            {titreMerc}
             <h2 id="merc-competences-titre">Compétences</h2>
             <p className="muted">
               Une ligne par niveau de vétérance ; les compétences d’une ligne se débloquent quand la vétérance de {merc.nom}{" "}

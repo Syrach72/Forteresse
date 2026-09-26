@@ -5524,3 +5524,12 @@ a.merc-card:hover {
   width: 84px;
   height: 84px;
 }
+
+/* Nom du mercenaire en haut de chaque rubrique. */
+.merc-titre-rubrique {
+  grid-column: 1 / -1;
+}
+.merc-nom {
+  margin: 0 0 8px;
+  font-size: 34px;
+}
