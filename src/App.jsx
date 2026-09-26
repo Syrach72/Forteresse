@@ -2804,6 +2804,7 @@ export function App() {
             className="interior-backdrop"
             style={{ backgroundImage: "url(/assets/employes-fond.jpg)" }}
           />
+          <BackdropVideo src="/assets/video/employes-anime.mp4" />
           <div className="room-top">
             <a href="#forteresse">‹ Forteresse</a>
             <h1 ref={titleRef} tabIndex="-1">

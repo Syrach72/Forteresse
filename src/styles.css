@@ -923,6 +923,16 @@ video.interior-backdrop-boxed {
   padding: 0 82px 45px 32px;
   background: #3d362c;
 }
+/* Fond animé 16:9 : hauteur entière (aucun zoom), collé à gauche pour garder
+   l'arbre entier ; c'est la partie droite qui est coupée (le feu reste visible).
+   min-width : sur un écran plus large que 16:9, la vidéo remplit quand même. */
+.employes-page video.interior-backdrop {
+  width: auto;
+  min-width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: left top;
+}
 .employes-panel {
   padding: 20px;
 }
