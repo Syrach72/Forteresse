@@ -978,6 +978,10 @@ export function App() {
   // Sac à dos de chaque mercenaire (id -> [{objetId, quantite, nom, icone}]),
   // reconstruit à chaque synchronisation partagée (cf. synchroniserEconomie).
   const [sacsDos, setSacsDos] = useState(() => new Map());
+  // Équipement de chaque mercenaire (id -> { arme: [3], armure: [1], objet: [3] }, session
+  // active) et cellules de compétences (id -> [{veterance, type, position, competence}], commun).
+  const [equipements, setEquipements] = useState(() => new Map());
+  const [competencesMerc, setCompetencesMerc] = useState(() => new Map());
   // Effectif embauché (Collecte des Ressources), partagé comme l'arsenal.
   const [employesRoster, setEmployesRoster] = useState([]);
   // Métiers du catalogue (Mineur, Bûcheron, Tanneur…) : la page Collecte les
@@ -1160,12 +1164,28 @@ export function App() {
     if (!session?.user) return;
     let annule = false;
     (async () => {
-      const [{ data: merc, error: e1 }, { data: classes, error: e2 }] =
+      const [{ data: merc, error: e1 }, { data: classes, error: e2 }, comp] =
         await Promise.all([
           chargerMercenaires(),
           supabase.from("classe").select("id, nom"),
+          supabase
+            .from("mercenaire_competence")
+            .select("mercenaire_id, veterance, type, position, competence(nom, description, icone)"),
         ]);
       if (annule || e1 || e2) return;
+      if (!comp.error) {
+        const parMerc = new Map();
+        for (const c of comp.data || []) {
+          if (!parMerc.has(c.mercenaire_id)) parMerc.set(c.mercenaire_id, []);
+          parMerc.get(c.mercenaire_id).push({
+            veterance: c.veterance,
+            type: c.type,
+            position: c.position,
+            competence: c.competence,
+          });
+        }
+        setCompetencesMerc(parMerc);
+      }
       const nomClasse = new Map(classes.map((c) => [c.id, c.nom]));
       setMercenaires(
         merc.map((m) => ({
@@ -1624,7 +1644,7 @@ export function App() {
   // Or de la compagnie, arsenal, journal et fabrications en cours : lus en base
   // et reversés dans `game` (même forme qu'avant, pour l'affichage existant).
   async function synchroniserEconomie() {
-    const [etat, inv, lignes, fab, jour, sert, emp] = await Promise.all([
+    const [etat, inv, lignes, fab, jour, sert, emp, eqp] = await Promise.all([
       supabase.from("partie_etat").select("or_compagnie").maybeSingle(),
       supabase.from("inventaire").select("id, type, mercenaire_id"),
       supabase.from("ligne_inventaire").select("inventaire_id, objet_id, quantite, gemmes"),
@@ -1639,6 +1659,7 @@ export function App() {
         .select("arme_objet_id, arme_gemmes, gemme_objet_id, restant")
         .maybeSingle(),
       supabase.from("employe").select("objet_id, outil, quantite"),
+      supabase.from("mercenaire_equipement").select("mercenaire_id, emplacement, position, objet_id, gemmes"),
     ]);
     if (etat.error || inv.error || lignes.error || fab.error || !etat.data) return;
     const arsenal = inv.data.find((i) => i.type === "arsenal");
@@ -1664,13 +1685,14 @@ export function App() {
       ...enStock.flatMap((x) => x.gemmes || []),
       ...(sertActif ? [sertActif.arme_objet_id, sertActif.gemme_objet_id, ...(sertActif.arme_gemmes || [])] : []),
       ...(emp.data || []).map((x) => x.objet_id),
+      ...(eqp.data || []).flatMap((x) => [x.objet_id, ...(x.gemmes || [])]),
     ];
     if (idsRequis.some((id) => !cache.objets.has(id))) {
       const [o, c] = await Promise.all([
         supabase
           .from("objet_catalogue")
           .select(
-            "id, nom, icone, categorie_id, cout_achat_or, emploi_materiau_id, emploi_production, emploi_production_outil, emploi_outil_id, emploi_entretien",
+            "id, nom, icone, description, categorie_id, cout_achat_or, emploi_materiau_id, emploi_production, emploi_production_outil, emploi_outil_id, emploi_entretien, portee, allonge, type_degats, legere, deux_mains, protection, type_armure, malus_discretion, malus_vitesse",
           ),
         supabase.from("categorie").select("id, nom, parent_id"),
       ]);
@@ -1697,6 +1719,7 @@ export function App() {
             quantite: l.quantite,
             nom: o?.nom || "Objet",
             icone: o?.icone || null,
+            categorie: o ? racine(o.categorie_id) : null,
             gemmes,
             gemmesIcones: gemmes.map((g) => cache.objets.get(g)?.icone).filter(Boolean),
           };
@@ -1704,6 +1727,32 @@ export function App() {
       sacs.set(s.mercenaire_id, items);
     }
     setSacsDos(sacs);
+    // Équipement des mercenaires (table absente ou illisible : simplement vide).
+    const equip = new Map();
+    for (const e of eqp.data || []) {
+      const o = cache.objets.get(e.objet_id) || {};
+      const gemmes = e.gemmes && e.gemmes.length ? e.gemmes : [];
+      if (!equip.has(e.mercenaire_id))
+        equip.set(e.mercenaire_id, { arme: [null, null, null], armure: [null], objet: [null, null, null] });
+      equip.get(e.mercenaire_id)[e.emplacement][e.position] = {
+        objetId: e.objet_id,
+        gemmes,
+        gemmesIcones: gemmes.map((g) => cache.objets.get(g)?.icone).filter(Boolean),
+        nom: o.nom || "Objet",
+        icone: o.icone || null,
+        description: o.description || "",
+        portee: o.portee ?? null,
+        allonge: o.allonge ?? null,
+        typeDegats: o.type_degats ?? null,
+        legere: !!o.legere,
+        deuxMains: !!o.deux_mains,
+        protection: o.protection ?? null,
+        typeArmure: o.type_armure ?? null,
+        malusDiscretion: o.malus_discretion ?? null,
+        malusVitesse: o.malus_vitesse ?? null,
+      };
+    }
+    setEquipements(equip);
     const inventory = [];
     for (const l of enStock) {
       // Une arme sertie (gemmes non vide) est un exemplaire distinct de la
@@ -1914,6 +1963,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_etat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_mercenaire" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "ligne_inventaire" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_equipement" }, rafraichir)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "mercenaire" }, rafraichir)
       .subscribe();
     return () => {
@@ -2283,6 +2333,33 @@ export function App() {
     );
     if (!data) return;
     notify(`${nom} ×${quantity} envoyé au sac à dos.`);
+  }
+  // Équiper depuis le sac à dos (fiche du mercenaire) : l'objet quitte le sac et prend un
+  // emplacement d'arme, d'armure ou d'objet. Le serveur refuse si les emplacements sont pris.
+  async function actEquiperSac(mercenaireId, objetId, gemmes = []) {
+    const nom = sacsDos.get(mercenaireId)?.find((i) => i.objetId === objetId)?.nom || "L’objet";
+    const data = await operationPartagee(() =>
+      supabase.rpc("sac_dos_equiper", {
+        p_mercenaire: mercenaireId,
+        p_objet: objetId,
+        p_gemmes: gemmes && gemmes.length ? gemmes : null,
+      }),
+    );
+    if (!data) return;
+    notify(`${nom} équipé.`);
+  }
+  // Déséquiper : l'objet retourne au sac à dos (refusé si le sac est plein).
+  async function actDesequiper(mercenaireId, emplacement, position) {
+    const nom = equipements.get(mercenaireId)?.[emplacement]?.[position]?.nom || "L’objet";
+    const data = await operationPartagee(() =>
+      supabase.rpc("equipement_retirer", {
+        p_mercenaire: mercenaireId,
+        p_emplacement: emplacement,
+        p_position: position,
+      }),
+    );
+    if (!data) return;
+    notify(`${nom} déséquipé : retourné au sac à dos.`);
   }
   async function actRendreArsenal(mercenaireId, objetId, quantity, gemmes = null) {
     const nom = sacsDos.get(mercenaireId)?.find((i) => i.objetId === objetId)?.nom || "L’objet";
@@ -2753,6 +2830,13 @@ export function App() {
           notify={notify}
           sacsDos={sacsDos}
           onRendreArsenal={actRendreArsenal}
+          equipements={equipements}
+          competences={competencesMerc}
+          onEquiper={actEquiperSac}
+          onDesequiper={actDesequiper}
+          erreur={actionError}
+          onClearError={() => setActionError("")}
+          busy={busy}
         />
         {roomNav}
         </>

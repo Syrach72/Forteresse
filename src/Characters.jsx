@@ -3,6 +3,9 @@ import { CHARACTER_CLASSES, WEAPONS, LEVELS } from "./characters";
 import { ASSETS } from "./data";
 import { SOINS_INSTANCES } from "./dormitory.js";
 import { VetBadge } from "./VetBadge.jsx";
+import { TableauCompetences, EquipementMercenaire, DetailCompetence } from "./MercFiche.jsx";
+// Objets qui peuvent être équipés depuis le sac à dos (rubriques du catalogue).
+const EQUIPABLES = ["Armes", "Armures", "Objet divers"];
 const PARCHMENT_CLASSES = [
   "guerrier",
   "roublard",
@@ -88,6 +91,13 @@ export function Characters({
   notify,
   sacsDos = new Map(),
   onRendreArsenal = () => {},
+  equipements = new Map(),
+  competences = new Map(),
+  onEquiper = () => {},
+  onDesequiper = () => {},
+  erreur = "",
+  onClearError = () => {},
+  busy = false,
 }) {
   const [, classId, heroId] = route.split("/");
   const cls = CHARACTER_CLASSES.find((c) => c[0] === classId);
@@ -110,6 +120,7 @@ export function Characters({
   const title = useRef();
   useEffect(() => {
     setPopup(null);
+    onClearError();
     setNomJoueur("");
     document.title = `${hero?.name || cls?.[1] || "Personnages"} · Forteresse`;
     title.current?.focus({ preventScroll: true });
@@ -264,6 +275,7 @@ export function Characters({
         )
       ) : merc ? (
         accesFiche(merc.id) ? (
+          <>
           <section className="merc-sheet parchment">
             <span className="merc-portrait merc-portrait-grand">
               {merc.portrait ? (
@@ -441,6 +453,44 @@ export function Characters({
               )}
             </div>
           </section>
+          {tousRecrutes.includes(merc.id) && (
+            <section className="merc-bloc parchment" aria-labelledby="merc-equipement-titre">
+              <h2 id="merc-equipement-titre">Équipement</h2>
+              <p className="muted">
+                3 armes, 1 armure et 3 objets. On équipe depuis le sac à dos ; déséquiper renvoie l’objet au sac.
+              </p>
+              {erreur && (
+                <p className="error" role="alert">
+                  {erreur}
+                </p>
+              )}
+              <EquipementMercenaire
+                equip={equipements.get(merc.id)}
+                busy={busy}
+                onDesequiper={(emplacement, position) => onDesequiper(merc.id, emplacement, position)}
+              />
+            </section>
+          )}
+          <section className="merc-bloc parchment" aria-labelledby="merc-competences-titre">
+            <h2 id="merc-competences-titre">Compétences</h2>
+            <p className="muted">
+              Une ligne par niveau de vétérance ; les compétences d’une ligne se débloquent quand la vétérance de {merc.nom}{" "}
+              ({merc.veterance ?? 0}) l’atteint.
+            </p>
+            <TableauCompetences
+              cellules={competences.get(merc.id) || []}
+              veterance={merc.veterance ?? 0}
+              onCell={(c) =>
+                setPopup({
+                  type: "competence",
+                  title: c.competence?.nom || "Cellule vide",
+                  cellule: c,
+                  veterance: merc.veterance ?? 0,
+                })
+              }
+            />
+          </section>
+          </>
         ) : (
           <section className="parchment empty-class">
             <h2>Fiche réservée</h2>
@@ -662,8 +712,14 @@ export function Characters({
               <p className="muted">
                 9 emplacements, jusqu’à 3 par objet. Envoyé depuis l’Arsenal
                 (composants alchimiques, armes, armures et objets divers) ;
-                rendu à l’arsenal ci-dessous, sans restriction.
+                rendu à l’arsenal ci-dessous, sans restriction. Armes, armures
+                et objets peuvent être équipés (bouton « Équiper »).
               </p>
+              {erreur && (
+                <p className="error" role="alert">
+                  {erreur}
+                </p>
+              )}
               <div className="sac-dos-grid">
                 {Array.from({ length: 9 }, (_, i) => (sacsDos.get(merc.id) || [])[i] || null).map(
                   (item, i) =>
@@ -678,6 +734,16 @@ export function Characters({
                               <img key={k} src={g} alt="Gemme sertie" />
                             ))}
                           </span>
+                        )}
+                        {EQUIPABLES.includes(item.categorie) && (
+                          <button
+                            type="button"
+                            className="wood-button sac-dos-equiper"
+                            disabled={busy}
+                            onClick={() => onEquiper(merc.id, item.objetId, item.gemmes)}
+                          >
+                            Équiper
+                          </button>
                         )}
                         <button
                           type="button"
@@ -793,6 +859,8 @@ export function Characters({
                 <button className="primary">Enregistrer la fiche</button>
               </div>
             </form>
+          ) : popup.type === "competence" ? (
+            <DetailCompetence cellule={popup.cellule} veterance={popup.veterance} />
           ) : popup.type === "fougue" ? (
             <div className="ability-description">
               <ReferenceCrop

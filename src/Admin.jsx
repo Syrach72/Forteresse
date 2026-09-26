@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { ASSETS } from "./data";
 import { useSessions } from "./Sessions.jsx";
+import { TableauCompetences } from "./MercFiche.jsx";
 
 // Atelier de fabrication d'un objet, déduit de la rubrique racine de sa
 // catégorie (vérifié sur les recettes existantes : aucune exception). Il n'y
@@ -1898,6 +1899,260 @@ function PortraitCropper({
   );
 }
 
+// Catalogue de compétences (commun à toutes les sessions) : icône, nom, description. Le MJ les
+// place ensuite dans les cellules du tableau de chaque mercenaire (CompetencesEditor).
+function CompetencesSection() {
+  const competences = useTable("competence", { order: "nom" });
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ nom: "", description: "", icone: "" });
+  const [iconeFile, setIconeFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [confirmingId, setConfirmingId] = useState(null);
+
+  function startEdit(c) {
+    setEditing(c.id);
+    setForm({ nom: c.nom, description: c.description || "", icone: c.icone || "" });
+    setIconeFile(null);
+    setMsg("");
+  }
+  function cancel() {
+    setEditing(null);
+    setForm({ nom: "", description: "", icone: "" });
+    setIconeFile(null);
+    setMsg("");
+  }
+  async function submit(e) {
+    e.preventDefault();
+    if (!form.nom.trim()) {
+      setMsg("Le nom est obligatoire.");
+      return;
+    }
+    let icone = form.icone || null;
+    if (iconeFile) {
+      setUploading(true);
+      const result = await uploadImage("catalogue-icones", iconeFile, `competence-${form.nom}`);
+      setUploading(false);
+      if (result.error) {
+        setMsg(result.error);
+        return;
+      }
+      icone = result.url;
+    }
+    const values = { nom: form.nom.trim(), description: form.description.trim() || null, icone };
+    const err = editing ? await competences.update(editing, values) : await competences.insert(values);
+    if (err) setMsg(err.includes("competence_nom_key") ? "Une compétence porte déjà ce nom." : err);
+    else cancel();
+  }
+  async function del(id) {
+    const err = await competences.remove(id);
+    if (err) setMsg(err);
+  }
+  if (competences.error) return <p className="admin-error">{competences.error}</p>;
+  if (!competences.rows) return <p>Chargement…</p>;
+  const apercu = iconeFile ? URL.createObjectURL(iconeFile) : form.icone;
+  return (
+    <div>
+      <p className="muted">
+        Le catalogue des compétences : une icône, un nom et une description. Placez-les ensuite dans le tableau d’un
+        mercenaire (onglet Mercenaires, « Modifier »).
+      </p>
+      <div className="admin-table-wrap">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Icône</th>
+              <th>Nom</th>
+              <th>Description</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {competences.rows.map((c) => (
+              <tr key={c.id} className={editing === c.id ? "editing" : ""}>
+                <td>
+                  {c.icone ? <img className="admin-icon" src={c.icone} alt="" loading="lazy" decoding="async" /> : "—"}
+                </td>
+                <td>{c.nom}</td>
+                <td>{c.description || "—"}</td>
+                <td className="admin-row-actions">
+                  <button type="button" className="text-button" onClick={() => startEdit(c)}>
+                    Modifier
+                  </button>
+                  <DeleteButton
+                    id={c.id}
+                    confirmingId={confirmingId}
+                    onAskConfirm={() => setConfirmingId(c.id)}
+                    onCancel={() => setConfirmingId(null)}
+                    onConfirm={() => {
+                      setConfirmingId(null);
+                      del(c.id);
+                    }}
+                  />
+                </td>
+              </tr>
+            ))}
+            {competences.rows.length === 0 && (
+              <tr>
+                <td colSpan={4}>Aucune compétence pour le moment.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <form className="admin-form" onSubmit={submit}>
+        <h3>{editing ? "Modifier la compétence" : "Ajouter une compétence"}</h3>
+        <div className="admin-form-grid">
+          <div className="field">
+            <label htmlFor="comp-nom">Nom</label>
+            <div className="input-wrap">
+              <input id="comp-nom" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required />
+            </div>
+          </div>
+          <div className="field">
+            <label htmlFor="comp-icone">Icône</label>
+            <input
+              id="comp-icone"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files[0];
+                if (f) setIconeFile(f);
+                e.target.value = "";
+              }}
+            />
+            {apercu && (
+              <div className="portrait-actions">
+                <img className="admin-icon" src={apercu} alt="Aperçu de l’icône" />
+                <button
+                  type="button"
+                  className="text-button portrait-remove"
+                  onClick={() => {
+                    setIconeFile(null);
+                    setForm({ ...form, icone: "" });
+                  }}
+                >
+                  Retirer l’icône
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="comp-description">Description</label>
+          <textarea
+            id="comp-description"
+            rows={3}
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+        </div>
+        {msg && <p className="admin-error">{msg}</p>}
+        <div className="admin-form-actions">
+          <button className="primary" type="submit" disabled={uploading}>
+            {uploading ? "Envoi de l’image…" : editing ? "Enregistrer" : "Ajouter"}
+          </button>
+          {editing && (
+            <button type="button" className="text-button" onClick={cancel}>
+              Annuler
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// Tableau de compétences d'un mercenaire (fiche admin) : un clic sur une cellule ouvre le choix
+// d'une compétence du catalogue (ou vide la cellule). Aucune cellule n'est grisée ici.
+function CompetencesEditor({ mercenaireId }) {
+  const [catalogue, setCatalogue] = useState(null);
+  const [cellules, setCellules] = useState(null);
+  const [sel, setSel] = useState(null);
+  const [choix, setChoix] = useState("");
+  const [msg, setMsg] = useState("");
+  async function charger() {
+    const [c, m] = await Promise.all([
+      supabase.from("competence").select("id, nom, description, icone").order("nom"),
+      supabase
+        .from("mercenaire_competence")
+        .select("veterance, type, position, competence_id")
+        .eq("mercenaire_id", mercenaireId),
+    ]);
+    if (c.error || m.error) setMsg((c.error || m.error).message);
+    else {
+      setCatalogue(c.data);
+      setCellules(m.data);
+      setMsg("");
+    }
+  }
+  useEffect(() => {
+    setSel(null);
+    setCatalogue(null);
+    setCellules(null);
+    charger();
+  }, [mercenaireId]);
+  if (msg && !cellules) return <p className="admin-error">{msg}</p>;
+  if (!cellules || !catalogue) return <p>Chargement du tableau de compétences…</p>;
+  const parId = new Map(catalogue.map((c) => [c.id, c]));
+  const idPlace = (niveau, type, position) =>
+    cellules.find((x) => x.veterance === niveau && x.type === type && x.position === position)?.competence_id || "";
+  const affichage = cellules.map((x) => ({ ...x, competence: parId.get(x.competence_id) }));
+  async function placer() {
+    if (!sel) return;
+    setMsg("");
+    const ligne = { mercenaire_id: mercenaireId, veterance: sel.niveau, type: sel.type, position: sel.position };
+    const { error } = choix
+      ? await supabase
+          .from("mercenaire_competence")
+          .upsert({ ...ligne, competence_id: choix }, { onConflict: "mercenaire_id,veterance,type,position" })
+      : await supabase.from("mercenaire_competence").delete().match(ligne);
+    if (error) setMsg(error.message);
+    else await charger();
+  }
+  const options = catalogue.map((c) => ({ value: c.id, label: c.nom }));
+  return (
+    <div className="admin-form comp-editeur">
+      <h3>Compétences</h3>
+      <p className="muted">
+        Cliquez une cellule (ligne = vétérance requise), choisissez une compétence du catalogue puis « Placer ». Les
+        compétences se créent dans l’onglet Compétences.
+      </p>
+      <TableauCompetences
+        cellules={affichage}
+        veterance={null}
+        selection={sel}
+        onCell={(c) => {
+          setSel(c);
+          setChoix(idPlace(c.niveau, c.type, c.position));
+          setMsg("");
+        }}
+      />
+      {sel && (
+        <div className="comp-editeur-choix">
+          <strong>
+            Vétérance {sel.niveau} · {sel.type === "passive" ? "passive" : "active"} n°{sel.position + 1}
+          </strong>
+          <SearchableSelect
+            value={choix}
+            onChange={setChoix}
+            options={options}
+            emptyLabel="— Cellule vide —"
+            ariaLabel="Compétence à placer"
+          />
+          <button type="button" className="primary" onClick={placer}>
+            {choix ? "Placer" : "Vider la cellule"}
+          </button>
+          <button type="button" className="text-button" onClick={() => setSel(null)}>
+            Fermer
+          </button>
+        </div>
+      )}
+      {msg && <p className="admin-error">{msg}</p>}
+    </div>
+  );
+}
+
 function MercenairesSection() {
   const mercenaires = useTable("mercenaire", { order: "nom" });
   const classes = useTable("classe", { order: "nom" });
@@ -2167,7 +2422,10 @@ function MercenairesSection() {
                 </tr>
                 {editing === m.id && (
                   <tr className="admin-edit-row">
-                    <td colSpan={5}>{formEl}</td>
+                    <td colSpan={5}>
+                      {formEl}
+                      <CompetencesEditor mercenaireId={m.id} />
+                    </td>
                   </tr>
                 )}
               </Fragment>
@@ -2506,6 +2764,9 @@ const TABLES_SAUVEGARDE = [
   "inventaire",
   "ligne_inventaire",
   "recrutement",
+  "competence",
+  "mercenaire_competence",
+  "mercenaire_equipement",
   "invitation",
   "profil",
 ];
@@ -3628,6 +3889,9 @@ export function Admin({ onCraftItem = () => {} }) {
         <button className={tab === "mercenaires" ? "active" : ""} onClick={() => setTab("mercenaires")}>
           Mercenaires
         </button>
+        <button className={tab === "competences" ? "active" : ""} onClick={() => setTab("competences")}>
+          Compétences
+        </button>
         <button className={tab === "arsenal" ? "active" : ""} onClick={() => setTab("arsenal")}>
           Arsenal
         </button>
@@ -3674,6 +3938,7 @@ export function Admin({ onCraftItem = () => {} }) {
           <NamedListSection table="classe" singular="classe" blockedBy="des mercenaires" />
         )}
         {sess.pret && tab === "mercenaires" && <MercenairesSection />}
+        {sess.pret && tab === "competences" && <CompetencesSection />}
         {sess.pret && !arsenalIndisponible && tab === "arsenal" && (sess.base ? <DepartBaseSection /> : <ArsenalSection />)}
         {sess.pret && tab === "quetes" && <QuetesSection />}
         {tab === "invitations" && <InvitationsSection sess={sess} sessionInitiale={sessionInvit} />}
