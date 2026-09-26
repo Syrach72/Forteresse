@@ -3,7 +3,7 @@ import { CHARACTER_CLASSES, WEAPONS, LEVELS, COUT_RECRUTEMENT_PAR_VETERANCE } fr
 import { ASSETS } from "./data";
 import { SOINS_INSTANCES } from "./dormitory.js";
 import { VetBadge } from "./VetBadge.jsx";
-import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade } from "./MercFiche.jsx";
+import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 // Caractéristiques affichées par une icône plutôt que par leur nom (le nom reste en texte alternatif).
 const ICONES_STATS = {
   Puissance: "/assets/icons/puissance.webp",
@@ -838,7 +838,15 @@ export function Characters({
           }
           onClose={() => setPopup(null)}
         >
-          {popup.type === "sac" ? (
+          {popup.type === "sac" && popup.objet ? (
+            <>
+              <button type="button" className="text-button" onClick={() => setPopup({ type: "sac" })}>
+                ‹ Retour au sac à dos
+              </button>
+              <h3 className="fiche-objet-titre">{popup.objet.nom}</h3>
+              <FicheObjet objet={popup.objet} />
+            </>
+          ) : popup.type === "sac" ? (
             <>
               <p className="muted">
                 9 emplacements, jusqu’à 3 par objet. Envoyé depuis l’Arsenal
@@ -856,9 +864,16 @@ export function Characters({
                   (item, i) =>
                     item ? (
                       <div className="sac-dos-slot" key={`${item.objetId}:${(item.gemmes || []).join(",")}:${i}`}>
-                        {item.icone && <img src={item.icone} alt="" />}
+                        <button
+                          type="button"
+                          className="sac-dos-fiche"
+                          title={`Consulter la fiche : ${item.nom}`}
+                          onClick={() => setPopup({ type: "sac", objet: item })}
+                        >
+                          {item.icone && <img src={item.icone} alt="" />}
+                          <span className="sac-dos-nom">{item.nom}</span>
+                        </button>
                         <span className="sac-dos-qty">×{item.quantite}</span>
-                        <span className="sac-dos-nom">{item.nom}</span>
                         {item.gemmesIcones?.length > 0 && (
                           <span className="sac-dos-gemmes">
                             {item.gemmesIcones.map((g, k) => (

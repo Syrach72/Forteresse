@@ -299,6 +299,75 @@ export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
   );
 }
 
+// Fiche d'un objet consultée depuis le sac à dos (lecture seule) : image, description, puis les
+// statistiques propres à sa rubrique (armes, armures, boucliers) seulement si elles sont renseignées.
+export function FicheObjet({ objet }) {
+  const o = objet;
+  const ligne = (libelle, v) =>
+    v === null || v === undefined || String(v).trim() === "" ? null : (
+      <div className="stat-line" key={libelle}>
+        <span>{libelle}</span>
+        <strong>{v}</strong>
+      </div>
+    );
+  const arme = o.categorie === "Armes";
+  const armure = o.categorie === "Armures" && !o.estBouclier;
+  const bouclier = o.categorie === "Armures" && o.estBouclier;
+  return (
+    <div className="fiche-objet">
+      <div className="fiche-objet-image">
+        <span className="equip-icone fiche-objet-icone">
+          {o.icone && <img src={o.icone} alt="" />}
+          {o.gemmesIcones?.length > 0 && (
+            <span className="equip-gemmes">
+              {o.gemmesIcones.map((g, k) => (
+                <img key={k} src={g} alt="Gemme sertie" />
+              ))}
+            </span>
+          )}
+        </span>
+        {arme && (
+          <span className="equip-arme-icones">
+            {[o.armeIcone1 || ICONE_ARME_PAR_DEFAUT, o.armeIcone2].filter(Boolean).map((src, k) => (
+              <img key={k} src={src} alt="" />
+            ))}
+          </span>
+        )}
+      </div>
+      <p className="fiche-objet-description">{o.description || "Aucune description pour le moment."}</p>
+      <div className="fiche-objet-stats">
+        {(arme || armure) && ligne("Vétérance requise", o.veteranceRequise)}
+        {arme && (
+          <>
+            {aUneValeur(o.portee) && ligne("Portée", o.portee)}
+            {aUneValeur(o.allonge) && ligne("Allonge", o.allonge)}
+            {ligne("Type de dégâts", o.typeDegats)}
+            {ligne("Parade", o.parade)}
+            {o.legere && ligne("Arme légère", "Oui")}
+            {o.deuxMains && ligne("Deux mains", "Oui")}
+          </>
+        )}
+        {armure && (
+          <>
+            {ligne("Protection", o.protection)}
+            {ligne("Type", o.typeArmure)}
+            {ligne("Discrétion", o.malusDiscretion)}
+            {ligne("Vitesse", o.malusVitesse)}
+          </>
+        )}
+        {bouclier && (
+          <>
+            {ligne("Parade", o.parade)}
+            {ligne("Esquive", o.malusEsquive)}
+            {ligne("Discrétion", o.malusDiscretion)}
+            {ligne("Vitesse", o.malusVitesse)}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Fenêtre d'une cellule de compétence (fiche joueur).
 export function DetailCompetence({ cellule, veterance }) {
   const { niveau, type, competence } = cellule;

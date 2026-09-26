@@ -1727,7 +1727,7 @@ export function App() {
         supabase
           .from("objet_catalogue")
           .select(
-            "id, nom, icone, description, categorie_id, cout_achat_or, emploi_materiau_id, emploi_production, emploi_production_outil, emploi_outil_id, emploi_entretien, portee, allonge, type_degats, legere, deux_mains, protection, type_armure, malus_discretion, malus_vitesse, malus_esquive, parade, arme_icone_1, arme_icone_2",
+            "id, nom, icone, description, categorie_id, cout_achat_or, emploi_materiau_id, emploi_production, emploi_production_outil, emploi_outil_id, emploi_entretien, portee, allonge, type_degats, legere, deux_mains, protection, type_armure, malus_discretion, malus_vitesse, malus_esquive, parade, arme_icone_1, arme_icone_2, veterance_requise",
           ),
         supabase.from("categorie").select("id, nom, parent_id"),
       ]);
@@ -1741,6 +1741,15 @@ export function App() {
       while (cur?.parent_id)
         cur = cache.categories.find((c) => c.id === cur.parent_id);
       return cur?.nom || null;
+    };
+    // Bouclier : la catégorie de l'objet ou l'un de ses ancêtres s'appelle « Bouclier… ».
+    const estBouclierCat = (categorieId) => {
+      let cur = cache.categories.find((c) => c.id === categorieId);
+      while (cur) {
+        if ((cur.nom || "").trim().toLowerCase().startsWith("bouclier")) return true;
+        cur = cache.categories.find((c) => c.id === cur.parent_id);
+      }
+      return false;
     };
     const sacs = new Map();
     for (const s of sacsParInventaire) {
@@ -1757,6 +1766,21 @@ export function App() {
             categorie: o ? racine(o.categorie_id) : null,
             gemmes,
             gemmesIcones: gemmes.map((g) => cache.objets.get(g)?.icone).filter(Boolean),
+            // Fiche consultable depuis le sac (lecture seule).
+            description: o?.description || "",
+            estBouclier: o ? estBouclierCat(o.categorie_id) : false,
+            veteranceRequise: o?.veterance_requise ?? null,
+            portee: o?.portee ?? null,
+            allonge: o?.allonge ?? null,
+            typeDegats: o?.type_degats ?? null,
+            legere: !!o?.legere,
+            deuxMains: !!o?.deux_mains,
+            protection: o?.protection ?? null,
+            typeArmure: o?.type_armure ?? null,
+            malusDiscretion: o?.malus_discretion ?? null,
+            malusVitesse: o?.malus_vitesse ?? null,
+            malusEsquive: o?.malus_esquive ?? null,
+            parade: o?.parade ?? null,
           };
         });
       sacs.set(s.mercenaire_id, items);
