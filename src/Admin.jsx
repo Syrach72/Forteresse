@@ -1899,172 +1899,10 @@ function PortraitCropper({
   );
 }
 
-// Catalogue de compétences (commun à toutes les sessions) : icône, nom, description. Le MJ les
-// place ensuite dans les cellules du tableau de chaque mercenaire (CompetencesEditor).
-function CompetencesSection() {
-  const competences = useTable("competence", { order: "nom" });
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ nom: "", description: "", icone: "" });
-  const [iconeFile, setIconeFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [confirmingId, setConfirmingId] = useState(null);
-
-  function startEdit(c) {
-    setEditing(c.id);
-    setForm({ nom: c.nom, description: c.description || "", icone: c.icone || "" });
-    setIconeFile(null);
-    setMsg("");
-  }
-  function cancel() {
-    setEditing(null);
-    setForm({ nom: "", description: "", icone: "" });
-    setIconeFile(null);
-    setMsg("");
-  }
-  async function submit(e) {
-    e.preventDefault();
-    if (!form.nom.trim()) {
-      setMsg("Le nom est obligatoire.");
-      return;
-    }
-    let icone = form.icone || null;
-    if (iconeFile) {
-      setUploading(true);
-      const result = await uploadImage("catalogue-icones", iconeFile, `competence-${form.nom}`);
-      setUploading(false);
-      if (result.error) {
-        setMsg(result.error);
-        return;
-      }
-      icone = result.url;
-    }
-    const values = { nom: form.nom.trim(), description: form.description.trim() || null, icone };
-    const err = editing ? await competences.update(editing, values) : await competences.insert(values);
-    if (err) setMsg(err.includes("competence_nom_key") ? "Une compétence porte déjà ce nom." : err);
-    else cancel();
-  }
-  async function del(id) {
-    const err = await competences.remove(id);
-    if (err) setMsg(err);
-  }
-  if (competences.error) return <p className="admin-error">{competences.error}</p>;
-  if (!competences.rows) return <p>Chargement…</p>;
-  const apercu = iconeFile ? URL.createObjectURL(iconeFile) : form.icone;
-  return (
-    <div>
-      <p className="muted">
-        Le catalogue des compétences : une icône, un nom et une description. Placez-les ensuite dans le tableau d’un
-        mercenaire (onglet Mercenaires, « Modifier »).
-      </p>
-      <div className="admin-table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Icône</th>
-              <th>Nom</th>
-              <th>Description</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {competences.rows.map((c) => (
-              <tr key={c.id} className={editing === c.id ? "editing" : ""}>
-                <td>
-                  {c.icone ? <img className="admin-icon" src={c.icone} alt="" loading="lazy" decoding="async" /> : "—"}
-                </td>
-                <td>{c.nom}</td>
-                <td>{c.description || "—"}</td>
-                <td className="admin-row-actions">
-                  <button type="button" className="text-button" onClick={() => startEdit(c)}>
-                    Modifier
-                  </button>
-                  <DeleteButton
-                    id={c.id}
-                    confirmingId={confirmingId}
-                    onAskConfirm={() => setConfirmingId(c.id)}
-                    onCancel={() => setConfirmingId(null)}
-                    onConfirm={() => {
-                      setConfirmingId(null);
-                      del(c.id);
-                    }}
-                  />
-                </td>
-              </tr>
-            ))}
-            {competences.rows.length === 0 && (
-              <tr>
-                <td colSpan={4}>Aucune compétence pour le moment.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      <form className="admin-form" onSubmit={submit}>
-        <h3>{editing ? "Modifier la compétence" : "Ajouter une compétence"}</h3>
-        <div className="admin-form-grid">
-          <div className="field">
-            <label htmlFor="comp-nom">Nom</label>
-            <div className="input-wrap">
-              <input id="comp-nom" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required />
-            </div>
-          </div>
-          <div className="field">
-            <label htmlFor="comp-icone">Icône</label>
-            <input
-              id="comp-icone"
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const f = e.target.files[0];
-                if (f) setIconeFile(f);
-                e.target.value = "";
-              }}
-            />
-            {apercu && (
-              <div className="portrait-actions">
-                <img className="admin-icon" src={apercu} alt="Aperçu de l’icône" />
-                <button
-                  type="button"
-                  className="text-button portrait-remove"
-                  onClick={() => {
-                    setIconeFile(null);
-                    setForm({ ...form, icone: "" });
-                  }}
-                >
-                  Retirer l’icône
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="field">
-          <label htmlFor="comp-description">Description</label>
-          <textarea
-            id="comp-description"
-            rows={3}
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-        </div>
-        {msg && <p className="admin-error">{msg}</p>}
-        <div className="admin-form-actions">
-          <button className="primary" type="submit" disabled={uploading}>
-            {uploading ? "Envoi de l’image…" : editing ? "Enregistrer" : "Ajouter"}
-          </button>
-          {editing && (
-            <button type="button" className="text-button" onClick={cancel}>
-              Annuler
-            </button>
-          )}
-        </div>
-      </form>
-    </div>
-  );
-}
-
 // Tableau de compétences d'un mercenaire (fiche admin) : un clic sur une cellule ouvre le choix
-// d'une compétence du catalogue (ou vide la cellule). Aucune cellule n'est grisée ici.
+// d'une compétence du catalogue (objets des rubriques « Compétences Passives » pour une cellule
+// passive, « Compétences Actives » pour une cellule active) ou vide la cellule. Aucune cellule
+// n'est grisée ici.
 function CompetencesEditor({ mercenaireId }) {
   const [catalogue, setCatalogue] = useState(null);
   const [cellules, setCellules] = useState(null);
@@ -2072,16 +1910,27 @@ function CompetencesEditor({ mercenaireId }) {
   const [choix, setChoix] = useState("");
   const [msg, setMsg] = useState("");
   async function charger() {
-    const [c, m] = await Promise.all([
-      supabase.from("competence").select("id, nom, description, icone").order("nom"),
+    const [c, o, m] = await Promise.all([
+      supabase.from("categorie").select("id, nom, parent_id"),
+      supabase.from("objet_catalogue").select("id, nom, icone, categorie_id").order("nom"),
       supabase
         .from("mercenaire_competence")
         .select("veterance, type, position, competence_id")
         .eq("mercenaire_id", mercenaireId),
     ]);
-    if (c.error || m.error) setMsg((c.error || m.error).message);
+    const err = c.error || o.error || m.error;
+    if (err) setMsg(err.message);
     else {
-      setCatalogue(c.data);
+      const racine = (id) => {
+        let cur = c.data.find((x) => x.id === id);
+        while (cur?.parent_id) cur = c.data.find((x) => x.id === cur.parent_id);
+        return (cur?.nom || "").toLowerCase();
+      };
+      setCatalogue(
+        o.data
+          .map((x) => ({ ...x, racine: racine(x.categorie_id) }))
+          .filter((x) => x.racine.includes("compétences") || x.racine.includes("competences")),
+      );
       setCellules(m.data);
       setMsg("");
     }
@@ -2110,13 +1959,18 @@ function CompetencesEditor({ mercenaireId }) {
     if (error) setMsg(error.message);
     else await charger();
   }
-  const options = catalogue.map((c) => ({ value: c.id, label: c.nom }));
+  // Une cellule passive ne propose que les compétences passives, une active que les actives.
+  const options = sel
+    ? catalogue
+        .filter((c) => c.racine.includes(sel.type === "passive" ? "passive" : "active"))
+        .map((c) => ({ value: c.id, label: c.nom }))
+    : [];
   return (
     <div className="admin-form comp-editeur">
       <h3>Compétences</h3>
       <p className="muted">
-        Cliquez une cellule (ligne = vétérance requise), choisissez une compétence du catalogue puis « Placer ». Les
-        compétences se créent dans l’onglet Compétences.
+        Cliquez une cellule (ligne = vétérance requise), choisissez une compétence du catalogue (rubriques « Compétences
+        Passives » et « Compétences Actives ») puis « Placer ».
       </p>
       <TableauCompetences
         cellules={affichage}
@@ -2764,7 +2618,6 @@ const TABLES_SAUVEGARDE = [
   "inventaire",
   "ligne_inventaire",
   "recrutement",
-  "competence",
   "mercenaire_competence",
   "mercenaire_equipement",
   "invitation",
@@ -3889,9 +3742,6 @@ export function Admin({ onCraftItem = () => {} }) {
         <button className={tab === "mercenaires" ? "active" : ""} onClick={() => setTab("mercenaires")}>
           Mercenaires
         </button>
-        <button className={tab === "competences" ? "active" : ""} onClick={() => setTab("competences")}>
-          Compétences
-        </button>
         <button className={tab === "arsenal" ? "active" : ""} onClick={() => setTab("arsenal")}>
           Arsenal
         </button>
@@ -3938,7 +3788,6 @@ export function Admin({ onCraftItem = () => {} }) {
           <NamedListSection table="classe" singular="classe" blockedBy="des mercenaires" />
         )}
         {sess.pret && tab === "mercenaires" && <MercenairesSection />}
-        {sess.pret && tab === "competences" && <CompetencesSection />}
         {sess.pret && !arsenalIndisponible && tab === "arsenal" && (sess.base ? <DepartBaseSection /> : <ArsenalSection />)}
         {sess.pret && tab === "quetes" && <QuetesSection />}
         {tab === "invitations" && <InvitationsSection sess={sess} sessionInitiale={sessionInvit} />}

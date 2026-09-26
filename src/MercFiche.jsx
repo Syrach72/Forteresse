@@ -65,7 +65,7 @@ const valeur = (v) => (v === null || v === undefined || v === "" ? "—" : v);
 // Emplacements d'équipement : `equip` = { arme: [3], armure: [1], objet: [3] }
 // (chaque entrée : fiche de l'objet ou null). Déséquiper renvoie l'objet au sac.
 export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
-  const e = equip || { arme: [null, null, null], armure: [null], objet: [null, null, null] };
+  const e = equip || { arme: [null, null, null], armure: [null], bouclier: [null], objet: [null, null, null] };
   const bouton = (emplacement, position, nom) => (
     <button
       type="button"
@@ -161,6 +161,38 @@ export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
           </div>
         ) : (
           vide("Armure")
+        )}
+      </div>
+      <div className="equip-groupe">
+        <h3>Bouclier</h3>
+        {e.bouclier?.[0] ? (
+          <div className="equip-slot">
+            {icone(e.bouclier[0])}
+            <div className="equip-texte">
+              <strong>{e.bouclier[0].nom}</strong>
+              <dl className="equip-stats">
+                <div>
+                  <dt>Parade</dt>
+                  <dd>{valeur(e.bouclier[0].parade)}</dd>
+                </div>
+                <div>
+                  <dt>Esquive</dt>
+                  <dd>{valeur(e.bouclier[0].malusEsquive)}</dd>
+                </div>
+                <div>
+                  <dt>Discrétion</dt>
+                  <dd>{valeur(e.bouclier[0].malusDiscretion)}</dd>
+                </div>
+                <div>
+                  <dt>Vitesse</dt>
+                  <dd>{valeur(e.bouclier[0].malusVitesse)}</dd>
+                </div>
+              </dl>
+              {bouton("bouclier", 0, e.bouclier[0].nom)}
+            </div>
+          </div>
+        ) : (
+          vide("Bouclier")
         )}
       </div>
       <div className="equip-groupe">

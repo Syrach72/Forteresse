@@ -457,7 +457,7 @@ export function Characters({
             <section className="merc-bloc parchment" aria-labelledby="merc-equipement-titre">
               <h2 id="merc-equipement-titre">Équipement</h2>
               <p className="muted">
-                3 armes, 1 armure et 3 objets. On équipe depuis le sac à dos ; déséquiper renvoie l’objet au sac.
+                3 armes, 1 armure, 1 bouclier et 3 objets. On équipe depuis le sac à dos ; déséquiper renvoie l’objet au sac.
               </p>
               {erreur && (
                 <p className="error" role="alert">

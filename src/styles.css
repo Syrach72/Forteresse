@@ -4812,7 +4812,7 @@ a.merc-card:hover {
 }
 .equip-grille {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin-top: 12px;
 }
@@ -5018,4 +5018,12 @@ a.merc-card:hover {
 .sac-dos-equiper {
   padding: 4px 10px;
   font-size: 14px;
+}
+.comp-detail p {
+  white-space: pre-line;
+}
+@media (max-width: 1100px) and (min-width: 901px) {
+  .equip-grille {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

@@ -1170,7 +1170,7 @@ export function App() {
           supabase.from("classe").select("id, nom"),
           supabase
             .from("mercenaire_competence")
-            .select("mercenaire_id, veterance, type, position, competence(nom, description, icone)"),
+            .select("mercenaire_id, veterance, type, position, competence:objet_catalogue!competence_id(nom, description, icone)"),
         ]);
       if (annule || e1 || e2) return;
       if (!comp.error) {
@@ -1692,7 +1692,7 @@ export function App() {
         supabase
           .from("objet_catalogue")
           .select(
-            "id, nom, icone, description, categorie_id, cout_achat_or, emploi_materiau_id, emploi_production, emploi_production_outil, emploi_outil_id, emploi_entretien, portee, allonge, type_degats, legere, deux_mains, protection, type_armure, malus_discretion, malus_vitesse",
+            "id, nom, icone, description, categorie_id, cout_achat_or, emploi_materiau_id, emploi_production, emploi_production_outil, emploi_outil_id, emploi_entretien, portee, allonge, type_degats, legere, deux_mains, protection, type_armure, malus_discretion, malus_vitesse, malus_esquive, parade",
           ),
         supabase.from("categorie").select("id, nom, parent_id"),
       ]);
@@ -1733,7 +1733,7 @@ export function App() {
       const o = cache.objets.get(e.objet_id) || {};
       const gemmes = e.gemmes && e.gemmes.length ? e.gemmes : [];
       if (!equip.has(e.mercenaire_id))
-        equip.set(e.mercenaire_id, { arme: [null, null, null], armure: [null], objet: [null, null, null] });
+        equip.set(e.mercenaire_id, { arme: [null, null, null], armure: [null], bouclier: [null], objet: [null, null, null] });
       equip.get(e.mercenaire_id)[e.emplacement][e.position] = {
         objetId: e.objet_id,
         gemmes,
@@ -1750,6 +1750,8 @@ export function App() {
         typeArmure: o.type_armure ?? null,
         malusDiscretion: o.malus_discretion ?? null,
         malusVitesse: o.malus_vitesse ?? null,
+        malusEsquive: o.malus_esquive ?? null,
+        parade: o.parade ?? null,
       };
     }
     setEquipements(equip);
