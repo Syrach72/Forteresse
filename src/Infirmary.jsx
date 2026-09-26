@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { ReferenceCrop } from "./Characters.jsx";
+import { CoeurBlesse } from "./CoeurBlesse.jsx";
 import { useGlassWindows } from "./glassWindows.js";
 import { prixLitInfirmerie } from "./dormitory.js";
 // Infirmerie PARTAGÉE : visible par tous les joueurs. Un joueur y envoie son
@@ -106,6 +107,7 @@ export function Infirmary({
                     {w && (
                       <ReferenceCrop className="bed-portrait" crop={w.portrait} />
                     )}
+                    {w?.blesse && <CoeurBlesse className="coeur-lit" />}
                     <span className="rest-counter" title="Instances de soin restantes">
                       {bed.remaining}
                     </span>

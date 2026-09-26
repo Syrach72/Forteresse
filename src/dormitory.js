@@ -71,6 +71,14 @@ export const INITIAL_INFIRMARY = {
 // mercenaire quitte l'infirmerie à sa santé max. Instances nécessaires = santé perdue / tiers,
 // minimum 1 à l'arrivée. Santé max = Puissance × vétérance (min. 6). Le serveur applique la même
 // règle (fonctions _soins_instances et infirmerie_soigner) : ce calcul ne sert qu'à l'affichage.
+// Santé max d'un mercenaire (Puissance × vétérance, minimum 6) et blessure : santé actuelle
+// renseignée et inférieure au maximum (vide = maximum).
+export function santeMaxMerc(merc) {
+  return Math.max(6, (merc?.puissance ?? 0) * (merc?.veterance ?? 1));
+}
+export function estBlesse(merc) {
+  return merc?.santeActuelle != null && merc.santeActuelle < santeMaxMerc(merc);
+}
 export function instancesDeSoins(merc) {
   if (!merc) return 1;
   const max = Math.max(6, (merc.puissance ?? 0) * (merc.veterance ?? 1));

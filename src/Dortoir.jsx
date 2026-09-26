@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { ReferenceCrop, classeRoute } from "./Characters.jsx";
 import { VetBadge } from "./VetBadge.jsx";
+import { CoeurBlesse } from "./CoeurBlesse.jsx";
 import { useGlassWindows } from "./glassWindows.js";
 import { prixLitDortoir } from "./dormitory.js";
 // Dortoir de la compagnie : un lit = un mercenaire embauché (aucun rapport avec
@@ -104,6 +105,7 @@ export function Dortoir({
                         crop={merc.portrait}
                       />
                       <VetBadge className="bed-veterance" value={merc.veterancy} />
+                      {merc.blesse && <CoeurBlesse className="coeur-lit" />}
                       <span className="bed-name">{merc.name}</span>
                       {away && <span className="bed-away-label">{away}</span>}
                     </>

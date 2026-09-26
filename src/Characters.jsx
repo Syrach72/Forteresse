@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { CHARACTER_CLASSES, WEAPONS, LEVELS, COUT_RECRUTEMENT_PAR_VETERANCE } from "./characters";
 import { ASSETS } from "./data";
-import { instancesDeSoins } from "./dormitory.js";
+import { instancesDeSoins, estBlesse } from "./dormitory.js";
+import { CoeurBlesse } from "./CoeurBlesse.jsx";
 import { VetBadge } from "./VetBadge.jsx";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 // Caractéristiques affichées par une icône plutôt que par leur nom (le nom reste en texte alternatif).
@@ -260,6 +261,7 @@ export function Characters({
                       ) : (
                         <span className="merc-portrait-vide" aria-hidden="true" />
                       )}
+                      {estBlesse(m) && <CoeurBlesse className="coeur-carte" />}
                     </span>
                     <span className="merc-caption">
                       <strong>{m.nom}</strong>
@@ -341,6 +343,8 @@ export function Characters({
                 </span>
                 {/* Vétérance sur l'icône aux lauriers, en haut à gauche du portrait (non modifiable par le joueur). */}
                 <VetBadge className="merc-vet-portrait" value={merc.veterance} />
+                {/* Cœur pulsant, en haut à droite : santé actuelle inférieure au maximum. */}
+                {estBlesse(merc) && <CoeurBlesse className="coeur-fiche" />}
               </div>
               {/* Déplacement et parade : sous le portrait, même présentation (valeur sous l'icône). */}
               <div className="merc-sous-portrait">
