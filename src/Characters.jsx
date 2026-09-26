@@ -116,13 +116,6 @@ export function Characters({
   const maxAuto = (base, vet) => Math.max(6, (base ?? 0) * (vet ?? 1));
   const energieMax = merc ? maxAuto(merc.mental, merc.veterance) : null;
   const santeMax = merc ? maxAuto(merc.puissance, merc.veterance) : null;
-  // Nom du mercenaire (avec le nom du joueur), répété en haut de chaque rubrique de la fiche.
-  const titreMerc = merc ? (
-    <h1 className="merc-nom" tabIndex="-1" ref={title}>
-      {merc.nom}
-      {nomsJoueur[merc.id] ? ` (${nomsJoueur[merc.id]})` : ""}
-    </h1>
-  ) : null;
   const hero = merc ? undefined : warriors.find((w) => w.id === heroId);
   // Fiche d'un mercenaire recruté : réservée à son recruteur et à l'admin.
   const accesFiche = (id) => !tousRecrutes.includes(id) || recrutes.includes(id) || estAdmin;
@@ -150,6 +143,13 @@ export function Characters({
   const title = useRef();
   // Rubrique affichée de la fiche d'un mercenaire : general, equipement ou competences.
   const [onglet, setOnglet] = useState("general");
+  // Nom du mercenaire (avec le nom du joueur), répété en haut de chaque rubrique de la fiche.
+  const titreMerc = merc ? (
+    <h1 className="merc-nom" tabIndex="-1" ref={title}>
+      {merc.nom}
+      {nomsJoueur[merc.id] ? ` (${nomsJoueur[merc.id]})` : ""}
+    </h1>
+  ) : null;
   useEffect(() => {
     setOnglet("general");
     setPopup(null);
