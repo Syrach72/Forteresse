@@ -67,6 +67,8 @@ export function TableauCompetences({ cellules = [], veterance = null, onCell, se
   );
 }
 
+// Allonge 0 (ou vide) : rien à indiquer.
+const aUneAllonge = (v) => v !== null && v !== undefined && String(v).trim() !== "" && Number(v) !== 0;
 const valeur = (v) => (v === null || v === undefined || v === "" ? "—" : v);
 
 // Emplacements d'équipement : `equip` = { arme: [3], armure: [1], objet: [3] }
@@ -117,19 +119,23 @@ export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
                     <dt>Portée</dt>
                     <dd>{valeur(o.portee)}</dd>
                   </div>
-                  <div>
-                    <dt>Allonge</dt>
-                    <dd>{valeur(o.allonge)}</dd>
-                  </div>
+                  {aUneAllonge(o.allonge) && (
+                    <div>
+                      <dt>Allonge</dt>
+                      <dd>{o.allonge}</dd>
+                    </div>
+                  )}
                   <div>
                     <dt>Dégâts</dt>
                     <dd>{valeur(o.typeDegats)}</dd>
                   </div>
                 </dl>
-                <p className="equip-etiquettes">
-                  <span className={o.legere ? "equip-oui" : "equip-non"}>{o.legere ? "Arme légère" : "Pas légère"}</span>
-                  <span className={o.deuxMains ? "equip-oui" : "equip-non"}>{o.deuxMains ? "Deux mains" : "Une main"}</span>
-                </p>
+                {(o.legere || o.deuxMains) && (
+                  <p className="equip-etiquettes">
+                    {o.legere && <span className="equip-oui">Arme légère</span>}
+                    {o.deuxMains && <span className="equip-oui">Deux mains</span>}
+                  </p>
+                )}
                 {bouton("arme", i, o.nom)}
               </div>
             </div>
