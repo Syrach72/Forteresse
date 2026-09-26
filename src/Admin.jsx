@@ -1941,6 +1941,12 @@ function CompetencesEditor({ mercenaireId }) {
     setCellules(null);
     charger();
   }, [mercenaireId]);
+  // Cellule cliquée : le champ de recherche prend le focus, ce qui ouvre aussitôt la liste des
+  // compétences (sans faire défiler la page : le choix s'affiche sous la ligne cliquée).
+  useEffect(() => {
+    if (!sel) return;
+    document.querySelector(".comp-editeur-choix input[role=combobox]")?.focus({ preventScroll: true });
+  }, [sel?.niveau, sel?.type, sel?.position]);
   if (msg && !cellules) return <p className="admin-error">{msg}</p>;
   if (!cellules || !catalogue) return <p>Chargement du tableau de compétences…</p>;
   const parId = new Map(catalogue.map((c) => [c.id, c]));
@@ -1981,28 +1987,31 @@ function CompetencesEditor({ mercenaireId }) {
           setChoix(idPlace(c.niveau, c.type, c.position));
           setMsg("");
         }}
+        apresLigne={(niveau) =>
+          sel?.niveau === niveau ? (
+            <div className="comp-editeur-choix">
+              <strong>
+                Vétérance {sel.niveau} · {sel.type === "passive" ? "passive" : "active"} n°{sel.position + 1}
+              </strong>
+              <SearchableSelect
+                value={choix}
+                onChange={setChoix}
+                options={options}
+                emptyLabel="— Cellule vide —"
+                ariaLabel="Compétence à placer"
+              />
+              <button type="button" className="primary" onClick={placer}>
+                {choix ? "Placer" : "Vider la cellule"}
+              </button>
+              <button type="button" className="text-button" onClick={() => setSel(null)}>
+                Fermer
+              </button>
+              {msg && <p className="admin-error">{msg}</p>}
+            </div>
+          ) : null
+        }
       />
-      {sel && (
-        <div className="comp-editeur-choix">
-          <strong>
-            Vétérance {sel.niveau} · {sel.type === "passive" ? "passive" : "active"} n°{sel.position + 1}
-          </strong>
-          <SearchableSelect
-            value={choix}
-            onChange={setChoix}
-            options={options}
-            emptyLabel="— Cellule vide —"
-            ariaLabel="Compétence à placer"
-          />
-          <button type="button" className="primary" onClick={placer}>
-            {choix ? "Placer" : "Vider la cellule"}
-          </button>
-          <button type="button" className="text-button" onClick={() => setSel(null)}>
-            Fermer
-          </button>
-        </div>
-      )}
-      {msg && <p className="admin-error">{msg}</p>}
+      {msg && !sel && <p className="admin-error">{msg}</p>}
     </div>
   );
 }

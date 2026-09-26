@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+
 // Fiche d'un mercenaire : emplacements d'équipement (3 armes, 1 armure,
 // 3 objets) et tableau de compétences (10 lignes de vétérance, 3 cellules
 // passives puis 5 actives). Partagé entre la fiche joueur (Characters.jsx) et
@@ -29,7 +31,9 @@ export function CelluleCompetence({ niveau, type, position, competence, grisee, 
 // `cellules` : [{ veterance, type, position, competence: { nom, description, icone } }].
 // `veterance` : vétérance en cours du mercenaire (les lignes au-dessus sont grisées) ;
 // null = aucune ligne grisée (éditeur de l'administration).
-export function TableauCompetences({ cellules = [], veterance = null, onCell, selection = null }) {
+// `apresLigne(niveau)` : contenu optionnel inséré sous une ligne (l'éditeur de l'administration y
+// place son choix de compétence, à côté de la cellule cliquée).
+export function TableauCompetences({ cellules = [], veterance = null, onCell, selection = null, apresLigne = null }) {
   const parCle = new Map(cellules.map((c) => [`${c.veterance}:${c.type}:${c.position}`, c]));
   const cellule = (niveau, type, position) => (
     <CelluleCompetence
@@ -50,11 +54,14 @@ export function TableauCompetences({ cellules = [], veterance = null, onCell, se
         <span className="comp-legende comp-legende-actives">Compétences actives</span>
       </div>
       {NIVEAUX_VETERANCE.map((niveau) => (
-        <div className="comp-ligne" key={niveau}>
-          {[0, 1, 2].map((p) => cellule(niveau, "passive", p))}
-          <span className="comp-espace" aria-hidden="true" />
-          {[0, 1, 2, 3, 4].map((p) => cellule(niveau, "active", p))}
-        </div>
+        <Fragment key={niveau}>
+          <div className="comp-ligne">
+            {[0, 1, 2].map((p) => cellule(niveau, "passive", p))}
+            <span className="comp-espace" aria-hidden="true" />
+            {[0, 1, 2, 3, 4].map((p) => cellule(niveau, "active", p))}
+          </div>
+          {apresLigne?.(niveau)}
+        </Fragment>
       ))}
     </div>
   );
