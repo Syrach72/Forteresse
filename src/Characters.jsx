@@ -4,6 +4,13 @@ import { ASSETS } from "./data";
 import { SOINS_INSTANCES } from "./dormitory.js";
 import { VetBadge } from "./VetBadge.jsx";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade } from "./MercFiche.jsx";
+// Caractéristiques affichées par une icône plutôt que par leur nom (le nom reste en texte alternatif).
+const ICONES_STATS = {
+  Puissance: "/assets/icons/puissance.webp",
+  Vélocité: "/assets/icons/velocite.webp",
+  Mental: "/assets/icons/mental.webp",
+  Mouvement: "/assets/icons/mouvement.webp",
+};
 // Objets qui peuvent être équipés depuis le sac à dos (rubriques du catalogue).
 const EQUIPABLES = ["Armes", "Armures", "Objet divers"];
 const PARCHMENT_CLASSES = [
@@ -365,9 +372,9 @@ export function Characters({
                   .filter(([libelle, valeur]) => libelle !== "Parade" || valeur)
                   .map(([libelle, valeur]) => (
                   <div className="stat-line" key={libelle}>
-                    {libelle === "Mouvement" ? (
+                    {ICONES_STATS[libelle] ? (
                       <span className="stat-icone-libelle">
-                        <img className="stat-icone" src="/assets/icons/mouvement.webp" alt="Mouvement" title="Mouvement" />
+                        <img className="stat-icone" src={ICONES_STATS[libelle]} alt={libelle} title={libelle} />
                       </span>
                     ) : (
                       <span>{libelle}</span>
