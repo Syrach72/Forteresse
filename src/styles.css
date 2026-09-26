@@ -5694,3 +5694,8 @@ a.merc-card:hover {
 .merc-trio .merc-carac-valeur {
   font-size: 52px;
 }
+
+/* Mouvement : le « c » (cases) n'est pas en gras. */
+.merc-carac-unite {
+  font-weight: 400;
+}

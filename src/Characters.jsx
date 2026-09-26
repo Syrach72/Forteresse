@@ -351,7 +351,7 @@ export function Characters({
                 {merc.mouvement !== null && merc.mouvement !== undefined && (
                   <div className="merc-carac">
                     <img className="merc-carac-icone" src={ICONES_STATS.Mouvement} alt="Mouvement" title="Mouvement" />
-                    <strong className="merc-carac-valeur">{`${merc.mouvement}c`}</strong>
+                    <strong className="merc-carac-valeur">{merc.mouvement}<span className="merc-carac-unite">c</span></strong>
                   </div>
                 )}
                 {meilleureParade(equipements.get(merc.id)) && (
