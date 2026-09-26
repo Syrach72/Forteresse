@@ -985,6 +985,9 @@ export function App() {
   const [sacsDos, setSacsDos] = useState(() => new Map());
   // Effectif embauché (Collecte des Ressources), partagé comme l'arsenal.
   const [employesRoster, setEmployesRoster] = useState([]);
+  // Métiers du catalogue (Mineur, Bûcheron, Tanneur…) : la page Collecte les
+  // montre tous, même sans employé embauché (cartes à ×0).
+  const [employesMetiers, setEmployesMetiers] = useState([]);
   const tousRecrutes = useMemo(
     () => new Set([...recrutesServeur, ...mesRecrutes.keys()]),
     [recrutesServeur, mesRecrutes],
@@ -1356,6 +1359,33 @@ export function App() {
     });
     setPendingCraftTarget(null);
   }, [pendingCraftTarget, route, catalogueByAtelier]);
+  useEffect(() => {
+    if (route !== "employes") return;
+    let annule = false;
+    supabase
+      .from("objet_catalogue")
+      .select("id, nom, icone, actif, emploi_materiau_id, emploi_production, emploi_entretien")
+      .then(({ data, error }) => {
+        if (annule || error || !data) return;
+        const parId = new Map(data.map((o) => [o.id, o]));
+        setEmployesMetiers(
+          data
+            .filter((o) => o.emploi_materiau_id && o.actif !== false)
+            .map((o) => ({
+              objetId: o.id,
+              nom: o.nom,
+              icone: o.icone || null,
+              materiauNom: parId.get(o.emploi_materiau_id)?.nom || null,
+              productionUnitaire: o.emploi_production || 0,
+              entretienUnitaire: o.emploi_entretien || 0,
+            }))
+            .sort((a, b) => a.nom.localeCompare(b.nom, "fr")),
+        );
+      });
+    return () => {
+      annule = true;
+    };
+  }, [route]);
   function transferCampaign(heroId, id, direction) {
     if (
       !warriors.some((w) => w.id === heroId) ||
@@ -2812,14 +2842,35 @@ export function App() {
             </h1>
           </div>
           <section className="parchment employes-panel">
-            {employesRoster.length === 0 ? (
+            {employesRoster.length === 0 && employesMetiers.length === 0 ? (
               <p className="muted">
                 Aucun employé embauché pour le moment. Rendez-vous au Marché,
                 rubrique « Matériaux et Embauche ».
               </p>
             ) : (
               <div className="employes-grid">
-                {employesRoster.map((e) => (
+                {[
+                  ...employesMetiers.flatMap((m) => {
+                    const embauches = employesRoster.filter((e) => e.objetId === m.objetId);
+                    return embauches.length
+                      ? embauches
+                      : [
+                          {
+                            objetId: m.objetId,
+                            outil: false,
+                            quantite: 0,
+                            nom: m.nom,
+                            icone: m.icone,
+                            materiauNom: m.materiauNom,
+                            production: 0,
+                            entretienUnitaire: m.entretienUnitaire,
+                            entretienTotal: 0,
+                            outilId: null,
+                          },
+                        ];
+                  }),
+                  ...employesRoster.filter((e) => !employesMetiers.some((m) => m.objetId === e.objetId)),
+                ].map((e) => (
                   <div className="employe-card parchment" key={`${e.objetId}-${e.outil}`}>
                     <span className="item-art">{e.icone && <img src={e.icone} alt="" />}</span>
                     <h3>
@@ -2851,13 +2902,15 @@ export function App() {
                           Équiper {e.quantite} · {e.outilNom || "outil"}
                         </button>
                       )}
-                      <button
-                        className="wood-button"
-                        disabled={busy}
-                        onClick={() => actCongedier(e.objetId, e.outil, e.quantite, e.nom)}
-                      >
-                        Congédier {e.quantite}
-                      </button>
+                      {e.quantite > 0 && (
+                        <button
+                          className="wood-button"
+                          disabled={busy}
+                          onClick={() => actCongedier(e.objetId, e.outil, e.quantite, e.nom)}
+                        >
+                          Congédier {e.quantite}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
