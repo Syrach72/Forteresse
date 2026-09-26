@@ -118,8 +118,13 @@ begin
 end;
 $$;
 
+-- Changer le proprietaire exige que le nouveau proprietaire puisse creer dans
+-- le schema : droit accorde le temps du changement, puis retire (comme dans
+-- 20260925200000_sessions.sql).
+grant create on schema public to fortress_fn;
 alter function sac_dos_envoyer(uuid, uuid, integer, uuid[]) owner to fortress_fn;
 alter function sac_dos_retirer(uuid, uuid, integer, uuid[]) owner to fortress_fn;
+revoke create on schema public from fortress_fn;
 revoke all on function sac_dos_envoyer(uuid, uuid, integer, uuid[]) from public;
 revoke all on function sac_dos_retirer(uuid, uuid, integer, uuid[]) from public;
 grant execute on function sac_dos_envoyer(uuid, uuid, integer, uuid[]) to authenticated;
