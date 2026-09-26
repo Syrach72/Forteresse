@@ -4136,7 +4136,8 @@ export function App() {
               error={actionError}
             />
           )}
-          {actionError && (
+          {/* La fiche d'un objet (ItemActionPanel) affiche déjà l'erreur elle-même. */}
+          {actionError && modal.type !== "item" && (
             <p className="error" role="alert">
               {actionError}
             </p>
