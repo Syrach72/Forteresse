@@ -28,7 +28,7 @@ import { Admin } from "./Admin.jsx";
 import { Modal } from "./Modal.jsx";
 import { supabase } from "./supabaseClient";
 import { useGlassWindows } from "./glassWindows.js";
-import { chargerMercenaires, chargerVeterances, chargerQueteEnCours } from "./etat.js";
+import { chargerMercenaires, chargerVeterances, chargerActuels, chargerQueteEnCours } from "./etat.js";
 import { useSessions, SessionBar, EcranSession } from "./Sessions.jsx";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
 const BACKDROP_VIDEO = {
@@ -1195,6 +1195,16 @@ export function App() {
           sousClasse: m.sous_classe || "",
           portrait: m.portrait || null,
           veterance: m.veterance ?? 1,
+          // Caractéristiques de la fiche (colonnes du catalogue, renommées à l'écran).
+          puissance: m.attaque ?? null,
+          velocite: m.defense ?? null,
+          mental: m.esprit ?? null,
+          mouvement: m.mouvement ?? null,
+          energieMax: m.mana ?? null,
+          santeMax: m.sante ?? null,
+          // Valeurs en cours (propres à la session) ; null = pas encore modifiées.
+          energieActuelle: m.energie_actuelle ?? null,
+          santeActuelle: m.sante_actuelle ?? null,
         })),
       );
     })();
@@ -1266,6 +1276,19 @@ export function App() {
       old.map((m) => (m.id === id ? { ...m, veterance: n } : m)),
     );
     notify(`Vétérance enregistrée : ${n}.`);
+    return {};
+  }
+  // Énergie et santé actuelles : modifiables par le joueur qui a recruté le mercenaire (ou le MJ).
+  // Le serveur revérifie les droits ; vide = retour au maximum.
+  async function setActuel(id, energie, sante) {
+    const { error } = await supabase.rpc("mercenaire_definir_actuel", {
+      p_mercenaire: id,
+      p_energie: energie,
+      p_sante: sante,
+    });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    notify("Énergie et santé actuelles enregistrées.");
     return {};
   }
   // Renvoyer un mercenaire recruté : supprime le recrutement (il redevient
@@ -1890,7 +1913,7 @@ export function App() {
     setTreasury(next);
   }
   async function synchroniserZonesPartagees() {
-    const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage, quete, queteMercs] = await Promise.all([
+    const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage, quete, queteMercs, actuels] = await Promise.all([
       supabase.from("entrainement_place").select("groupe, role, position, mercenaire_id"),
       supabase
         .from("entrainement_reglage")
@@ -1903,7 +1926,20 @@ export function App() {
       supabase.from("dortoir_reglage").select("places").maybeSingle(),
       chargerQueteEnCours(),
       supabase.from("quete_mercenaire").select("quete_id, position, mercenaire_id"),
+      chargerActuels(),
     ]);
+    if (!actuels.error) {
+      setMercenaires((old) =>
+        old.map((m) => {
+          const a = actuels.data.get(m.id);
+          const energie = a?.energie ?? null;
+          const sante = a?.sante ?? null;
+          return energie === m.energieActuelle && sante === m.santeActuelle
+            ? m
+            : { ...m, energieActuelle: energie, santeActuelle: sante };
+        }),
+      );
+    }
     if (!quete.error) setQueteEnCours(quete.data || null);
     if (!queteMercs.error) setMercsEnQuete(queteMercs.data || []);
     if (!rec.error) {
@@ -2846,6 +2882,7 @@ export function App() {
           onDesequiper={actDesequiper}
           erreur={actionError}
           onClearError={() => setActionError("")}
+          onSetActuel={setActuel}
           or={game.gold}
           busy={busy}
         />

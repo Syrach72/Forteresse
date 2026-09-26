@@ -97,6 +97,7 @@ export function Characters({
   onDesequiper = () => {},
   erreur = "",
   or = 0,
+  onSetActuel = async () => ({}),
   onClearError = () => {},
   busy = false,
 }) {
@@ -114,6 +115,15 @@ export function Characters({
   // Vétérance en cours de saisie (administrateur seulement, sur la fiche).
   const [vet, setVet] = useState("");
   const [vetError, setVetError] = useState("");
+  // Énergie et santé actuelles (saisie du joueur) : vide = le maximum s'affiche.
+  const [energieAct, setEnergieAct] = useState("");
+  const [santeAct, setSanteAct] = useState("");
+  const [actuelError, setActuelError] = useState("");
+  useEffect(() => {
+    setEnergieAct(String(merc?.energieActuelle ?? merc?.energieMax ?? ""));
+    setSanteAct(String(merc?.santeActuelle ?? merc?.santeMax ?? ""));
+    setActuelError("");
+  }, [merc?.id, merc?.energieActuelle, merc?.santeActuelle, merc?.energieMax, merc?.santeMax]);
   useEffect(() => {
     setVet(String(merc?.veterance ?? ""));
     setVetError("");
@@ -337,6 +347,98 @@ export function Characters({
                   {vetError}
                 </p>
               )}
+              <div className="merc-stats">
+                {[
+                  ["Puissance", merc.puissance],
+                  ["Vélocité", merc.velocite],
+                  ["Mental", merc.mental],
+                  ["Mouvement", merc.mouvement === null || merc.mouvement === undefined ? null : `${merc.mouvement}c`],
+                  ["Santé Max", merc.santeMax],
+                  ["Énergie Max", merc.energieMax],
+                ].map(([libelle, valeur]) => (
+                  <div className="stat-line" key={libelle}>
+                    <span>{libelle}</span>
+                    <strong>{valeur ?? "—"}</strong>
+                  </div>
+                ))}
+                {recrutes.includes(merc.id) || estAdmin ? (
+                  <form
+                    className="merc-actuel-form"
+                    noValidate
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const lire = (v) => {
+                        if (String(v).trim() === "") return { ok: true, n: null };
+                        const n = Number(v);
+                        return Number.isInteger(n) && n >= 0 && n <= 9999 ? { ok: true, n } : { ok: false };
+                      };
+                      const en = lire(energieAct);
+                      const sa = lire(santeAct);
+                      if (!en.ok || !sa.ok) {
+                        setActuelError("Saisissez des entiers de 0 à 9999.");
+                        return;
+                      }
+                      const result = await onSetActuel(merc.id, en.n, sa.n);
+                      setActuelError(result?.error || "");
+                    }}
+                  >
+                    <div className="stat-line merc-veterance-edit">
+                      <label htmlFor="merc-sante-actuelle">Santé Actuelle</label>
+                      <span>
+                        <input
+                          id="merc-sante-actuelle"
+                          type="number"
+                          min="0"
+                          max="9999"
+                          step="1"
+                          value={santeAct}
+                          onChange={(e) => setSanteAct(e.target.value)}
+                        />
+                      </span>
+                    </div>
+                    <div className="stat-line merc-veterance-edit">
+                      <label htmlFor="merc-energie-actuelle">Énergie Actuelle</label>
+                      <span>
+                        <input
+                          id="merc-energie-actuelle"
+                          type="number"
+                          min="0"
+                          max="9999"
+                          step="1"
+                          value={energieAct}
+                          onChange={(e) => setEnergieAct(e.target.value)}
+                        />
+                      </span>
+                    </div>
+                    <button
+                      className="wood-button"
+                      type="submit"
+                      disabled={
+                        santeAct === String(merc.santeActuelle ?? merc.santeMax ?? "") &&
+                        energieAct === String(merc.energieActuelle ?? merc.energieMax ?? "")
+                      }
+                    >
+                      Enregistrer la santé et l’énergie
+                    </button>
+                    {actuelError && (
+                      <p className="error" role="alert">
+                        {actuelError}
+                      </p>
+                    )}
+                  </form>
+                ) : (
+                  <>
+                    <div className="stat-line">
+                      <span>Santé Actuelle</span>
+                      <strong>{merc.santeActuelle ?? merc.santeMax ?? "—"}</strong>
+                    </div>
+                    <div className="stat-line">
+                      <span>Énergie Actuelle</span>
+                      <strong>{merc.energieActuelle ?? merc.energieMax ?? "—"}</strong>
+                    </div>
+                  </>
+                )}
+              </div>
               <p className="muted">
                 La fiche détaillée de ce mercenaire sera complétée ultérieurement.
               </p>

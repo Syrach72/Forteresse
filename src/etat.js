@@ -9,12 +9,31 @@ import { supabase } from "./supabaseClient";
 export async function chargerMercenaires(colonnes = "*") {
   const [m, e] = await Promise.all([
     supabase.from("mercenaire").select(colonnes).order("nom"),
-    supabase.from("mercenaire_etat").select("mercenaire_id, veterance"),
+    supabase.from("mercenaire_etat").select("mercenaire_id, veterance, energie_actuelle, sante_actuelle"),
   ]);
   if (m.error) return { error: m.error };
-  const parId = new Map((e.data || []).map((x) => [x.mercenaire_id, x.veterance]));
+  const parId = new Map((e.data || []).map((x) => [x.mercenaire_id, x]));
   return {
-    data: m.data.map((x) => (parId.has(x.id) ? { ...x, veterance: parId.get(x.id) } : x)),
+    data: m.data.map((x) => {
+      const etat = parId.get(x.id);
+      return etat
+        ? { ...x, veterance: etat.veterance, energie_actuelle: etat.energie_actuelle, sante_actuelle: etat.sante_actuelle }
+        : x;
+    }),
+  };
+}
+
+// Énergie et santé actuelles de chaque mercenaire pour la session courante :
+// Map id -> { energie, sante } (null = pas encore modifiée : la fiche affiche le maximum).
+export async function chargerActuels() {
+  const { data, error } = await supabase
+    .from("mercenaire_etat")
+    .select("mercenaire_id, energie_actuelle, sante_actuelle");
+  if (error) return { error };
+  return {
+    data: new Map(
+      data.map((x) => [x.mercenaire_id, { energie: x.energie_actuelle ?? null, sante: x.sante_actuelle ?? null }]),
+    ),
   };
 }
 

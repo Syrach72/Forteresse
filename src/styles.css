@@ -5033,3 +5033,12 @@ a.merc-card:hover {
   margin: 0 0 8px;
   font-size: 16px;
 }
+.merc-stats {
+  margin: 10px 0;
+}
+.merc-actuel-form {
+  margin-top: 2px;
+}
+.merc-actuel-form > .wood-button {
+  margin-top: 8px;
+}

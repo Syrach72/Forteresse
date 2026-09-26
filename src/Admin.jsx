@@ -1701,10 +1701,21 @@ function emptyMercenaire(classeId = "") {
     mouvement: "",
     mana: "",
     sante: "",
-    notes: "",
   };
 }
 
+// Libellés des caractéristiques d'un mercenaire (les colonnes de la base gardent leurs anciens
+// noms : attaque = Puissance, defense = Vélocité, esprit = Mental, mana = Énergie Max,
+// sante = Santé Max ; le mouvement s'exprime en cases).
+const LIBELLES_MERCENAIRE = {
+  veterance: "Vétérance de départ",
+  attaque: "Puissance",
+  defense: "Vélocité",
+  esprit: "Mental",
+  mouvement: "Mouvement (en cases)",
+  mana: "Énergie Max",
+  sante: "Santé Max",
+};
 function toIntOrNull(v) {
   return v === "" || v === null || v === undefined ? null : Number(v);
 }
@@ -2057,7 +2068,6 @@ function MercenairesSection() {
       mouvement: m.mouvement ?? "",
       mana: m.mana ?? "",
       sante: m.sante ?? "",
-      notes: m.notes || "",
     });
     setPortraitFile(null);
   }
@@ -2097,7 +2107,6 @@ function MercenairesSection() {
       mouvement: toIntOrNull(form.mouvement),
       mana: toIntOrNull(form.mana),
       sante: toIntOrNull(form.sante),
-      notes: form.notes || null,
     };
     const err = editing
       ? await mercenaires.update(editing, values)
@@ -2219,7 +2228,7 @@ function MercenairesSection() {
           {["veterance", "attaque", "defense", "esprit", "mouvement", "mana", "sante"].map((field) => (
             <div className="field" key={field}>
               <label htmlFor={`merc-${field}`}>
-                {field === "veterance" ? "Vétérance de départ" : field[0].toUpperCase() + field.slice(1)}
+                {LIBELLES_MERCENAIRE[field]}
               </label>
               <div className="input-wrap">
                 <input
@@ -2231,16 +2240,6 @@ function MercenairesSection() {
               </div>
             </div>
           ))}
-        </div>
-        <div className="field">
-          <label htmlFor="merc-notes">Notes</label>
-          <div className="input-wrap">
-            <input
-              id="merc-notes"
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            />
-          </div>
         </div>
         {msg && <p className="admin-error">{msg}</p>}
         <div className="admin-form-actions">
