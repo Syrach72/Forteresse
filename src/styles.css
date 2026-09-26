@@ -5580,3 +5580,8 @@ a.merc-card:hover {
 .modal-sac .sac-dos-equiper {
   font-size: 19px;
 }
+
+.modal-sac > p.muted {
+  font-size: 20px;
+  line-height: 1.35;
+}
