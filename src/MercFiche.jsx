@@ -69,6 +69,44 @@ export function TableauCompetences({ cellules = [], veterance = null, onCell, se
 
 // Portée ou allonge à 0 (ou vide) : rien à indiquer.
 const aUneValeur = (v) => v !== null && v !== undefined && String(v).trim() !== "" && Number(v) !== 0;
+// Orbe de santé (rouge) ou d'énergie (bleue) : la valeur actuelle en grand, le maximum dessous.
+// Éditable (le joueur qui a recruté le mercenaire, ou le MJ) : l'actuelle est un champ de saisie.
+// Jamais plus de 3 chiffres ; les tailles suivent la largeur de l'orbe (unités de conteneur).
+export function Orbe({ type, libelle, id, actuelle, max, editable = false, valeur = "", onChange }) {
+  return (
+    <div className={`orbe orbe-${type}`}>
+      <div className="orbe-image">
+        <div className="orbe-contenu">
+          {editable ? (
+            <input
+              id={id}
+              className="orbe-actuelle orbe-saisie"
+              type="number"
+              inputMode="numeric"
+              min="0"
+              max="999"
+              step="1"
+              value={valeur}
+              aria-label={`${libelle} actuelle`}
+              onChange={(e) => onChange?.(e.target.value.slice(0, 3))}
+            />
+          ) : (
+            <span className="orbe-actuelle" aria-label={`${libelle} actuelle`}>
+              {actuelle ?? "—"}
+            </span>
+          )}
+          <span className="orbe-max" aria-label={`${libelle} maximum`}>
+            / {max ?? "—"}
+          </span>
+        </div>
+      </div>
+      <label className="orbe-libelle" htmlFor={editable ? id : undefined}>
+        {libelle}
+      </label>
+    </div>
+  );
+}
+
 const valeur = (v) => (v === null || v === undefined || v === "" ? "—" : v);
 
 // Emplacements d'équipement : `equip` = { arme: [3], armure: [1], objet: [3] }

@@ -3,7 +3,7 @@ import { CHARACTER_CLASSES, WEAPONS, LEVELS, COUT_RECRUTEMENT_PAR_VETERANCE } fr
 import { ASSETS } from "./data";
 import { SOINS_INSTANCES } from "./dormitory.js";
 import { VetBadge } from "./VetBadge.jsx";
-import { TableauCompetences, EquipementMercenaire, DetailCompetence } from "./MercFiche.jsx";
+import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe } from "./MercFiche.jsx";
 // Objets qui peuvent être équipés depuis le sac à dos (rubriques du catalogue).
 const EQUIPABLES = ["Armes", "Armures", "Objet divers"];
 const PARCHMENT_CLASSES = [
@@ -358,91 +358,76 @@ export function Characters({
                   ["Vélocité", merc.velocite],
                   ["Mental", merc.mental],
                   ["Mouvement", merc.mouvement === null || merc.mouvement === undefined ? null : `${merc.mouvement}c`],
-                  ["Santé Max", santeMax],
-                  ["Énergie Max", energieMax],
                 ].map(([libelle, valeur]) => (
                   <div className="stat-line" key={libelle}>
                     <span>{libelle}</span>
                     <strong>{valeur ?? "—"}</strong>
                   </div>
                 ))}
-                {recrutes.includes(merc.id) || estAdmin ? (
-                  <form
-                    className="merc-actuel-form"
-                    noValidate
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const lire = (v) => {
-                        if (String(v).trim() === "") return { ok: true, n: null };
-                        const n = Number(v);
-                        return Number.isInteger(n) && n >= 0 && n <= 9999 ? { ok: true, n } : { ok: false };
-                      };
-                      const en = lire(energieAct);
-                      const sa = lire(santeAct);
-                      if (!en.ok || !sa.ok) {
-                        setActuelError("Saisissez des entiers de 0 à 9999.");
-                        return;
-                      }
-                      const result = await onSetActuel(merc.id, en.n, sa.n);
-                      setActuelError(result?.error || "");
-                    }}
-                  >
-                    <div className="stat-line merc-veterance-edit">
-                      <label htmlFor="merc-sante-actuelle">Santé Actuelle</label>
-                      <span>
-                        <input
-                          id="merc-sante-actuelle"
-                          type="number"
-                          min="0"
-                          max="9999"
-                          step="1"
-                          value={santeAct}
-                          onChange={(e) => setSanteAct(e.target.value)}
-                        />
-                      </span>
+                {(() => {
+                  const peutModifier = recrutes.includes(merc.id) || estAdmin;
+                  const lire = (v) => {
+                    if (String(v).trim() === "") return { ok: true, n: null };
+                    const n = Number(v);
+                    return Number.isInteger(n) && n >= 0 && n <= 999 ? { ok: true, n } : { ok: false };
+                  };
+                  const inchange =
+                    santeAct === String(merc.santeActuelle ?? santeMax ?? "") &&
+                    energieAct === String(merc.energieActuelle ?? energieMax ?? "");
+                  const orbes = (
+                    <div className="orbes">
+                      <Orbe
+                        type="sante"
+                        libelle="Santé"
+                        id="merc-sante-actuelle"
+                        max={santeMax}
+                        actuelle={merc.santeActuelle ?? santeMax}
+                        editable={peutModifier}
+                        valeur={santeAct}
+                        onChange={setSanteAct}
+                      />
+                      <Orbe
+                        type="energie"
+                        libelle="Énergie"
+                        id="merc-energie-actuelle"
+                        max={energieMax}
+                        actuelle={merc.energieActuelle ?? energieMax}
+                        editable={peutModifier}
+                        valeur={energieAct}
+                        onChange={setEnergieAct}
+                      />
                     </div>
-                    <div className="stat-line merc-veterance-edit">
-                      <label htmlFor="merc-energie-actuelle">Énergie Actuelle</label>
-                      <span>
-                        <input
-                          id="merc-energie-actuelle"
-                          type="number"
-                          min="0"
-                          max="9999"
-                          step="1"
-                          value={energieAct}
-                          onChange={(e) => setEnergieAct(e.target.value)}
-                        />
-                      </span>
-                    </div>
-                    <button
-                      className="wood-button"
-                      type="submit"
-                      disabled={
-                        santeAct === String(merc.santeActuelle ?? santeMax ?? "") &&
-                        energieAct === String(merc.energieActuelle ?? energieMax ?? "")
-                      }
+                  );
+                  return peutModifier ? (
+                    <form
+                      className="merc-actuel-form"
+                      noValidate
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const en = lire(energieAct);
+                        const sa = lire(santeAct);
+                        if (!en.ok || !sa.ok) {
+                          setActuelError("Saisissez des entiers de 0 à 999.");
+                          return;
+                        }
+                        const result = await onSetActuel(merc.id, en.n, sa.n);
+                        setActuelError(result?.error || "");
+                      }}
                     >
-                      Enregistrer la santé et l’énergie
-                    </button>
-                    {actuelError && (
-                      <p className="error" role="alert">
-                        {actuelError}
-                      </p>
-                    )}
-                  </form>
-                ) : (
-                  <>
-                    <div className="stat-line">
-                      <span>Santé Actuelle</span>
-                      <strong>{merc.santeActuelle ?? santeMax ?? "—"}</strong>
-                    </div>
-                    <div className="stat-line">
-                      <span>Énergie Actuelle</span>
-                      <strong>{merc.energieActuelle ?? energieMax ?? "—"}</strong>
-                    </div>
-                  </>
-                )}
+                      {orbes}
+                      <button className="wood-button" type="submit" disabled={inchange}>
+                        Enregistrer la santé et l’énergie
+                      </button>
+                      {actuelError && (
+                        <p className="error" role="alert">
+                          {actuelError}
+                        </p>
+                      )}
+                    </form>
+                  ) : (
+                    orbes
+                  );
+                })()}
               </div>
               <p className="muted">
                 La fiche détaillée de ce mercenaire sera complétée ultérieurement.
