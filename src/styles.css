@@ -5444,18 +5444,18 @@ a.merc-card:hover {
   font-size: 20px;
 }
 
-/* Gemmes d'une arme ×1,5 (33 → 50 px) ; elles se chevauchent un peu pour que trois gemmes tiennent sur l'icône. */
+/* Gemmes d'une arme : compromis entre 33 px et 50 px (41 px) ; elles se chevauchent un peu pour que trois gemmes tiennent sur l'icône. */
 .equip-slot-arme .equip-gemmes {
-  right: -8px;
-  bottom: -8px;
+  right: -6px;
+  bottom: -6px;
   gap: 0;
 }
 .equip-slot-arme .equip-gemmes img {
-  width: 50px;
-  height: 50px;
+  width: 41px;
+  height: 41px;
 }
 .equip-slot-arme .equip-gemmes img + img {
-  margin-left: -14px;
+  margin-left: -11px;
 }
 .equip-gemmes img {
   width: 36px;
