@@ -213,6 +213,8 @@ export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
           );
         })}
       </div>
+      {/* Armure, puis le bouclier juste dessous : une seule colonne. */}
+      <div className="equip-colonne">
       <div className="equip-groupe">
         <h3>Armure</h3>
         {e.armure?.[0] ? (
@@ -276,6 +278,7 @@ export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
         ) : (
           vide("Bouclier")
         )}
+      </div>
       </div>
       <div className="equip-groupe">
         <h3>Objets</h3>

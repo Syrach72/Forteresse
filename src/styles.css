@@ -4916,7 +4916,7 @@ a.merc-card:hover {
 }
 .equip-grille {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-top: 12px;
 }
@@ -5371,4 +5371,16 @@ a.merc-card:hover {
   background: #f0c94f;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
   transition: left 0.45s ease;
+}
+.equip-colonne {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+/* Sac à dos sur le portrait : bouton plus grand. */
+.merc-sac-portrait {
+  width: 84px;
+  height: 84px;
+  padding: 8px;
 }
