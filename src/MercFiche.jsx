@@ -67,8 +67,8 @@ export function TableauCompetences({ cellules = [], veterance = null, onCell, se
   );
 }
 
-// Allonge 0 (ou vide) : rien à indiquer.
-const aUneAllonge = (v) => v !== null && v !== undefined && String(v).trim() !== "" && Number(v) !== 0;
+// Portée ou allonge à 0 (ou vide) : rien à indiquer.
+const aUneValeur = (v) => v !== null && v !== undefined && String(v).trim() !== "" && Number(v) !== 0;
 const valeur = (v) => (v === null || v === undefined || v === "" ? "—" : v);
 
 // Emplacements d'équipement : `equip` = { arme: [3], armure: [1], objet: [3] }
@@ -115,11 +115,13 @@ export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
                 <strong>{o.nom}</strong>
                 {o.description && <p className="equip-description">{o.description}</p>}
                 <dl className="equip-stats">
-                  <div>
-                    <dt>Portée</dt>
-                    <dd>{valeur(o.portee)}</dd>
-                  </div>
-                  {aUneAllonge(o.allonge) && (
+                  {aUneValeur(o.portee) && (
+                    <div>
+                      <dt>Portée</dt>
+                      <dd>{o.portee}</dd>
+                    </div>
+                  )}
+                  {aUneValeur(o.allonge) && (
                     <div>
                       <dt>Allonge</dt>
                       <dd>{o.allonge}</dd>
