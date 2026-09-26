@@ -1692,6 +1692,7 @@ function emptyMercenaire(classeId = "") {
   return {
     nom: "",
     classe_id: classeId,
+    sous_classe: "",
     portrait: "",
     veterance: "1",
     attaque: "",
@@ -2047,6 +2048,7 @@ function MercenairesSection() {
     setForm({
       nom: m.nom,
       classe_id: m.classe_id || "",
+      sous_classe: m.sous_classe || "",
       portrait: m.portrait || "",
       veterance: m.veterance ?? "",
       attaque: m.attaque ?? "",
@@ -2085,6 +2087,7 @@ function MercenairesSection() {
     const values = {
       nom: form.nom,
       classe_id: form.classe_id || null,
+      sous_classe: form.sous_classe.trim() || null,
       portrait,
       // Aucun mercenaire n'a moins de 1 de vétérance.
       veterance: Math.max(1, toIntOrNull(form.veterance) ?? 1),
@@ -2142,6 +2145,18 @@ function MercenairesSection() {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="field">
+            <label htmlFor="merc-sous-classe">Sous-classe</label>
+            <div className="input-wrap">
+              <input
+                id="merc-sous-classe"
+                maxLength={20}
+                value={form.sous_classe}
+                placeholder="20 caractères au plus"
+                onChange={(e) => setForm({ ...form, sous_classe: e.target.value.slice(0, 20) })}
+              />
+            </div>
           </div>
           <div className="field portrait-field">
             <label htmlFor="merc-portrait" className="portrait-frame">

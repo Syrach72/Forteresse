@@ -1192,6 +1192,7 @@ export function App() {
           id: m.id,
           nom: m.nom,
           classe: nomClasse.get(m.classe_id) || "",
+          sousClasse: m.sous_classe || "",
           portrait: m.portrait || null,
           veterance: m.veterance ?? 1,
         })),

@@ -289,7 +289,10 @@ export function Characters({
               <h2>{merc.nom}</h2>
               <div className="stat-line">
                 <span>Classe</span>
-                <strong>{merc.classe || "—"}</strong>
+                <strong>
+                  {merc.classe || "—"}
+                  {merc.sousClasse ? ` (${merc.sousClasse})` : ""}
+                </strong>
               </div>
               {estAdmin ? (
                 <form
