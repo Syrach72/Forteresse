@@ -141,7 +141,10 @@ export function Characters({
     setVetError("");
   }, [merc?.id, merc?.veterance]);
   const title = useRef();
+  // Rubrique affichée de la fiche d'un mercenaire : general, equipement ou competences.
+  const [onglet, setOnglet] = useState("general");
   useEffect(() => {
+    setOnglet("general");
     setPopup(null);
     onClearError();
     setNomJoueur("");
@@ -296,8 +299,30 @@ export function Characters({
         )
       ) : merc ? (
         accesFiche(merc.id) ? (
-          <>
-          <section className="merc-sheet parchment">
+          <div className="merc-fiche" data-onglet={onglet}>
+          {/* Onglets de parapheur, en haut à droite : Général, Équipement (mercenaire recruté), Compétences. */}
+          <div className="merc-onglets" role="tablist" aria-label="Rubriques de la fiche">
+            {[
+              ["general", "Général"],
+              ...(tousRecrutes.includes(merc.id) ? [["equipement", "Équipement"]] : []),
+              ["competences", "Compétences"],
+            ].map(([id, libelle]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                id={`merc-onglet-${id}`}
+                aria-selected={onglet === id}
+                aria-controls={`merc-rubrique-${id}`}
+                className="merc-onglet"
+                onClick={() => setOnglet(id)}
+              >
+                {libelle}
+              </button>
+            ))}
+          </div>
+          {onglet === "general" && (
+          <section className="merc-sheet parchment" id="merc-rubrique-general" role="tabpanel" aria-labelledby="merc-onglet-general">
             <div className="merc-colonne-gauche">
               <div className="merc-portrait-cadre">
                 <span className="merc-portrait merc-portrait-grand">
@@ -309,18 +334,6 @@ export function Characters({
                 </span>
                 {/* Vétérance sur l'icône aux lauriers, en haut à gauche du portrait (non modifiable par le joueur). */}
                 <VetBadge className="merc-vet-portrait" value={merc.veterance} />
-                {/* Sac à dos (inventaire) : en bas à gauche du portrait. */}
-                {recrutes.includes(merc.id) && (
-                  <button
-                    className="merc-sac-dos merc-sac-portrait"
-                    type="button"
-                    onClick={() => setPopup({ type: "sac" })}
-                    aria-label={`Sac à dos de ${merc.nom}`}
-                    title="Sac à dos"
-                  >
-                    <img src="/assets/icons/sac-a-dos.webp" alt="" />
-                  </button>
-                )}
               </div>
               {/* Déplacement et parade : sous le portrait, même présentation (valeur sous l'icône). */}
               <div className="merc-sous-portrait">
@@ -590,9 +603,25 @@ export function Characters({
               )}
             </div>
           </section>
-          {tousRecrutes.includes(merc.id) && (
-            <section className="merc-bloc parchment" aria-labelledby="merc-equipement-titre">
-              <h2 id="merc-equipement-titre">Équipement</h2>
+          )}
+          {onglet === "equipement" && tousRecrutes.includes(merc.id) && (
+            <section className="merc-bloc parchment" id="merc-rubrique-equipement" role="tabpanel" aria-labelledby="merc-onglet-equipement">
+              <div className="merc-bloc-entete">
+                <h2 id="merc-equipement-titre">Équipement</h2>
+                {/* Sac à dos (inventaire) : dans la rubrique Équipement. */}
+                {recrutes.includes(merc.id) && (
+                  <button
+                    className="merc-sac-dos merc-sac-equipement"
+                    type="button"
+                    onClick={() => setPopup({ type: "sac" })}
+                    aria-label={`Sac à dos de ${merc.nom}`}
+                    title="Sac à dos"
+                  >
+                    <img src="/assets/icons/sac-a-dos.webp" alt="" />
+                    <span>Sac à dos</span>
+                  </button>
+                )}
+              </div>
               <p className="muted">
                 3 armes, 1 armure, 1 bouclier et 3 objets. On équipe depuis le sac à dos ; déséquiper renvoie l’objet au sac.
               </p>
@@ -608,7 +637,8 @@ export function Characters({
               />
             </section>
           )}
-          <section className="merc-bloc parchment" aria-labelledby="merc-competences-titre">
+          {onglet === "competences" && (
+          <section className="merc-bloc parchment" id="merc-rubrique-competences" role="tabpanel" aria-labelledby="merc-onglet-competences">
             <h2 id="merc-competences-titre">Compétences</h2>
             <p className="muted">
               Une ligne par niveau de vétérance ; les compétences d’une ligne se débloquent quand la vétérance de {merc.nom}{" "}
@@ -627,7 +657,8 @@ export function Characters({
               }
             />
           </section>
-          </>
+          )}
+          </div>
         ) : (
           <section className="parchment empty-class">
             <h2>Fiche réservée</h2>
