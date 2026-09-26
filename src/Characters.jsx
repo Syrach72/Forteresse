@@ -430,6 +430,15 @@ export function Characters({
                     Recrutement : {COUT_RECRUTEMENT_PAR_VETERANCE} Po × vétérance {merc.veterance ?? 1} ={" "}
                     <strong>{COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po</strong>, prélevés sur la
                     trésorerie. Renvoyé, il faudra le payer de nouveau pour le recruter.
+                    {estAdmin && vet !== String(merc.veterance ?? "") && (
+                      <>
+                        {" "}
+                        <strong className="error">
+                          Le coût suit la vétérance enregistrée ({merc.veterance ?? 1}) : cliquez sur « Enregistrer »
+                          pour appliquer {vet || "la nouvelle valeur"}.
+                        </strong>
+                      </>
+                    )}
                   </p>
                   <label htmlFor="merc-nom-joueur">Nom du joueur</label>
                   <input
