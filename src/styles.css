@@ -2811,6 +2811,17 @@ video.interior-backdrop-boxed {
   font-size: 13px;
   line-height: 1.2;
 }
+.sac-dos-gemmes {
+  display: flex;
+  gap: 4px;
+}
+.sac-dos-slot .sac-dos-gemmes img {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #2a1a08;
+  background: #1c130a;
+}
 .sac-dos-slot-vide {
   border-style: dashed;
   opacity: 0.5;
