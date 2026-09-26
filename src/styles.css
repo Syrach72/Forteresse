@@ -5384,3 +5384,62 @@ a.merc-card:hover {
   height: 84px;
   padding: 8px;
 }
+
+/* Fiche mercenaire : équipement et compétences plus lisibles (icônes ×1,5, texte plus grand). */
+.merc-bloc {
+  container-type: inline-size;
+}
+.merc-bloc .comp-table {
+  --comp-cell: min(84px, calc((100cqw - 50px) / 8.6));
+  --comp-gap: calc(var(--comp-cell) * 0.5);
+}
+.merc-bloc .comp-legende {
+  font-size: 20px;
+}
+.equip-groupe h3 {
+  font-size: 26px;
+}
+.equip-slot {
+  min-height: 129px;
+  gap: 14px;
+}
+.equip-icone {
+  width: 84px;
+  height: 84px;
+}
+.equip-slot-arme .equip-icone {
+  width: 126px;
+  height: 126px;
+}
+.equip-gemmes img {
+  width: 24px;
+  height: 24px;
+}
+.equip-slot-arme .equip-gemmes img {
+  width: 33px;
+  height: 33px;
+}
+.equip-arme-icones img {
+  width: 33px;
+  height: 33px;
+}
+.equip-slot-arme .equip-arme-icones img {
+  width: 50px;
+  height: 50px;
+}
+.equip-texte {
+  font-size: 20px;
+  line-height: 1.25;
+}
+.equip-description {
+  font-size: 19px;
+}
+.equip-etiquettes {
+  font-size: 17px;
+}
+.equip-retirer {
+  font-size: 18px;
+}
+.equip-slot-vide {
+  font-size: 20px;
+}
