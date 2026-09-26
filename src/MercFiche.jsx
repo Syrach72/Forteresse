@@ -67,7 +67,20 @@ export function TableauCompetences({ cellules = [], veterance = null, onCell, se
   );
 }
 
-// Portée ou allonge à 0 (ou vide) : rien à indiquer.
+// Niveau de parade : I, II ou III (les chiffres 1 à 3 sont acceptés). Renvoie 0 si absent.
+export function rangParade(p) {
+  const t = String(p ?? "").trim().toUpperCase();
+  return { I: 1, II: 2, III: 3, 1: 1, 2: 2, 3: 3 }[t] || 0;
+}
+// Les parades de l'arme et du bouclier ne se cumulent pas : seule la plus élevée compte.
+export function meilleureParade(equip) {
+  if (!equip) return null;
+  const candidats = [...(equip.arme || []), ...(equip.bouclier || [])].map((o) => o?.parade).filter(Boolean);
+  let meilleur = null;
+  for (const p of candidats) if (rangParade(p) > rangParade(meilleur)) meilleur = String(p).trim().toUpperCase();
+  return meilleur;
+}
+// Allonge 0 (ou vide) : rien à indiquer.
 const aUneValeur = (v) => v !== null && v !== undefined && String(v).trim() !== "" && Number(v) !== 0;
 // Orbe de santé (rouge) ou d'énergie (bleue) : la valeur actuelle en grand, le maximum dessous.
 // Éditable (le joueur qui a recruté le mercenaire, ou le MJ) : l'actuelle est un champ de saisie.
@@ -170,6 +183,11 @@ export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
                     <dd>{valeur(o.typeDegats)}</dd>
                   </div>
                 </dl>
+                {o.parade && (
+                  <p className="equip-etiquettes">
+                    <span className="equip-oui">Parade {o.parade}</span>
+                  </p>
+                )}
                 {(o.legere || o.deuxMains) && (
                   <p className="equip-etiquettes">
                     {o.legere && <span className="equip-oui">Arme légère</span>}

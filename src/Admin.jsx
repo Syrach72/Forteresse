@@ -1079,7 +1079,7 @@ function CatalogueSection({ onCraftItem }) {
       malus_discretion: armure || bouclier ? malusOuNull(form.malus_discretion) : null,
       malus_vitesse: armure || bouclier ? malusOuNull(form.malus_vitesse) : null,
       malus_esquive: bouclier ? malusOuNull(form.malus_esquive) : null,
-      parade: bouclier ? form.parade.trim() || null : null,
+      parade: arme || bouclier ? form.parade.trim() || null : null,
       allonge: arme ? form.allonge.trim() || null : null,
       type_degats: arme ? form.type_degats.trim() || null : null,
       deux_mains: arme ? !!form.deux_mains : false,
@@ -1389,17 +1389,19 @@ function CatalogueSection({ onCraftItem }) {
                 </div>
               </>
             )}
-            {bouclier && (
+            {(arme || bouclier) && (
               <div className="field field-protection">
                 <label htmlFor="cat-parade">Parade</label>
-                <div className="input-wrap">
-                  <input
-                    id="cat-parade"
-                    maxLength={5}
-                    value={form.parade}
-                    onChange={(e) => setForm({ ...form, parade: e.target.value.slice(0, 5) })}
-                  />
-                </div>
+                <select
+                  id="cat-parade"
+                  value={form.parade}
+                  onChange={(e) => setForm({ ...form, parade: e.target.value })}
+                >
+                  <option value="">—</option>
+                  <option value="I">I</option>
+                  <option value="II">II</option>
+                  <option value="III">III</option>
+                </select>
               </div>
             )}
             {(armure || bouclier) && (

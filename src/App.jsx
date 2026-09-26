@@ -567,6 +567,12 @@ function CombatStats({ item }) {
               <strong>{item.type_degats}</strong>
             </div>
           )}
+          {item.estArme && item.parade && (
+            <div className="stat-line">
+              <span>Parade</span>
+              <strong>{item.parade}</strong>
+            </div>
+          )}
         </>
       )}
     </>

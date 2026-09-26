@@ -3,7 +3,7 @@ import { CHARACTER_CLASSES, WEAPONS, LEVELS, COUT_RECRUTEMENT_PAR_VETERANCE } fr
 import { ASSETS } from "./data";
 import { SOINS_INSTANCES } from "./dormitory.js";
 import { VetBadge } from "./VetBadge.jsx";
-import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe } from "./MercFiche.jsx";
+import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade } from "./MercFiche.jsx";
 // Objets qui peuvent être équipés depuis le sac à dos (rubriques du catalogue).
 const EQUIPABLES = ["Armes", "Armures", "Objet divers"];
 const PARCHMENT_CLASSES = [
@@ -358,6 +358,8 @@ export function Characters({
                   ["Vélocité", merc.velocite],
                   ["Mental", merc.mental],
                   ["Mouvement", merc.mouvement === null || merc.mouvement === undefined ? null : `${merc.mouvement}c`],
+                  // Parade : la plus élevée entre les armes et le bouclier équipés (ils ne se cumulent pas).
+                  ["Parade", meilleureParade(equipements.get(merc.id))],
                 ].map(([libelle, valeur]) => (
                   <div className="stat-line" key={libelle}>
                     {libelle === "Mouvement" ? (
