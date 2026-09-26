@@ -332,16 +332,13 @@ function ItemActionPanel({
   onSell,
   onDestroy,
   onSendToBackpack,
-  onEquip,
   mercenairesRecrutes = [],
-  mesMercenaires = [],
   busy,
   error,
 }) {
   const [qty, setQty] = useState(1);
   const [confirmDestroy, setConfirmDestroy] = useState(false);
   const [mercenaireCible, setMercenaireCible] = useState("");
-  const [choixEquiper, setChoixEquiper] = useState(false);
   const own = game.inventory.find((i) => i.id === id);
   if (!own) return <p>Cet objet n’est plus dans l’arsenal.</p>;
   const { art } = inventoryItemInfo(own);
@@ -351,15 +348,9 @@ function ItemActionPanel({
   // pour l'affichage.
   const multiplicateur = multiplicateurSertissage(own.gemmes?.length || 0);
   const gain = valeur === null ? null : Math.floor((valeur * qty * multiplicateur) / 2);
-  // Composants : envoi au sac de n'importe quel mercenaire de la compagnie
-  // (sélecteur ci-dessous). Armes, armures et objets divers : bouton Équiper,
-  // vers le sac d'un mercenaire du joueur. Revérifié côté serveur dans tous les cas.
-  const versSac = own.categorie === "Composants";
-  const equipable = ["Armes", "Armures", "Objet divers"].includes(own.categorie);
-  const cliquerEquiper = () => {
-    if (mesMercenaires.length > 1) setChoixEquiper(true);
-    else onEquip(own.id, mesMercenaires[0]?.id ?? null, qty);
-  };
+  // Composants, armes, armures et objets divers peuvent rejoindre le sac à dos
+  // d'un mercenaire (règle de Bruno) ; revérifié côté serveur dans tous les cas.
+  const versSac = ["Composants", "Armes", "Armures", "Objet divers"].includes(own.categorie);
   return (
     <>
       <div className="item-detail-art">{art}</div>
@@ -377,41 +368,26 @@ function ItemActionPanel({
         Quantité : {own.quantity}
         {own.equipped ? " · Équipé" : ""}
       </p>
-      {/* Équiper : envoie l'objet au sac à dos d'un mercenaire du joueur (le
-          seul qu'il possède, sinon il choisit). La vente au Marché (moitié de la
-          valeur) et la destruction (avec confirmation Oui/Non) sont actives. */}
+      {/* La vente au Marché (moitié de la valeur) et la destruction (avec
+          confirmation Oui/Non) sont actives ; l'envoi au sac à dos remplace
+          l'ancien bouton Équiper (sélecteur plus bas). */}
       <div className="item-detail-actions">
-        <div className="item-detail-equip">
-          <button
-            className="wood-button"
-            disabled={busy || !equipable || confirmDestroy}
-            title={
-              equipable
-                ? "Envoyer au sac à dos d’un de vos mercenaires"
-                : "Seuls les armes, armures et objets peuvent être équipés"
-            }
-            onClick={cliquerEquiper}
-          >
-            Équiper
-          </button>
-          <label className="item-detail-qty">
-            Nombre à prélever
-            <input
-              type="number"
-              min="1"
-              max={own.quantity}
-              value={qty}
-              onChange={(e) => {
-                const n = Math.round(Number(e.target.value));
-                setQty(
-                  Number.isFinite(n) ? Math.min(Math.max(n, 1), own.quantity) : 1,
-                );
-                setConfirmDestroy(false);
-                setChoixEquiper(false);
-              }}
-            />
-          </label>
-        </div>
+        <label className="item-detail-qty">
+          Nombre à prélever
+          <input
+            type="number"
+            min="1"
+            max={own.quantity}
+            value={qty}
+            onChange={(e) => {
+              const n = Math.round(Number(e.target.value));
+              setQty(
+                Number.isFinite(n) ? Math.min(Math.max(n, 1), own.quantity) : 1,
+              );
+              setConfirmDestroy(false);
+            }}
+          />
+        </label>
         <button
           className="wood-button"
           disabled={busy || gain === null || own.equipped || confirmDestroy}
@@ -457,27 +433,6 @@ function ItemActionPanel({
               onClick={() => setConfirmDestroy(false)}
             >
               Non
-            </button>
-          </div>
-        </div>
-      )}
-      {choixEquiper && (
-        <div className="item-detail-sac" role="group" aria-label="Choisir le mercenaire">
-          <p>Équiper {qty} × {inventoryItemInfo(own).name} : envoyer au sac à dos de…</p>
-          <div className="item-detail-sac-row">
-            {mesMercenaires.map((m) => (
-              <button
-                key={m.id}
-                className="wood-button"
-                type="button"
-                disabled={busy}
-                onClick={() => onEquip(own.id, m.id, qty)}
-              >
-                {m.name}
-              </button>
-            ))}
-            <button className="text-button" type="button" onClick={() => setChoixEquiper(false)}>
-              Annuler
             </button>
           </div>
         </div>
@@ -2329,30 +2284,6 @@ export function App() {
     if (!data) return;
     notify(`${nom} ×${quantity} envoyé au sac à dos.`);
   }
-  // Bouton Équiper de l'Arsenal : l'objet part dans le sac à dos d'un mercenaire
-  // du joueur (choisi dans la fiche s'il en a plusieurs). Sac plein : le
-  // serveur refuse avec un message demandant de libérer un emplacement.
-  async function actEquiper(id, mercenaireId, quantity) {
-    if (!mercenaireId) {
-      setActionError(
-        "Vous n’avez aucun mercenaire à votre nom : recrutez-en un avant d’équiper un objet.",
-      );
-      return;
-    }
-    const nom = nomDe(id);
-    const mercenaire = warriors.find((w) => w.id === mercenaireId)?.name || "votre mercenaire";
-    const data = await operationPartagee(() =>
-      supabase.rpc("sac_dos_envoyer", {
-        p_mercenaire: mercenaireId,
-        p_objet: objetDe(id),
-        p_quantite: quantity,
-        p_gemmes: gemmesDe(id),
-      }),
-    );
-    if (!data) return;
-    setModal(null);
-    notify(`${nom} ×${quantity} équipé : envoyé au sac à dos de ${mercenaire}.`);
-  }
   async function actRendreArsenal(mercenaireId, objetId, quantity, gemmes = null) {
     const nom = sacsDos.get(mercenaireId)?.find((i) => i.objetId === objetId)?.nom || "L’objet";
     const data = await operationPartagee(() =>
@@ -4129,9 +4060,7 @@ export function App() {
               onSell={actSell}
               onDestroy={actDestroy}
               onSendToBackpack={actEnvoyerSac}
-              onEquip={actEquiper}
               mercenairesRecrutes={mercenairesRecrutes}
-              mesMercenaires={warriors}
               busy={busy}
               error={actionError}
             />

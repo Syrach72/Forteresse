@@ -660,10 +660,9 @@ export function Characters({
           {popup.type === "sac" ? (
             <>
               <p className="muted">
-                9 emplacements, jusqu’à 3 par objet. Armes, armures et objets
-                y arrivent par le bouton Équiper de l’Arsenal (composants
-                alchimiques par l’envoi au sac) ; ils repartent à l’arsenal
-                ci-dessous, sans restriction.
+                9 emplacements, jusqu’à 3 par objet. Envoyé depuis l’Arsenal
+                (composants alchimiques, armes, armures et objets divers) ;
+                rendu à l’arsenal ci-dessous, sans restriction.
               </p>
               <div className="sac-dos-grid">
                 {Array.from({ length: 9 }, (_, i) => (sacsDos.get(merc.id) || [])[i] || null).map(

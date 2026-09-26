@@ -1326,16 +1326,6 @@ video.interior-backdrop-boxed {
   flex: 1;
   min-width: 100px;
 }
-.item-detail-equip {
-  display: flex;
-  flex: 2;
-  min-width: 220px;
-  gap: 10px;
-  align-items: stretch;
-}
-.item-detail-equip .wood-button {
-  flex: 1;
-}
 .item-detail-qty {
   display: flex;
   flex-direction: column;
@@ -1356,7 +1346,7 @@ video.interior-backdrop-boxed {
   color: var(--ink);
   text-align: center;
 }
-/* Envoi vers le sac à dos d'un mercenaire (Composants/Objet divers). */
+/* Envoi vers le sac à dos d'un mercenaire (composants, armes, armures, objets divers). */
 .item-detail-sac {
   margin-top: 14px;
 }
