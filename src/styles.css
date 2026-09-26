@@ -5089,7 +5089,7 @@ a.merc-card:hover {
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 30cqw;
+  font-size: 25cqw;
   font-weight: 700;
   line-height: 1;
   text-align: center;
@@ -5112,7 +5112,7 @@ a.merc-card:hover {
   -webkit-appearance: none;
 }
 .orbe-max {
-  font-size: 16cqw;
+  font-size: 14cqw;
   font-weight: 700;
   line-height: 1;
   opacity: 0.92;
@@ -5126,7 +5126,7 @@ a.merc-card:hover {
   align-items: center;
 }
 .stat-icone {
-  width: 34px;
+  width: 42px;
   height: auto;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 }
