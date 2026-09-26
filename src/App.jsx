@@ -350,7 +350,7 @@ function ItemActionPanel({
   const gain = valeur === null ? null : Math.floor((valeur * qty * multiplicateur) / 2);
   // Composants, armes, armures et objets divers peuvent rejoindre le sac à dos
   // d'un mercenaire (règle de Bruno) ; revérifié côté serveur dans tous les cas.
-  const versSac = ["Composants", "Armes", "Armures", "Objet divers"].includes(own.categorie);
+  const versSac = ["Composants", "Produits Alchimiques", "Armes", "Armures", "Objet divers"].includes(own.categorie);
   return (
     <>
       <div className="item-detail-art">{art}</div>

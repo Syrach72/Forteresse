@@ -842,7 +842,7 @@ export function Characters({
             <>
               <p className="muted">
                 9 emplacements, jusqu’à 3 par objet. Envoyé depuis l’Arsenal
-                (composants alchimiques, armes, armures et objets divers) ;
+                (composants et produits alchimiques, armes, armures et objets divers) ;
                 rendu à l’arsenal ci-dessous, sans restriction. Armes, armures
                 et objets peuvent être équipés (bouton « Équiper »).
               </p>
