@@ -2007,7 +2007,7 @@ video.interior-backdrop-boxed {
 }
 .characters-page {
   min-height: calc(100dvh - 120px);
-  padding: 24px 28px 55px;
+  padding: 24px 88px 55px 28px;
   background: var(--paper);
 }
 .characters-heading {
@@ -2344,7 +2344,7 @@ video.interior-backdrop-boxed {
     gap: 15px;
   }
   .characters-page {
-    padding: 24px 18px 45px;
+    padding: 24px 88px 45px 18px;
   }
 }
 @media (max-width: 680px) {
@@ -3539,7 +3539,7 @@ video.interior-backdrop-boxed {
     max-height: 36px;
   }
   .characters-page {
-    padding: 20px 22px 36px;
+    padding: 20px 88px 36px 22px;
   }
   .characters-heading h1 {
     font-size: 28px;
