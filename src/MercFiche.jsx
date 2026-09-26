@@ -163,7 +163,7 @@ export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
         {[0, 1, 2].map((i) => {
           const o = e.arme?.[i];
           return o ? (
-            <div className="equip-slot" key={i}>
+            <div className="equip-slot equip-slot-arme" key={i}>
               {icone(o)}
               <div className="equip-texte">
                 <strong className="equip-nom">

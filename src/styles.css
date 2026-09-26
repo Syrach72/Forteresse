@@ -5145,3 +5145,26 @@ a.merc-card:hover {
   height: 22px;
   object-fit: contain;
 }
+/* Armes : icônes une fois et demie plus grandes ; le texte passe sous l'icône au lieu de rester à côté. */
+.equip-slot-arme {
+  display: block;
+}
+.equip-slot-arme::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+.equip-slot-arme .equip-icone {
+  float: left;
+  width: 84px;
+  height: 84px;
+  margin: 0 10px 4px 0;
+}
+.equip-slot-arme .equip-arme-icones img {
+  width: 33px;
+  height: 33px;
+}
+.equip-slot-arme .equip-gemmes img {
+  width: 22px;
+  height: 22px;
+}
