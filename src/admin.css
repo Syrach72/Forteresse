@@ -27,7 +27,7 @@
   color: var(--paper-light);
 }
 .admin-header h1 {
-  font-family: Aniron, Georgia, serif;
+  font-family: Chiffres, Aniron, Georgia, serif;
   font-size: 22px;
   margin: 0;
 }
@@ -47,7 +47,7 @@
   margin-bottom: 12px;
 }
 .admin-tabs button {
-  font: 16px Georgia, serif;
+  font: 16px Chiffres, Georgia, serif;
   padding: 9px 16px;
   border: 1px solid var(--edge);
   border-bottom: none;
@@ -69,7 +69,7 @@
   margin-bottom: 12px;
 }
 .admin-subtabs button {
-  font: 15px Georgia, serif;
+  font: 15px Chiffres, Georgia, serif;
   padding: 6px 12px;
   border: 1px solid var(--edge);
   border-radius: 4px;
@@ -110,7 +110,7 @@
   text-align: left;
   border-bottom: 2px solid var(--edge);
   padding: 6px 10px;
-  font-family: Georgia, serif;
+  font-family: Chiffres, Georgia, serif;
 }
 .admin-table td {
   border-bottom: 1px solid rgba(143, 122, 86, 0.4);
@@ -205,7 +205,7 @@
   border: 1px solid #8b7b61;
   border-radius: 2px;
   background: rgba(255, 253, 245, 0.35);
-  font: 16px Georgia, serif;
+  font: 16px Chiffres, Georgia, serif;
   color: var(--ink);
   padding: 10px 12px;
 }
@@ -215,7 +215,7 @@
   border: 1px solid #8b7b61;
   border-radius: 2px;
   background: rgba(255, 253, 245, 0.35);
-  font: 16px Georgia, serif;
+  font: 16px Chiffres, Georgia, serif;
   color: var(--ink);
   padding: 0 10px;
 }
@@ -284,7 +284,7 @@
   gap: 4px;
   padding: 10px;
   text-align: center;
-  font-family: Georgia, serif;
+  font-family: Chiffres, Georgia, serif;
   font-size: 13px;
   color: var(--muted);
 }
@@ -297,7 +297,7 @@
   position: absolute;
   inset: auto 0 0 0;
   padding: 6px 4px;
-  font-family: Georgia, serif;
+  font-family: Chiffres, Georgia, serif;
   font-size: 12px;
   text-align: center;
   color: var(--paper-light);
@@ -361,7 +361,7 @@
   text-align: center;
   padding: 20px;
   margin: 0;
-  font-family: Georgia, serif;
+  font-family: Chiffres, Georgia, serif;
   font-size: 14px;
   color: var(--paper-light);
 }
@@ -374,7 +374,7 @@
   gap: 10px;
   max-width: 240px;
   margin: 0 auto 8px;
-  font-family: Georgia, serif;
+  font-family: Chiffres, Georgia, serif;
   font-size: 14px;
 }
 .crop-zoom-row input[type="range"] {
@@ -454,7 +454,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: Georgia, serif;
+  font-family: Chiffres, Georgia, serif;
   font-size: 14px;
   margin-bottom: 17px;
 }
@@ -473,7 +473,7 @@
 }
 .field-hint {
   display: block;
-  font-family: Georgia, serif;
+  font-family: Chiffres, Georgia, serif;
   font-size: 11px;
   font-weight: normal;
   color: var(--muted);
@@ -488,7 +488,7 @@
   margin-top: 12px;
 }
 .admin-recette-footer label {
-  font: 14px Georgia, serif;
+  font: 14px Chiffres, Georgia, serif;
 }
 .admin-ingredient-list {
   list-style: none;
@@ -537,7 +537,7 @@
   border: 1px solid #8b7b61;
   border-radius: 2px;
   background: rgba(255, 253, 245, 0.35);
-  font: 15px Georgia, serif;
+  font: 15px Chiffres, Georgia, serif;
   color: var(--ink);
   padding: 0 10px;
 }
@@ -556,7 +556,7 @@
   border: 1px solid #8b7b61;
   border-radius: 2px;
   background: rgba(255, 253, 245, 0.35);
-  font: 15px Georgia, serif;
+  font: 15px Chiffres, Georgia, serif;
   color: var(--ink);
   padding: 0 10px;
 }
@@ -594,7 +594,7 @@
   padding: 7px 12px;
   border: none;
   background: none;
-  font: 15px Georgia, serif;
+  font: 15px Chiffres, Georgia, serif;
   color: var(--ink);
   cursor: pointer;
 }

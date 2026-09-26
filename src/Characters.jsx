@@ -364,7 +364,7 @@ export function Characters({
             </div>
             <div className="merc-colonne-droite">
               <div className="stat-line">
-                <span>Classe</span>
+                <span>Classe :</span>
                 <strong>
                   {merc.classe || "—"}
                   {merc.sousClasse ? ` (${merc.sousClasse})` : ""}
