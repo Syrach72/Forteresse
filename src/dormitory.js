@@ -67,8 +67,16 @@ export const INITIAL_INFIRMARY = {
   capacity: 2,
   beds: [null, null, null, null, null, null],
 };
-// Durée des soins à l'arrivée à l'infirmerie, en instances (règle de Bruno).
-export const SOINS_INSTANCES = 5;
+// Soins (règle de Bruno) : chaque instance rend un tiers de la santé max (arrondi au-dessus) ; le
+// mercenaire quitte l'infirmerie à sa santé max. Instances nécessaires = santé perdue / tiers,
+// minimum 1 à l'arrivée. Santé max = Puissance × vétérance (min. 6). Le serveur applique la même
+// règle (fonctions _soins_instances et infirmerie_soigner) : ce calcul ne sert qu'à l'affichage.
+export function instancesDeSoins(merc) {
+  if (!merc) return 1;
+  const max = Math.max(6, (merc.puissance ?? 0) * (merc.veterance ?? 1));
+  const actuelle = Math.max(0, Math.min(merc.santeActuelle ?? max, max));
+  return Math.max(1, Math.ceil((max - actuelle) / Math.ceil(max / 3)));
+}
 // Infirmerie PARTAGÉE (tables infirmerie_place / infirmerie_reglage) : état
 // d'affichage à partir des lignes de la base. `places` = lignes
 // { position, mercenaire_id, restant }, `capacity` = lits débloqués (2 ou 3).

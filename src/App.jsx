@@ -18,7 +18,7 @@ import { Dortoir } from "./Dortoir.jsx";
 import {
   INITIAL_DORMITORY,
   INITIAL_INFIRMARY,
-  SOINS_INSTANCES,
+  instancesDeSoins,
   buildInfirmary,
   buildDorm,
   firstFreeBed,
@@ -2165,10 +2165,11 @@ export function App() {
     return {};
   }
   // Fiche du mercenaire (Dortoir) : bouton « Soigner ». Le mercenaire prend le
-  // premier lit libre de l'infirmerie pour SOINS_INSTANCES instances, puis
-  // retrouve sa place au dortoir (son lit y reste, grisé). Règles vérifiées par
-  // le serveur.
+  // premier lit libre de l'infirmerie ; chaque instance lui rend un tiers de sa
+  // santé max et il retrouve sa place au dortoir (son lit y reste, grisé) dès
+  // qu'il l'a retrouvée. Règles vérifiées par le serveur.
   async function healMercenary(id) {
+    const nbInstances = instancesDeSoins(mercenaires.find((m) => m.id === id));
     const { error } = await supabase.rpc("infirmerie_soigner", { p_mercenaire: id });
     if (error) {
       notify(error.message);
@@ -2176,7 +2177,7 @@ export function App() {
     }
     await synchroniserPartage();
     notify(
-      `${peopleRef.current.find((w) => w.id === id)?.name} est en soin à l’infirmerie (${SOINS_INSTANCES} instances).`,
+      `${peopleRef.current.find((w) => w.id === id)?.name} est en soin à l’infirmerie (${nbInstances} instance${nbInstances > 1 ? "s" : ""}).`,
     );
     location.hash = "infirmerie";
   }

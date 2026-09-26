@@ -3,9 +3,10 @@ import { ReferenceCrop } from "./Characters.jsx";
 import { useGlassWindows } from "./glassWindows.js";
 import { prixLitInfirmerie } from "./dormitory.js";
 // Infirmerie PARTAGÉE : visible par tous les joueurs. Un joueur y envoie son
-// mercenaire depuis sa fiche (bouton « Soigner ») ; il y reste SOINS_INSTANCES
-// instances (le compteur baisse à chaque +1 Instance de l'administrateur), puis
-// retrouve sa place au dortoir. Le lit du dortoir ne bouge jamais.
+// mercenaire depuis sa fiche (bouton « Soigner ») ; chaque +1 Instance de
+// l'administrateur lui rend un tiers de sa santé max (sur sa fiche) et le compteur
+// (1 à 3) indique les instances encore nécessaires ; à sa santé max il retrouve
+// sa place au dortoir. Le lit du dortoir ne bouge jamais.
 // - infirmary : { capacity, beds: [{ heroId, remaining } | null, ...] } ;
 // - people : tous les mercenaires de la compagnie ;
 // - warriors : ceux du joueur connecté (les seuls qu'il peut rappeler avant la
@@ -176,8 +177,9 @@ export function Infirmary({
               <p>
                 {bedHero?.name} est en soin : encore{" "}
                 <strong>{bedPopup.remaining}</strong> instance
-                {bedPopup.remaining > 1 ? "s" : ""}. À 0, il retrouve sa place
-                au dortoir.
+                {bedPopup.remaining > 1 ? "s" : ""}. Chaque instance lui
+                rend un tiers de sa santé max ; dès qu’il l’a retrouvée, il
+                retrouve sa place au dortoir.
               </p>
               {peutRappeler(bedPopup.heroId) ? (
                 <button
