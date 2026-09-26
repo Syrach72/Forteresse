@@ -2871,7 +2871,7 @@ export function App() {
       {sess.ecran ? (
         <EcranSession sess={sess} estAdmin={estAdmin} />
       ) : route.startsWith("personnages/") ? (
-        <>
+        <div className="personnages-cadre">
         <Characters
           route={route}
           warriors={warriors}
@@ -2917,7 +2917,7 @@ export function App() {
           busy={busy}
         />
         {roomNav}
-        </>
+        </div>
       ) : route === "forteresse" ? (
         <main id="main" className="home">
           <h1 className="sr-only" tabIndex="-1" ref={titleRef}>

@@ -5533,3 +5533,9 @@ a.merc-card:hover {
   margin: 0 0 8px;
   font-size: 34px;
 }
+
+/* Pages personnages : la barre verticale des lieux se place par rapport à cette zone (sous le menu),
+   comme sur les autres pages, et non par rapport à toute la page. */
+.personnages-cadre {
+  position: relative;
+}
