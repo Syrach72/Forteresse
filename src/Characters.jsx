@@ -203,7 +203,6 @@ export function Characters({
     >
       <div className="characters-heading">
         <div>
-          {heroId && <p className="eyebrow">Les personnages de la compagnie</p>}
           {!merc && (
             <h1 tabIndex="-1" ref={title}>
               {hero ? hero.name : `${cls?.[1] || "Personnages"} : choisis un mercenaire disponible`}
