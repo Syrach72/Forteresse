@@ -2732,13 +2732,21 @@ video.interior-backdrop-boxed {
 }
 /* Fiche d'un mercenaire recruté : Instructeur / Renvoyer côte à côte. */
 .merc-actions {
-  display: flex;
-  flex-wrap: wrap;
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+  width: 100%;
 }
 .merc-actions .merc-recruit {
   margin-top: 4px;
-  min-width: 150px;
+  min-width: 0;
+  width: 100%;
+}
+@media (max-width: 680px) {
+  .merc-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 /* Icône du sac à dos, à côté d'Instructeur/Soigner/Renvoyer. */
 .merc-sac-dos {
@@ -4326,14 +4334,105 @@ a.merc-card:hover {
   --vet: 46px;
 }
 .merc-sheet {
-  display: flex;
-  gap: 28px;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 18px 28px;
+  align-items: start;
   max-width: 760px;
   padding: 22px;
 }
+.merc-colonne-gauche {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.merc-colonne-droite {
+  min-width: 0;
+}
+.merc-portrait-cadre {
+  position: relative;
+  width: 240px;
+}
+.merc-nom {
+  margin: 0 0 6px;
+  font-size: 30px;
+  line-height: 1.15;
+}
+/* Vétérance : icône aux lauriers, en haut à gauche du portrait. */
+.merc-vet-portrait {
+  --vet: 62px;
+  position: absolute;
+  left: -14px;
+  top: -16px;
+  z-index: 2;
+}
+/* Sac à dos : en bas à gauche du portrait. */
+.merc-sac-portrait {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 2;
+  background: rgba(30, 20, 10, 0.72);
+  border-color: #d8b96a;
+}
+.merc-sac-portrait:hover {
+  background: rgba(30, 20, 10, 0.9);
+}
+/* Zone pleine largeur sous le portrait. */
+.merc-pleine-largeur {
+  grid-column: 1 / -1;
+}
+/* Caractéristiques : icône (ou libellé) au-dessus, valeur dessous, alignées côte à côte. */
+.merc-trio,
+.merc-sous-portrait {
+  display: flex;
+  gap: 10px;
+}
+.merc-trio {
+  justify-content: space-between;
+  margin: 12px 0 4px;
+  padding: 8px 0;
+  border-top: 1px solid #a890674f;
+  border-bottom: 1px solid #a890674f;
+}
+.merc-trio .merc-carac {
+  flex: 1;
+}
+.merc-sous-portrait .merc-carac {
+  flex: 1;
+}
+.merc-carac {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.merc-carac-icone {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+}
+.merc-carac-libelle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 58px;
+  font: 700 20px Georgia, serif;
+  color: #3a2814;
+}
+.merc-carac-valeur {
+  font: 700 32px Georgia, serif;
+  line-height: 1;
+  color: #1f150b;
+}
+.merc-actuel-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
 .merc-portrait-grand {
-  flex: 0 0 240px;
   width: 240px;
 }
 .merc-sheet-body {
@@ -4353,12 +4452,17 @@ a.merc-card:hover {
 }
 @media (max-width: 680px) {
   .merc-sheet {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .merc-colonne-gauche {
+    align-items: center;
+  }
+  .merc-portrait-cadre {
+    max-width: 260px;
+    width: 100%;
   }
   .merc-portrait-grand {
     width: 100%;
-    flex-basis: auto;
-    max-width: 260px;
   }
 }
 .reference-crop-url img {

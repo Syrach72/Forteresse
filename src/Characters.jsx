@@ -201,13 +201,11 @@ export function Characters({
       <div className="characters-heading">
         <div>
           {heroId && <p className="eyebrow">Les personnages de la compagnie</p>}
-          <h1 tabIndex="-1" ref={title}>
-            {merc
-              ? merc.nom
-              : hero
-                ? hero.name
-                : `${cls?.[1] || "Personnages"} : choisis un mercenaire disponible`}
-          </h1>
+          {!merc && (
+            <h1 tabIndex="-1" ref={title}>
+              {hero ? hero.name : `${cls?.[1] || "Personnages"} : choisis un mercenaire disponible`}
+            </h1>
+          )}
         </div>
         <a
           href={
@@ -300,15 +298,51 @@ export function Characters({
         accesFiche(merc.id) ? (
           <>
           <section className="merc-sheet parchment">
-            <span className="merc-portrait merc-portrait-grand">
-              {merc.portrait ? (
-                <img src={merc.portrait} alt={`Portrait de ${merc.nom}`} />
-              ) : (
-                <span className="merc-portrait-vide" aria-hidden="true" />
-              )}
-            </span>
-            <div className="merc-sheet-body">
-              <h2>{merc.nom}</h2>
+            <div className="merc-colonne-gauche">
+              <div className="merc-portrait-cadre">
+                <span className="merc-portrait merc-portrait-grand">
+                  {merc.portrait ? (
+                    <img src={merc.portrait} alt={`Portrait de ${merc.nom}`} />
+                  ) : (
+                    <span className="merc-portrait-vide" aria-hidden="true" />
+                  )}
+                </span>
+                {/* Vétérance sur l'icône aux lauriers, en haut à gauche du portrait (non modifiable par le joueur). */}
+                <VetBadge className="merc-vet-portrait" value={merc.veterance} />
+                {/* Sac à dos (inventaire) : en bas à gauche du portrait. */}
+                {recrutes.includes(merc.id) && (
+                  <button
+                    className="merc-sac-dos merc-sac-portrait"
+                    type="button"
+                    onClick={() => setPopup({ type: "sac" })}
+                    aria-label={`Sac à dos de ${merc.nom}`}
+                    title="Sac à dos"
+                  >
+                    <img src="/assets/icons/sac-a-dos.webp" alt="" />
+                  </button>
+                )}
+              </div>
+              {/* Déplacement et parade : sous le portrait, même présentation (valeur sous l'icône). */}
+              <div className="merc-sous-portrait">
+                {merc.mouvement !== null && merc.mouvement !== undefined && (
+                  <div className="merc-carac">
+                    <img className="merc-carac-icone" src={ICONES_STATS.Mouvement} alt="Mouvement" title="Mouvement" />
+                    <strong className="merc-carac-valeur">{`${merc.mouvement}c`}</strong>
+                  </div>
+                )}
+                {meilleureParade(equipements.get(merc.id)) && (
+                  <div className="merc-carac">
+                    <span className="merc-carac-libelle">Parade</span>
+                    <strong className="merc-carac-valeur">{meilleureParade(equipements.get(merc.id))}</strong>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="merc-colonne-droite">
+              <h1 className="merc-nom" tabIndex="-1" ref={title}>
+                {merc.nom}
+                {nomsJoueur[merc.id] ? ` (${nomsJoueur[merc.id]})` : ""}
+              </h1>
               <div className="stat-line">
                 <span>Classe</span>
                 <strong>
@@ -316,7 +350,85 @@ export function Characters({
                   {merc.sousClasse ? ` (${merc.sousClasse})` : ""}
                 </strong>
               </div>
-              {estAdmin ? (
+              {/* Puissance, Vélocité, Mental : icônes côte à côte, valeur dessous. */}
+              <div className="merc-trio">
+                {[
+                  ["Puissance", merc.puissance],
+                  ["Vélocité", merc.velocite],
+                  ["Mental", merc.mental],
+                ].map(([libelle, valeur]) => (
+                  <div className="merc-carac" key={libelle}>
+                    <img className="merc-carac-icone" src={ICONES_STATS[libelle]} alt={libelle} title={libelle} />
+                    <strong className="merc-carac-valeur">{valeur ?? "—"}</strong>
+                  </div>
+                ))}
+              </div>
+              {(() => {
+                const peutModifier = recrutes.includes(merc.id) || estAdmin;
+                const lire = (v) => {
+                  if (String(v).trim() === "") return { ok: true, n: null };
+                  const n = Number(v);
+                  return Number.isInteger(n) && n >= 0 && n <= 999 ? { ok: true, n } : { ok: false };
+                };
+                const inchange =
+                  santeAct === String(merc.santeActuelle ?? santeMax ?? "") &&
+                  energieAct === String(merc.energieActuelle ?? energieMax ?? "");
+                const orbes = (
+                  <div className="orbes">
+                    <Orbe
+                      type="energie"
+                      libelle="Énergie"
+                      id="merc-energie-actuelle"
+                      max={energieMax}
+                      actuelle={merc.energieActuelle ?? energieMax}
+                      editable={peutModifier}
+                      valeur={energieAct}
+                      onChange={setEnergieAct}
+                    />
+                    <Orbe
+                      type="sante"
+                      libelle="Santé"
+                      id="merc-sante-actuelle"
+                      max={santeMax}
+                      actuelle={merc.santeActuelle ?? santeMax}
+                      editable={peutModifier}
+                      valeur={santeAct}
+                      onChange={setSanteAct}
+                    />
+                  </div>
+                );
+                return peutModifier ? (
+                  <form
+                    className="merc-actuel-form"
+                    noValidate
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      const en = lire(energieAct);
+                      const sa = lire(santeAct);
+                      if (!en.ok || !sa.ok) {
+                        setActuelError("Saisissez des entiers de 0 à 999.");
+                        return;
+                      }
+                      const result = await onSetActuel(merc.id, en.n, sa.n);
+                      setActuelError(result?.error || "");
+                    }}
+                  >
+                    {orbes}
+                    <button className="wood-button" type="submit" disabled={inchange}>
+                      Enregistrer l’énergie et la santé
+                    </button>
+                    {actuelError && (
+                      <p className="error" role="alert">
+                        {actuelError}
+                      </p>
+                    )}
+                  </form>
+                ) : (
+                  orbes
+                );
+              })()}
+              {/* Vétérance : réservée au MJ (le joueur ne la modifie pas). */}
+              {estAdmin && (
                 <form
                   className="stat-line merc-veterance-edit"
                   noValidate
@@ -326,7 +438,7 @@ export function Characters({
                     setVetError(result?.error || "");
                   }}
                 >
-                  <label htmlFor="merc-veterance">Vétérance</label>
+                  <label htmlFor="merc-veterance">Vétérance (MJ)</label>
                   <span>
                     <input
                       id="merc-veterance"
@@ -348,114 +460,17 @@ export function Characters({
                     </button>
                   </span>
                 </form>
-              ) : (
-                <div className="stat-line">
-                  <span>Vétérance</span>
-                  <VetBadge className="vet-badge-fiche" value={merc.veterance} />
-                </div>
               )}
               {vetError && (
                 <p id="merc-veterance-error" className="error" role="alert">
                   {vetError}
                 </p>
               )}
-              <div className="merc-stats">
-                {[
-                  ["Puissance", merc.puissance],
-                  ["Vélocité", merc.velocite],
-                  ["Mental", merc.mental],
-                  ["Mouvement", merc.mouvement === null || merc.mouvement === undefined ? null : `${merc.mouvement}c`],
-                  // Parade : la plus élevée entre les armes et le bouclier équipés (ils ne se cumulent pas).
-                  ["Parade", meilleureParade(equipements.get(merc.id))],
-                ]
-                  // Pas de parade équipée : la ligne n'apparaît pas.
-                  .filter(([libelle, valeur]) => libelle !== "Parade" || valeur)
-                  .map(([libelle, valeur]) => (
-                  <div className="stat-line" key={libelle}>
-                    {ICONES_STATS[libelle] ? (
-                      <span className="stat-icone-libelle">
-                        <img className="stat-icone" src={ICONES_STATS[libelle]} alt={libelle} title={libelle} />
-                      </span>
-                    ) : (
-                      <span>{libelle}</span>
-                    )}
-                    <strong>{valeur ?? "—"}</strong>
-                  </div>
-                ))}
-                {(() => {
-                  const peutModifier = recrutes.includes(merc.id) || estAdmin;
-                  const lire = (v) => {
-                    if (String(v).trim() === "") return { ok: true, n: null };
-                    const n = Number(v);
-                    return Number.isInteger(n) && n >= 0 && n <= 999 ? { ok: true, n } : { ok: false };
-                  };
-                  const inchange =
-                    santeAct === String(merc.santeActuelle ?? santeMax ?? "") &&
-                    energieAct === String(merc.energieActuelle ?? energieMax ?? "");
-                  const orbes = (
-                    <div className="orbes">
-                      <Orbe
-                        type="sante"
-                        libelle="Santé"
-                        id="merc-sante-actuelle"
-                        max={santeMax}
-                        actuelle={merc.santeActuelle ?? santeMax}
-                        editable={peutModifier}
-                        valeur={santeAct}
-                        onChange={setSanteAct}
-                      />
-                      <Orbe
-                        type="energie"
-                        libelle="Énergie"
-                        id="merc-energie-actuelle"
-                        max={energieMax}
-                        actuelle={merc.energieActuelle ?? energieMax}
-                        editable={peutModifier}
-                        valeur={energieAct}
-                        onChange={setEnergieAct}
-                      />
-                    </div>
-                  );
-                  return peutModifier ? (
-                    <form
-                      className="merc-actuel-form"
-                      noValidate
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        const en = lire(energieAct);
-                        const sa = lire(santeAct);
-                        if (!en.ok || !sa.ok) {
-                          setActuelError("Saisissez des entiers de 0 à 999.");
-                          return;
-                        }
-                        const result = await onSetActuel(merc.id, en.n, sa.n);
-                        setActuelError(result?.error || "");
-                      }}
-                    >
-                      {orbes}
-                      <button className="wood-button" type="submit" disabled={inchange}>
-                        Enregistrer la santé et l’énergie
-                      </button>
-                      {actuelError && (
-                        <p className="error" role="alert">
-                          {actuelError}
-                        </p>
-                      )}
-                    </form>
-                  ) : (
-                    orbes
-                  );
-                })()}
-              </div>
-              <p className="muted">
-                La fiche détaillée de ce mercenaire sera complétée ultérieurement.
-              </p>
+            </div>
+            {/* Zone pleine largeur, sous le portrait : actions, recrutement. */}
+            <div className="merc-pleine-largeur">
               {recrutes.includes(merc.id) ? (
                 <div className="merc-recruit-form">
-                  <div className="stat-line merc-joueur-fixe">
-                    <span>Nom du joueur</span>
-                    <strong>{nomsJoueur[merc.id] || "—"}</strong>
-                  </div>
                   <div className="merc-actions">
                     <button
                       className="wood-button merc-recruit"
@@ -494,15 +509,6 @@ export function Characters({
                       onClick={() => setPopup({ type: "renvoi" })}
                     >
                       Renvoyer
-                    </button>
-                    <button
-                      className="merc-sac-dos"
-                      type="button"
-                      onClick={() => setPopup({ type: "sac" })}
-                      aria-label={`Sac à dos de ${merc.nom}`}
-                      title="Sac à dos"
-                    >
-                      <img src="/assets/icons/sac-a-dos.webp" alt="" />
                     </button>
                   </div>
                   {absences[merc.id] && (

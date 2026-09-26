@@ -2877,7 +2877,7 @@ export function App() {
           warriors={warriors}
           mercenaires={mercenaires}
           recrutes={[...mesRecrutes.keys()]}
-          nomsJoueur={Object.fromEntries(mesRecrutes)}
+          nomsJoueur={Object.fromEntries(joueurs)}
           tousRecrutes={[...tousRecrutes]}
           estAdmin={estAdmin}
           onRecruit={recruit}
