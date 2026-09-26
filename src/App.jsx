@@ -4,6 +4,7 @@ import { initialGame, transact, RESOURCE_ALIASES, materialQuantity, ingredientQu
 import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
+import { Journal } from "./Journal.jsx";
 import { EMPTY_TREASURY, buildTreasury, entretienCompagnie } from "./treasury-data.js";
 import { Training } from "./Training.jsx";
 import {
@@ -41,6 +42,7 @@ const BACKDROP_VIDEO = {
   entrainement: "/assets/video/entrainement-anime.mp4",
   marche: "/assets/video/marche-anime.mp4",
   tresorerie: "/assets/video/tresorerie-anime.mp4",
+  journal: "/assets/video/tresorerie-anime.mp4",
   dortoirs: "/assets/video/dortoir-anime.mp4",
   quetes: "/assets/video/quetes-anime.mp4",
   stock: "/assets/video/arsenal-anime.mp4",
@@ -52,6 +54,7 @@ const BACKDROP_VIDEO_RATIO = {
   armurerie: "1 / 1",
   entrainement: "1 / 1",
   tresorerie: "1 / 1",
+  journal: "1 / 1",
   stock: "1728 / 1632",
 };
 const WORKSHOP_TEXT = {
@@ -2975,7 +2978,7 @@ export function App() {
           <section className="mobile-locations">
             <div className="section-title">
               <h1>La Forteresse</h1>
-              <span>11 lieux</span>
+              <span>{LOCATIONS.length} lieux</span>
             </div>
             <div className="location-list">
               {LOCATIONS.map((l) => (
@@ -3152,10 +3155,11 @@ export function App() {
               entretienDetail={{ montant: entretien, mercenaires: dormPeople.length }}
               estAdmin={estAdmin}
               gold={game.gold}
-              log={game.log}
               onChange={updateTreasury}
               Modal={Modal}
             />
+          ) : route === "journal" ? (
+            <Journal log={game.log} />
           ) : route === "entrainement" ? (
             <Training
               training={training}

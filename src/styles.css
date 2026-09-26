@@ -5709,3 +5709,31 @@ a.merc-card:hover {
 .merc-vet-titre {
   --vet: 58px;
 }
+
+/* Page Journal : le journal de la compagnie (ex-bas de la Trésorerie). */
+.journal-page {
+  max-width: 940px;
+  margin: 20px 0;
+  padding: 24px;
+}
+.journal-page h2 {
+  font-size: 26px;
+}
+.journal-page .ledger-row {
+  font-size: 19px;
+}
+.journal-page .ledger-row > strong {
+  white-space: nowrap;
+}
+.journal .interior-backdrop {
+  background-position: 65% 15%;
+}
+@media (max-width: 680px) {
+  .journal-page {
+    padding: 20px 16px;
+  }
+  .journal-page .ledger-row {
+    flex-direction: column;
+    gap: 7px;
+  }
+}

@@ -8,7 +8,6 @@ export function Treasury({
   entretienDetail,
   estAdmin = false,
   gold,
-  log,
   onChange,
   Modal,
 }) {
@@ -106,27 +105,6 @@ export function Treasury({
           )}
         </div>
       </aside>
-      <section className="treasury-journal parchment">
-        <h2>Journal de la compagnie</h2>
-        {log.length ? (
-          log.slice(0, 15).map((l) => (
-            <div className="ledger-row" key={l.id}>
-              <span>{l.message}</span>
-              <strong>
-                {l.amount
-                  ? `${l.amount > 0 ? "+" : ""}${fmt(l.amount)} Po`
-                  : "—"}
-              </strong>
-            </div>
-          ))
-        ) : (
-          <p>Aucun mouvement pour le moment.</p>
-        )}
-        <p className="muted">
-          Le solde regroupe les achats, les déblocages et le budget de chaque
-          instance.
-        </p>
-      </section>
       {edit && (
         <Modal title={`Modifier ${edit.label}`} onClose={() => setEdit(null)}>
           <form className="rest-form" onSubmit={submit} noValidate>

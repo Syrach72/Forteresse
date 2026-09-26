@@ -71,6 +71,16 @@ export const LOCATIONS = [
     description: "Des ressources aux armes.",
   },
   {
+    id: "journal",
+    name: "Journal",
+    x: 78.05,
+    y: 66.5,
+    w: 15.6,
+    h: 21,
+    icon: [0, 0, 60, 60],
+    description: "Le journal de la compagnie : achats, fabrications et budget.",
+  },
+  {
     id: "armurerie",
     name: "Armurerie",
     x: 51.35,
