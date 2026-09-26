@@ -360,7 +360,13 @@ export function Characters({
                   ["Mouvement", merc.mouvement === null || merc.mouvement === undefined ? null : `${merc.mouvement}c`],
                 ].map(([libelle, valeur]) => (
                   <div className="stat-line" key={libelle}>
-                    <span>{libelle}</span>
+                    {libelle === "Mouvement" ? (
+                      <span className="stat-icone-libelle">
+                        <img className="stat-icone" src="/assets/icons/mouvement.webp" alt="Mouvement" title="Mouvement" />
+                      </span>
+                    ) : (
+                      <span>{libelle}</span>
+                    )}
                     <strong>{valeur ?? "—"}</strong>
                   </div>
                 ))}
