@@ -5589,3 +5589,10 @@ a.merc-card:hover {
 .modal-sac > p.muted {
   font-size: 20px !important;
 }
+
+/* Ligne « Classe » de la fiche mercenaire : texte agrandi. */
+.merc-colonne-droite .stat-line,
+.merc-colonne-droite .stat-line span,
+.merc-colonne-droite .stat-line strong {
+  font-size: 30px !important;
+}
