@@ -112,7 +112,7 @@ export const LOCATIONS = [
   },
   {
     id: "employes",
-    name: "Gestion des Employés",
+    name: "Collecte des Ressources",
     x: 39,
     y: 47.5,
     w: 15.6,

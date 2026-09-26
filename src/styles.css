@@ -916,7 +916,7 @@ video.interior-backdrop-boxed {
     grid-template-columns: 1fr;
   }
 }
-/* Gestion des Employés. */
+/* Collecte des Ressources. */
 .employes-page {
   position: relative;
   min-height: calc(100dvh - 114px);

@@ -983,7 +983,7 @@ export function App() {
   // Sac à dos de chaque mercenaire (id -> [{objetId, quantite, nom, icone}]),
   // reconstruit à chaque synchronisation partagée (cf. synchroniserEconomie).
   const [sacsDos, setSacsDos] = useState(() => new Map());
-  // Effectif embauché (Gestion des Employés), partagé comme l'arsenal.
+  // Effectif embauché (Collecte des Ressources), partagé comme l'arsenal.
   const [employesRoster, setEmployesRoster] = useState([]);
   const tousRecrutes = useMemo(
     () => new Set([...recrutesServeur, ...mesRecrutes.keys()]),
@@ -1736,7 +1736,7 @@ export function App() {
             .filter(Boolean),
         }
       : null;
-    // Effectif embauché (Gestion des Employés) : une entrée par (métier,
+    // Effectif embauché (Collecte des Ressources) : une entrée par (métier,
     // avec/sans outil), avec le nom/icône du métier et du matériau produit
     // (résolus via le cache catalogue), pour l'affichage de la page.
     const roster = (emp.data || [])
@@ -2320,7 +2320,7 @@ export function App() {
     notify(data.message);
   }
   // Embauche d'un employé (fenêtre Matériaux et Embauche) : rejoint la
-  // Gestion des Employés, jamais l'arsenal.
+  // Collecte des Ressources, jamais l'arsenal.
   async function actEmbaucher(objet) {
     const quantite = Math.max(1, Math.round(Number(embaucheQty[objet.id]) || 1));
     const data = await operationPartagee(() =>
@@ -2329,7 +2329,7 @@ export function App() {
     if (!data) return;
     notify(`${quantite} ${objet.nom}(s) embauché(s) : −${quantite * objet.cout_achat_or} Po.`);
   }
-  // Congédiement définitif (Gestion des Employés), sans remboursement.
+  // Congédiement définitif (Collecte des Ressources), sans remboursement.
   async function actCongedier(objetId, outil, quantite, nom) {
     const data = await operationPartagee(() =>
       supabase.rpc("employe_congedier", { p_objet: objetId, p_outil: outil, p_quantite: quantite }),
@@ -2808,7 +2808,7 @@ export function App() {
           <div className="room-top">
             <a href="#forteresse">‹ Forteresse</a>
             <h1 ref={titleRef} tabIndex="-1">
-              Gestion des Employés
+              Collecte des Ressources
             </h1>
           </div>
           <section className="parchment employes-panel">
@@ -2897,7 +2897,7 @@ export function App() {
                 setActionError("");
                 // Matériaux et Embauche : deux catalogues côte à côte dans
                 // une même fenêtre (les employés ne rejoignent pas
-                // l'arsenal, cf. Gestion des Employés).
+                // l'arsenal, cf. Collecte des Ressources).
                 if (c.dual) {
                   loadCatalogue("market:Matériaux", "Matériaux");
                   // La rubrique catalogue s'appelle "Collecte" (déjà créée
@@ -3749,7 +3749,7 @@ export function App() {
                       </div>
                     )}
                     <a className="inline-link" href="#employes" onClick={() => setModal(null)}>
-                      Voir la Gestion des Employés
+                      Voir la Collecte des Ressources
                     </a>
                   </section>
                 </div>
