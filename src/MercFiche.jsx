@@ -112,7 +112,7 @@ export function Orbe({ type, libelle, id, actuelle, max, editable = false, valeu
             </span>
           )}
           <span className="orbe-max" aria-label={`${libelle} maximum`}>
-            / {max ?? "—"}
+            Max : {max ?? "—"}
           </span>
         </div>
       </div>

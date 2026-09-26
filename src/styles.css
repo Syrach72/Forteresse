@@ -5650,3 +5650,22 @@ a.merc-card:hover {
     animation: none;
   }
 }
+
+/* Orbes d'énergie et de santé : mêmes caractères que la vétérance (police du site, chiffres alignés),
+   orbe et chiffres un peu plus grands, « Max : » à la place du « / ». */
+.orbe-image {
+  width: 168px;
+}
+.orbe-contenu {
+  font-family: inherit;
+  font-variant-numeric: lining-nums;
+  font-feature-settings: "lnum";
+}
+.orbe-actuelle {
+  font-family: inherit;
+  font-size: 31cqw;
+}
+.orbe-max {
+  font-size: 15cqw;
+  letter-spacing: 0.02em;
+}
