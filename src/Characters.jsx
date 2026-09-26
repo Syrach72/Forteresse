@@ -360,7 +360,10 @@ export function Characters({
                   ["Mouvement", merc.mouvement === null || merc.mouvement === undefined ? null : `${merc.mouvement}c`],
                   // Parade : la plus élevée entre les armes et le bouclier équipés (ils ne se cumulent pas).
                   ["Parade", meilleureParade(equipements.get(merc.id))],
-                ].map(([libelle, valeur]) => (
+                ]
+                  // Pas de parade équipée : la ligne n'apparaît pas.
+                  .filter(([libelle, valeur]) => libelle !== "Parade" || valeur)
+                  .map(([libelle, valeur]) => (
                   <div className="stat-line" key={libelle}>
                     {libelle === "Mouvement" ? (
                       <span className="stat-icone-libelle">
