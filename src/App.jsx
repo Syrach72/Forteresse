@@ -42,7 +42,7 @@ const BACKDROP_VIDEO = {
   entrainement: "/assets/video/entrainement-anime.mp4",
   marche: "/assets/video/marche-anime.mp4",
   tresorerie: "/assets/video/tresorerie-anime.mp4",
-  journal: "/assets/video/tresorerie-anime.mp4",
+  journal: "/assets/video/journal-anime.mp4",
   dortoirs: "/assets/video/dortoir-anime.mp4",
   quetes: "/assets/video/quetes-anime.mp4",
   stock: "/assets/video/arsenal-anime.mp4",
@@ -54,7 +54,6 @@ const BACKDROP_VIDEO_RATIO = {
   armurerie: "1 / 1",
   entrainement: "1 / 1",
   tresorerie: "1 / 1",
-  journal: "1 / 1",
   stock: "1728 / 1632",
 };
 const WORKSHOP_TEXT = {
