@@ -4003,9 +4003,14 @@ export function App() {
                                 }
                                 onClick={() => actAcheterMateriau(o)}
                               >
-                                {o.cout_achat_or === null || o.cout_achat_or === undefined
-                                  ? "Prix non défini"
-                                  : `Acheter ${lots * 10} · ${cout} Po`}
+                                {o.cout_achat_or === null || o.cout_achat_or === undefined ? (
+                                  "Prix non défini"
+                                ) : (
+                                  <>
+                                    Acheter {lots * 10} :<br />
+                                    {cout} Po
+                                  </>
+                                )}
                               </button>
                             </div>
                           );
