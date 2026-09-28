@@ -2620,14 +2620,14 @@ export function App() {
     if (!data) return;
     notify(`${quantite} ${nom}(s) équipé(s) de leur outil spécialisé.`);
   }
-  // Verrouillage de Formation/Marché/Tour du Mage/Laboratoire Alchimiste
-  // (règle de Bruno, 2026-09-28) : débloqués quand la compagnie possède
+  // Verrouillage de Formation/Marché/Tour du Mage/Laboratoire Alchimiste/
+  // Forge/Armurerie (règle de Bruno, 2026-09-28) : débloqués quand la compagnie possède
   // l'objet de quête du même nom (catalogue, rubrique « Objets de Quête »,
   // obtenu en récompense d'une quête — à brancher par Bruno lui-même dans
   // l'admin, une quête à la fois). Exemptée : la Session test, pour continuer
   // à travailler sans être bloqué. Base par défaut, et toute autre session,
   // restent verrouillées tant que l'objet n'a pas été obtenu.
-  const LIEUX_A_VERROU = ["entrainement", "marche", "mage", "alchimie"];
+  const LIEUX_A_VERROU = ["entrainement", "marche", "mage", "alchimie", "forge", "armurerie"];
   const verrouExempte = sess.courante?.nom === "Session test";
   const locationsAvecVerrou = useMemo(() => {
     if (verrouExempte) return LOCATIONS;
