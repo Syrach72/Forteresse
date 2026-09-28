@@ -1077,7 +1077,7 @@ export function App() {
         const restant = g.instructor
           ? Math.max(0, veterance(g.instructor.heroId) - veterance(s.heroId))
           : 0;
-        m[s.heroId] = `À l’entraînement${suite(restant)}`;
+        m[s.heroId] = `À la Formation${suite(restant)}`;
       }
     }
     for (const b of infirm.beds)
@@ -2147,7 +2147,7 @@ export function App() {
     }
     await synchroniserPartage();
     notify(
-      `${peopleRef.current.find((w) => w.id === id)?.name} est instructeur à l’Entrainement.`,
+      `${peopleRef.current.find((w) => w.id === id)?.name} est instructeur à la Formation.`,
     );
     location.hash = "entrainement";
   }
