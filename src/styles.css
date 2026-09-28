@@ -5065,12 +5065,16 @@ a.merc-card:hover {
   padding: 0;
   border: 0;
   border-radius: 5px;
-  /* Halo blanc fixe au centre (comme une mini-étoile), sous le cadre orné :
-     fait ressortir les icônes sombres sur le fond presque noir de la case. */
+  /* Halo blanc fixe au centre (comme une mini-étoile), qui éclaircit le fond
+     presque noir de la case pour faire ressortir les icônes sombres. Le cadre
+     (cellule-competence.webp) est une image opaque : le halo est donc fondu
+     par-dessus en mode "screen" (n'éclaircit que, ne recouvre jamais le motif
+     du cadre) plutôt que placé dessous, où il serait invisible. */
   background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.35) 45%, rgba(255, 255, 255, 0) 72%),
     url(/assets/icons/cellule-competence.webp) center / 100% 100% no-repeat,
-    radial-gradient(circle at center, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12) 45%, rgba(28, 21, 14, 0) 70%),
     #1c150e;
+  background-blend-mode: screen, normal;
   cursor: pointer;
 }
 .comp-cell:hover {
