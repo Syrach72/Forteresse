@@ -106,20 +106,22 @@ export function Characters({
   erreur = "",
   or = 0,
   onSetActuel = async () => ({}),
+  onSetCaracteristiques = async () => ({}),
   onClearError = () => {},
   busy = false,
 }) {
   const [, classId, heroId] = route.split("/");
   const cls = CHARACTER_CLASSES.find((c) => c[0] === classId);
   const merc = mercenaires.find((m) => m.id === heroId);
-  // Énergie Max = Mental × vétérance ; Santé Max = Puissance × vétérance ; dans les deux cas le
-  // résultat ne descend jamais sous 6 (règle de Bruno). Calculés, jamais saisis.
-  const maxAuto = (base, vet) => Math.max(6, (base ?? 0) * (vet ?? 1));
-  const energieMax = merc ? maxAuto(merc.mental, merc.veterance) : null;
-  const santeMax = merc ? maxAuto(merc.puissance, merc.veterance) : null;
+  // Santé Max = 3 + 2 × Puissance ; Énergie Max = 2 × Mental (règle de Bruno, 2026-09-28).
+  // Calculés à partir de Puissance/Mental, jamais saisis directement.
+  const energieMax = merc ? 2 * (merc.mental ?? 0) : null;
+  const santeMax = merc ? 3 + 2 * (merc.puissance ?? 0) : null;
   const hero = merc ? undefined : warriors.find((w) => w.id === heroId);
   // Fiche d'un mercenaire recruté : réservée à son recruteur et à l'admin.
   const accesFiche = (id) => !tousRecrutes.includes(id) || recrutes.includes(id) || estAdmin;
+  // Le joueur qui a recruté ce mercenaire (ou le MJ) peut modifier sa fiche.
+  const peutModifier = merc ? recrutes.includes(merc.id) || estAdmin : false;
   const [popup, setPopup] = useState(null);
   const [errors, setErrors] = useState({});
   // Nom du joueur inscrit sur la fiche avant de recruter (enregistré avec le
@@ -137,6 +139,18 @@ export function Characters({
     setSanteAct(String(merc?.santeActuelle ?? santeMax ?? ""));
     setActuelError("");
   }, [merc?.id, merc?.energieActuelle, merc?.santeActuelle, energieMax, santeMax]);
+  // Puissance, Vélocité, Mental (saisie du joueur, plafonnées à 9) : déterminent Santé Max et
+  // Énergie Max ci-dessus.
+  const [caracIn, setCaracIn] = useState({ puissance: "", velocite: "", mental: "" });
+  const [caracError, setCaracError] = useState("");
+  useEffect(() => {
+    setCaracIn({
+      puissance: String(merc?.puissance ?? ""),
+      velocite: String(merc?.velocite ?? ""),
+      mental: String(merc?.mental ?? ""),
+    });
+    setCaracError("");
+  }, [merc?.id, merc?.puissance, merc?.velocite, merc?.mental]);
   useEffect(() => {
     setVet(String(merc?.veterance ?? ""));
     setVetError("");
@@ -374,21 +388,78 @@ export function Characters({
                   {merc.sousClasse ? ` (${merc.sousClasse})` : ""}
                 </strong>
               </div>
-              {/* Puissance, Vélocité, Mental : icônes côte à côte, valeur dessous. */}
+              {/* Puissance, Vélocité, Mental : icônes côte à côte, valeur dessous. Modifiables par
+                  le joueur qui a recruté le mercenaire (ou le MJ), plafonnées à 9 : déterminent
+                  Santé Max et Énergie Max ci-dessous. */}
               <div className="merc-trio">
                 {[
-                  ["Puissance", merc.puissance],
-                  ["Vélocité", merc.velocite],
-                  ["Mental", merc.mental],
-                ].map(([libelle, valeur]) => (
+                  ["Puissance", "puissance"],
+                  ["Vélocité", "velocite"],
+                  ["Mental", "mental"],
+                ].map(([libelle, cle]) => (
                   <div className="merc-carac" key={libelle}>
                     <img className="merc-carac-icone" src={ICONES_STATS[libelle]} alt={libelle} title={libelle} />
-                    <strong className="merc-carac-valeur">{valeur ?? "—"}</strong>
+                    {peutModifier ? (
+                      <input
+                        className="merc-carac-valeur merc-carac-saisie"
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        max="9"
+                        step="1"
+                        value={caracIn[cle]}
+                        aria-label={libelle}
+                        onChange={(e) =>
+                          setCaracIn((c) => ({ ...c, [cle]: e.target.value.slice(0, 1) }))
+                        }
+                      />
+                    ) : (
+                      <strong className="merc-carac-valeur">{merc[cle] ?? "—"}</strong>
+                    )}
                   </div>
                 ))}
               </div>
+              {peutModifier && (
+                <form
+                  className="merc-carac-form"
+                  noValidate
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const lireCarac = (v) => {
+                      if (String(v).trim() === "") return { ok: true, n: null };
+                      const n = Number(v);
+                      return Number.isInteger(n) && n >= 0 && n <= 9 ? { ok: true, n } : { ok: false };
+                    };
+                    const p = lireCarac(caracIn.puissance);
+                    const v = lireCarac(caracIn.velocite);
+                    const m = lireCarac(caracIn.mental);
+                    if (!p.ok || !v.ok || !m.ok) {
+                      setCaracError("Saisissez des entiers de 0 à 9.");
+                      return;
+                    }
+                    const result = await onSetCaracteristiques(merc.id, p.n, v.n, m.n);
+                    setCaracError(result?.error || "");
+                  }}
+                >
+                  <button
+                    className="wood-button"
+                    type="submit"
+                    disabled={
+                      caracIn.puissance === String(merc.puissance ?? "") &&
+                      caracIn.velocite === String(merc.velocite ?? "") &&
+                      caracIn.mental === String(merc.mental ?? "")
+                    }
+                  >
+                    Enregistrer Puissance, Vélocité et Mental
+                  </button>
+                  {caracError && (
+                    <p className="error" role="alert">
+                      {caracError}
+                    </p>
+                  )}
+                </form>
+              )}
               {(() => {
-                const peutModifier = recrutes.includes(merc.id) || estAdmin;
                 const lire = (v) => {
                   if (String(v).trim() === "") return { ok: true, n: null };
                   const n = Number(v);

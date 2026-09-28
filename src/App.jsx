@@ -1299,6 +1299,20 @@ export function App() {
     notify("Énergie et santé actuelles enregistrées.");
     return {};
   }
+  // Puissance, Vélocité, Mental : modifiables par le joueur qui a recruté le mercenaire (ou le MJ),
+  // plafonnées à 9. Déterminent Santé Max (3 + 2×Puissance) et Énergie Max (2×Mental) sur la fiche.
+  async function setCaracteristiques(id, puissance, velocite, mental) {
+    const { error } = await supabase.rpc("mercenaire_definir_caracteristiques", {
+      p_mercenaire: id,
+      p_puissance: puissance,
+      p_velocite: velocite,
+      p_mental: mental,
+    });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    notify("Puissance, Vélocité et Mental enregistrés.");
+    return {};
+  }
   // Renvoyer un mercenaire recruté : supprime le recrutement (il redevient
   // recrutable, sa carte est dégrisée sur la page de sa classe) et libère son
   // lit au Dortoir.
@@ -2917,6 +2931,7 @@ export function App() {
           erreur={actionError}
           onClearError={() => setActionError("")}
           onSetActuel={setActuel}
+          onSetCaracteristiques={setCaracteristiques}
           or={game.gold}
           busy={busy}
         />

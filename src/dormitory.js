@@ -69,19 +69,20 @@ export const INITIAL_INFIRMARY = {
 };
 // Soins (règle de Bruno) : chaque instance rend un tiers de la santé max (arrondi au-dessus) ; le
 // mercenaire quitte l'infirmerie à sa santé max. Instances nécessaires = santé perdue / tiers,
-// minimum 1 à l'arrivée. Santé max = Puissance × vétérance (min. 6). Le serveur applique la même
-// règle (fonctions _soins_instances et infirmerie_soigner) : ce calcul ne sert qu'à l'affichage.
-// Santé max d'un mercenaire (Puissance × vétérance, minimum 6) et blessure : santé actuelle
-// renseignée et inférieure au maximum (vide = maximum).
+// minimum 1 à l'arrivée. Santé max = 3 + 2 × Puissance (règle de Bruno, 2026-09-28). Le serveur
+// applique la même règle (fonctions _sante_max, _soins_instances et infirmerie_soigner) : ce
+// calcul ne sert qu'à l'affichage.
+// Santé max d'un mercenaire et blessure : santé actuelle renseignée et inférieure au maximum
+// (vide = maximum).
 export function santeMaxMerc(merc) {
-  return Math.max(6, (merc?.puissance ?? 0) * (merc?.veterance ?? 1));
+  return 3 + 2 * (merc?.puissance ?? 0);
 }
 export function estBlesse(merc) {
   return merc?.santeActuelle != null && merc.santeActuelle < santeMaxMerc(merc);
 }
 export function instancesDeSoins(merc) {
   if (!merc) return 1;
-  const max = Math.max(6, (merc.puissance ?? 0) * (merc.veterance ?? 1));
+  const max = santeMaxMerc(merc);
   const actuelle = Math.max(0, Math.min(merc.santeActuelle ?? max, max));
   return Math.max(1, Math.ceil((max - actuelle) / Math.ceil(max / 3)));
 }

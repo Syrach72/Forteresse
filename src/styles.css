@@ -5691,6 +5691,30 @@ a.merc-card:hover {
 .merc-trio .merc-carac-valeur {
   font-size: 52px;
 }
+/* Puissance, Vélocité, Mental modifiables : champ numérique, même gabarit que le chiffre affiché,
+   soulignement en tirets repris de l'orbe (.orbe-saisie) plutôt qu'un cadre de formulaire. */
+.merc-carac-saisie {
+  width: 1.3em;
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed rgba(31, 21, 11, 0.45);
+  text-align: center;
+  padding: 0;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.merc-carac-saisie:focus {
+  outline: none;
+  border-bottom: 2px solid var(--gold);
+}
+.merc-carac-saisie::-webkit-outer-spin-button,
+.merc-carac-saisie::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+.merc-carac-form {
+  margin-top: 6px;
+}
 
 /* Mouvement : le « c » (cases) n'est pas en gras. */
 .merc-carac-unite {
