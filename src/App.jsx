@@ -2620,6 +2620,24 @@ export function App() {
     if (!data) return;
     notify(`${quantite} ${nom}(s) équipé(s) de leur outil spécialisé.`);
   }
+  // Verrouillage de Formation/Marché/Tour du Mage/Laboratoire Alchimiste
+  // (règle de Bruno, 2026-09-28) : débloqués quand la compagnie possède
+  // l'objet de quête du même nom (catalogue, rubrique « Objets de Quête »,
+  // obtenu en récompense d'une quête — à brancher par Bruno lui-même dans
+  // l'admin, une quête à la fois). Exemptée : la Session test, pour continuer
+  // à travailler sans être bloqué. Base par défaut, et toute autre session,
+  // restent verrouillées tant que l'objet n'a pas été obtenu.
+  const LIEUX_A_VERROU = ["entrainement", "marche", "mage", "alchimie"];
+  const verrouExempte = sess.courante?.nom === "Session test";
+  const locationsAvecVerrou = useMemo(() => {
+    if (verrouExempte) return LOCATIONS;
+    const possede = new Set(
+      game.inventory.filter((i) => i.quantity > 0).map((i) => i.nom),
+    );
+    return LOCATIONS.map((l) =>
+      LIEUX_A_VERROU.includes(l.id) ? { ...l, locked: !possede.has(l.name) } : l,
+    );
+  }, [game.inventory, verrouExempte]);
   function go(l) {
     if (l.locked) {
       setModal({ type: "locked", place: l });
@@ -2631,13 +2649,13 @@ export function App() {
   // classe et fiche d'un mercenaire), pas seulement dans les lieux intérieurs.
   const roomNav = (
     <nav className="room-nav" aria-label="Lieux de la forteresse">
-      {LOCATIONS.map((l) => (
+      {locationsAvecVerrou.map((l) => (
         <button
           key={l.id}
           title={l.name}
-          aria-label={l.name}
+          aria-label={`${l.name}${l.locked ? " — verrouillé" : ""}`}
           aria-current={l.id === route ? "page" : undefined}
-          className={l.id === route ? "active" : ""}
+          className={`${l.id === route ? "active" : ""}${l.locked ? " room-nav-locked" : ""}`}
           onClick={() => go(l)}
         >
           {l.id === "quetes" ? (
@@ -2646,6 +2664,11 @@ export function App() {
             </span>
           ) : (
             <Sprite location={l} />
+          )}
+          {l.locked && (
+            <span className="lock-mark room-nav-lock-mark" aria-hidden="true">
+              <img src="/assets/icons/lock.webp" alt="" />
+            </span>
           )}
           <span>{l.name}</span>
         </button>
@@ -3024,11 +3047,11 @@ export function App() {
             style={{ backgroundImage: `url(${ASSETS.castle})` }}
           >
             <BackdropVideo src="/assets/video/fortress-anime3.mp4" />
-            {LOCATIONS.filter((l) => l.id !== "quetes").map((l) => (
+            {locationsAvecVerrou.filter((l) => l.id !== "quetes").map((l) => (
               <button
                 key={l.id}
                 onClick={() => go(l)}
-                className={`location ${l.id === "quetes" ? "quest-sign" : "parchment"}`}
+                className={`location ${l.id === "quetes" ? "quest-sign" : "parchment"}${l.locked ? " location-locked" : ""}`}
                 style={{
                   left: `${l.x}%`,
                   top: `${l.y}%`,
@@ -3059,12 +3082,12 @@ export function App() {
           <section className="mobile-locations">
             <div className="section-title">
               <h1>La Forteresse</h1>
-              <span>{LOCATIONS.length} lieux</span>
+              <span>{locationsAvecVerrou.length} lieux</span>
             </div>
             <div className="location-list">
-              {LOCATIONS.map((l) => (
+              {locationsAvecVerrou.map((l) => (
                 <button
-                  className="parchment location-row"
+                  className={`parchment location-row${l.locked ? " location-locked" : ""}`}
                   key={l.id}
                   onClick={() => go(l)}
                 >
@@ -3073,7 +3096,13 @@ export function App() {
                     {l.name}
                     <small>{l.locked ? "Verrouillé" : l.description}</small>
                   </span>
-                  <span aria-hidden="true">›</span>
+                  {l.locked ? (
+                    <span className="lock-mark" aria-hidden="true">
+                      <img src="/assets/icons/lock.webp" alt="" />
+                    </span>
+                  ) : (
+                    <span aria-hidden="true">›</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -4341,8 +4370,8 @@ export function App() {
             <>
               <p>{modal.place.description}</p>
               <p>
-                Ce lieu est verrouillé dans la démonstration. Les conditions
-                d’accès seront définies avec Bruno.
+                Ce lieu est verrouillé : accomplissez la quête qui offre l’objet
+                « {modal.place.name} » pour le débloquer.
               </p>
             </>
           ) : modal.type === "character" ? (

@@ -1090,6 +1090,38 @@ video.interior-backdrop-boxed {
   justify-content: center;
   align-items: center;
   padding: 6px;
+  position: relative;
+}
+/* Lieu verrouillé (Formation/Marché/Tour du Mage/Laboratoire Alchimiste tant
+   que l'objet de quête du même nom n'est pas obtenu, règle de Bruno) :
+   icône grisée, petit cadenas sur le coin, toujours cliquable (pour expliquer
+   la condition de déblocage) mais sans naviguer. */
+.room-nav-locked {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}
+.room-nav-locked:hover {
+  background: #d8cbb1;
+  box-shadow: none;
+}
+.room-nav-lock-mark {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  z-index: 2;
+  padding: 2px;
+  background: #62471d;
+  border: 1px solid #e6c968;
+  box-shadow: 0 1px 3px #0004;
+}
+.room-nav-lock-mark img {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.location-locked {
+  opacity: 0.55;
+  filter: grayscale(0.5);
 }
 .room-nav .sprite {
   width: 39px;
