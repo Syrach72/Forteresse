@@ -54,7 +54,6 @@ const BACKDROP_VIDEO_RATIO = {
   armurerie: "1 / 1",
   entrainement: "1 / 1",
   tresorerie: "1 / 1",
-  stock: "1728 / 1632",
 };
 const WORKSHOP_TEXT = {
   forge: {

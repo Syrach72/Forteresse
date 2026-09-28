@@ -4616,10 +4616,11 @@ a.merc-card:hover {
 .inventory-grid-glass .inventory-slot:not(.empty):hover {
   background: rgba(221, 199, 126, 0.26);
 }
-/* Arsenal : fond décalé vers la gauche pour qu'une flamme (l'applique de
-   l'arche) tombe dans une case en verre dépoli, sans vide à droite. */
-.stock video.interior-backdrop-boxed {
-  transform: translateX(-54%);
+/* Arsenal : vidéo affichée à sa taille d'origine (aucun zoom), centrée : ce
+   cadrage garde les trois flammes de gauche visibles. */
+.stock video.interior-backdrop {
+  object-fit: none;
+  object-position: center;
 }
 
 /* Arsenal : on voit d'abord le fond animé ; le panneau et ses objets
