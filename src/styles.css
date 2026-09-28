@@ -5868,6 +5868,20 @@ a.merc-card:hover {
   margin: 0;
   white-space: nowrap;
 }
+/* Petit écran : un nom qui ne passe pas à la ligne forcerait tout le document à défiler
+   horizontalement. On l'autorise à revenir à la ligne (sous la lame) plutôt que déborder. */
+@media (max-width: 680px) {
+  .merc-nom-cadre {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .merc-nom-cadre .merc-nom {
+    white-space: normal;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 26px;
+  }
+}
 
 /* Page Journal : le journal de la compagnie (ex-bas de la Trésorerie). */
 .journal-page {
