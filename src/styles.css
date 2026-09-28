@@ -2757,23 +2757,25 @@ video.interior-backdrop-boxed {
   position: relative;
   align-self: center;
   width: 100%;
-  max-width: 540px;
+  max-width: 600px;
   aspect-ratio: 1575 / 506;
   background: url("/assets/mercenaire-fiche/bouton-panneau.webp") center/100% 100% no-repeat;
 }
 /* Position en absolu (pas en padding) : un pourcentage de padding se calcule toujours sur la
    largeur du conteneur, jamais sa hauteur — inutilisable ici pour caler le haut/bas sur la
-   partie claire du panneau. top/bottom en % se calculent eux correctement sur la hauteur. */
+   partie claire du panneau. top/bottom en % se calculent eux correctement sur la hauteur.
+   Marges mesurées sur le visuel (analyse pixel par pixel de la zone claire) : les 11 %/19 %
+   précédents étaient trop généreux et laissaient les plaques déborder sur le cadre en bois. */
 .merc-actions {
   position: absolute;
-  top: 19%;
-  bottom: 19%;
-  left: 11%;
-  right: 11%;
+  top: 26%;
+  bottom: 22%;
+  left: 15%;
+  right: 15%;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
-  gap: 10px 16px;
+  gap: 8px 12px;
 }
 .merc-actions .merc-recruit {
   margin-top: 0;
@@ -4541,13 +4543,17 @@ a.merc-card:hover {
   justify-content: center;
   gap: 10px;
 }
-/* Bottes (Mouvement) : icône doublée, le nombre de cases juste à droite (plus en-dessous). */
+/* Bottes (Mouvement) : icône doublée à nouveau, le nombre de cases juste à droite (plus
+   en-dessous), décalées vers le bas pour ne pas coller au portrait. */
+.merc-carac-bottes {
+  margin-top: 18px;
+}
 .merc-bottes-icone {
-  width: 232px;
-  height: 232px;
+  width: 464px;
+  height: 464px;
 }
 .merc-carac-bottes .merc-carac-valeur {
-  font-size: 64px;
+  font-size: 128px;
 }
 .merc-carac {
   display: flex;
