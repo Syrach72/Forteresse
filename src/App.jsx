@@ -2147,7 +2147,7 @@ export function App() {
     }
     await synchroniserPartage();
     notify(
-      `${peopleRef.current.find((w) => w.id === id)?.name} est instructeur au Terrain d’Entraînement.`,
+      `${peopleRef.current.find((w) => w.id === id)?.name} est instructeur à l’Entraînement.`,
     );
     location.hash = "entrainement";
   }
@@ -2994,15 +2994,7 @@ export function App() {
                 ) : (
                   <>
                     <Sprite location={l} />
-                    <span>
-                      {l.id === "entrainement" ? (
-                        <>
-                          Terrain <span className="tight-word">d’Entraînement</span>
-                        </>
-                      ) : (
-                        l.name
-                      )}
-                    </span>
+                    <span>{l.name}</span>
                     {l.locked && (
                       <span className="lock-mark" aria-hidden="true">
                         <img src="/assets/icons/lock.webp" alt="" />
