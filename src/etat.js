@@ -5,11 +5,15 @@ import { supabase } from "./supabaseClient";
 // fiche) et avancement d'une quête (quete_etat). Ces fonctions relisent le catalogue et y
 // superposent l'état de la session courante.
 
-// Mercenaires du catalogue avec la vétérance de la session.
+// Mercenaires du catalogue avec la vétérance de la session, et Puissance/Vélocité/Mental
+// (attaque/defense/esprit) si modifiées cette session — sinon la fiche de base s'applique déjà
+// (colonnes sélectionnées telles quelles depuis `mercenaire`). Même repli que la vétérance.
 export async function chargerMercenaires(colonnes = "*") {
   const [m, e] = await Promise.all([
     supabase.from("mercenaire").select(colonnes).order("nom"),
-    supabase.from("mercenaire_etat").select("mercenaire_id, veterance, energie_actuelle, sante_actuelle"),
+    supabase
+      .from("mercenaire_etat")
+      .select("mercenaire_id, veterance, energie_actuelle, sante_actuelle, attaque, defense, esprit"),
   ]);
   if (m.error) return { error: m.error };
   const parId = new Map((e.data || []).map((x) => [x.mercenaire_id, x]));
@@ -17,7 +21,15 @@ export async function chargerMercenaires(colonnes = "*") {
     data: m.data.map((x) => {
       const etat = parId.get(x.id);
       return etat
-        ? { ...x, veterance: etat.veterance, energie_actuelle: etat.energie_actuelle, sante_actuelle: etat.sante_actuelle }
+        ? {
+            ...x,
+            veterance: etat.veterance,
+            energie_actuelle: etat.energie_actuelle,
+            sante_actuelle: etat.sante_actuelle,
+            attaque: etat.attaque ?? x.attaque,
+            defense: etat.defense ?? x.defense,
+            esprit: etat.esprit ?? x.esprit,
+          }
         : x;
     }),
   };
