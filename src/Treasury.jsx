@@ -7,7 +7,9 @@ const fmtDate = (d) =>
 // — entretien mercenaires (dortoir), entretien de la Collecte, achats/embauches/
 // déblocages faits depuis le dernier +1 Instance, dernière quête accomplie et
 // dernier tribut du village. Chaque nouvelle instance applique ces montants et
-// tire un nouveau tribut aléatoire (50 à 100 Po).
+// tire un nouveau tribut aléatoire (50 à 100 Po). Présentation en livre
+// comptable : deux panneaux de même largeur (Dépenses / Recettes), chacun avec
+// son total, et le Solde dans un encart séparé.
 export function Treasury({
   treasury,
   treasuryLive,
@@ -37,11 +39,14 @@ export function Treasury({
   const entretienCollecte = treasuryLive.entretienCollecte.montant;
   const { total: achatsTotal, lignes: achatsLignes } = treasuryLive.achatsInstance;
   const { derniereQuete, dernierTribut } = treasuryLive;
+  const totalDepenses = entretienMercenaires + entretienCollecte + achatsTotal;
+  const totalRecettes =
+    treasury.income + (derniereQuete?.montant || 0) + (dernierTribut?.montant || 0);
   return (
     <section className="treasury-workspace">
-      <div className="treasury-costs">
-        <h2 className="sr-only">Dépenses</h2>
-        <div className="treasury-cost parchment">
+      <div className="treasury-panel parchment">
+        <h2>Dépenses</h2>
+        <div className="treasury-cost">
           <span>
             Entretien mercenaires
             <small className="treasury-auto">
@@ -51,9 +56,8 @@ export function Treasury({
             </small>
           </span>
           <strong>{fmt(entretienMercenaires)}</strong>
-          <span aria-hidden="true" />
         </div>
-        <div className="treasury-cost parchment">
+        <div className="treasury-cost">
           <span>
             Entretien Collecte
             <small className="treasury-auto">
@@ -63,9 +67,8 @@ export function Treasury({
             </small>
           </span>
           <strong>{fmt(entretienCollecte)}</strong>
-          <span aria-hidden="true" />
         </div>
-        <div className="treasury-cost treasury-cost-achats parchment">
+        <div className="treasury-cost treasury-cost-achats">
           <span>
             Achats de l’instance en cours
             <small className="treasury-auto">
@@ -74,7 +77,7 @@ export function Treasury({
             {achatsLignes.length > 0 && (
               <button
                 type="button"
-                className="text-button"
+                className="treasury-detail-toggle"
                 onClick={() => setDetailAchats((v) => !v)}
               >
                 {detailAchats ? "Masquer le détail" : "Voir le détail"}
@@ -91,69 +94,77 @@ export function Treasury({
             )}
           </span>
           <strong>{fmt(achatsTotal)}</strong>
-          <span aria-hidden="true" />
+        </div>
+        <div className="treasury-panel-total">
+          <span>Total dépenses</span>
+          <strong className="expenses">{fmt(totalDepenses)} Po</strong>
         </div>
       </div>
-      <aside className="treasury-summary parchment">
-        <div>
-          <h2>Recettes</h2>
-          <div className="treasury-recette-ligne">
-            <span>Autre recette (MJ)</span>
-            <strong>{fmt(treasury.income)} Po</strong>
-          </div>
-          {estAdmin && (
-            <button
-              className="text-button"
-              onClick={() => {
-                setError("");
-                setEdit({
-                  id: "income",
-                  label: "Autre recette (MJ)",
-                  amount: treasury.income,
-                });
-              }}
-            >
-              Modifier
-            </button>
-          )}
-          <div className="treasury-recette-ligne">
-            <span>Dernière quête</span>
-            <strong>
-              {derniereQuete ? `+${fmt(derniereQuete.montant)} Po` : "—"}
-            </strong>
-          </div>
-          {derniereQuete && (
-            <p className="muted treasury-recette-detail">
-              {derniereQuete.message} · {fmtDate(derniereQuete.date)}
-            </p>
-          )}
-          <div className="treasury-recette-ligne">
-            <span>Tribut du village</span>
-            <strong>
-              {dernierTribut ? `+${fmt(dernierTribut.montant)} Po` : "—"}
-            </strong>
-          </div>
-          {dernierTribut && (
-            <p className="muted treasury-recette-detail">
-              {dernierTribut.message} · {fmtDate(dernierTribut.date)}
-            </p>
-          )}
+      <div className="treasury-panel parchment">
+        <h2>Recettes</h2>
+        <div className="treasury-cost">
+          <span>
+            Autre recette (MJ)
+            {estAdmin && (
+              <button
+                type="button"
+                className="treasury-detail-toggle"
+                onClick={() => {
+                  setError("");
+                  setEdit({
+                    id: "income",
+                    label: "Autre recette (MJ)",
+                    amount: treasury.income,
+                  });
+                }}
+              >
+                Modifier
+              </button>
+            )}
+          </span>
+          <strong>{fmt(treasury.income)}</strong>
         </div>
-        <div className="treasury-final">
-          <h2>Solde</h2>
-          <strong>{fmt(gold)} Po</strong>
-          <p className="muted">
-            La prochaine instance appliquera : −{fmt(entretienMercenaires + entretienCollecte)} Po
-            d’entretien, +{fmt(treasury.income)} Po d’autre recette, et un tribut du village
-            aléatoire (50 à 100 Po) — plus la récompense de la quête en cours si elle se termine.
+        <div className="treasury-cost">
+          <span>
+            Dernière quête
+            {derniereQuete && (
+              <small className="treasury-auto">
+                {derniereQuete.message} · {fmtDate(derniereQuete.date)}
+              </small>
+            )}
+          </span>
+          <strong>{derniereQuete ? `+${fmt(derniereQuete.montant)}` : "—"}</strong>
+        </div>
+        <div className="treasury-cost">
+          <span>
+            Tribut du village
+            {dernierTribut && (
+              <small className="treasury-auto">
+                {dernierTribut.message} · {fmtDate(dernierTribut.date)}
+              </small>
+            )}
+          </span>
+          <strong>{dernierTribut ? `+${fmt(dernierTribut.montant)}` : "—"}</strong>
+        </div>
+        <div className="treasury-panel-total">
+          <span>Total recettes</span>
+          <strong>{fmt(totalRecettes)} Po</strong>
+        </div>
+      </div>
+      <aside className="treasury-final parchment">
+        <h2>Solde</h2>
+        <strong>{fmt(gold)} Po</strong>
+        <p className="muted">
+          La prochaine instance appliquera : −{fmt(entretienMercenaires + entretienCollecte)} Po
+          d’entretien, +{fmt(treasury.income)} Po d’autre recette, et un tribut du village
+          aléatoire (50 à 100 Po) — plus la récompense de la quête en cours si elle se termine.
+        </p>
+        {gold < 0 && (
+          <p className="error">
+            Solde négatif : les achats sont indisponibles tant qu’il n’est
+            pas revenu au-dessus de zéro.
           </p>
-          {gold < 0 && (
-            <p className="error">
-              Solde négatif : les achats sont indisponibles tant qu’il n’est
-              pas revenu au-dessus de zéro.
-            </p>
-          )}
-        </div>
+        )}
       </aside>
       {edit && (
         <Modal title={`Modifier ${edit.label}`} onClose={() => setEdit(null)}>

@@ -204,6 +204,17 @@ img {
   color: var(--ink);
   text-shadow: none;
 }
+/* Trésorerie : chaque ligne (.treasury-cost) a son propre fond clair et plein
+   (pas le décor semi-transparent) : même correctif que .materials ci-dessus,
+   sinon le texte blanc contouré devient illisible sur ce fond clair. */
+.interior .parchment .treasury-cost span,
+.interior .parchment .treasury-cost strong,
+.interior .parchment .treasury-cost small,
+.interior .parchment .treasury-achats-detail li,
+.interior .parchment .treasury-achats-detail span {
+  color: var(--ink);
+  text-shadow: none;
+}
 .game-header {
   display: flex;
   gap: 5px;
@@ -3434,77 +3445,101 @@ video.interior-backdrop-boxed {
 }
 .treasury-workspace {
   display: grid;
-  grid-template-columns: minmax(360px, 1.6fr) minmax(230px, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
   max-width: 940px;
   margin: 20px 0;
 }
-.treasury-costs {
+.treasury-panel {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  padding: 18px;
+}
+.treasury-panel h2 {
+  font-size: 26px;
+  margin: 0 0 4px;
 }
 .treasury-cost {
   display: grid;
-  grid-template-columns: 1fr 68px 62px;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 12px;
   padding: 12px 15px;
-  font-size: 23px;
+  font-size: 21px;
   min-height: 51px;
+  background: #f7f4ed;
+  border: 1px solid #e3d8bd;
 }
 .treasury-cost strong {
   font-weight: 500;
-  font-size: 23px;
-}
-.treasury-cost button {
-  font:
-    12px Georgia,
-    serif;
-  min-height: 32px;
-  border: 1px solid #b5aa94;
-  background: #f7f4ed;
-  text-transform: uppercase;
+  font-size: 21px;
+  white-space: nowrap;
 }
 .treasury-auto {
   display: block;
   font-size: 13px;
   line-height: 1.25;
   color: #5a4a2e;
+  font-weight: normal;
 }
-.treasury-cost button:hover {
-  background: #e8d291;
+.treasury-detail-toggle {
+  display: inline-block;
+  margin-top: 4px;
+  font:
+    12px Georgia,
+    serif;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid #8a6a35;
+  border-radius: 3px;
+  background: #3a2a16;
+  color: #f3e6c8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
-.treasury-summary {
+.treasury-detail-toggle:hover {
+  background: #543d1f;
+}
+.treasury-panel-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 2px solid #b5aa94;
+  font-size: 19px;
+}
+.treasury-panel-total strong {
+  font-size: 26px;
+  color: #765310;
+}
+.treasury-panel-total strong.expenses {
+  color: #9a3b25;
+}
+.treasury-final {
+  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
+  align-items: center;
   text-align: center;
-  padding: 30px 15px;
+  padding: 26px 18px;
 }
-.treasury-summary h2 {
-  font-size: 30px;
-  margin: 0 0 8px;
-}
-.treasury-summary strong {
-  font-size: 34px;
-  font-weight: 600;
-}
-.treasury-summary .expenses {
-  color: #9a3b25;
+.treasury-final h2 {
   font-size: 28px;
-}
-.treasury-summary .text-button {
-  display: block;
-  margin: auto;
-  font-size: 15px;
+  margin: 0 0 6px;
 }
 .treasury-final strong {
+  font-size: 34px;
+  font-weight: 600;
   color: #765310;
 }
 .treasury-final p.muted {
   font-size: 14px;
   line-height: 1.4;
+  max-width: 560px;
+  margin-top: 10px;
 }
 .treasury-cost-achats {
   align-items: start;
@@ -3527,29 +3562,6 @@ video.interior-backdrop-boxed {
 }
 .treasury-achats-detail li:first-child {
   border-top: none;
-}
-.treasury-cost .text-button {
-  display: block;
-  font-size: 13px;
-  margin-top: 4px;
-}
-.treasury-recette-ligne {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-  margin-top: 10px;
-}
-.treasury-recette-ligne span {
-  font-size: 17px;
-}
-.treasury-recette-ligne strong {
-  font-size: 22px;
-}
-.treasury-recette-detail {
-  font-size: 12px;
-  margin: 2px 0 0;
-  text-align: left;
 }
 .treasury-journal {
   grid-column: 1/-1;
@@ -3574,20 +3586,28 @@ video.interior-backdrop-boxed {
     gap: 15px;
   }
   .treasury-cost {
-    grid-template-columns: minmax(0, 1fr) 52px 48px;
-    font-size: 18px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    font-size: 17px;
     gap: 9px;
     padding: 10px;
   }
   .treasury-cost strong {
-    font-size: 20px;
+    font-size: 19px;
   }
-  .treasury-summary {
-    gap: 24px;
-    padding: 24px 16px;
+  .treasury-panel {
+    padding: 14px;
   }
-  .treasury-summary h2 {
-    font-size: 27px;
+  .treasury-panel h2 {
+    font-size: 22px;
+  }
+  .treasury-final {
+    padding: 20px 14px;
+  }
+  .treasury-final h2 {
+    font-size: 24px;
+  }
+  .treasury-final strong {
+    font-size: 28px;
   }
   .treasury-journal {
     grid-column: auto;
@@ -3597,8 +3617,8 @@ video.interior-backdrop-boxed {
     flex-direction: column;
     gap: 7px;
   }
-  .treasury-cost button {
-    min-height: 38px;
+  .treasury-detail-toggle {
+    min-height: 34px;
     font-size: 11px;
   }
 }
@@ -3781,17 +3801,20 @@ video.interior-backdrop-boxed {
     max-width: 850px;
   }
   .treasury-cost {
-    font-size: 20px;
+    font-size: 19px;
     padding: 8px 12px;
     min-height: 44px;
   }
   .treasury-cost strong {
-    font-size: 20px;
+    font-size: 19px;
   }
-  .treasury-summary h2 {
+  .treasury-panel h2 {
+    font-size: 24px;
+  }
+  .treasury-final h2 {
     font-size: 26px;
   }
-  .treasury-summary strong {
+  .treasury-final strong {
     font-size: 29px;
   }
   .training-workspace {

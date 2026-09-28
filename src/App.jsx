@@ -1121,6 +1121,10 @@ export function App() {
   // Quantité à embaucher saisie pour chaque métier (fenêtre Matériaux et
   // Embauche), remise à 1 par défaut tant que rien n'a été tapé.
   const [embaucheQty, setEmbaucheQty] = useState({});
+  // Nombre de LOTS de 10 à acheter par matériau (fenêtre Matériaux et
+  // Embauche) : les matériaux s'achètent uniquement par lots de 10 (règle
+  // de Bruno), remis à 1 lot par défaut tant que rien n'a été tapé.
+  const [materiauxLots, setMateriauxLots] = useState({});
   const [search, setSearch] = useState("");
   const [character, setCharacter] = useState("Guerrier");
   const [actionError, setActionError] = useState("");
@@ -2540,6 +2544,17 @@ export function App() {
     ]);
     notify(`${arme.nom} acheté : −${arme.cout_achat_or} Po.`);
   }
+  // Achat d'un matériau (Bois/Fer/Cuir) par lots de 10, 10 Po le lot (règle
+  // de Bruno) : jamais à l'unité, contrairement au reste du catalogue.
+  async function actAcheterMateriau(objet) {
+    const lots = Math.max(1, Math.round(Number(materiauxLots[objet.id]) || 1));
+    const quantite = lots * 10;
+    const data = await operationPartagee(() =>
+      supabase.rpc("partie_acheter_materiau", { p_objet: objet.id, p_quantite: quantite }),
+    );
+    if (!data) return;
+    notify(`${quantite} ${objet.nom} achetés : −${quantite * objet.cout_achat_or} Po.`);
+  }
   // Récupère une fabrication terminée (durée d'instance à 0) : l'objet rejoint
   // l'arsenal et l'atelier est libéré. Referme la fiche de l'objet tout juste
   // livré (il faut retourner au catalogue pour en choisir un autre).
@@ -3946,26 +3961,54 @@ export function App() {
                       <p className="muted">Aucun matériau pour le moment.</p>
                     ) : (
                       <div className="db-item-list">
-                        {materiaux.items.map((o) => (
-                          <div className="market-dual-row" key={o.id}>
-                            {o.icone ? (
-                              <img className="db-item-icon" src={o.icone} alt="" loading="lazy" decoding="async" />
-                            ) : (
-                              <span className="db-item-icon" aria-hidden="true" />
-                            )}
-                            <span>
-                              {o.nom}
-                              <small className="db-item-tag">Stock : {stockDe(o.id)}</small>
-                            </span>
-                            {/* Les matériaux ne s'achètent jamais au Marché, seulement produits par
-                                la Collecte (règle de Bruno) : le bouton reste désactivé même quand
-                                cout_achat_or est défini (il ne sert alors qu'à la revente, cf.
-                                ItemActionPanel dans l'Arsenal). */}
-                            <button type="button" className="wood-button" disabled>
-                              Non disponible à l’achat
-                            </button>
-                          </div>
-                        ))}
+                        {materiaux.items.map((o) => {
+                          const lots = materiauxLots[o.id] ?? 1;
+                          const cout = (o.cout_achat_or || 0) * lots * 10;
+                          return (
+                            <div className="market-dual-row" key={o.id}>
+                              {o.icone ? (
+                                <img className="db-item-icon" src={o.icone} alt="" loading="lazy" decoding="async" />
+                              ) : (
+                                <span className="db-item-icon" aria-hidden="true" />
+                              )}
+                              <span>
+                                {o.nom}
+                                <small className="db-item-tag">
+                                  Stock : {stockDe(o.id)} · lots de 10, 10 Po le lot
+                                </small>
+                              </span>
+                              <input
+                                type="number"
+                                min="1"
+                                className="market-dual-qty"
+                                aria-label={`Nombre de lots de 10 à acheter, ${o.nom}`}
+                                value={lots}
+                                onChange={(e) => {
+                                  const n = Math.round(Number(e.target.value));
+                                  setMateriauxLots((prev) => ({
+                                    ...prev,
+                                    [o.id]: Number.isFinite(n) && n > 0 ? n : 1,
+                                  }));
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="wood-button"
+                                disabled={
+                                  busy ||
+                                  o.cout_achat_or === null ||
+                                  o.cout_achat_or === undefined ||
+                                  game.gold < cout
+                                }
+                                onClick={() => actAcheterMateriau(o)}
+                              >
+                                {o.cout_achat_or === null || o.cout_achat_or === undefined
+                                  ? "Prix non défini"
+                                  : `Acheter ${lots * 10} · ${cout} Po`}
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </section>
