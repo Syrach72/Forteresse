@@ -5065,7 +5065,12 @@ a.merc-card:hover {
   padding: 0;
   border: 0;
   border-radius: 5px;
-  background: #1c150e url(/assets/icons/cellule-competence.webp) center / 100% 100% no-repeat;
+  /* Halo blanc fixe au centre (comme une mini-étoile), sous le cadre orné :
+     fait ressortir les icônes sombres sur le fond presque noir de la case. */
+  background:
+    url(/assets/icons/cellule-competence.webp) center / 100% 100% no-repeat,
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12) 45%, rgba(28, 21, 14, 0) 70%),
+    #1c150e;
   cursor: pointer;
 }
 .comp-cell:hover {
