@@ -2757,19 +2757,23 @@ export function App() {
     };
     // Global : uniquement ce qui est réellement disponible, à l'achat (coût
     // défini) ou à la fabrication (recette avec au moins un ingrédient).
-    const items = global
-      ? objets
-          .filter((o) => o.actif !== false)
-          .map(construire)
-          .filter(
-            (it) =>
-              (it.cout_achat_or !== null && it.cout_achat_or !== undefined) ||
-              it.ingredientsList.length > 0,
-          )
-      : objets
-          .filter((o) => o.actif !== false && included(o))
-          .map(construire)
-          .filter((it) => !seulementFabricables || it.atelier);
+    // Tri stable par `ordre` (0 par défaut : ne change rien pour les objets
+    // sans ordre explicite, ils gardent la position renvoyée par la requête).
+    const items = (
+      global
+        ? objets
+            .filter((o) => o.actif !== false)
+            .map(construire)
+            .filter(
+              (it) =>
+                (it.cout_achat_or !== null && it.cout_achat_or !== undefined) ||
+                it.ingredientsList.length > 0,
+            )
+        : objets
+            .filter((o) => o.actif !== false && included(o))
+            .map(construire)
+            .filter((it) => !seulementFabricables || it.atelier)
+    ).sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
     setCatalogueByAtelier((prev) => ({ ...prev, [atelier]: { items, error: "" } }));
   }
   // null si aucune commande locale n'est en cours pour Forge/Armurerie (cf.
