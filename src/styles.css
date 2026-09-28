@@ -5822,30 +5822,38 @@ a.merc-card:hover {
 
 /* Nom du mercenaire souligné par le cadre orné (lame et anneau) : l'anneau, à gauche, accueille
    le laurier de vétérance (rendu rond, à la place du blason carré habituel) ; le nom suit dans
-   l'anneau. Cadre dimensionné au contenu (pas toute la largeur de la fiche), image retournée pour
-   amener l'anneau à gauche. Position du laurier en % du conteneur : reprend le centre de l'anneau
-   dans le visuel d'origine (≈ 89,7 % en largeur, 50 % en hauteur), soit 10,3 % une fois retourné. */
+   l'anneau. Le visuel garde ses proportions (largeur fixée par le ratio, pas étirée avec le nom :
+   un étirement variable selon la longueur du nom déformerait l'anneau, qui doit rester rond) ;
+   pour un nom plus long que la lame, le texte déborde simplement au-delà, sans fond derrière.
+   Image retournée pour amener l'anneau à gauche ; --art-h règle toute la taille (lame et anneau). */
 .merc-nom-cadre {
+  --art-h: 84px;
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   width: max-content;
   max-width: 100%;
-  min-height: 84px;
+  min-height: var(--art-h);
   margin: 0 0 10px;
+  padding-left: calc(var(--art-h) * 1.19);
 }
 .merc-nom-cadre-art {
   position: absolute;
-  inset: -6px -18px;
+  left: calc(var(--art-h) * -0.1);
+  top: 0;
+  width: calc(var(--art-h) * 4.674);
+  height: var(--art-h);
   background: url("/assets/mercenaire-fiche/nom-cadre.png") center/100% 100% no-repeat;
   transform: scaleX(-1);
   z-index: 0;
   pointer-events: none;
 }
+/* Centre de l'anneau dans le visuel d'origine (1636×350) : ≈ 89,7 % en largeur, 50 % en hauteur ;
+   une fois l'image retournée et redimensionnée à --art-h, ça donne ces coordonnées fixes. */
 .merc-vet-nom {
-  --vet: 52px;
+  --vet: calc(var(--art-h) * 0.56);
   position: absolute;
-  left: 11%;
+  left: calc(var(--art-h) * 0.4);
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 1;
@@ -5858,7 +5866,6 @@ a.merc-card:hover {
   position: relative;
   z-index: 1;
   margin: 0;
-  padding-left: 26%;
   white-space: nowrap;
 }
 
