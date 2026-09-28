@@ -2627,7 +2627,7 @@ export function App() {
   // l'admin, une quête à la fois). Exemptée : la Session test, pour continuer
   // à travailler sans être bloqué. Base par défaut, et toute autre session,
   // restent verrouillées tant que l'objet n'a pas été obtenu.
-  const LIEUX_A_VERROU = ["entrainement", "marche", "mage", "alchimie", "forge", "armurerie"];
+  const LIEUX_A_VERROU = ["entrainement", "marche", "mage", "alchimie", "forge", "armurerie", "infirmerie"];
   const verrouExempte = sess.courante?.nom === "Session test";
   const locationsAvecVerrou = useMemo(() => {
     if (verrouExempte) return LOCATIONS;
