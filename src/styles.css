@@ -2750,13 +2750,14 @@ video.interior-backdrop-boxed {
   opacity: 0.55;
   cursor: not-allowed;
 }
-/* Fiche d'un mercenaire recruté : Instructeur / Soigner / Quête / Renvoyer, 2 par ligne, posés
-   sur la partie claire (parchemin) du panneau de bois aux lanternes. */
+/* Fiche d'un mercenaire recruté : Instructeur / Soigner / Quête / Renvoyer, 2 par ligne, chacun
+   sur sa propre petite plaque (cuir clouté), le tout posé sur la partie claire (parchemin) du
+   panneau de bois aux lanternes, agrandi un peu. */
 .merc-actions-plaque {
   position: relative;
   align-self: center;
   width: 100%;
-  max-width: 460px;
+  max-width: 540px;
   aspect-ratio: 1575 / 506;
   background: url("/assets/mercenaire-fiche/bouton-panneau.webp") center/100% 100% no-repeat;
 }
@@ -2772,31 +2773,64 @@ video.interior-backdrop-boxed {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
-  gap: 2px 14px;
+  gap: 10px 16px;
 }
 .merc-actions .merc-recruit {
   margin-top: 0;
   min-width: 0;
   width: 100%;
+  height: 100%;
 }
-/* Boutons simples, sans fond propre : ils reposent sur le parchemin du panneau, qui ne doit pas
-   s'assombrir pour autant si l'un d'eux est desactivé (seul le texte du bouton se grise). */
+/* Chaque bouton reprend le cuir clouté (comme Enregistrer l'énergie/les Caractéristiques),
+   plutôt qu'un texte nu posé directement sur le parchemin du panneau. */
 .merc-actions .wood-button {
-  border: none;
-  background: none;
-  box-shadow: none;
-  color: #3a2814;
-  font: 700 16px "Cormorant Garamond", Chiffres, Georgia, serif;
-  padding: 4px 6px;
-  text-shadow: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border: 2px solid #8a6a35;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #7a5530 0%, #5c3d1f 55%, #462e17 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 224, 168, 0.35),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.5),
+    0 3px 6px rgba(0, 0, 0, 0.5);
+  color: #fff0cc;
+  text-shadow: 0 1px 2px #000;
+  font: 700 15px "Cormorant Garamond", Chiffres, Georgia, serif;
+  letter-spacing: 0.02em;
+  padding: 4px 8px;
+}
+.merc-actions .wood-button::before,
+.merc-actions .wood-button::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f3d27a, #8a6a35 70%);
+  box-shadow: 0 0 0 1px #2a1b0c;
+}
+.merc-actions .wood-button::before {
+  left: 4px;
+}
+.merc-actions .wood-button::after {
+  right: 4px;
 }
 .merc-actions .wood-button:hover:not(:disabled) {
-  color: #1f150b;
-  text-decoration: underline;
+  background: linear-gradient(180deg, #8a6238 0%, #6b4726 55%, #55381c 100%);
+  border-color: var(--gold);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 224, 168, 0.5),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.5),
+    0 0 10px rgba(225, 188, 85, 0.45),
+    0 3px 6px rgba(0, 0, 0, 0.5);
 }
 .merc-actions .wood-button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+  opacity: 0.5;
 }
 /* Enregistrer l'énergie/la santé et Enregistrer les Caractéristiques : cuir clouté plutôt que le
    bois plat ou les plaques essayées précédemment — dégradé profond, filet doré, clous aux coins,
@@ -5582,8 +5616,10 @@ a.merc-card:hover {
 .merc-sheet {
   max-width: none;
 }
-/* Fond de la fiche : papier épais étiré (cover) plutôt que le parchemin plat. */
-.merc-sheet.parchment {
+/* Fond de la fiche (les 3 rubriques : Général, Équipement, Compétences) : papier épais étiré
+   (cover) plutôt que le parchemin plat. */
+.merc-sheet.parchment,
+.merc-bloc.parchment {
   background-image: url("/assets/mercenaire-fiche/papier-fond.jpg");
   background-size: cover;
   background-position: center;
@@ -5850,9 +5886,6 @@ a.merc-card:hover {
 }
 .merc-vet-nom {
   --vet: 80px;
-  border-radius: 50%;
-  overflow: hidden;
-  background-size: cover;
 }
 .merc-nom-texte {
   display: flex;
