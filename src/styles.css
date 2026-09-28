@@ -912,12 +912,9 @@ video.interior-backdrop-boxed {
   font-size: 12px;
   color: var(--muted);
 }
-/* Marché : « Matériaux et Embauche » côte à côte dans une même fenêtre. Fenêtre
-   élargie (comme .modal-sac) : à la largeur de base (660px) les lignes (icône +
-   libellé + quantité + bouton) débordaient et forçaient un défilement horizontal. */
-.modal-market-dual {
-  width: min(920px, calc(100% - 30px));
-}
+/* Marché : « Matériaux et Embauche » côte à côte dans une même fenêtre. Largeur
+   élargie définie plus bas (.modal-market-dual, après .modal : même
+   spécificité, donc l'ordre dans la feuille de styles compte). */
 .market-dual {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -5787,6 +5784,12 @@ a.merc-card:hover {
 /* Sac à dos agrandi : fenêtre plus large, emplacements, icônes et textes x1,5. */
 .modal-sac {
   width: min(1000px, calc(100% - 30px));
+}
+/* Matériaux et Embauche : fenêtre plus large elle aussi (deux colonnes, chaque
+   ligne = icône + libellé + quantité + bouton) ; à 660px (largeur de base de
+   .modal) ça débordait et forçait un défilement horizontal. */
+.modal-market-dual {
+  width: min(920px, calc(100% - 30px));
 }
 .modal-sac .muted {
   font-size: 20px;
