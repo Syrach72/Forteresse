@@ -1981,9 +1981,18 @@ export function App() {
           const a = actuels.data.get(m.id);
           const energie = a?.energie ?? null;
           const sante = a?.sante ?? null;
-          return energie === m.energieActuelle && sante === m.santeActuelle
+          // Puissance/Vélocité/Mental : repli sur la valeur déjà en place (fiche de base ou
+          // override déjà chargé) quand cette session n'en a pas défini.
+          const puissance = a?.attaque ?? m.puissance;
+          const velocite = a?.defense ?? m.velocite;
+          const mental = a?.esprit ?? m.mental;
+          return energie === m.energieActuelle &&
+            sante === m.santeActuelle &&
+            puissance === m.puissance &&
+            velocite === m.velocite &&
+            mental === m.mental
             ? m
-            : { ...m, energieActuelle: energie, santeActuelle: sante };
+            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental };
         }),
       );
     }

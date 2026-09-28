@@ -35,16 +35,27 @@ export async function chargerMercenaires(colonnes = "*") {
   };
 }
 
-// Énergie et santé actuelles de chaque mercenaire pour la session courante :
-// Map id -> { energie, sante } (null = pas encore modifiée : la fiche affiche le maximum).
+// Énergie et santé actuelles de chaque mercenaire pour la session courante, ainsi que
+// Puissance/Vélocité/Mental si modifiées cette session : Map id -> { energie, sante, attaque,
+// defense, esprit } (null = pas modifié cette session : la fiche affiche le maximum, ou reprend
+// la fiche de base, selon le champ).
 export async function chargerActuels() {
   const { data, error } = await supabase
     .from("mercenaire_etat")
-    .select("mercenaire_id, energie_actuelle, sante_actuelle");
+    .select("mercenaire_id, energie_actuelle, sante_actuelle, attaque, defense, esprit");
   if (error) return { error };
   return {
     data: new Map(
-      data.map((x) => [x.mercenaire_id, { energie: x.energie_actuelle ?? null, sante: x.sante_actuelle ?? null }]),
+      data.map((x) => [
+        x.mercenaire_id,
+        {
+          energie: x.energie_actuelle ?? null,
+          sante: x.sante_actuelle ?? null,
+          attaque: x.attaque ?? null,
+          defense: x.defense ?? null,
+          esprit: x.esprit ?? null,
+        },
+      ]),
     ),
   };
 }
