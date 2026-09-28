@@ -32,7 +32,7 @@ export const LOCATIONS = [
   },
   {
     id: "dortoirs",
-    name: "Dortoirs",
+    name: "Caserne",
     x: 52.7,
     y: 47.6,
     w: 15.6,

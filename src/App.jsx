@@ -1233,7 +1233,7 @@ export function App() {
     }
     if (firstFreeBed(dormRef.current) < 0) {
       notify(
-        `Recrutement impossible : aucun lit libre au Dortoir pour ${m.nom}.`,
+        `Recrutement impossible : aucun lit libre à la Caserne pour ${m.nom}.`,
       );
       return;
     }
@@ -1263,7 +1263,7 @@ export function App() {
     }
     const lit = dormRef.current.beds.findIndex((b) => b?.heroId === m.id);
     notify(
-      `${m.nom} est recruté par ${joueur} (−${data?.cout ?? cout} Po) et prend place au lit ${lit + 1} du Dortoir.`,
+      `${m.nom} est recruté par ${joueur} (−${data?.cout ?? cout} Po) et prend place au lit ${lit + 1} de la Caserne.`,
     );
     // Recrutement réussi : on va directement voir le mercenaire dans son lit.
     location.hash = "dortoirs";

@@ -252,7 +252,7 @@ export function Characters({
         >
           {merc
             ? recrutes.includes(merc.id)
-              ? "‹ Dortoirs"
+              ? "‹ Caserne"
               : `‹ ${cls?.[1] || "Personnages"}`
             : hero
               ? "‹ Tous les guerriers"
@@ -584,11 +584,11 @@ export function Characters({
                   )}
                   <p className="merc-recrute-note">
                     {absences[merc.id]
-                      ? `${merc.nom} n’est pas au dortoir (${absences[merc.id].toLowerCase()}) : il garde son lit.`
+                      ? `${merc.nom} n’est pas à la caserne (${absences[merc.id].toLowerCase()}) : il garde son lit.`
                       : `« Instructeur » l’envoie former des élèves de sa classe${instructeurEnPlace ? " (un instructeur est déjà en place)" : ""} ; « Soigner » l’envoie à l’infirmerie (${instancesDeSoins(merc)} instance${instancesDeSoins(merc) > 1 ? "s" : ""} selon sa santé perdue)${infirmerieComplete ? " (aucun lit libre pour le moment)" : ""} ; « Quête » l’engage dans la quête en cours${queteEnCours ? ` (${queteEnCours.nom})` : " (aucune quête choisie pour le moment)"}.`}
                   </p>
                   <p className="merc-recrute-note">
-                    {merc.nom} a son lit au Dortoir. Le renvoyer efface le nom
+                    {merc.nom} a son lit à la Caserne. Le renvoyer efface le nom
                     du joueur et libère le lit ; il conserve sa vétérance et sa
                     fiche. Le recruter de nouveau coûterait{" "}
                     {COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po.
@@ -632,12 +632,12 @@ export function Characters({
                   </button>
                   <p id="merc-recruit-help" className="merc-recrute-note">
                     {!litLibre
-                      ? `Aucun lit libre au Dortoir : libérez un lit ou débloquez-en un pour recruter ${merc.nom}.`
+                      ? `Aucun lit libre à la Caserne : libérez un lit ou débloquez-en un pour recruter ${merc.nom}.`
                       : or < COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)
                         ? `Trésorerie insuffisante : ${COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po sont nécessaires (la compagnie en possède ${or}).`
                         : !nomJoueur.trim()
                         ? "Inscrivez votre nom pour pouvoir recruter ce mercenaire. Il restera affiché sur lui jusqu’à son renvoi."
-                        : `${merc.nom} prendra place dans un lit du Dortoir.`}
+                        : `${merc.nom} prendra place dans un lit de la Caserne.`}
                   </p>
                 </form>
               )}

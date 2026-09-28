@@ -201,7 +201,7 @@ export function Infirmary({
           ) : (
             <p>
               Ce lit est libre. Pour soigner un mercenaire, ouvrez sa fiche
-              depuis le Dortoir et cliquez sur « Soigner ».
+              depuis la Caserne et cliquez sur « Soigner ».
             </p>
           )}
           {error && (

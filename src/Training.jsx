@@ -191,11 +191,11 @@ export function Training({
         return (
           <>
             <p>
-              L’instructeur se choisit depuis la fiche d’un mercenaire du
-              Dortoir : ouvrez sa fiche et cliquez sur « Instructeur ».
+              L’instructeur se choisit depuis la fiche d’un mercenaire de la
+              Caserne : ouvrez sa fiche et cliquez sur « Instructeur ».
             </p>
             <a className="primary" href="#dortoirs" onClick={close}>
-              Aller au Dortoir
+              Aller à la Caserne
             </a>
           </>
         );
