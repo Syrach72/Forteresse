@@ -3502,6 +3502,55 @@ video.interior-backdrop-boxed {
 .treasury-final strong {
   color: #765310;
 }
+.treasury-final p.muted {
+  font-size: 14px;
+  line-height: 1.4;
+}
+.treasury-cost-achats {
+  align-items: start;
+  min-height: 0;
+  padding-block: 12px;
+}
+.treasury-achats-detail {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #5a4a2e;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.treasury-achats-detail li {
+  padding: 3px 0;
+  border-top: 1px solid #e3d8bd;
+}
+.treasury-achats-detail li:first-child {
+  border-top: none;
+}
+.treasury-cost .text-button {
+  display: block;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.treasury-recette-ligne {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 10px;
+}
+.treasury-recette-ligne span {
+  font-size: 17px;
+}
+.treasury-recette-ligne strong {
+  font-size: 22px;
+}
+.treasury-recette-detail {
+  font-size: 12px;
+  margin: 2px 0 0;
+  text-align: left;
+}
 .treasury-journal {
   grid-column: 1/-1;
   padding: 24px;

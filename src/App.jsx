@@ -5,7 +5,7 @@ import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
 import { Journal } from "./Journal.jsx";
-import { EMPTY_TREASURY, buildTreasury, entretienCompagnie } from "./treasury-data.js";
+import { EMPTY_TREASURY, EMPTY_TREASURY_LIVE, buildTreasury, entretienCompagnie } from "./treasury-data.js";
 import { Training } from "./Training.jsx";
 import {
   INITIAL_TRAINING,
@@ -952,6 +952,10 @@ export function App() {
   const campaignRef = useRef(campaign);
   // Budget partagé (table budget_poste) : chargé par synchroniserBudget().
   const [treasury, setTreasury] = useState(EMPTY_TREASURY);
+  // Partie calculée en direct de la Trésorerie (entretien collecte, achats de
+  // l'instance en cours, dernière quête, dernier tribut) : chargée par
+  // synchroniserEconomie(), pas stockée en base (voir treasury-data.js).
+  const [treasuryLive, setTreasuryLive] = useState(EMPTY_TREASURY_LIVE);
   const [training, setTraining] = useState(() =>
     structuredClone(INITIAL_TRAINING),
   );
@@ -1050,16 +1054,6 @@ export function App() {
   const entretien = useMemo(
     () => entretienCompagnie(dormPeople.map((p) => p.veterancy)),
     [dormPeople],
-  );
-  // Budget affiché : le poste « Entretien » est calculé (vétérance × 10), pas saisi.
-  const treasuryAffiche = useMemo(
-    () => ({
-      ...treasury,
-      costs: treasury.costs.map((c) =>
-        c.id === "entretien" ? { ...c, amount: entretien, auto: true } : c,
-      ),
-    }),
-    [treasury, entretien],
   );
   // Mercenaires recrutés qui ne sont pas au dortoir (ils y gardent leur lit,
   // affiché grisé) : identifiant -> où ils sont. Renvoyer de la compagnie est
@@ -1700,13 +1694,13 @@ export function App() {
   // et reversés dans `game` (même forme qu'avant, pour l'affichage existant).
   async function synchroniserEconomie() {
     const [etat, inv, lignes, fab, jour, sert, emp, eqp] = await Promise.all([
-      supabase.from("partie_etat").select("or_compagnie").maybeSingle(),
+      supabase.from("partie_etat").select("or_compagnie, instance_courante").maybeSingle(),
       supabase.from("inventaire").select("id, type, mercenaire_id"),
       supabase.from("ligne_inventaire").select("id, inventaire_id, objet_id, quantite, gemmes"),
       supabase.from("atelier_fabrication").select("atelier, objet_id, quantite, restant"),
       supabase
         .from("partie_journal")
-        .select("id, message, montant, created_at")
+        .select("id, type, message, montant, details, instance_no, created_at")
         .order("created_at", { ascending: false })
         .limit(300),
       supabase
@@ -1908,8 +1902,16 @@ export function App() {
         const o = cache.objets.get(e.objet_id) || {};
         const materiau = o.emploi_materiau_id ? cache.objets.get(o.emploi_materiau_id) : null;
         const outilObjet = o.emploi_outil_id ? cache.objets.get(o.emploi_outil_id) : null;
-        const production =
-          e.quantite * ((o.emploi_production || 0) + (e.outil ? o.emploi_production_outil || 0 : 0));
+        // Bûcheron/Mineur/Tanneur : production aléatoire (5 à 10 par ouvrier et
+        // par instance, tirée côté serveur), doublée si le bâtiment associé est
+        // possédé. Ancienne formule fixe conservée pour d'éventuels autres métiers.
+        const batimentPossede =
+          o.emploi_outil_id &&
+          (emp.data || []).some((x) => x.objet_id === o.emploi_outil_id && x.quantite >= 1);
+        const productionAleatoire = o.emploi_materiau_id && o.emploi_production == null;
+        const production = productionAleatoire
+          ? null
+          : e.quantite * ((o.emploi_production || 0) + (e.outil ? o.emploi_production_outil || 0 : 0));
         return {
           objetId: e.objet_id,
           outil: e.outil,
@@ -1923,6 +1925,8 @@ export function App() {
           materiauNom: materiau?.nom || null,
           materiauIcone: materiau?.icone || null,
           production,
+          productionAleatoire,
+          batimentPossede,
           outilId: o.emploi_outil_id || null,
           outilNom: outilObjet?.nom || null,
           outilIcone: outilObjet?.icone || null,
@@ -1947,6 +1951,38 @@ export function App() {
     };
     gameRef.current = g;
     setGame(g);
+    // Trésorerie, partie calculée en direct : entretien de la Collecte (somme
+    // du roster, qui ne compte que les métiers avec un entretien réel — les
+    // bâtiments n'en ont pas), achats/embauches/dépenses de l'instance en cours
+    // (journal filtré par instance_no), dernière quête accomplie et dernier
+    // tribut du village (journal, type "or", repérés par leur clé dans details).
+    const instanceCourante = etat.data.instance_courante ?? 0;
+    const journalType = jour.data || [];
+    const achatsLignes = journalType
+      .filter(
+        (j) =>
+          j.instance_no === instanceCourante &&
+          ["achat", "embauche", "depense"].includes(j.type),
+      )
+      .map((j) => ({ id: j.id, message: j.message, montant: j.montant, date: j.created_at }));
+    const derniereQueteEntry = journalType.find((j) => j.type === "or" && j.details?.quete_id);
+    const dernierTributEntry = journalType.find((j) => j.type === "or" && j.details?.tribut != null);
+    setTreasuryLive({
+      entretienCollecte: {
+        montant: roster.reduce((s, r) => s + (r.entretienTotal || 0), 0),
+        effectif: roster.filter((r) => r.entretienUnitaire).reduce((s, r) => s + r.quantite, 0),
+      },
+      achatsInstance: {
+        total: achatsLignes.reduce((s, j) => s + Math.abs(j.montant || 0), 0),
+        lignes: achatsLignes,
+      },
+      derniereQuete: derniereQueteEntry
+        ? { message: derniereQueteEntry.message, montant: derniereQueteEntry.montant, date: derniereQueteEntry.created_at }
+        : null,
+      dernierTribut: dernierTributEntry
+        ? { message: dernierTributEntry.message, montant: dernierTributEntry.montant, date: dernierTributEntry.created_at }
+        : null,
+    });
   }
   async function synchroniserPartage() {
     await Promise.all([
@@ -3082,7 +3118,9 @@ export function App() {
                       <div className="stat-line">
                         <span>Production / instance</span>
                         <strong>
-                          +{e.production} {e.materiauNom}
+                          {e.productionAleatoire
+                            ? `${e.batimentPossede ? "10 à 20" : "5 à 10"} ${e.materiauNom} (aléatoire)`
+                            : `+${e.production} ${e.materiauNom}`}
                         </strong>
                       </div>
                     )}
@@ -3181,7 +3219,8 @@ export function App() {
             />
           ) : route === "tresorerie" ? (
             <Treasury
-              treasury={treasuryAffiche}
+              treasury={treasury}
+              treasuryLive={treasuryLive}
               entretienDetail={{ montant: entretien, mercenaires: dormPeople.length }}
               estAdmin={estAdmin}
               gold={game.gold}
@@ -3920,20 +3959,12 @@ export function App() {
                               {o.nom}
                               <small className="db-item-tag">Stock : {stockDe(o.id)}</small>
                             </span>
-                            <button
-                              type="button"
-                              className="wood-button"
-                              disabled={
-                                busy ||
-                                o.cout_achat_or === null ||
-                                o.cout_achat_or === undefined ||
-                                game.gold < o.cout_achat_or
-                              }
-                              onClick={() => actBuyCatalogue(o)}
-                            >
-                              {o.cout_achat_or === null || o.cout_achat_or === undefined
-                                ? "Prix non défini"
-                                : `Acheter · ${o.cout_achat_or} Po`}
+                            {/* Les matériaux ne s'achètent jamais au Marché, seulement produits par
+                                la Collecte (règle de Bruno) : le bouton reste désactivé même quand
+                                cout_achat_or est défini (il ne sert alors qu'à la revente, cf.
+                                ItemActionPanel dans l'Arsenal). */}
+                            <button type="button" className="wood-button" disabled>
+                              Non disponible à l’achat
                             </button>
                           </div>
                         ))}

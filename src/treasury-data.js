@@ -1,10 +1,20 @@
 // Budget de la compagnie PARTAGÉ (table budget_poste, lue par tous, modifiée par
-// l'administrateur seul via budget_modifier). Au début de chaque nouvelle
-// instance (+1 Instance), le serveur ajoute au solde (recettes − dépenses) ; les
-// dépenses = tous les postes + l'entretien calculé. Les postes autres que
-// l'entretien sont fictifs pour le moment (Bruno choisira ceux qu'il garde).
+// l'administrateur seul via budget_modifier). Depuis la refonte du 2026-09-28,
+// budget_poste ne contient plus qu'une seule ligne : la recette manuelle du MJ
+// ("Autre recette (MJ)"). Tout le reste (entretiens, achats de l'instance en
+// cours, dernière quête, dernier tribut) est calculé en direct côté client
+// (voir synchroniserEconomie() dans App.jsx) et vit dans `treasuryLive`, pas ici.
 // Forme d'affichage : { income, costs: [{ id, label, amount, auto }] }.
 export const EMPTY_TREASURY = { income: 0, costs: [] };
+// Forme de treasuryLive : { entretienCollecte: {montant, effectif}, achatsInstance:
+// {total, lignes: [{id,message,montant,date}]}, derniereQuete: {message,montant,date}|null,
+// dernierTribut: {message,montant,date}|null }.
+export const EMPTY_TREASURY_LIVE = {
+  entretienCollecte: { montant: 0, effectif: 0 },
+  achatsInstance: { total: 0, lignes: [] },
+  derniereQuete: null,
+  dernierTribut: null,
+};
 export function buildTreasury(rows = []) {
   const tri = [...rows].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
   return {
