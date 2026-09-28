@@ -3822,6 +3822,7 @@ export function App() {
             setModal(null);
             setActionError("");
           }}
+          className={modal.type === "market-dual" ? "modal-market-dual" : ""}
         >
           {modal.type === "campaign" ? (
             <CampaignInventory
