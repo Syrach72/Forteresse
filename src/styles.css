@@ -4551,11 +4551,11 @@ a.merc-card:hover {
 /* Sélecteur à deux classes (plus spécifique que .merc-carac-icone tout court, défini plus bas)
    pour que la taille l'emporte quel que soit l'ordre des règles dans la feuille de styles. */
 .merc-carac-bottes .merc-bottes-icone {
-  width: 464px;
-  height: 464px;
+  width: 232px;
+  height: 232px;
 }
 .merc-carac-bottes .merc-carac-valeur {
-  font-size: 128px;
+  font-size: 64px;
 }
 .merc-carac {
   display: flex;
