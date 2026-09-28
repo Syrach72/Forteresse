@@ -10,7 +10,7 @@ const ICONES_STATS = {
   Puissance: "/assets/icons/puissance.webp",
   Vélocité: "/assets/icons/velocite.webp",
   Mental: "/assets/icons/mental.webp",
-  Mouvement: "/assets/icons/mouvement.webp",
+  Mouvement: "/assets/mercenaire-fiche/bottes.webp",
 };
 // Objets qui peuvent être équipés depuis le sac à dos (rubriques du catalogue).
 const EQUIPABLES = ["Armes", "Armures", "Objet divers"];
@@ -158,16 +158,17 @@ export function Characters({
   const title = useRef();
   // Rubrique affichée de la fiche d'un mercenaire : general, equipement ou competences.
   const [onglet, setOnglet] = useState("general");
-  // Nom du mercenaire (avec le nom du joueur), répété en haut de chaque rubrique de la fiche.
+  // Nom du mercenaire (avec le nom du joueur), répété en haut de chaque rubrique de la fiche : le
+  // laurier de vétérance est incrusté dans l'anneau du cadre ornemental, à gauche du nom.
   const titreMerc = merc ? (
-    <h1 className={`merc-nom${onglet !== "general" ? " merc-nom-vet" : ""}`} tabIndex="-1" ref={title}>
-      {/* Équipement et Compétences : la vétérance est rappelée juste avant le nom (sur Général, elle est sur le portrait). */}
-      {onglet !== "general" && <VetBadge className="merc-vet-titre" value={merc.veterance} />}
-      <span>
+    <div className="merc-nom-cadre">
+      <span className="merc-nom-cadre-art" aria-hidden="true" />
+      <VetBadge className="merc-vet-nom" value={merc.veterance} />
+      <h1 className="merc-nom" tabIndex="-1" ref={title}>
         {merc.nom}
         {nomsJoueur[merc.id] ? ` (${nomsJoueur[merc.id]})` : ""}
-      </span>
-    </h1>
+      </h1>
+    </div>
   ) : null;
   useEffect(() => {
     setOnglet("general");
@@ -359,16 +360,14 @@ export function Characters({
                     <span className="merc-portrait-vide" aria-hidden="true" />
                   )}
                 </span>
-                {/* Vétérance sur l'icône aux lauriers, en haut à gauche du portrait (non modifiable par le joueur). */}
-                <VetBadge className="merc-vet-portrait" value={merc.veterance} />
                 {/* Cœur pulsant, en haut à droite : santé actuelle inférieure au maximum. */}
                 {estBlesse(merc) && <CoeurBlesse className="coeur-fiche" />}
               </div>
               {/* Déplacement et parade : sous le portrait, même présentation (valeur sous l'icône). */}
               <div className="merc-sous-portrait">
                 {merc.mouvement !== null && merc.mouvement !== undefined && (
-                  <div className="merc-carac">
-                    <img className="merc-carac-icone" src={ICONES_STATS.Mouvement} alt="Mouvement" title="Mouvement" />
+                  <div className="merc-carac merc-carac-bottes">
+                    <img className="merc-carac-icone merc-bottes-icone" src={ICONES_STATS.Mouvement} alt="Mouvement" title="Mouvement" />
                     <strong className="merc-carac-valeur">{merc.mouvement}<span className="merc-carac-unite">c</span></strong>
                   </div>
                 )}
@@ -450,7 +449,7 @@ export function Characters({
                       caracIn.mental === String(merc.mental ?? "")
                     }
                   >
-                    Enregistrer Puissance, Vélocité et Mental
+                    Enregistrer les Caractéristiques
                   </button>
                   {caracError && (
                     <p className="error" role="alert">
