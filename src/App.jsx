@@ -1558,10 +1558,13 @@ export function App() {
         const nom = (id) =>
           peopleRef.current.find((w) => w.id === id)?.name || "Un mercenaire";
         const phrases = [
-          ...(gains.budget !== 0
+          ...(gains.budgetStructure
             ? [
-                `Budget de l’instance (recettes − dépenses) : ${gains.budget > 0 ? "+" : ""}${money(gains.budget)} Po.`,
+                `Budget de l’instance (recettes − dépenses) : ${gains.budgetStructure > 0 ? "+" : ""}${money(gains.budgetStructure)} Po.`,
               ]
+            : []),
+          ...(gains.tributPhrase
+            ? [`${gains.tributPhrase} +${money(gains.tribut)} Po.`]
             : []),
           ...gains.entrainement.map((g) =>
             g.gradue
@@ -2107,7 +2110,15 @@ export function App() {
         infirmerie: liste(i),
         ateliers: liste(a),
         employes: liste(emp),
+        // `budget` reste le net TOTAL (recettes − dépenses + tribut du
+        // village) : c'est ce que budget_annuler_instance() doit annuler.
+        // `budgetStructure` (recettes − dépenses seules) sert uniquement à
+        // l'affichage, pour ne pas mélanger le budget saisi à la main et le
+        // petit revenu aléatoire.
         budget: e.data?.net || 0,
+        budgetStructure: (e.data?.recettes || 0) - (e.data?.depenses || 0),
+        tribut: e.data?.tribut || 0,
+        tributPhrase: e.data?.tribut_phrase || "",
         quete: q.data || null,
       },
       erreur: [e.error?.message, t.error?.message, i.error?.message, a.error?.message, q.error?.message, emp.error?.message]

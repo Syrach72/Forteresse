@@ -1233,6 +1233,16 @@ function CatalogueSection({ onCraftItem }) {
           form.categorie_id,
         );
         if (!craftable && !achetable) return null;
+        // Armes/Armures/Produits Alchimiques avec une recette active : le prix
+        // est recalculé automatiquement (3x/6x les matières pour une arme/armure,
+        // 3x pour un produit alchimique) dès qu'on modifie la recette. Le champ
+        // reste visible (pour comprendre le calcul) mais n'est plus modifiable
+        // à la main : le taper ne servirait à rien, la prochaine modification de
+        // recette écraserait la valeur saisie.
+        const aRecette = editing
+          ? recettes.rows.some((r) => r.resultat_objet_id === editing && r.actif !== false)
+          : false;
+        const prixAutomatise = (arme || armure || alchimique) && aRecette;
         // Cellule de malus (entier négatif ou nul) : Discrétion et Vitesse pour
         // les armures et les boucliers, Esquive pour les boucliers seuls.
         const celluleMalus = (champ, id, libelle) => (
@@ -1297,7 +1307,11 @@ function CatalogueSection({ onCraftItem }) {
               <div className="field field-narrow">
                 <label htmlFor="cat-cout-or">
                   Coût d’achat (pièces d’or)
-                  <span className="field-hint">Prix au marché</span>
+                  <span className="field-hint">
+                    {prixAutomatise
+                      ? `Calculé automatiquement (${armure ? "×6" : "×3"} la valeur des matières de la recette)`
+                      : "Prix au marché"}
+                  </span>
                 </label>
                 <div className="input-wrap">
                   <input
@@ -1305,6 +1319,12 @@ function CatalogueSection({ onCraftItem }) {
                     type="number"
                     min="0"
                     value={form.cout_achat_or}
+                    disabled={prixAutomatise}
+                    title={
+                      prixAutomatise
+                        ? "Prix automatique : modifiez la recette pour le changer."
+                        : undefined
+                    }
                     onChange={(e) => setForm({ ...form, cout_achat_or: e.target.value })}
                   />
                 </div>
