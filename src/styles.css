@@ -2754,6 +2754,7 @@ video.interior-backdrop-boxed {
    sur la partie claire (parchemin) du panneau de bois aux lanternes. */
 .merc-actions-plaque {
   position: relative;
+  align-self: center;
   width: 100%;
   max-width: 460px;
   aspect-ratio: 1575 / 506;
@@ -2799,10 +2800,15 @@ video.interior-backdrop-boxed {
 }
 /* Enregistrer l'énergie/la santé et Enregistrer les Caractéristiques : cuir clouté plutôt que le
    bois plat ou les plaques essayées précédemment — dégradé profond, filet doré, clous aux coins,
-   lueur ambrée au survol (même modèle que « Soigner »). */
+   lueur ambrée au survol (même modèle que « Soigner »). Largeur commune (calée sur le texte le
+   plus court, « Caractéristiques ») et centrés, plutôt que l'un étiré pleine largeur et l'autre
+   à sa largeur naturelle (donc plus longue que l'autre). */
 .merc-actuel-form > .wood-button,
 .merc-carac-form > .wood-button {
   position: relative;
+  width: 270px;
+  max-width: 100%;
+  text-align: center;
   border: 2px solid #8a6a35;
   border-radius: 5px;
   background: linear-gradient(180deg, #7a5530 0%, #5c3d1f 55%, #462e17 100%);
@@ -4503,8 +4509,11 @@ a.merc-card:hover {
 }
 /* Bottes (Mouvement) : icône doublée, le nombre de cases juste à droite (plus en-dessous). */
 .merc-bottes-icone {
-  width: 116px;
-  height: 116px;
+  width: 232px;
+  height: 232px;
+}
+.merc-carac-bottes .merc-carac-valeur {
+  font-size: 64px;
 }
 .merc-carac {
   display: flex;
@@ -4535,7 +4544,7 @@ a.merc-card:hover {
 .merc-actuel-form {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
 }
 .merc-portrait-grand {
   width: 240px;
@@ -5805,6 +5814,9 @@ a.merc-card:hover {
   -webkit-appearance: none;
 }
 .merc-carac-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   margin-top: 6px;
 }
 
@@ -5826,19 +5838,18 @@ a.merc-card:hover {
   max-width: 100%;
   margin: 0 0 10px;
 }
+/* Plus de fond décoratif (l'anneau du visuel ne rendait pas bien) : juste le médaillon rond du
+   laurier, à double de sa taille précédente. */
 .merc-nom-anneau {
   flex: none;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
+  width: 84px;
+  height: 84px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: url("/assets/mercenaire-fiche/nom-cadre.png") right center/auto 100% no-repeat;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 .merc-vet-nom {
-  --vet: 40px;
+  --vet: 80px;
   border-radius: 50%;
   overflow: hidden;
   background-size: cover;
@@ -5889,11 +5900,11 @@ a.merc-card:hover {
     margin-left: 0;
   }
   .merc-nom-anneau {
-    width: 52px;
-    height: 52px;
+    width: 60px;
+    height: 60px;
   }
   .merc-vet-nom {
-    --vet: 30px;
+    --vet: 56px;
   }
   .merc-nom-texte {
     max-width: 100%;
