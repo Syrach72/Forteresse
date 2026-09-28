@@ -52,7 +52,7 @@ export const LOCATIONS = [
   },
   {
     id: "entrainement",
-    name: "Entraînement",
+    name: "Entrainement",
     x: 87.6,
     y: 85.6,
     w: 15.6,

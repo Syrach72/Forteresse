@@ -2147,7 +2147,7 @@ export function App() {
     }
     await synchroniserPartage();
     notify(
-      `${peopleRef.current.find((w) => w.id === id)?.name} est instructeur à l’Entraînement.`,
+      `${peopleRef.current.find((w) => w.id === id)?.name} est instructeur à l’Entrainement.`,
     );
     location.hash = "entrainement";
   }
