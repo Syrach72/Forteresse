@@ -1699,7 +1699,7 @@ export function App() {
     const [etat, inv, lignes, fab, jour, sert, emp, eqp] = await Promise.all([
       supabase.from("partie_etat").select("or_compagnie").maybeSingle(),
       supabase.from("inventaire").select("id, type, mercenaire_id"),
-      supabase.from("ligne_inventaire").select("inventaire_id, objet_id, quantite, gemmes"),
+      supabase.from("ligne_inventaire").select("id, inventaire_id, objet_id, quantite, gemmes"),
       supabase.from("atelier_fabrication").select("atelier, objet_id, quantite, restant"),
       supabase
         .from("partie_journal")
@@ -1744,7 +1744,7 @@ export function App() {
         supabase
           .from("objet_catalogue")
           .select(
-            "id, nom, icone, description, categorie_id, cout_achat_or, emploi_materiau_id, emploi_production, emploi_production_outil, emploi_outil_id, emploi_entretien, portee, allonge, type_degats, legere, deux_mains, protection, type_armure, malus_discretion, malus_vitesse, malus_esquive, parade, arme_icone_1, arme_icone_2, veterance_requise",
+            "id, nom, icone, description, categorie_id, cout_achat_or, emploi_materiau_id, emploi_production, emploi_production_outil, emploi_outil_id, emploi_entretien, portee, allonge, type_degats, legere, deux_mains, protection, type_armure, malus_discretion, malus_vitesse, malus_esquive, parade, arme_icone_1, arme_icone_2, veterance_requise, empilable",
           ),
         supabase.from("categorie").select("id, nom, parent_id"),
       ]);
@@ -1835,19 +1835,21 @@ export function App() {
     setEquipements(equip);
     const inventory = [];
     for (const l of enStock) {
-      // Une arme sertie (gemmes non vide) est un exemplaire distinct de la
-      // même arme nue : identifiant et ligne d'inventaire séparés, pour ne
-      // jamais les additionner l'un dans l'autre.
+      const o = cache.objets.get(l.objet_id);
+      // Une arme sertie (gemmes non vide), ou tout objet non empilable (armes/armures : chaque
+      // exemplaire garde sa propre ligne côté serveur, cf. _arsenal_ajouter) reste un exemplaire
+      // distinct : identifiant propre à sa ligne d'inventaire, jamais additionné à un autre.
       const gemmes = l.gemmes && l.gemmes.length ? l.gemmes : [];
       const id = gemmes.length
         ? `catalogue:${l.objet_id}:gemmes:${gemmes.join(",")}`
-        : `catalogue:${l.objet_id}`;
+        : o?.empilable === false
+          ? `catalogue:${l.objet_id}:ligne:${l.id}`
+          : `catalogue:${l.objet_id}`;
       const deja = inventory.find((x) => x.id === id);
       if (deja) {
         deja.quantity += l.quantite;
         continue;
       }
-      const o = cache.objets.get(l.objet_id);
       inventory.push({
         id,
         objetId: l.objet_id,
