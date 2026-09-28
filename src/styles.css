@@ -511,10 +511,13 @@ video.interior-backdrop {
   object-position: 85% 50%;
 }
 /* Journal : vidéo 16:9 (copiste) affichée à sa taille d'origine (aucun zoom) : le
-   cadrage natif du fichier montre déjà le moine entier et la bougie de gauche. */
+   cadrage natif du fichier montre déjà le moine entier et la bougie de gauche.
+   Alignée en bas : sur un cadre plus haut que la vidéo (16:9), le léger surplus
+   se reporte en haut, masqué par le capuchon sombre plutôt que par le bas de
+   la table, plus clair et où l'écart serait visible. */
 .journal video.interior-backdrop {
   object-fit: none;
-  object-position: 50% 50%;
+  object-position: 50% bottom;
 }
 .marche video.interior-backdrop,
 .castle-map video.interior-backdrop {
