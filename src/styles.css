@@ -2750,22 +2750,56 @@ video.interior-backdrop-boxed {
   opacity: 0.55;
   cursor: not-allowed;
 }
-/* Fiche d'un mercenaire recruté : Instructeur / Renvoyer côte à côte. */
+/* Fiche d'un mercenaire recruté : Instructeur / Soigner / Quête / Renvoyer, 2 par ligne, posés
+   sur la partie claire (parchemin) du panneau de bois aux lanternes. */
+.merc-actions-plaque {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  aspect-ratio: 1575 / 506;
+  background: url("/assets/mercenaire-fiche/bouton-panneau.webp") center/100% 100% no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 19% 11%;
+}
 .merc-actions {
   align-self: stretch;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 2px 14px;
   width: 100%;
 }
 .merc-actions .merc-recruit {
-  margin-top: 4px;
+  margin-top: 0;
   min-width: 0;
   width: 100%;
 }
-/* Instructeur / Soigner / Quête / Renvoyer : cuir clouté plutôt que le bois plat — dégradé
-   profond, filet doré, clous aux coins, lueur ambrée au survol. */
+/* Boutons simples, sans fond propre : ils reposent sur le parchemin du panneau, qui ne doit pas
+   s'assombrir pour autant si l'un d'eux est desactivé (seul le texte du bouton se grise). */
 .merc-actions .wood-button {
+  border: none;
+  background: none;
+  box-shadow: none;
+  color: #3a2814;
+  font: 700 16px "Cormorant Garamond", Chiffres, Georgia, serif;
+  padding: 4px 6px;
+  text-shadow: none;
+}
+.merc-actions .wood-button:hover:not(:disabled) {
+  color: #1f150b;
+  text-decoration: underline;
+}
+.merc-actions .wood-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+/* Enregistrer l'énergie/la santé et Enregistrer les Caractéristiques : cuir clouté plutôt que le
+   bois plat ou les plaques essayées précédemment — dégradé profond, filet doré, clous aux coins,
+   lueur ambrée au survol (même modèle que « Soigner »). */
+.merc-actuel-form > .wood-button,
+.merc-carac-form > .wood-button {
   position: relative;
   border: 2px solid #8a6a35;
   border-radius: 5px;
@@ -2777,8 +2811,10 @@ video.interior-backdrop-boxed {
   text-shadow: 0 1px 2px #000;
   letter-spacing: 0.02em;
 }
-.merc-actions .wood-button::before,
-.merc-actions .wood-button::after {
+.merc-actuel-form > .wood-button::before,
+.merc-actuel-form > .wood-button::after,
+.merc-carac-form > .wood-button::before,
+.merc-carac-form > .wood-button::after {
   content: "";
   position: absolute;
   top: 4px;
@@ -2788,13 +2824,16 @@ video.interior-backdrop-boxed {
   background: radial-gradient(circle at 35% 30%, #f3d27a, #8a6a35 70%);
   box-shadow: 0 0 0 1px #2a1b0c;
 }
-.merc-actions .wood-button::before {
+.merc-actuel-form > .wood-button::before,
+.merc-carac-form > .wood-button::before {
   left: 4px;
 }
-.merc-actions .wood-button::after {
+.merc-actuel-form > .wood-button::after,
+.merc-carac-form > .wood-button::after {
   right: 4px;
 }
-.merc-actions .wood-button:hover:not(:disabled) {
+.merc-actuel-form > .wood-button:hover:not(:disabled),
+.merc-carac-form > .wood-button:hover:not(:disabled) {
   background: linear-gradient(180deg, #8a6238 0%, #6b4726 55%, #55381c 100%);
   border-color: var(--gold);
   box-shadow:
@@ -2803,7 +2842,8 @@ video.interior-backdrop-boxed {
     0 0 10px rgba(225, 188, 85, 0.45),
     0 3px 6px rgba(0, 0, 0, 0.5);
 }
-.merc-actions .wood-button:disabled {
+.merc-actuel-form > .wood-button:disabled,
+.merc-carac-form > .wood-button:disabled {
   opacity: 0.5;
 }
 @media (max-width: 680px) {
@@ -4450,17 +4490,18 @@ a.merc-card:hover {
 .merc-trio .merc-carac {
   flex: 1;
 }
-/* Sous le portrait (Mouvement, Parade) : rangées empilées, icône/libellé puis valeur côte à côte
-   (et non plus au-dessus), pour laisser la place aux bottes agrandies. */
+/* Sous le portrait (Mouvement, Parade) : rangées empilées et centrées sous la photo,
+   icône/libellé puis valeur côte à côte (et non plus au-dessus). */
 .merc-sous-portrait {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
 }
 .merc-sous-portrait .merc-carac {
   flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 10px;
 }
 /* Bottes (Mouvement) : icône doublée, le nombre de cases juste à droite (plus en-dessous). */
@@ -5202,30 +5243,8 @@ a.merc-card:hover {
 .merc-actuel-form {
   margin-top: 2px;
 }
-/* Bouton « Enregistrer l'énergie et la santé » : panneau de bois gravé (lanternes, parchemin
-   clair au centre), largeur pleine, hauteur asservie au ratio du visuel. */
 .merc-actuel-form > .wood-button {
   margin-top: 10px;
-  aspect-ratio: 1575 / 506;
-  width: 100%;
-  height: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 14% 2% ;
-  background: url("/assets/mercenaire-fiche/bouton-panneau.webp") center/100% 100% no-repeat;
-  border: none;
-  box-shadow: none;
-  color: #3a2814;
-  font: 700 18px "Cormorant Garamond", Chiffres, Georgia, serif;
-  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
-}
-.merc-actuel-form > .wood-button:hover {
-  filter: brightness(1.08);
-  background: url("/assets/mercenaire-fiche/bouton-panneau.webp") center/100% 100% no-repeat;
-}
-.merc-actuel-form > .wood-button:disabled {
-  filter: grayscale(0.4) brightness(0.85);
 }
 
 /* Orbes de santé (rouge) et d'énergie (bleue) : valeur actuelle en grand, maximum dessous. Les
@@ -5791,109 +5810,103 @@ a.merc-card:hover {
 .merc-carac-form {
   margin-top: 6px;
 }
-/* Bouton « Enregistrer les Caractéristiques » : barre ornementale sombre à lueur ambrée. */
-.merc-carac-form > .wood-button {
-  aspect-ratio: 1017 / 317;
-  width: 100%;
-  height: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 16%;
-  background: url("/assets/mercenaire-fiche/bouton-caracteristiques.png") center/100% 100% no-repeat;
-  border: none;
-  box-shadow: none;
-  color: #fff3d6;
-  font: 700 17px "Cormorant Garamond", Chiffres, Georgia, serif;
-  text-shadow: 0 1px 3px #000;
-}
-.merc-carac-form > .wood-button:hover {
-  filter: brightness(1.15);
-  background: url("/assets/mercenaire-fiche/bouton-caracteristiques.png") center/100% 100% no-repeat;
-}
-.merc-carac-form > .wood-button:disabled {
-  filter: grayscale(0.5) brightness(0.7);
-}
 
 /* Mouvement : le « c » (cases) n'est pas en gras. */
 .merc-carac-unite {
   font-weight: 400;
 }
 
-/* Nom du mercenaire souligné par le cadre orné (lame et anneau) : l'anneau, à gauche, accueille
-   le laurier de vétérance (rendu rond, à la place du blason carré habituel) ; le nom suit dans
-   l'anneau. Le visuel garde ses proportions (largeur fixée par le ratio, pas étirée avec le nom :
-   un étirement variable selon la longueur du nom déformerait l'anneau, qui doit rester rond) ;
-   pour un nom plus long que la lame, le texte déborde simplement au-delà, sans fond derrière.
-   Image retournée pour amener l'anneau à gauche ; --art-h règle toute la taille (lame et anneau). */
+/* Nom du mercenaire : médaillon rond (laurier de vétérance) à gauche, puis le nom, souligné
+   d'une fine lame qui s'étire automatiquement pour dépasser un peu la fin du texte. Le médaillon
+   est un rond indépendant (centrage fiable par flexbox, pas de coordonnées calculées) qui montre
+   uniquement l'anneau du visuel d'origine (recadré par background-position: right, l'anneau étant
+   à l'extrémité droite de l'image) ; le laurier lui-même est un enfant flex, donc toujours centré. */
 .merc-nom-cadre {
-  --art-h: 84px;
-  position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
+  gap: 0;
   width: max-content;
   max-width: 100%;
-  min-height: var(--art-h);
   margin: 0 0 10px;
-  padding-left: calc(var(--art-h) * 1.19);
 }
-.merc-nom-cadre-art {
-  position: absolute;
-  left: calc(var(--art-h) * -0.1);
-  top: 0;
-  width: calc(var(--art-h) * 4.674);
-  height: var(--art-h);
-  background: url("/assets/mercenaire-fiche/nom-cadre.png") center/100% 100% no-repeat;
-  transform: scaleX(-1);
-  z-index: 0;
-  pointer-events: none;
+.merc-nom-anneau {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: url("/assets/mercenaire-fiche/nom-cadre.png") right center/auto 100% no-repeat;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
-/* Centre de l'anneau dans le visuel d'origine (1636×350) : ≈ 89,7 % en largeur, 50 % en hauteur ;
-   une fois l'image retournée et redimensionnée à --art-h, ça donne ces coordonnées fixes. */
 .merc-vet-nom {
-  --vet: calc(var(--art-h) * 0.56);
-  position: absolute;
-  left: calc(var(--art-h) * 0.4);
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1;
+  --vet: 40px;
   border-radius: 50%;
   overflow: hidden;
   background-size: cover;
-  box-shadow: 0 0 0 2px #0006;
+}
+.merc-nom-texte {
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  max-width: 100%;
 }
 .merc-nom-cadre .merc-nom {
-  position: relative;
-  z-index: 1;
-  margin: 0;
+  margin: 0 0 0 10px;
   white-space: nowrap;
 }
-/* Petit écran : la lame ne s'accommode pas d'un nom sur plusieurs lignes (texte replié dessus,
-   illisible) ni d'un nom qui ne passe pas à la ligne (défilement horizontal de toute la page).
-   On simplifie : plus de lame décorative, juste le laurier (toujours rond) suivi du nom, qui
-   passe à la ligne normalement. */
+/* Pas d'écart avec le médaillon : la lame part exactement de son bord droit, comme sur le
+   visuel d'origine (une seule pièce continue, pas deux éléments séparés). */
+.merc-nom-lame {
+  display: block;
+  position: relative;
+  height: 6px;
+  margin-top: 6px;
+  width: calc(100% + 30px);
+  border-radius: 3px;
+  background: linear-gradient(90deg, #caa24a 0%, #8a6a35 60%, #4a3a1c 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 224, 168, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+}
+/* Petite pointe au bout de la lame, dans le prolongement du dégradé. */
+.merc-nom-lame::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translateY(-50%) rotate(45deg);
+  background: inherit;
+  box-shadow: inherit;
+}
 @media (max-width: 680px) {
-  .merc-nom-cadre-art {
-    display: none;
-  }
   .merc-nom-cadre {
     width: 100%;
-    min-height: 0;
-    padding-left: 0;
     align-items: flex-start;
     gap: 10px;
   }
+  .merc-nom-cadre .merc-nom {
+    margin-left: 0;
+  }
+  .merc-nom-anneau {
+    width: 52px;
+    height: 52px;
+  }
   .merc-vet-nom {
-    position: static;
-    transform: none;
-    flex: none;
-    box-shadow: 0 2px 4px #0006;
+    --vet: 30px;
+  }
+  .merc-nom-texte {
+    max-width: 100%;
   }
   .merc-nom-cadre .merc-nom {
     white-space: normal;
-    flex: 1 1 auto;
-    min-width: 0;
-    font-size: 26px;
+    font-size: 24px;
+  }
+  .merc-nom-lame {
+    width: 100%;
   }
 }
 

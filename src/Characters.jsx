@@ -159,15 +159,20 @@ export function Characters({
   // Rubrique affichée de la fiche d'un mercenaire : general, equipement ou competences.
   const [onglet, setOnglet] = useState("general");
   // Nom du mercenaire (avec le nom du joueur), répété en haut de chaque rubrique de la fiche : le
-  // laurier de vétérance est incrusté dans l'anneau du cadre ornemental, à gauche du nom.
+  // laurier de vétérance est incrusté dans l'anneau (médaillon rond, centré par flexbox) à gauche
+  // du nom ; sous le nom, une fine lame s'étire automatiquement pour dépasser un peu le texte.
   const titreMerc = merc ? (
     <div className="merc-nom-cadre">
-      <span className="merc-nom-cadre-art" aria-hidden="true" />
-      <VetBadge className="merc-vet-nom" value={merc.veterance} />
-      <h1 className="merc-nom" tabIndex="-1" ref={title}>
-        {merc.nom}
-        {nomsJoueur[merc.id] ? ` (${nomsJoueur[merc.id]})` : ""}
-      </h1>
+      <span className="merc-nom-anneau" aria-hidden="true">
+        <VetBadge className="merc-vet-nom" value={merc.veterance} />
+      </span>
+      <div className="merc-nom-texte">
+        <h1 className="merc-nom" tabIndex="-1" ref={title}>
+          {merc.nom}
+          {nomsJoueur[merc.id] ? ` (${nomsJoueur[merc.id]})` : ""}
+        </h1>
+        <span className="merc-nom-lame" aria-hidden="true" />
+      </div>
     </div>
   ) : null;
   useEffect(() => {
@@ -526,45 +531,47 @@ export function Characters({
             <div className="merc-pleine-largeur">
               {recrutes.includes(merc.id) ? (
                 <div className="merc-recruit-form">
-                  <div className="merc-actions">
-                    <button
-                      className="wood-button merc-recruit"
-                      type="button"
-                      disabled={!!absences[merc.id] || instructeurEnPlace}
-                      onClick={() => onSetInstructor(merc.id)}
-                    >
-                      Instructeur
-                    </button>
-                    <button
-                      className="wood-button merc-recruit"
-                      type="button"
-                      disabled={!!absences[merc.id] || infirmerieComplete}
-                      onClick={() => onHeal(merc.id)}
-                    >
-                      Soigner
-                    </button>
-                    <button
-                      className="wood-button merc-recruit"
-                      type="button"
-                      disabled={!!absences[merc.id] || !queteEnCours || queteComplete}
-                      title={
-                        !queteEnCours
-                          ? "Choisissez d’abord une quête sur la page Quêtes."
-                          : queteComplete
-                            ? "Les 6 places de la quête sont prises."
-                            : `Engager dans « ${queteEnCours.nom} »`
-                      }
-                      onClick={() => onQuete(merc.id)}
-                    >
-                      Quête
-                    </button>
-                    <button
-                      className="wood-button merc-recruit"
-                      type="button"
-                      onClick={() => setPopup({ type: "renvoi" })}
-                    >
-                      Renvoyer
-                    </button>
+                  <div className="merc-actions-plaque">
+                    <div className="merc-actions">
+                      <button
+                        className="wood-button merc-recruit"
+                        type="button"
+                        disabled={!!absences[merc.id] || instructeurEnPlace}
+                        onClick={() => onSetInstructor(merc.id)}
+                      >
+                        Instructeur
+                      </button>
+                      <button
+                        className="wood-button merc-recruit"
+                        type="button"
+                        disabled={!!absences[merc.id] || infirmerieComplete}
+                        onClick={() => onHeal(merc.id)}
+                      >
+                        Soigner
+                      </button>
+                      <button
+                        className="wood-button merc-recruit"
+                        type="button"
+                        disabled={!!absences[merc.id] || !queteEnCours || queteComplete}
+                        title={
+                          !queteEnCours
+                            ? "Choisissez d’abord une quête sur la page Quêtes."
+                            : queteComplete
+                              ? "Les 6 places de la quête sont prises."
+                              : `Engager dans « ${queteEnCours.nom} »`
+                        }
+                        onClick={() => onQuete(merc.id)}
+                      >
+                        Quête
+                      </button>
+                      <button
+                        className="wood-button merc-recruit"
+                        type="button"
+                        onClick={() => setPopup({ type: "renvoi" })}
+                      >
+                        Renvoyer
+                      </button>
+                    </div>
                   </div>
                   {absences[merc.id] && (
                     <button
