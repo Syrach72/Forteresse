@@ -682,6 +682,13 @@ video.interior-backdrop-boxed {
   background: #ded0b5;
   border-radius: 4px;
 }
+/* Embauche (Matériaux et Embauche) : rappel du nombre déjà embauché, en haut
+   à gauche de l'icône du métier (règle de Bruno). */
+.db-item-icon-wrap {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
 .equipment-panel h2 {
   text-align: center;
   font-size: 30px;
@@ -997,6 +1004,22 @@ video.interior-backdrop-boxed {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+/* Rappel du nombre déjà embauché, en haut à gauche de l'icône (règle de Bruno) :
+   même style que .sac-dos-qty (badge sombre, texte blanc), côté opposé. */
+.employe-qty-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 1;
+  min-width: 18px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #000c;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
 }
 .employe-card h3 {
   font-size: 19px;

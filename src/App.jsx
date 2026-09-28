@@ -4031,13 +4031,23 @@ export function App() {
                         {embauche.items.map((o) => {
                           const qty = embaucheQty[o.id] ?? 1;
                           const cout = (o.cout_achat_or || 0) * qty;
+                          const dejaEmbauche = employesRoster
+                            .filter((r) => r.objetId === o.id)
+                            .reduce((s, r) => s + r.quantite, 0);
                           return (
                             <div className="market-dual-row" key={o.id}>
-                              {o.icone ? (
-                                <img className="db-item-icon" src={o.icone} alt="" loading="lazy" decoding="async" />
-                              ) : (
-                                <span className="db-item-icon" aria-hidden="true" />
-                              )}
+                              <span className="db-item-icon-wrap">
+                                {o.icone ? (
+                                  <img className="db-item-icon" src={o.icone} alt="" loading="lazy" decoding="async" />
+                                ) : (
+                                  <span className="db-item-icon" aria-hidden="true" />
+                                )}
+                                {dejaEmbauche > 0 && (
+                                  <span className="employe-qty-badge" title="Déjà embauché(s)">
+                                    {dejaEmbauche}
+                                  </span>
+                                )}
+                              </span>
                               <span>
                                 {o.nom}
                                 <small className="db-item-tag">
