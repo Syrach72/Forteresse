@@ -4623,24 +4623,6 @@ a.merc-card:hover {
   object-position: center;
 }
 
-/* Arsenal : on voit d'abord le fond animé ; le panneau et ses objets
-   apparaissent après 0,75 s, en fondu sur 1 s. */
-@media (prefers-reduced-motion: no-preference) {
-  .stock .stock-panel {
-    animation: arsenal-reveal 1s ease-out 0.75s backwards;
-  }
-}
-@keyframes arsenal-reveal {
-  from {
-    opacity: 0;
-    pointer-events: none;
-  }
-  to {
-    opacity: 1;
-    pointer-events: none;
-  }
-}
-
 /* Quêtes : compteur d'instances requises (à droite du titre), puis deux
    sections séparées par un trait : récompenses attendues et mercenaires
    engagés (6 emplacements). */
