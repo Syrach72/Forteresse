@@ -3967,17 +3967,20 @@ export function App() {
                           const cout = (o.cout_achat_or || 0) * lots * 10;
                           return (
                             <div className="market-dual-row" key={o.id}>
-                              {o.icone ? (
-                                <img className="db-item-icon" src={o.icone} alt="" loading="lazy" decoding="async" />
-                              ) : (
-                                <span className="db-item-icon" aria-hidden="true" />
-                              )}
-                              <span>
-                                {o.nom}
-                                <small className="db-item-tag">
-                                  Stock : {stockDe(o.id)} · lots de 10, 10 Po le lot
-                                </small>
+                              <span className="db-item-icon-wrap">
+                                {o.icone ? (
+                                  <img className="db-item-icon" src={o.icone} alt="" loading="lazy" decoding="async" />
+                                ) : (
+                                  <span className="db-item-icon" aria-hidden="true" />
+                                )}
+                                <span
+                                  className="qty-badge qty-badge-3"
+                                  title="En stock à l’arsenal"
+                                >
+                                  {stockDe(o.id)}
+                                </span>
                               </span>
+                              <span>{o.nom}</span>
                               <input
                                 type="number"
                                 min="1"
@@ -4034,44 +4037,62 @@ export function App() {
                           const dejaEmbauche = employesRoster
                             .filter((r) => r.objetId === o.id)
                             .reduce((s, r) => s + r.quantite, 0);
+                          // Bâtiment (Scierie/Camp de Mineur/Tannerie) : pas d'entretien direct
+                          // (emploi_materiau_id null, contrairement aux métiers), limité à un
+                          // seul exemplaire (règle déjà imposée côté serveur). Une fois possédé,
+                          // toute la case se grise au lieu d'afficher un badge de quantité.
+                          const estBatiment = !o.emploi_materiau_id;
+                          const possede = estBatiment && dejaEmbauche >= 1;
                           return (
-                            <div className="market-dual-row" key={o.id}>
+                            <div
+                              className={`market-dual-row${possede ? " market-dual-row-owned" : ""}`}
+                              key={o.id}
+                            >
                               <span className="db-item-icon-wrap">
                                 {o.icone ? (
                                   <img className="db-item-icon" src={o.icone} alt="" loading="lazy" decoding="async" />
                                 ) : (
                                   <span className="db-item-icon" aria-hidden="true" />
                                 )}
-                                <span className="employe-qty-badge" title="Déjà embauché(s)">
-                                  {dejaEmbauche}
-                                </span>
+                                {!estBatiment && (
+                                  <span className="qty-badge qty-badge-2" title="Déjà embauché(s)">
+                                    {dejaEmbauche}
+                                  </span>
+                                )}
                               </span>
                               <span>
                                 {o.nom}
                                 <small className="db-item-tag">
-                                  {o.cout_achat_or === null || o.cout_achat_or === undefined
-                                    ? "Coût non défini"
-                                    : `${o.cout_achat_or} Po pièce`}
+                                  {possede
+                                    ? "Déjà construit"
+                                    : o.cout_achat_or === null || o.cout_achat_or === undefined
+                                      ? "Coût non défini"
+                                      : `${o.cout_achat_or} Po pièce`}
                                 </small>
                               </span>
-                              <input
-                                type="number"
-                                min="1"
-                                className="market-dual-qty"
-                                aria-label={`Nombre à embaucher, ${o.nom}`}
-                                value={qty}
-                                onChange={(e) => {
-                                  const n = Math.round(Number(e.target.value));
-                                  setEmbaucheQty((prev) => ({
-                                    ...prev,
-                                    [o.id]: Number.isFinite(n) && n > 0 ? n : 1,
-                                  }));
-                                }}
-                              />
+                              {possede ? (
+                                <span aria-hidden="true" />
+                              ) : (
+                                <input
+                                  type="number"
+                                  min="1"
+                                  className="market-dual-qty"
+                                  aria-label={`Nombre à embaucher, ${o.nom}`}
+                                  value={qty}
+                                  onChange={(e) => {
+                                    const n = Math.round(Number(e.target.value));
+                                    setEmbaucheQty((prev) => ({
+                                      ...prev,
+                                      [o.id]: Number.isFinite(n) && n > 0 ? n : 1,
+                                    }));
+                                  }}
+                                />
+                              )}
                               <button
                                 type="button"
                                 className="wood-button"
                                 disabled={
+                                  possede ||
                                   busy ||
                                   o.cout_achat_or === null ||
                                   o.cout_achat_or === undefined ||
@@ -4079,9 +4100,11 @@ export function App() {
                                 }
                                 onClick={() => actEmbaucher(o)}
                               >
-                                {o.cout_achat_or === null || o.cout_achat_or === undefined
-                                  ? "Coût non défini"
-                                  : `Embaucher · ${cout} Po`}
+                                {possede
+                                  ? "Construit"
+                                  : o.cout_achat_or === null || o.cout_achat_or === undefined
+                                    ? "Coût non défini"
+                                    : `Embaucher · ${cout} Po`}
                               </button>
                             </div>
                           );
