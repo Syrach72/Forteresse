@@ -4548,7 +4548,9 @@ a.merc-card:hover {
 .merc-carac-bottes {
   margin-top: 18px;
 }
-.merc-bottes-icone {
+/* Sélecteur à deux classes (plus spécifique que .merc-carac-icone tout court, défini plus bas)
+   pour que la taille l'emporte quel que soit l'ordre des règles dans la feuille de styles. */
+.merc-carac-bottes .merc-bottes-icone {
   width: 464px;
   height: 464px;
 }
