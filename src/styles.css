@@ -148,10 +148,10 @@ img {
    .class-nav a) au lieu du parchemin presque opaque utilise ailleurs
    (modales, admin, connexion). Le halo clair sur le texte compense la
    perte de contraste du fond devenu transparent. */
-/* Niveau de verre dépoli unique (validé sur la Trésorerie) : fond 0,14 et flou
+/* Niveau de verre dépoli unique (validé sur la Trésorerie) : fond 0,10 et flou
    5px. Repris à l'identique par .location et .class-nav plus bas. */
 .interior .parchment {
-  background: rgba(240, 233, 219, 0.14);
+  background: rgba(240, 233, 219, 0.1);
   border: 2px ridge #a99f8e;
   box-shadow:
     0 4px 14px #0008,
@@ -223,7 +223,7 @@ img {
 .class-nav button,
 .class-nav a {
   font-family: Chiffres, Aniron, Georgia, serif;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   border: 2px ridge #bdaa83;
@@ -245,7 +245,7 @@ img {
 .class-nav button:hover,
 .class-nav a:hover,
 .class-nav .active {
-  background: rgba(221, 199, 126, 0.26);
+  background: rgba(221, 199, 126, 0.19);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
 }
@@ -335,7 +335,7 @@ img {
   overflow: visible;
 }
 .location.parchment {
-  background: rgba(240, 233, 219, 0.14);
+  background: rgba(240, 233, 219, 0.1);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   border: 2px ridge #a99f8e;
@@ -344,7 +344,7 @@ img {
     inset 0 0 14px #fff3;
 }
 .location.parchment:hover {
-  background: rgba(249, 239, 207, 0.22);
+  background: rgba(249, 239, 207, 0.16);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   box-shadow:
@@ -3202,10 +3202,10 @@ video.interior-backdrop-boxed {
 /* Instructeur : nom et libellé en orange vif (le vert manquait de lisibilité),
    pour le distinguer des élèves. Même remarque de spécificité que
    .training-locked strong ci-dessous. Fond verre dépoli teinté légèrement
-   doré, à opacité inchangée (0,14 comme le reste des pages de jeu) : seuls
+   doré, à opacité inchangée (0,10 comme le reste des pages de jeu) : seuls
    les instructeurs, pas les élèves ni les emplacements verrouillés. */
 .interior .parchment.instructor-place {
-  background: rgba(212, 175, 55, 0.14);
+  background: rgba(212, 175, 55, 0.1);
 }
 .interior .parchment.instructor-place strong,
 .interior .parchment.instructor-place small {
@@ -3232,7 +3232,7 @@ video.interior-backdrop-boxed {
   margin-top: 16px;
 }
 .training-blocked:hover {
-  background: rgba(240, 233, 219, 0.14);
+  background: rgba(240, 233, 219, 0.1);
 }
 .training-padlock img {
   width: 28px;
@@ -4562,7 +4562,7 @@ a.merc-card:hover {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: rgba(240, 233, 219, 0.14);
+  background: rgba(240, 233, 219, 0.1);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   box-shadow: inset 0 0 18px #fff3;
@@ -4614,7 +4614,7 @@ a.merc-card:hover {
   background: transparent;
 }
 .inventory-grid-glass .inventory-slot:not(.empty):hover {
-  background: rgba(221, 199, 126, 0.26);
+  background: rgba(221, 199, 126, 0.19);
 }
 /* Arsenal : vidéo affichée à sa taille d'origine (aucun zoom), centrée : ce
    cadrage garde les trois flammes de gauche visibles. */
