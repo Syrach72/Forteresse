@@ -4042,11 +4042,9 @@ export function App() {
                                 ) : (
                                   <span className="db-item-icon" aria-hidden="true" />
                                 )}
-                                {dejaEmbauche > 0 && (
-                                  <span className="employe-qty-badge" title="Déjà embauché(s)">
-                                    {dejaEmbauche}
-                                  </span>
-                                )}
+                                <span className="employe-qty-badge" title="Déjà embauché(s)">
+                                  {dejaEmbauche}
+                                </span>
                               </span>
                               <span>
                                 {o.nom}

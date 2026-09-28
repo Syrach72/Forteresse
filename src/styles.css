@@ -2030,8 +2030,14 @@ video.interior-backdrop-boxed {
 }
 .room-top {
   background: rgba(32, 25, 17, 0.75);
-  margin: 0 -12px 0 -32px;
-  padding: 12px 18px 12px 32px;
+  /* .interior a 32px de padding à gauche et 82px à droite (réservés à
+     .room-nav, en position absolute) : la bande ne compensait que le côté
+     gauche (-32px) et s'arrêtait bien avant le bord droit (-12px, sur 82px de
+     marge) — d'où le vide visible avant la barre latérale. Symétrique
+     maintenant : elle va jusqu'au bord des deux côtés, .room-nav restant
+     par-dessus (position absolute, sans conflit). */
+  margin: 0 -82px 0 -32px;
+  padding: 12px 92px 12px 32px;
 }
 @media (max-width: 680px) {
   .room-top {
