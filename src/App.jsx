@@ -3130,16 +3130,14 @@ export function App() {
                         <strong>−{e.entretienTotal} Po</strong>
                       </div>
                     ) : null}
+                    {e.productionAleatoire && e.outilNom && (
+                      <p className="muted employe-batiment-etat">
+                        {e.batimentPossede
+                          ? `${e.outilNom} possédé : production doublée.`
+                          : `${e.outilNom} non construit (double la production une fois bâti).`}
+                      </p>
+                    )}
                     <div className="employe-actions">
-                      {!e.outil && e.outilId && (
-                        <button
-                          className="wood-button"
-                          disabled={busy}
-                          onClick={() => actEquiperOutil(e.objetId, e.quantite, e.nom)}
-                        >
-                          Équiper {e.quantite} · {e.outilNom || "outil"}
-                        </button>
-                      )}
                       {e.quantite > 0 && (
                         <button
                           className="wood-button"
