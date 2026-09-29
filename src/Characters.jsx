@@ -597,8 +597,9 @@ export function Characters({
                   </p>
                   <p className="merc-recrute-note">
                     {merc.nom} a son lit à la Caserne. Le renvoyer efface le nom
-                    du joueur et libère le lit ; il conserve sa vétérance et sa
-                    fiche. Le recruter de nouveau coûterait{" "}
+                    du joueur et libère le lit ; il conserve sa vétérance, son
+                    équipement et ses PV actuels (seule son énergie revient au
+                    maximum). Le recruter de nouveau ne réinitialise rien et coûterait{" "}
                     {COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po.
                   </p>
                 </div>
