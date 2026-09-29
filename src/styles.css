@@ -6416,3 +6416,17 @@ a.merc-card:hover {
 .employes-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
 .employes-actions .employes-materiaux { position: static; transform: none; width: 150px; min-height: 130px; flex: none; }
 .employes-actions p { flex: 1 1 220px; margin: 0; }
+
+/* Mobile : les trois onglets de la fiche mercenaire se partagent la largeur (plus de « Général » coupé à gauche). */
+@media (max-width: 680px) {
+  .merc-onglets { justify-content: stretch; gap: 3px; padding-right: 0; }
+  .merc-onglet {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 9px 4px 8px;
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
