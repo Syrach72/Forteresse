@@ -12,6 +12,7 @@ export const ASSETS = {
   market: "/assets/references/market-square.webp",
   parchment: "/assets/references/parchment-map.webp",
   mage: "/assets/references/mage-tower.webp",
+  cemetery: "/assets/references/cimetiere.webp",
 };
 // Coordonnées relatives au décor, hors barre de navigation (756 × 581).
 // L'ordre de ce tableau pilote celui de la barre latérale (.room-nav) ; il
