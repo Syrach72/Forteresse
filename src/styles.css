@@ -6222,3 +6222,22 @@ a.merc-card:hover {
 .round-confirm span { width: 100%; text-align: center; }
 .round-confirm .round-undo { flex: 1; }
 .round-oui { background: #14532d; color: #fff; }
+
+/* Boutons du bloc Rd / Catalogue / +1 Instance : cibles tactiles d'au moins 44 px, et bloc élargi
+   vers la gauche (entre la pièce d'or et les lignes de classes) pour les loger. */
+.header-treasury { min-width: 320px; }
+.header-actions { min-height: 140px; }
+.header-actions-col > * { flex: 1; }
+.header-actions-col .header-time,
+.instance-controls .header-time { min-height: 44px; font-size: 15px; padding: 6px 10px; }
+.instance-controls { flex: 1; }
+.instance-controls .header-time { flex: 1; }
+.round-controls { width: 84px; }
+.round-button { min-height: 56px; font-size: 26px; }
+.round-undo { min-height: 40px; font-size: 13px; padding: 4px 6px; }
+.round-confirm { min-height: 40px; }
+.round-confirm .round-undo { min-height: 34px; }
+@media (max-width: 680px) {
+  .header-treasury { min-width: 0; }
+  .header-actions { min-height: 132px; }
+}
