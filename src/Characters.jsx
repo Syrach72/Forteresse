@@ -22,6 +22,7 @@ const PARCHMENT_CLASSES = [
   "druide",
   "incantateur",
   "paladin",
+  "moine",
 ];
 export function ReferenceCrop({
   crop,

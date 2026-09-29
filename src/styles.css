@@ -6242,7 +6242,7 @@ a.merc-card:hover {
   .header-actions { min-height: 132px; }
 }
 
-/* Ligne 2 de la navigation : quatre boutons (Druide, Incantateur, Paladin, Forteresse) de largeur
+/* Ligne 2 de la navigation : cinq boutons (Druide, Incantateur, Paladin, Moine, Forteresse) de largeur
    égale ; Forteresse en bleu foncé. */
 .class-nav .character-link:nth-child(n + 7),
 .class-nav > a:last-child { grid-column: span 3; }
@@ -6309,3 +6309,12 @@ a.merc-card:hover {
   }
 }
 .restauration-paliers .restauration-palier { min-width: 0; flex: 1 1 130px; padding: 8px 10px; }
+
+/* Navigation à 5 boutons sur la 2e ligne (Druide, Incantateur, Paladin, Moine, Forteresse) : grille
+   à 60 colonnes (1re ligne : 6 boutons de 10, 2e ligne : 5 boutons de 12). */
+.class-nav { grid-template-columns: repeat(60, minmax(0, 1fr)); }
+.class-nav > a.nav-logout,
+.class-nav > a.nav-admin,
+.class-nav > a.character-link { grid-column: span 10; }
+.class-nav .character-link:nth-child(n + 7),
+.class-nav > a:last-child { grid-column: span 12; }

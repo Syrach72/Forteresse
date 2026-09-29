@@ -6,6 +6,7 @@ export const CHARACTER_CLASSES = [
   ["druide", "Druide"],
   ["incantateur", "Incantateur"],
   ["paladin", "Paladin"],
+  ["moine", "Moine"],
 ];
 export const WARRIORS = [
   {

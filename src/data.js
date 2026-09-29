@@ -160,6 +160,7 @@ export const CLASSES = [
   "Druide",
   "Incantateur",
   "Paladin",
+  "Moine",
 ];
 export const ITEMS = [
   {
