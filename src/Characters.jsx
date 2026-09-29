@@ -639,18 +639,17 @@ export function Characters({
                   }}
                 >
                   <p className="merc-cout-recrutement">
-                    {gratuitPremier ? (
-                      <>
-                        <strong>Premier mercenaire de {nomJoueur.trim()} : gratuit</strong> (son entretien reste dû).
-                        Les suivants coûteront {COUT_RECRUTEMENT_PAR_VETERANCE} Po × vétérance.
-                      </>
-                    ) : (
-                      <>
-                        Recrutement : {COUT_RECRUTEMENT_PAR_VETERANCE} Po × vétérance {merc.veterance ?? 1} ={" "}
-                        <strong>{COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po</strong>, prélevés sur la
-                        trésorerie. Renvoyé, il faudra le payer de nouveau pour le recruter.
-                      </>
-                    )}
+                    Recrutement : {COUT_RECRUTEMENT_PAR_VETERANCE} Po × vétérance {merc.veterance ?? 1} ={" "}
+                    <strong>{COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po</strong>, prélevés sur la
+                    trésorerie. Renvoyé, il faudra le payer de nouveau pour le recruter.
+                  </p>
+                  <p className="merc-cout-recrutement merc-gratuit-note">
+                    <strong>Le premier recrutement de chaque joueur est gratuit</strong> (son entretien reste dû).{" "}
+                    {!nomJoueur.trim()
+                      ? "Inscrivez votre nom ci-dessous : nous vérifierons s’il s’applique à vous."
+                      : gratuitPremier
+                        ? `C’est le cas pour ${nomJoueur.trim()} : ce recrutement ne coûtera rien.`
+                        : `${nomJoueur.trim()} a déjà utilisé son recrutement gratuit : celui-ci sera payant.`}
                   </p>
                   <label htmlFor="merc-nom-joueur">Nom du joueur</label>
                   <input
@@ -668,7 +667,7 @@ export function Characters({
                     type="submit"
                     disabled={!litLibre || !nomJoueur.trim() || or < coutRecrutement}
                   >
-                    Recruter · {coutRecrutement === 0 ? "gratuit" : `${coutRecrutement} Po`}
+                    Recruter · {COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po
                   </button>
                   <p id="merc-recruit-help" className="merc-recrute-note">
                     {!litLibre
