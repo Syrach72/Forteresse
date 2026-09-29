@@ -141,17 +141,7 @@ export const LOCATIONS = [
     icon: [0, 0, 60, 60],
     description: "Le repos des compagnons tombés.",
   },
-  {
-    id: "quetes",
-    name: "Quêtes",
-    x: 10.2,
-    y: 16.5,
-    w: 15.6,
-    h: 21,
-    icon: [0, 0, 60, 60],
-    description: "Les prochaines aventures de la compagnie.",
-  },
-  // Dernier de la liste : en bas de la barre latérale, sous les Quêtes.
+  // Le Journal précède les Quêtes, qui ferment la barre latérale (demande de Bruno).
   {
     id: "journal",
     name: "Journal",
@@ -161,6 +151,16 @@ export const LOCATIONS = [
     h: 21,
     icon: [0, 0, 60, 60],
     description: "Le journal de la compagnie : achats, fabrications et budget.",
+  },
+  {
+    id: "quetes",
+    name: "Quêtes",
+    x: 10.2,
+    y: 16.5,
+    w: 15.6,
+    h: 21,
+    icon: [0, 0, 60, 60],
+    description: "Les prochaines aventures de la compagnie.",
   },
 ];
 export const CLASSES = [
