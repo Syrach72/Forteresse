@@ -966,6 +966,7 @@ export function App() {
   const [roundCourant, setRoundCourant] = useState(0);
   const [roundUndo, setRoundUndo] = useState(null);
   const [roundBusy, setRoundBusy] = useState(false);
+  const [roundConfirm, setRoundConfirm] = useState(false);
   const [infirm, setInfirm] = useState(() =>
     structuredClone(INITIAL_INFIRMARY),
   );
@@ -1664,8 +1665,7 @@ export function App() {
   }
   async function reinitialiserRound() {
     if (!estAdmin || roundBusy || roundCourant === 0) return;
-    if (!window.confirm(`Remettre le compteur de round à zéro (actuellement ${roundCourant}) ? L'énergie des mercenaires ne change pas.`))
-      return;
+    setRoundConfirm(false);
     setRoundBusy(true);
     const { error } = await supabase.rpc("round_reinitialiser");
     if (error) {
@@ -3031,15 +3031,27 @@ export function App() {
             >
               Annuler
             </button>
-            <button
-              type="button"
-              className="round-undo"
-              onClick={reinitialiserRound}
-              disabled={roundBusy || roundCourant === 0}
-              title="Remettre le compteur de round à zéro (avec confirmation)"
-            >
-              Remise à 0
-            </button>
+            {roundConfirm ? (
+              <div className="round-confirm" role="alertdialog" aria-label="Confirmer la remise à zéro">
+                <span>Remettre à 0 ?</span>
+                <button type="button" className="round-undo round-oui" onClick={reinitialiserRound}>
+                  Oui
+                </button>
+                <button type="button" className="round-undo" onClick={() => setRoundConfirm(false)}>
+                  Non
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="round-undo"
+                onClick={() => setRoundConfirm(true)}
+                disabled={roundBusy || roundCourant === 0}
+                title="Remettre le compteur de round à zéro (avec confirmation)"
+              >
+                Remise à 0
+              </button>
+            )}
           </div>
         )}
         <div className="header-actions-col">

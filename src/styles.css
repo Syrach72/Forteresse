@@ -6218,3 +6218,7 @@ a.merc-card:hover {
   font: 11px Chiffres, Georgia, serif; padding: 1px 4px; cursor: pointer; opacity: 0.85;
 }
 .round-undo:disabled { opacity: 0.4; cursor: not-allowed; }
+.round-confirm { display: flex; flex-wrap: wrap; gap: 2px; font: 11px Chiffres, Georgia, serif; color: var(--ink); background: var(--paper); border: 1px solid var(--edge); padding: 1px 3px; }
+.round-confirm span { width: 100%; text-align: center; }
+.round-confirm .round-undo { flex: 1; }
+.round-oui { background: #14532d; color: #fff; }
