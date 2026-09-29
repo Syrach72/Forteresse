@@ -567,7 +567,8 @@ export function Characters({
                       <button
                         className="wood-button merc-recruit"
                         type="button"
-                        disabled={!!absences[merc.id] || infirmerieComplete}
+                        disabled={!!absences[merc.id] || infirmerieComplete || merc.santeActuelle === 0}
+                        title={merc.santeActuelle === 0 ? "À 0 PV, un mercenaire ne peut pas être soigné à l’infirmerie : il lui faut au moins 1 PV." : undefined}
                         onClick={() => onHeal(merc.id)}
                       >
                         Soigner
@@ -608,7 +609,7 @@ export function Characters({
                   <p className="merc-recrute-note">
                     {absences[merc.id]
                       ? `${merc.nom} n’est pas à la caserne (${absences[merc.id].toLowerCase()}) : il garde son lit.`
-                      : `« Instructeur » l’envoie former des élèves de sa classe${instructeurEnPlace ? " (un instructeur est déjà en place)" : ""} ; « Soigner » l’envoie à l’infirmerie (${instancesDeSoins(merc)} instance${instancesDeSoins(merc) > 1 ? "s" : ""} selon sa santé perdue)${infirmerieComplete ? " (aucun lit libre pour le moment)" : ""} ; « Quête » l’engage dans la quête en cours${queteEnCours ? ` (${queteEnCours.nom})` : " (aucune quête choisie pour le moment)"}.`}
+                      : `« Instructeur » l’envoie former des élèves de sa classe${instructeurEnPlace ? " (un instructeur est déjà en place)" : ""} ; « Soigner » l’envoie à l’infirmerie (${instancesDeSoins(merc)} instance${instancesDeSoins(merc) > 1 ? "s" : ""} selon sa santé perdue)${infirmerieComplete ? " (aucun lit libre pour le moment)" : ""}${merc.santeActuelle === 0 ? " (impossible à 0 PV : il faut au moins 1 PV)" : ""} ; « Quête » l’engage dans la quête en cours${queteEnCours ? ` (${queteEnCours.nom})` : " (aucune quête choisie pour le moment)"}.`}
                   </p>
                   <p className="merc-recrute-note">
                     {merc.nom} a son lit à la Caserne. Le renvoyer efface le nom
