@@ -2813,6 +2813,19 @@ export function App() {
   // classe et fiche d'un mercenaire), pas seulement dans les lieux intérieurs.
   const roomNav = (
     <nav className="room-nav" aria-label="Lieux de la forteresse">
+      {/* Première cellule : retour à la Forteresse (aussi présent dans le menu), remplie par le décor du château. */}
+      <button
+        type="button"
+        title="Forteresse"
+        aria-label="Forteresse"
+        aria-current={route === "forteresse" ? "page" : undefined}
+        className={`room-nav-forteresse${route === "forteresse" ? " active" : ""}`}
+        onClick={() => {
+          location.hash = "forteresse";
+        }}
+      >
+        <span>Forteresse</span>
+      </button>
       {locationsAvecVerrou.map((l) => (
         <button
           key={l.id}

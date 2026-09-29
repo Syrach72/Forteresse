@@ -6340,3 +6340,16 @@ a.merc-card:hover {
   object-fit: contain;
   filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.65));
 }
+
+/* Cellule « Forteresse » en tête de la barre des lieux : le décor du château remplit toute la case. */
+.room-nav button.room-nav-forteresse,
+.room-nav button.room-nav-forteresse:hover,
+.room-nav .room-nav-forteresse.active {
+  padding: 0;
+  background: #d8cbb1 url("/assets/icons/forteresse-fond.webp") center / cover no-repeat;
+}
+.room-nav button.room-nav-forteresse:hover,
+.room-nav .room-nav-forteresse.active {
+  box-shadow: inset 0 0 0 3px #a76b11;
+  filter: brightness(1.08);
+}
