@@ -51,7 +51,7 @@ export function Treasury({
             Entretien mercenaires
             <small className="treasury-auto">
               {entretienDetail?.mercenaires ?? 0} mercenaire
-              {(entretienDetail?.mercenaires ?? 0) > 1 ? "s" : ""} au dortoir ·
+              {(entretienDetail?.mercenaires ?? 0) > 1 ? "s" : ""} à la caserne ·
               vétérance × 10 · prélevé à chaque instance
             </small>
           </span>

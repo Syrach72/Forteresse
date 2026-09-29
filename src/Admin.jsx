@@ -3716,7 +3716,7 @@ function SessionsSection({ sess, onInviter }) {
   return (
     <div>
       <p>
-        Chaque session est une partie indépendante (équipe, or, arsenal, dortoir, quêtes…). Une session
+        Chaque session est une partie indépendante (équipe, or, arsenal, caserne, quêtes…). Une session
         neuve attend : votre premier <strong>« +1 Instance »</strong> dedans la lance en copiant la base de
         départ ; les joueurs jouent ensuite.
       </p>

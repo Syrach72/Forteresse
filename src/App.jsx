@@ -14,6 +14,7 @@ import {
   trainingIds,
 } from "./training-data.js";
 import { Characters, classeRoute } from "./Characters.jsx";
+import { caserne } from "./texte.js";
 import { Infirmary } from "./Infirmary.jsx";
 import { Dortoir } from "./Dortoir.jsx";
 import {
@@ -1631,7 +1632,7 @@ export function App() {
             : []),
           ...gains.entrainement.map((g) =>
             g.gradue
-              ? `${nom(g.mercenaire_id)} a rejoint son instructeur (vétérance ${g.a}) et retourne au dortoir.`
+              ? `${nom(g.mercenaire_id)} a rejoint son instructeur (vétérance ${g.a}) et retourne à la caserne.`
               : `${nom(g.mercenaire_id)} passe à la vétérance ${g.a}.`,
           ),
           ...(gains.cimetiere || []).map(
@@ -1639,7 +1640,7 @@ export function App() {
           ),
           ...gains.infirmerie
             .filter((g) => g.sorti)
-            .map((g) => `${nom(g.mercenaire_id)} est soigné et retrouve sa place au dortoir.`),
+            .map((g) => `${nom(g.mercenaire_id)} est soigné et retrouve sa place à la caserne.`),
           ...gains.ateliers
             .filter((g) => g.a === 0)
             .map((g) =>
@@ -1653,7 +1654,7 @@ export function App() {
                   `${gains.quete.nom} : encore ${gains.quete.apres} instance${gains.quete.apres > 1 ? "s" : ""} requise${gains.quete.apres > 1 ? "s" : ""}.`,
                 ]
               : [
-                  `${gains.quete.nom} accomplie : +${gains.quete.or} Po et ${gains.quete.items.length} objet(s) rejoignent l'arsenal${gains.quete.mercenaires?.length ? `, ${gains.quete.mercenaires.length} mercenaire(s) retournent au dortoir (+1 de vétérance pour ${gains.quete.mercenaires.filter((m) => m.veterance_apres > m.veterance_avant).length})` : ""}.`,
+                  `${gains.quete.nom} accomplie : +${gains.quete.or} Po et ${gains.quete.items.length} objet(s) rejoignent l'arsenal${gains.quete.mercenaires?.length ? `, ${gains.quete.mercenaires.length} mercenaire(s) retournent à la caserne (+1 de vétérance pour ${gains.quete.mercenaires.filter((m) => m.veterance_apres > m.veterance_avant).length})` : ""}.`,
                 ]
             : []),
           ...(() => {
@@ -2062,7 +2063,7 @@ export function App() {
     setEmployesRoster(roster);
     const log = (jour.data || []).map((j) => ({
       id: j.id,
-      message: j.message,
+      message: caserne(j.message),
       amount: j.montant,
       date: j.created_at,
     }));
@@ -2091,7 +2092,7 @@ export function App() {
           j.instance_no === instanceCourante &&
           ["achat", "embauche", "depense"].includes(j.type),
       )
-      .map((j) => ({ id: j.id, message: j.message, montant: j.montant, date: j.created_at }));
+      .map((j) => ({ id: j.id, message: caserne(j.message), montant: j.montant, date: j.created_at }));
     const derniereQueteEntry = journalType.find((j) => j.type === "or" && j.details?.quete_id);
     const dernierTributEntry = journalType.find((j) => j.type === "or" && j.details?.tribut != null);
     setTreasuryLive({
@@ -2305,7 +2306,7 @@ export function App() {
       notify(
         trainingRef.current.second.unlocked
           ? "Les deux instructeurs sont déjà en place : renvoyez-en un d’abord."
-          : "Un instructeur est déjà en place : renvoyez-le d’abord au dortoir.",
+          : "Un instructeur est déjà en place : renvoyez-le d’abord à la caserne.",
       );
       return;
     }
@@ -2348,7 +2349,7 @@ export function App() {
     if (error) return { error: error.message };
     await synchroniserPartage();
     notify(
-      `${peopleRef.current.find((w) => w.id === id)?.name} retourne au dortoir${role === "instructor" ? " avec ses élèves" : ""}.`,
+      `${peopleRef.current.find((w) => w.id === id)?.name} retourne à la caserne${role === "instructor" ? " avec ses élèves" : ""}.`,
     );
     return {};
   }
@@ -2397,7 +2398,7 @@ export function App() {
     const { error } = await supabase.rpc("infirmerie_renvoyer", { p_mercenaire: id });
     if (error) return { error: error.message };
     await synchroniserPartage();
-    notify(`${peopleRef.current.find((w) => w.id === id)?.name} retourne au dortoir.`);
+    notify(`${peopleRef.current.find((w) => w.id === id)?.name} retourne à la caserne.`);
     return {};
   }
   // Bouton « Quête » de la fiche : engage le mercenaire dans la quête en cours
@@ -2448,7 +2449,7 @@ export function App() {
       return;
     }
     await synchroniserPartage();
-    notify(`${peopleRef.current.find((w) => w.id === id)?.name} retourne au dortoir.`);
+    notify(`${peopleRef.current.find((w) => w.id === id)?.name} retourne à la caserne.`);
   }
   async function unlockInfirm() {
     if (infirmRef.current.capacity >= 6)
@@ -2464,7 +2465,7 @@ export function App() {
   // dans la même opération.
   async function unlockDorm() {
     if (dormRef.current.capacity >= 18)
-      return { error: "Tous les emplacements du dortoir sont déjà débloqués." };
+      return { error: "Tous les emplacements de la caserne sont déjà débloqués." };
     const { error } = await supabase.rpc("dortoir_debloquer_place");
     if (error) return { error: error.message };
     await synchroniserPartage();
@@ -2472,7 +2473,7 @@ export function App() {
     return {};
   }
   function notify(message) {
-    setToast(message);
+    setToast(caserne(message));
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(""), 5000);
   }

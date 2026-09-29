@@ -181,7 +181,7 @@ export function Infirmary({
                 <strong>{bedPopup.remaining}</strong> instance
                 {bedPopup.remaining > 1 ? "s" : ""}. Chaque instance lui
                 rend un tiers de sa santé max ; dès qu’il l’a retrouvée, il
-                retrouve sa place au dortoir.
+                retrouve sa place à la caserne.
               </p>
               {peutRappeler(bedPopup.heroId) ? (
                 <button
@@ -189,7 +189,7 @@ export function Infirmary({
                   disabled={enCours}
                   onClick={() => agir(() => onRecall(bedPopup.heroId))}
                 >
-                  Retour au dortoir maintenant
+                  Retour à la caserne maintenant
                 </button>
               ) : (
                 <p className="muted">

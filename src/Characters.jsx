@@ -604,7 +604,7 @@ export function Characters({
                       type="button"
                       onClick={() => onRappel(merc.id)}
                     >
-                      Annuler cet ordre : retour au dortoir
+                      Annuler cet ordre : retour à la caserne
                     </button>
                   )}
                   <p className="merc-recrute-note">

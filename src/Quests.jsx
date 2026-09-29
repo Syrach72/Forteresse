@@ -257,7 +257,7 @@ export function Quests({
                             ? "Une autre quête est en cours : annulez-la d’abord."
                             : e || q.en_cours
                               ? undefined
-                              : "Choisit cette quête et ouvre le dortoir."
+                              : "Choisit cette quête et ouvre la caserne."
                         }
                         onClick={() =>
                           e
@@ -267,7 +267,7 @@ export function Quests({
                         aria-label={
                           e
                             ? `${p?.name || "Mercenaire"} engagé : voir`
-                            : `Emplacement ${i + 1} libre : choisir un mercenaire au dortoir`
+                            : `Emplacement ${i + 1} libre : choisir un mercenaire à la caserne`
                         }
                       >
                         {e ? (
@@ -315,7 +315,7 @@ export function Quests({
           onClose={() => setChoixMerc(null)}
         >
           <p>
-            Ce mercenaire est engagé dans cette quête. Il retournera au dortoir à la
+            Ce mercenaire est engagé dans cette quête. Il retournera à la caserne à la
             fin de la quête (ou si vous le retirez).
           </p>
           {mesIds.has(choixMerc.mercId) || estAdmin ? (

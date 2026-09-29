@@ -130,7 +130,7 @@ export function Training({
       return (
         <p className="muted">
           Ce mercenaire appartient à un autre joueur : seul son recruteur peut
-          le renvoyer au dortoir.
+          le renvoyer à la caserne.
         </p>
       );
     return (
@@ -139,7 +139,7 @@ export function Training({
         disabled={enCours}
         onClick={() => agir(() => onSendBack(role, index, g))}
       >
-        Renvoyer au dortoir
+        Renvoyer à la caserne
       </button>
     );
   }
@@ -210,7 +210,7 @@ export function Training({
           {eleves > 0 && (
             <p>
               Le renvoyer ramène aussi ses {eleves} élève{eleves > 1 ? "s" : ""}{" "}
-              au dortoir, avec leur niveau actuel.
+              à la caserne, avec leur niveau actuel.
             </p>
           )}
           {renvoi(instructor, "instructor", 0, g)}
@@ -225,7 +225,7 @@ export function Training({
           <p>
             {w.name} · vétérance {w.veterancy}
             {instructor ? ` sur ${instructor.veterancy}` : ""}. Il gagne 1
-            niveau à chaque instance et retourne au dortoir dès qu’il atteint la
+            niveau à chaque instance et retourne à la caserne dès qu’il atteint la
             vétérance de son instructeur.
           </p>
           <p>Il peut être renvoyé avant : il garde le niveau déjà acquis.</p>
@@ -239,8 +239,8 @@ export function Training({
           Aucun de vos mercenaires ne peut être l’élève de {instructor?.name}.
           Il doit être de la classe {instructor?.role || "de l’instructeur"},
           avoir au moins {VETERANCE_ECART} points de vétérance de moins que lui
-          (l’instructeur en a {instructor?.veterancy}) et être disponible au
-          dortoir.
+          (l’instructeur en a {instructor?.veterancy}) et être disponible à la
+          caserne.
         </p>
       );
     return (
