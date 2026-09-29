@@ -1662,6 +1662,22 @@ export function App() {
     setRoundBusy(false);
     notify("Dernier round annulé.");
   }
+  async function reinitialiserRound() {
+    if (!estAdmin || roundBusy || roundCourant === 0) return;
+    if (!window.confirm(`Remettre le compteur de round à zéro (actuellement ${roundCourant}) ? L'énergie des mercenaires ne change pas.`))
+      return;
+    setRoundBusy(true);
+    const { error } = await supabase.rpc("round_reinitialiser");
+    if (error) {
+      setRoundBusy(false);
+      notify(`Round : ${error.message}`);
+      return;
+    }
+    setRoundUndo(null);
+    await synchroniserPartage();
+    setRoundBusy(false);
+    notify("Compteur de round remis à zéro.");
+  }
   function undoInstanceStep() {
     // Bouton désactivé tant que le +1 Instance n'a pas fini d'être appliqué.
     if (!instanceUndo || trainingPending > 0) return;
@@ -3014,6 +3030,15 @@ export function App() {
               title="Annuler le dernier round"
             >
               Annuler
+            </button>
+            <button
+              type="button"
+              className="round-undo"
+              onClick={reinitialiserRound}
+              disabled={roundBusy || roundCourant === 0}
+              title="Remettre le compteur de round à zéro (avec confirmation)"
+            >
+              Remise à 0
             </button>
           </div>
         )}

@@ -6206,7 +6206,7 @@ a.merc-card:hover {
 /* Compteur de round (MJ) : carré vert foncé à gauche de Catalogue / +1 Instance, même hauteur. */
 .header-actions { display: flex; align-items: stretch; gap: 4px; }
 .header-actions-col { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-.round-controls { display: flex; flex-direction: column; gap: 2px; width: 62px; flex-shrink: 0; }
+.round-controls { display: flex; flex-direction: column; gap: 2px; width: 72px; flex-shrink: 0; }
 .round-button {
   flex: 1; min-height: 0; border: 1px solid #0b2a14; background: #14532d; color: #fff;
   font: 700 22px Chiffres, Aniron, Georgia, serif; cursor: pointer; padding: 0;
