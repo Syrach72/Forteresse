@@ -3093,7 +3093,7 @@ export function App() {
         {route === "forteresse" && (
           <button className="quest-sign header-quests" aria-label="Quêtes" onClick={() => { location.hash = "quetes"; }}>
             <img src="/assets/references/quests.webp" alt="" />
-            <span>Quête</span>
+            <span>Quêtes</span>
           </button>
         )}
         </div>
