@@ -3078,7 +3078,7 @@ export function App() {
             <button className="header-time" onClick={decreaseInstances}
               aria-label="+1 Instance · toutes les Durées d’Instance -1"
               title={`${instanceTicks} instance(s) écoulée(s) · Retire 1 à toutes les Durées d’Instance, minimum 0`}>
-              +1 Instance
+              +1<br />Instance
             </button>
             <button className="header-time header-time-undo" onClick={undoInstanceStep}
               disabled={!instanceUndo || trainingPending > 0}
