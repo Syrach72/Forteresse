@@ -6291,3 +6291,10 @@ a.merc-card:hover {
 @media (max-width: 680px) {
   .header-treasury { min-width: 0; width: 100%; flex-direction: initial; }
 }
+
+/* Annuler / Remise à 0 du round : vert assorti à Rd, en plus pâle. */
+.round-undo { background: #a8d5b5; border-color: #14532d; color: #0b2a14; opacity: 1; }
+.round-undo:hover:not(:disabled) { background: #bfe3ca; }
+.round-undo:disabled { background: #cfe3d4; color: #5b7a63; border-color: #7fa38a; opacity: 0.8; }
+.round-confirm { background: #a8d5b5; border-color: #14532d; color: #0b2a14; }
+.round-oui, .round-oui:hover:not(:disabled) { background: #14532d; color: #fff; }
