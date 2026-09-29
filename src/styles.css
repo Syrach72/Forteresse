@@ -6378,3 +6378,8 @@ a.merc-card:hover {
     background-position: center !important;
   }
 }
+
+/* Mobile, Journal : la zone visible du décor est décalée vers la droite (le sujet est plutôt à droite). */
+@media (max-width: 680px) {
+  main.interior.journal > video.interior-backdrop { object-position: 85% center !important; }
+}
