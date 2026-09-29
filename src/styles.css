@@ -6327,3 +6327,16 @@ a.merc-card:hover {
 /* Pierre tombale sur la carte d'un mercenaire au cimetière */
 .cimetiere-liste .merc-portrait { position: relative; }
 .merc-tombe { position: absolute; right: 6px; bottom: 6px; width: 42%; max-width: 64px; height: auto; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); }
+
+/* Pierre tombale entière, environ la moitié de la hauteur du portrait, centrée sur sa partie basse
+   (règle plus spécifique que `.merc-portrait img`, qui étire les portraits). */
+.merc-portrait img.merc-tombe {
+  position: absolute;
+  inset: auto auto 4% 50%;
+  transform: translateX(-50%);
+  width: auto;
+  height: 50%;
+  max-width: 80%;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.65));
+}
