@@ -379,6 +379,8 @@ function NamedListSection({ table, singular, blockedBy, hierarchical = false }) 
     setMsg("");
   }
   function cancel() {
+    setDraftComp([]);
+    setDraftEquip([]);
     setEditing(null);
     setNom("");
     setParentId("");
@@ -1777,7 +1779,18 @@ function CatalogueSection({ onCraftItem }) {
           </tbody>
         </table>
       </div>
-      {!editing && formEl}
+      {!editing && (
+        <>
+          {formEl}
+          <CompetencesEditor mercenaireId={null} draft={draftComp} onDraft={setDraftComp} />
+          <EquipementBaseEditor mercenaireId={null} draft={draftEquip} onDraft={setDraftEquip} />
+          <div className="admin-form admin-form-actions">
+            <button className="primary" type="submit" form="merc-form" disabled={uploading}>
+              {uploading ? "Envoi de l’image…" : "Ajouter"}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -2009,9 +2022,12 @@ function PortraitCropper({
 // d'une compétence du catalogue (objets des rubriques « Compétences Passives » pour une cellule
 // passive, « Compétences Actives » pour une cellule active) ou vide la cellule. Aucune cellule
 // n'est grisée ici.
-function CompetencesEditor({ mercenaireId }) {
+function CompetencesEditor({ mercenaireId, draft = null, onDraft = null }) {
+  // Sans mercenaireId (formulaire « Ajouter »), le tableau travaille sur un brouillon (draft) tenu par le
+  // parent et enregistré avec le mercenaire au clic sur « Ajouter ».
   const [catalogue, setCatalogue] = useState(null);
-  const [cellules, setCellules] = useState(null);
+  const [cellulesBase, setCellules] = useState(null);
+  const cellules = mercenaireId ? cellulesBase : draft || [];
   const [sel, setSel] = useState(null);
   const [choix, setChoix] = useState("");
   const [msg, setMsg] = useState("");
@@ -2019,10 +2035,12 @@ function CompetencesEditor({ mercenaireId }) {
     const [c, o, m] = await Promise.all([
       supabase.from("categorie").select("id, nom, parent_id"),
       supabase.from("objet_catalogue").select("id, nom, icone, categorie_id").order("nom"),
-      supabase
-        .from("mercenaire_competence")
-        .select("veterance, type, position, competence_id")
-        .eq("mercenaire_id", mercenaireId),
+      mercenaireId
+        ? supabase
+            .from("mercenaire_competence")
+            .select("veterance, type, position, competence_id")
+            .eq("mercenaire_id", mercenaireId)
+        : Promise.resolve({ data: [], error: null }),
     ]);
     const err = c.error || o.error || m.error;
     if (err) setMsg(err.message);
@@ -2053,8 +2071,8 @@ function CompetencesEditor({ mercenaireId }) {
     if (!sel) return;
     document.querySelector(".comp-editeur-choix input[role=combobox]")?.focus({ preventScroll: true });
   }, [sel?.niveau, sel?.type, sel?.position]);
-  if (msg && !cellules) return <p className="admin-error">{msg}</p>;
-  if (!cellules || !catalogue) return <p>Chargement du tableau de compétences…</p>;
+  if (msg && !catalogue) return <p className="admin-error">{msg}</p>;
+  if (!cellules || !catalogue || (mercenaireId && !cellulesBase)) return <p>Chargement du tableau de compétences…</p>;
   const parId = new Map(catalogue.map((c) => [c.id, c]));
   const idPlace = (niveau, type, position) =>
     cellules.find((x) => x.veterance === niveau && x.type === type && x.position === position)?.competence_id || "";
@@ -2062,6 +2080,17 @@ function CompetencesEditor({ mercenaireId }) {
   async function placer() {
     if (!sel) return;
     setMsg("");
+    if (!mercenaireId) {
+      const sansCellule = cellules.filter(
+        (x) => !(x.veterance === sel.niveau && x.type === sel.type && x.position === sel.position),
+      );
+      onDraft?.(
+        choix
+          ? [...sansCellule, { veterance: sel.niveau, type: sel.type, position: sel.position, competence_id: choix }]
+          : sansCellule,
+      );
+      return;
+    }
     const ligne = { mercenaire_id: mercenaireId, veterance: sel.niveau, type: sel.type, position: sel.position };
     const { error } = choix
       ? await supabase
@@ -2131,9 +2160,10 @@ const EMPLACEMENTS_BASE = [
   ["bouclier", "Bouclier", 1, "Bouclier"],
   ["objet", "Objets", 3, "Objet"],
 ];
-function EquipementBaseEditor({ mercenaireId }) {
+function EquipementBaseEditor({ mercenaireId, draft = null, onDraft = null }) {
   const [catalogue, setCatalogue] = useState(null);
-  const [lignes, setLignes] = useState(null);
+  const [lignesBase, setLignes] = useState(null);
+  const lignes = mercenaireId ? lignesBase : draft || [];
   const [sel, setSel] = useState(null);
   const [choix, setChoix] = useState("");
   const [msg, setMsg] = useState("");
@@ -2141,10 +2171,12 @@ function EquipementBaseEditor({ mercenaireId }) {
     const [c, o, m] = await Promise.all([
       supabase.from("categorie").select("id, nom, parent_id"),
       supabase.from("objet_catalogue").select("id, nom, icone, categorie_id").order("nom"),
-      supabase
-        .from("mercenaire_equipement_base")
-        .select("emplacement, position, objet_id")
-        .eq("mercenaire_id", mercenaireId),
+      mercenaireId
+        ? supabase
+            .from("mercenaire_equipement_base")
+            .select("emplacement, position, objet_id")
+            .eq("mercenaire_id", mercenaireId)
+        : Promise.resolve({ data: [], error: null }),
     ]);
     const err = c.error || o.error || m.error;
     if (err) {
@@ -2189,8 +2221,8 @@ function EquipementBaseEditor({ mercenaireId }) {
     setLignes(null);
     charger();
   }, [mercenaireId]);
-  if (msg && !lignes) return <p className="admin-error">{msg}</p>;
-  if (!lignes || !catalogue) return <p>Chargement de l’équipement de base…</p>;
+  if (msg && !catalogue) return <p className="admin-error">{msg}</p>;
+  if (!lignes || !catalogue || (mercenaireId && !lignesBase)) return <p>Chargement de l’équipement de base…</p>;
   const parId = new Map(catalogue.map((c) => [c.id, c]));
   const objetPlace = (emp, pos) => {
     const l = lignes.find((x) => x.emplacement === emp && x.position === pos);
@@ -2199,6 +2231,16 @@ function EquipementBaseEditor({ mercenaireId }) {
   async function placer() {
     if (!sel) return;
     setMsg("");
+    if (!mercenaireId) {
+      const sansSlot = lignes.filter((x) => !(x.emplacement === sel.emplacement && x.position === sel.position));
+      onDraft?.(
+        choix
+          ? [...sansSlot, { emplacement: sel.emplacement, position: sel.position, objet_id: choix }]
+          : sansSlot,
+      );
+      setSel(null);
+      return;
+    }
     const ligne = { mercenaire_id: mercenaireId, emplacement: sel.emplacement, position: sel.position };
     const { error } = choix
       ? await supabase
@@ -2281,6 +2323,9 @@ function MercenairesSection() {
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
+  // Brouillons du formulaire « Ajouter » : compétences et équipement de base, enregistrés avec le mercenaire.
+  const [draftComp, setDraftComp] = useState([]);
+  const [draftEquip, setDraftEquip] = useState([]);
   // Vétérance de chaque mercenaire dans la session consultée (mercenaire_etat) ; hors session
   // (base de départ) c'est la valeur inscrite sur la fiche du catalogue.
   const [vetSession, setVetSession] = useState(() => new Map());
@@ -2367,12 +2412,37 @@ function MercenairesSection() {
     const nouvelleVet = Math.max(1, toIntOrNull(form.veterance) ?? 1);
     const ancienne = editing ? mercenaires.rows.find((m) => m.id === editing) : null;
     if (editing) delete values.veterance;
+    // Ajout : l'identifiant est choisi ici pour pouvoir enregistrer aussitôt compétences et équipement.
+    const nouvelId = editing ? null : crypto.randomUUID();
+    if (nouvelId) values.id = nouvelId;
     const err = editing
       ? await mercenaires.update(editing, values)
       : await mercenaires.insert(values);
     if (err) {
       setMsg(err);
       return;
+    }
+    if (nouvelId) {
+      const erreurs = [];
+      if (draftComp.length) {
+        const { error } = await supabase
+          .from("mercenaire_competence")
+          .insert(draftComp.map((x) => ({ ...x, mercenaire_id: nouvelId })));
+        if (error) erreurs.push(error.message);
+      }
+      if (draftEquip.length) {
+        const { error } = await supabase
+          .from("mercenaire_equipement_base")
+          .insert(draftEquip.map((x) => ({ ...x, mercenaire_id: nouvelId })));
+        if (error) erreurs.push(error.message);
+      }
+      if (erreurs.length) {
+        // Le mercenaire existe : on le rouvre en modification pour corriger sans tout ressaisir.
+        const cree = (await supabase.from("mercenaire").select("*").eq("id", nouvelId).maybeSingle()).data;
+        if (cree) startEdit(cree);
+        setMsg("Mercenaire ajouté, mais : " + erreurs.join(" "));
+        return;
+      }
     }
     if (editing && ancienne && nouvelleVet !== vetEff(ancienne)) {
       const { error } = await supabase.rpc("mercenaire_definir_veterance", {
@@ -2401,7 +2471,7 @@ function MercenairesSection() {
   }
 
   const formEl = (
-      <form className="admin-form" onSubmit={submit}>
+      <form className="admin-form" id="merc-form" onSubmit={submit}>
         <h3>{editing ? "Modifier le mercenaire" : "Ajouter un mercenaire"}</h3>
         <div className="admin-form-grid">
           <div className="field">
@@ -2516,20 +2586,21 @@ function MercenairesSection() {
           ))}
         </div>
         <p className="muted">
-          Énergie Max = Mental × vétérance et Santé Max = Puissance × vétérance (jamais moins de 6) : elles se calculent
-          toutes seules sur la fiche, il n’y a rien à saisir.
+          Énergie Max = 2 × Mental et Santé Max = 3 + 2 × Puissance : elles se calculent toutes seules sur la fiche, il
+          n’y a rien à saisir.
         </p>
         {msg && <p className="admin-error">{msg}</p>}
-        <div className="admin-form-actions">
-          <button className="primary" type="submit" disabled={uploading}>
-            {uploading ? "Envoi de l’image…" : editing ? "Enregistrer" : "Ajouter"}
-          </button>
-          {editing && (
+        {/* En ajout, le bouton se trouve sous les compétences et l'équipement de base (attribut form). */}
+        {editing && (
+          <div className="admin-form-actions">
+            <button className="primary" type="submit" disabled={uploading}>
+              {uploading ? "Envoi de l’image…" : "Enregistrer"}
+            </button>
             <button type="button" className="text-button" onClick={cancel}>
               Annuler
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </form>
   );
 
