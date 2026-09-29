@@ -6353,3 +6353,28 @@ a.merc-card:hover {
   box-shadow: inset 0 0 0 3px #a76b11;
   filter: brightness(1.08);
 }
+
+/* Mobile : le décor (image ou vidéo) des pages intérieures reste collé à l'écran et le remplit à sa taille
+   normale, quelle que soit la longueur de la page. Avant, il s'étirait sur toute la hauteur (Journal, Quêtes,
+   Ressources…) ou s'arrêtait à 740 px, laissant un fond uni en dessous. */
+@media (max-width: 680px) {
+  main.interior > .interior-backdrop,
+  main.interior > video.interior-backdrop,
+  main.interior > video.interior-backdrop-boxed,
+  main.employes-page > .interior-backdrop,
+  main.employes-page > video.interior-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    transform: none !important;
+    translate: none !important;
+    scale: none !important;
+    object-fit: cover !important;
+    background-size: cover !important;
+    background-position: center !important;
+  }
+}
