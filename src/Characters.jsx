@@ -735,6 +735,7 @@ export function Characters({
                 onDesequiper={(emplacement, position) => onDesequiper(merc.id, emplacement, position)}
                 onDetruire={peutModifier ? (emplacement, position) => onDetruireEquipement(merc.id, emplacement, position) : null}
                 onBasculerF={(emplacement, position, actif) => onBadgeFEquipement(merc.id, emplacement, position, actif)}
+                onVoirFiche={(o) => setPopup({ type: "fiche", objet: o, title: o.nom })}
               />
             </section>
           )}
@@ -978,7 +979,9 @@ export function Characters({
           }
           onClose={() => setPopup(null)}
         >
-          {popup.type === "sac" && popup.objet ? (
+          {popup.type === "fiche" && popup.objet ? (
+            <FicheObjet objet={popup.objet} />
+          ) : popup.type === "sac" && popup.objet ? (
             <>
               <button type="button" className="text-button" onClick={() => setPopup({ type: "sac" })}>
                 ‹ Retour au sac à dos

@@ -15,6 +15,7 @@ import {
 } from "./training-data.js";
 import { Characters, classeRoute } from "./Characters.jsx";
 import { caserne } from "./texte.js";
+import { FicheObjet } from "./MercFiche.jsx";
 import { Infirmary } from "./Infirmary.jsx";
 import { Dortoir } from "./Dortoir.jsx";
 import {
@@ -391,7 +392,8 @@ function ItemActionPanel({
   const versSac = ["Composants", "Produits Alchimiques", "Armes", "Armures", "Objet divers"].includes(own.categorie);
   return (
     <>
-      <div className="item-detail-art">{art}</div>
+      {/* Fiche complète de l'objet : image, description et statistiques de sa rubrique. */}
+      {own.objetId ? <FicheObjet objet={own} /> : <div className="item-detail-art">{art}</div>}
       {own.gemmesInfo?.length > 0 && (
         <div className="item-detail-gemmes">
           {own.gemmesInfo.map((g, i) => (
@@ -1933,6 +1935,9 @@ export function App() {
       equip.get(e.mercenaire_id)[e.emplacement][e.position] = {
         objetId: e.objet_id,
         badgeF: !!e.badge_f,
+        categorie: o.categorie_id ? racine(o.categorie_id) : null,
+        estBouclier: o.categorie_id ? estBouclierCat(o.categorie_id) : false,
+        veteranceRequise: o.veterance_requise ?? null,
         gemmes,
         gemmesIcones: gemmes.map((g) => cache.objets.get(g)?.icone).filter(Boolean),
         nom: o.nom || "Objet",
@@ -1991,6 +1996,21 @@ export function App() {
         categorie: o ? racine(o.categorie_id) : null,
         valeur: o?.cout_achat_or ?? null,
         description: o?.description || "",
+        estBouclier: o ? estBouclierCat(o.categorie_id) : false,
+        veteranceRequise: o?.veterance_requise ?? null,
+        portee: o?.portee ?? null,
+        allonge: o?.allonge ?? null,
+        typeDegats: o?.type_degats ?? null,
+        legere: !!o?.legere,
+        deuxMains: !!o?.deux_mains,
+        protection: o?.protection ?? null,
+        typeArmure: o?.type_armure ?? null,
+        malusDiscretion: o?.malus_discretion ?? null,
+        malusVitesse: o?.malus_vitesse ?? null,
+        malusEsquive: o?.malus_esquive ?? null,
+        parade: o?.parade ?? null,
+        armeIcone1: o?.arme_icone_1 || null,
+        armeIcone2: o?.arme_icone_2 || null,
       });
     }
     const craftingQueue = {};

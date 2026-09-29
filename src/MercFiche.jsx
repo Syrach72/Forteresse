@@ -181,7 +181,7 @@ function BadgesParade({ emplacement, position, nom, actif, onDetruire, onBascule
   );
 }
 
-export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, onBasculerF = null, busy = false }) {
+export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, onBasculerF = null, onVoirFiche = null, busy = false }) {
   const e = equip || { arme: [null, null, null], armure: [null], bouclier: [null], objet: [null, null, null] };
   const bouton = (emplacement, position, nom) => (
     <button
@@ -193,8 +193,25 @@ export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, o
       Déséquiper
     </button>
   );
+  const voir = (o) => onVoirFiche?.(o);
+  const lien = (o) =>
+    onVoirFiche
+      ? {
+          onClick: () => voir(o),
+          onKeyDown: (ev) => {
+            if (ev.key === "Enter" || ev.key === " ") {
+              ev.preventDefault();
+              voir(o);
+            }
+          },
+          role: "button",
+          tabIndex: 0,
+          title: "Voir la fiche complète",
+          style: { cursor: "pointer" },
+        }
+      : {};
   const icone = (o) => (
-    <span className="equip-icone">
+    <span className="equip-icone" {...lien(o)}>
       {o.icone && <img src={o.icone} alt="" loading="lazy" decoding="async" />}
       {o.badgeF && (
         <span className="equip-badge-f" title="Badge F actif" aria-label="Badge F actif">
@@ -225,7 +242,7 @@ export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, o
             <div className="equip-slot equip-slot-arme" key={i}>
               {icone(o)}
               <div className="equip-texte">
-                <strong className="equip-nom">
+                <strong className="equip-nom" {...lien(o)}>
                   {o.nom}
                   {/* Icônes liées à l'arme (catalogue) : jusqu'à deux, côte à côte ; non modifiables ici. */}
                   <span className="equip-arme-icones">
@@ -281,7 +298,7 @@ export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, o
           <div className="equip-slot">
             {icone(e.armure[0])}
             <div className="equip-texte">
-              <strong>{e.armure[0].nom}</strong>
+              <strong {...lien(e.armure[0])}>{e.armure[0].nom}</strong>
               <dl className="equip-stats">
                 <div>
                   <dt>Protection</dt>
@@ -326,7 +343,7 @@ export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, o
           <div className="equip-slot">
             {icone(e.bouclier[0])}
             <div className="equip-texte">
-              <strong>{e.bouclier[0].nom}</strong>
+              <strong {...lien(e.bouclier[0])}>{e.bouclier[0].nom}</strong>
               <dl className="equip-stats">
                 <div>
                   <dt>Parade</dt>
@@ -374,7 +391,7 @@ export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, o
             <div className="equip-slot" key={i}>
               {icone(o)}
               <div className="equip-texte">
-                <strong>{o.nom}</strong>
+                <strong {...lien(o)}>{o.nom}</strong>
                 {o.description && <p className="equip-description">{o.description}</p>}
                 {bouton("objet", i, o.nom)}
               </div>
@@ -426,6 +443,7 @@ export function FicheObjet({ objet }) {
       <p className="fiche-objet-description">{o.description || "Aucune description pour le moment."}</p>
       <div className="fiche-objet-stats">
         {(arme || armure) && ligne("Vétérance requise", o.veteranceRequise)}
+        {o.categorie === "Produits Alchimiques" && aUneValeur(o.portee) && ligne("Portée", o.portee)}
         {arme && (
           <>
             {aUneValeur(o.portee) && ligne("Portée", o.portee)}
