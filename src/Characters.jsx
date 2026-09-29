@@ -400,12 +400,22 @@ export function Characters({
               </div>
               {/* Déplacement et parade : sous le portrait, même présentation (valeur sous l'icône). */}
               <div className="merc-sous-portrait">
-                {merc.mouvement !== null && merc.mouvement !== undefined && (
-                  <div className="merc-carac merc-carac-bottes">
-                    <img className="merc-carac-icone merc-bottes-icone" src={ICONES_STATS.Mouvement} alt="Mouvement" title="Mouvement" />
-                    <strong className="merc-carac-valeur">{merc.mouvement}<span className="merc-carac-unite">c</span></strong>
-                  </div>
-                )}
+                {merc.mouvement !== null && merc.mouvement !== undefined && (() => {
+                  // Le malus de Vitesse de l'armure portée (−1 ou plus) réduit d'autant les cases de déplacement.
+                  const malusArmure = Math.min(0, Number(equipements.get(merc.id)?.armure?.[0]?.malusVitesse) || 0);
+                  const deplacement = Math.max(0, merc.mouvement + malusArmure);
+                  return (
+                    <div className="merc-carac merc-carac-bottes">
+                      <img
+                        className="merc-carac-icone merc-bottes-icone"
+                        src={ICONES_STATS.Mouvement}
+                        alt="Mouvement"
+                        title={malusArmure < 0 ? `Mouvement : ${merc.mouvement} cases, réduit de ${-malusArmure} par l’armure` : "Mouvement"}
+                      />
+                      <strong className="merc-carac-valeur">{deplacement}<span className="merc-carac-unite">c</span></strong>
+                    </div>
+                  );
+                })()}
                 {meilleureParade(equipements.get(merc.id)) && (
                   <div className="merc-carac">
                     <span className="merc-carac-libelle">Parade</span>
