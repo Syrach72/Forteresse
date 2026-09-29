@@ -6379,7 +6379,7 @@ a.merc-card:hover {
   }
 }
 
-/* Mobile, Journal : la zone visible du décor est décalée vers la droite (le sujet est plutôt à droite). */
+/* Mobile, Journal : la zone visible du décor est centrée sur la main qui écrit (à environ 58 % de la largeur de la vidéo). */
 @media (max-width: 680px) {
-  main.interior.journal > video.interior-backdrop { object-position: 85% center !important; }
+  main.interior.journal > video.interior-backdrop { object-position: 61% center !important; }
 }
