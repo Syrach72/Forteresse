@@ -1,8 +1,8 @@
--- Détruire une arme ou un bouclier équipé (règle de Bruno, 2026-09-29), depuis la fiche du mercenaire :
+-- Détruire une arme, un bouclier ou une armure équipé (règle de Bruno, 2026-09-29), depuis la fiche du mercenaire :
 -- l'objet est détruit immédiatement, retiré du mercenaire, et la moitié des composants de sa recette
 -- (arrondie à l'inférieur, comme pour partie_detruire) rejoint l'arsenal. Les gemmes serties sont perdues.
 -- Réservé au recruteur du mercenaire (ou au MJ).
-create function equipement_detruire(p_mercenaire uuid, p_emplacement text, p_position integer)
+create or replace function equipement_detruire(p_mercenaire uuid, p_emplacement text, p_position integer)
 returns jsonb
 language plpgsql
 security definer set search_path = public
@@ -19,8 +19,8 @@ declare
 begin
   perform _verrou_partie();
   perform _droit_mercenaire(p_mercenaire);
-  if p_emplacement not in ('arme', 'bouclier') then
-    raise exception 'Seules une arme ou un bouclier équipés peuvent être détruits ici.';
+  if p_emplacement not in ('arme', 'bouclier', 'armure') then
+    raise exception 'Seules une arme, un bouclier ou une armure équipés peuvent être détruits ici.';
   end if;
   select nom into v_merc from mercenaire where id = p_mercenaire;
   select e.objet_id into v_objet from mercenaire_equipement e

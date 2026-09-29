@@ -285,7 +285,20 @@ export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, o
               <dl className="equip-stats">
                 <div>
                   <dt>Protection</dt>
-                  <dd>{valeur(e.armure[0].protection)}</dd>
+                  <dd>
+                    {valeur(e.armure[0].protection)}
+                    {aUneValeur(e.armure[0].protection) && (
+                      <BadgesParade
+                        emplacement="armure"
+                        position={0}
+                        nom={e.armure[0].nom}
+                        actif={e.armure[0].badgeF}
+                        onDetruire={onDetruire}
+                        onBasculerF={onBasculerF}
+                        busy={busy}
+                      />
+                    )}
+                  </dd>
                 </div>
                 <div>
                   <dt>Type</dt>
