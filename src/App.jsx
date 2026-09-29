@@ -13,7 +13,7 @@ import {
   freeInstructorGroup,
   trainingIds,
 } from "./training-data.js";
-import { Characters } from "./Characters.jsx";
+import { Characters, classeRoute } from "./Characters.jsx";
 import { Infirmary } from "./Infirmary.jsx";
 import { Dortoir } from "./Dortoir.jsx";
 import {
@@ -1022,6 +1022,8 @@ export function App() {
   const [joueurs, setJoueurs] = useState(() => new Map());
   // Noms de joueur (minuscules) dont le premier recrutement gratuit de la session est déjà consommé.
   const [gratuitsUtilises, setGratuitsUtilises] = useState([]);
+  // Mercenaires au cimetière dans la session courante (morts à 0 PV en fin d'instance).
+  const [morts, setMorts] = useState([]);
   // Quête en cours (compteur d’instances) et mercenaires qui y sont engagés :
   // ils sont absents du dortoir (lit grisé), comme à l’entraînement.
   const [queteEnCours, setQueteEnCours] = useState(null);
@@ -1603,7 +1605,7 @@ export function App() {
     const undoId = crypto.randomUUID();
     setInstanceUndo({
       id: undoId,
-      gains: { entrainement: [], infirmerie: [], ateliers: [], employes: [], budget: 0, quete: null },
+      gains: { entrainement: [], infirmerie: [], ateliers: [], employes: [], cimetiere: [], budget: 0, quete: null },
     });
     setInstanceTicks((v) => v + 1);
     // Seul l'administrateur fait avancer l'instance (une fois pour tous les
@@ -1631,6 +1633,9 @@ export function App() {
             g.gradue
               ? `${nom(g.mercenaire_id)} a rejoint son instructeur (vétérance ${g.a}) et retourne au dortoir.`
               : `${nom(g.mercenaire_id)} passe à la vétérance ${g.a}.`,
+          ),
+          ...(gains.cimetiere || []).map(
+            (g) => `${nom(g.mercenaire_id)} est tombé à 0 PV : il repose au cimetière et son équipement retourne à l’arsenal.`,
           ),
           ...gains.infirmerie
             .filter((g) => g.sorti)
@@ -1745,6 +1750,7 @@ export function App() {
           if (error) erreurs.push(error.message);
         }
         for (const [fn, gains] of [
+          ["cimetiere_annuler_instance", g.cimetiere || []],
           ["entrainement_annuler_instance", g.entrainement],
           ["infirmerie_annuler_instance", g.infirmerie],
           ["ateliers_annuler_instance", g.ateliers],
@@ -2122,7 +2128,7 @@ export function App() {
     setTreasury(next);
   }
   async function synchroniserZonesPartagees() {
-    const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage, quete, queteMercs, actuels, gratuits] = await Promise.all([
+    const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage, quete, queteMercs, actuels, gratuits, cimetiere] = await Promise.all([
       supabase.from("entrainement_place").select("groupe, role, position, mercenaire_id"),
       supabase
         .from("entrainement_reglage")
@@ -2136,7 +2142,10 @@ export function App() {
       chargerQueteEnCours(),
       supabase.from("quete_mercenaire").select("quete_id, position, mercenaire_id"),
       chargerActuels(),
+      supabase.from("recrutement_gratuit").select("nom_cle"),
+      supabase.from("cimetiere").select("mercenaire_id"),
     ]);
+    if (!cimetiere?.error) setMorts((cimetiere?.data || []).map((x) => x.mercenaire_id));
     if (!actuels.error) {
       setMercenaires((old) =>
         old.map((m) => {
@@ -2262,6 +2271,8 @@ export function App() {
     const a = await supabase.rpc("ateliers_instance");
     const q = await supabase.rpc("quetes_instance");
     const emp = await supabase.rpc("employes_instance");
+    // En dernier : après les soins de l'infirmerie, tout mercenaire encore à 0 PV rejoint le cimetière.
+    const cim = await supabase.rpc("cimetiere_instance");
     await synchroniserPartage();
     const liste = (r) => (Array.isArray(r.data) ? r.data : []);
     return {
@@ -2270,6 +2281,7 @@ export function App() {
         infirmerie: liste(i),
         ateliers: liste(a),
         employes: liste(emp),
+        cimetiere: liste(cim),
         // `budget` reste le net TOTAL (recettes − dépenses + tribut du
         // village) : c'est ce que budget_annuler_instance() doit annuler.
         // `budgetStructure` (recettes − dépenses seules) sert uniquement à
@@ -2281,7 +2293,7 @@ export function App() {
         tributPhrase: e.data?.tribut_phrase || "",
         quete: q.data || null,
       },
-      erreur: [e.error?.message, t.error?.message, i.error?.message, a.error?.message, q.error?.message, emp.error?.message]
+      erreur: [e.error?.message, t.error?.message, i.error?.message, a.error?.message, q.error?.message, emp.error?.message, cim.error?.message]
         .filter(Boolean)
         .join(" "),
     };
@@ -3225,6 +3237,7 @@ export function App() {
           estAdmin={estAdmin}
           onRecruit={recruit}
           gratuitsUtilises={gratuitsUtilises}
+          morts={morts}
           onDismiss={dismiss}
           onSetVeterance={setVeterance}
           onSetInstructor={chooseInstructor}
@@ -3494,9 +3507,40 @@ export function App() {
               Modal={Modal}
             />
           ) : route === "cimetiere" ? (
-            <section className="journal-page parchment">
+            <section className="journal-page parchment cimetiere-page">
               <h2>Cimetière</h2>
-              <p className="muted">Cette page est en construction.</p>
+              {morts.length ? (
+                <div className="cimetiere-liste">
+                  {mercenaires
+                    .filter((m) => morts.includes(m.id))
+                    .map((m) => (
+                      <a
+                        className="merc-card recrute cimetiere-carte"
+                        key={m.id}
+                        href={`#personnages/${classeRoute(m.classe)}/${m.id}`}
+                        aria-label={`Consulter la fiche de ${m.nom}`}
+                      >
+                        <span className="merc-portrait">
+                          {m.portrait ? (
+                            <img src={m.portrait} alt={`Portrait de ${m.nom}`} />
+                          ) : (
+                            <span className="merc-portrait-vide" aria-hidden="true" />
+                          )}
+                        </span>
+                        <span className="merc-caption">
+                          <strong>{m.nom}</strong>
+                          <span className="merc-vet">Vétérance {m.veterance ?? 1}</span>
+                        </span>
+                      </a>
+                    ))}
+                </div>
+              ) : (
+                <p className="muted">Personne ne repose ici pour le moment.</p>
+              )}
+              <p className="muted">
+                Un mercenaire encore à 0 PV à la fin d’une instance repose ici : il n’est plus disponible ni
+                recrutable, garde sa vétérance, et sa fiche reste consultable.
+              </p>
             </section>
           ) : route === "journal" ? (
             <Journal log={game.log} />

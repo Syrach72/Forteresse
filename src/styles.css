@@ -6318,3 +6318,8 @@ a.merc-card:hover {
 .class-nav > a.character-link { grid-column: span 10; }
 .class-nav .character-link:nth-child(n + 7),
 .class-nav > a:last-child { grid-column: span 12; }
+
+/* Cimetière : fiches consultables mais grisées */
+.merc-fiche-morte { filter: grayscale(0.9) brightness(0.92); }
+.cimetiere-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin: 12px 0; }
+.cimetiere-carte { filter: grayscale(0.9); }

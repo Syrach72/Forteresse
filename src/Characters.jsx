@@ -83,6 +83,7 @@ export function Characters({
   estAdmin = false,
   onRecruit = () => {},
   gratuitsUtilises = [],
+  morts = [],
   onDismiss = () => {},
   onSetVeterance = async () => ({}),
   onSetInstructor = () => {},
@@ -125,7 +126,7 @@ export function Characters({
   const santeMax = merc ? 3 + 2 * (merc.puissance ?? 0) : null;
   const hero = merc ? undefined : warriors.find((w) => w.id === heroId);
   // Fiche d'un mercenaire recruté : réservée à son recruteur et à l'admin.
-  const accesFiche = (id) => !tousRecrutes.includes(id) || recrutes.includes(id) || estAdmin;
+  const accesFiche = (id) => morts.includes(id) || !tousRecrutes.includes(id) || recrutes.includes(id) || estAdmin;
   // Le joueur qui a recruté ce mercenaire (ou le MJ) peut modifier sa fiche.
   const peutModifier = merc ? recrutes.includes(merc.id) || estAdmin : false;
   const [popup, setPopup] = useState(null);
@@ -289,6 +290,8 @@ export function Characters({
               .filter((m) => classeRoute(m.classe) === classId)
               .map((m) => {
                 const pris = tousRecrutes.includes(m.id);
+                // Au cimetière : grisé, mais sa fiche reste consultable.
+                const mort = morts.includes(m.id);
                 const carte = (
                   <>
                     <span className="merc-portrait">
@@ -309,6 +312,18 @@ export function Characters({
                 );
                 // Recruté : grisé et inclicable pour les joueurs ; l'admin
                 // peut toujours ouvrir la fiche.
+                if (mort)
+                  return (
+                    <a
+                      className="merc-card recrute cimetiere-carte"
+                      key={m.id}
+                      href={`#personnages/${classId}/${m.id}`}
+                      aria-label={`Consulter la fiche de ${m.nom} (au cimetière)`}
+                      title="Repose au cimetière"
+                    >
+                      {carte}
+                    </a>
+                  );
                 if (pris && !estAdmin)
                   return (
                     <div
@@ -343,7 +358,7 @@ export function Characters({
         )
       ) : merc ? (
         accesFiche(merc.id) ? (
-          <div className="merc-fiche" data-onglet={onglet}>
+          <div className={`merc-fiche${morts.includes(merc.id) ? " merc-fiche-morte" : ""}`} data-onglet={onglet}>
           {/* Onglets de parapheur, en haut à droite : Général, Équipement (mercenaire recruté), Compétences. */}
           <div className="merc-onglets" role="tablist" aria-label="Rubriques de la fiche">
             {[
@@ -603,6 +618,11 @@ export function Characters({
                     {COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po.
                   </p>
                 </div>
+              ) : morts.includes(merc.id) ? (
+                <p className="merc-recrute-note">
+                  {merc.nom} repose au cimetière : il n’est plus disponible ni recrutable, mais il garde sa
+                  vétérance.
+                </p>
               ) : tousRecrutes.includes(merc.id) ? (
                 <p className="merc-recrute-note">
                   Recruté par un autre joueur (accès administrateur).

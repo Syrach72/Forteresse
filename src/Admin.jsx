@@ -2997,6 +2997,7 @@ const TABLES_SAUVEGARDE = [
   "mercenaire_equipement_base",
   "objet_quete_active",
   "recrutement_gratuit",
+  "cimetiere",
   "invitation",
   "profil",
 ];
