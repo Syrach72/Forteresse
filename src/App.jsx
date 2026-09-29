@@ -179,8 +179,8 @@ function BackdropVideo({ src, ratio, dip, rate = 1, baseClass = "interior-backdr
   const style = ratio ? { aspectRatio: ratio } : undefined;
   return (
     <>
-      <video ref={ref1} className={className} style={style} src={src} muted playsInline />
-      <video ref={ref2} className={className} style={style} src={src} muted playsInline />
+      <video ref={ref1} className={className} style={style} src={src} muted playsInline disablePictureInPicture disableRemotePlayback controlsList="nofullscreen nodownload noremoteplayback" aria-hidden="true" tabIndex={-1} />
+      <video ref={ref2} className={className} style={style} src={src} muted playsInline disablePictureInPicture disableRemotePlayback controlsList="nofullscreen nodownload noremoteplayback" aria-hidden="true" tabIndex={-1} />
     </>
   );
 }
