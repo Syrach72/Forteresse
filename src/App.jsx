@@ -962,6 +962,10 @@ export function App() {
   const trainingRef = useRef(training);
   const [instanceTicks, setInstanceTicks] = useState(0);
   const [instanceUndo, setInstanceUndo] = useState(null);
+  // Compteur de round (0 à 99, bouton « RD » du MJ) : lu en base, partagé par la partie.
+  const [roundCourant, setRoundCourant] = useState(0);
+  const [roundUndo, setRoundUndo] = useState(null);
+  const [roundBusy, setRoundBusy] = useState(false);
   const [infirm, setInfirm] = useState(() =>
     structuredClone(INITIAL_INFIRMARY),
   );
@@ -1628,6 +1632,36 @@ export function App() {
         );
       });
   }
+  // Round suivant (MJ) : +1 au compteur et +1 énergie actuelle à chaque mercenaire recruté, dans la
+  // limite de son énergie max ; tout est fait et revérifié côté serveur.
+  async function avancerRound() {
+    if (!estAdmin || roundBusy) return;
+    setRoundBusy(true);
+    const { data, error } = await supabase.rpc("round_avancer");
+    if (error) {
+      setRoundBusy(false);
+      notify(`Round : ${error.message}`);
+      return;
+    }
+    setRoundUndo({ gains: data?.gains || [] });
+    await synchroniserPartage();
+    setRoundBusy(false);
+    notify(`Round ${data?.round} : +1 énergie pour ${data?.gains?.length || 0} mercenaire(s).`);
+  }
+  async function annulerRound() {
+    if (!estAdmin || roundBusy || !roundUndo) return;
+    setRoundBusy(true);
+    const { error } = await supabase.rpc("round_annuler", { p_gains: roundUndo.gains });
+    if (error) {
+      setRoundBusy(false);
+      notify(`Round : ${error.message}`);
+      return;
+    }
+    setRoundUndo(null);
+    await synchroniserPartage();
+    setRoundBusy(false);
+    notify("Dernier round annulé.");
+  }
   function undoInstanceStep() {
     // Bouton désactivé tant que le +1 Instance n'a pas fini d'être appliqué.
     if (!instanceUndo || trainingPending > 0) return;
@@ -1709,7 +1743,7 @@ export function App() {
   // et reversés dans `game` (même forme qu'avant, pour l'affichage existant).
   async function synchroniserEconomie() {
     const [etat, inv, lignes, fab, jour, sert, emp, eqp] = await Promise.all([
-      supabase.from("partie_etat").select("or_compagnie, instance_courante").maybeSingle(),
+      supabase.from("partie_etat").select("or_compagnie, instance_courante, round_courant").maybeSingle(),
       supabase.from("inventaire").select("id, type, mercenaire_id"),
       supabase.from("ligne_inventaire").select("id, inventaire_id, objet_id, quantite, gemmes"),
       supabase.from("atelier_fabrication").select("atelier, objet_id, quantite, restant"),
@@ -1972,6 +2006,7 @@ export function App() {
     // (journal filtré par instance_no), dernière quête accomplie et dernier
     // tribut du village (journal, type "or", repérés par leur clé dans details).
     const instanceCourante = etat.data.instance_courante ?? 0;
+    setRoundCourant(etat.data.round_courant ?? 0);
     const journalType = jour.data || [];
     const achatsLignes = journalType
       .filter(
@@ -2956,6 +2991,33 @@ export function App() {
             {money(game.gold)} <small>Po</small>
           </span>
         </a>
+        <div className="header-actions">
+        {/* Compteur de round : réservé à l'administrateur/MJ ; carré vert à gauche de Catalogue et
+            +1 Instance, de la hauteur de ces deux lignes. */}
+        {estAdmin && (
+          <div className="round-controls">
+            <button
+              type="button"
+              className="round-button"
+              onClick={avancerRound}
+              disabled={roundBusy || roundCourant >= 99}
+              aria-label={`Round ${roundCourant} · passer au round suivant (+1 énergie aux mercenaires)`}
+              title={`Round ${roundCourant} · +1 énergie actuelle à chaque mercenaire recruté (jusqu'à son maximum)`}
+            >
+              {roundCourant === 0 ? "Rd" : roundCourant}
+            </button>
+            <button
+              type="button"
+              className="round-undo"
+              onClick={annulerRound}
+              disabled={roundBusy || !roundUndo}
+              title="Annuler le dernier round"
+            >
+              Annuler
+            </button>
+          </div>
+        )}
+        <div className="header-actions-col">
         <button
           type="button"
           className="header-time header-catalogue"
@@ -2989,6 +3051,8 @@ export function App() {
             </button>
           </div>
         )}
+        </div>
+        </div>
         {route === "forteresse" && (
           <button className="quest-sign header-quests" aria-label="Quêtes" onClick={() => { location.hash = "quetes"; }}>
             <img src="/assets/references/quests.webp" alt="" />
