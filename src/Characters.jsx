@@ -300,7 +300,8 @@ export function Characters({
                       ) : (
                         <span className="merc-portrait-vide" aria-hidden="true" />
                       )}
-                      {estBlesse(m) && <CoeurBlesse className="coeur-carte" />}
+                      {estBlesse(m) && !mort && <CoeurBlesse className="coeur-carte" />}
+                      {mort && <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="Au cimetière" />}
                     </span>
                     <span className="merc-caption">
                       <strong>{m.nom}</strong>

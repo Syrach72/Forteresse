@@ -46,11 +46,13 @@ const BACKDROP_VIDEO = {
   dortoirs: "/assets/video/dortoir-anime.mp4",
   quetes: "/assets/video/quetes-anime.mp4",
   stock: "/assets/video/arsenal-anime.mp4",
+  cimetiere: "/assets/video/cimetiere-anime.mp4",
 };
 // Fond animé des pages Connexion / Inscription (herse figée ouverte) ; l'image
 // coastal-castle.jpg reste affichée derrière tant que la vidéo n'est pas chargée.
 const AUTH_VIDEO = "/assets/video/connexion-anime.mp4";
 const BACKDROP_VIDEO_RATIO = {
+  cimetiere: "960 / 1032",
   armurerie: "1 / 1",
   entrainement: "1 / 1",
   tresorerie: "1 / 1",
@@ -3526,6 +3528,7 @@ export function App() {
                           ) : (
                             <span className="merc-portrait-vide" aria-hidden="true" />
                           )}
+                          <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="" />
                         </span>
                         <span className="merc-caption">
                           <strong>{m.nom}</strong>

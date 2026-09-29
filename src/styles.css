@@ -6323,3 +6323,7 @@ a.merc-card:hover {
 .merc-fiche-morte { filter: grayscale(0.9) brightness(0.92); }
 .cimetiere-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin: 12px 0; }
 .cimetiere-carte { filter: grayscale(0.9); }
+
+/* Pierre tombale sur la carte d'un mercenaire au cimetière */
+.cimetiere-liste .merc-portrait { position: relative; }
+.merc-tombe { position: absolute; right: 6px; bottom: 6px; width: 42%; max-width: 64px; height: auto; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6)); }
