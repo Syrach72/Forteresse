@@ -328,16 +328,55 @@ function ItemActionPanel({
   onSell,
   onDestroy,
   onSendToBackpack,
+  onActivate,
   mercenairesRecrutes = [],
   busy,
   error,
 }) {
   const [qty, setQty] = useState(1);
+  const [confirmActivate, setConfirmActivate] = useState(false);
   const [confirmDestroy, setConfirmDestroy] = useState(false);
   const [mercenaireCible, setMercenaireCible] = useState("");
   const own = game.inventory.find((i) => i.id === id);
   if (!own) return <p>Cet objet n’est plus dans l’arsenal.</p>;
   const { art } = inventoryItemInfo(own);
+  // Objet de quête : pas de vente ni de destruction ; « Activer » lui fait produire définitivement son
+  // effet pour la session, puis il quitte l'inventaire.
+  if (own.categorie === "Objets de Quête") {
+    return (
+      <>
+        <div className="item-detail-art">{art}</div>
+        <p>{own.description || "Aucune description pour le moment."}</p>
+        {!confirmActivate ? (
+          <div className="item-detail-actions">
+            <button className="wood-button" disabled={busy} onClick={() => setConfirmActivate(true)}>
+              Activer
+            </button>
+          </div>
+        ) : (
+          <div className="item-destroy-confirm" role="alertdialog" aria-label="Confirmer l’activation">
+            <p>
+              Activer {inventoryItemInfo(own).name} ? Son effet sera permanent pour cette session et
+              l’objet disparaîtra de l’inventaire. Cette action est irréversible.
+            </p>
+            <div className="item-destroy-actions">
+              <button className="wood-button" disabled={busy} onClick={() => onActivate(own.id)}>
+                Oui
+              </button>
+              <button className="wood-button" disabled={busy} onClick={() => setConfirmActivate(false)}>
+                Non
+              </button>
+            </div>
+          </div>
+        )}
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+      </>
+    );
+  }
   const valeur = sellableValue(own);
   // Une arme sertie vaut plus cher à la revente (règle de Bruno) : même
   // multiplicateur que le serveur (partie_vendre), appliqué ici seulement
@@ -960,6 +999,8 @@ export function App() {
   const [roundCourant, setRoundCourant] = useState(0);
   const [roundUndo, setRoundUndo] = useState(null);
   const [roundBusy, setRoundBusy] = useState(false);
+  // Noms (minuscules) des objets de quête activés dans la session courante.
+  const [quetesActives, setQuetesActives] = useState(() => new Set());
   const [roundConfirm, setRoundConfirm] = useState(false);
   const [infirm, setInfirm] = useState(() =>
     structuredClone(INITIAL_INFIRMARY),
@@ -1760,7 +1801,7 @@ export function App() {
   // Or de la compagnie, arsenal, journal et fabrications en cours : lus en base
   // et reversés dans `game` (même forme qu'avant, pour l'affichage existant).
   async function synchroniserEconomie() {
-    const [etat, inv, lignes, fab, jour, sert, emp, eqp] = await Promise.all([
+    const [etat, inv, lignes, fab, jour, sert, emp, eqp, actives] = await Promise.all([
       supabase.from("partie_etat").select("or_compagnie, instance_courante, round_courant").maybeSingle(),
       supabase.from("inventaire").select("id, type, mercenaire_id"),
       supabase.from("ligne_inventaire").select("id, inventaire_id, objet_id, quantite, gemmes"),
@@ -1776,6 +1817,7 @@ export function App() {
         .maybeSingle(),
       supabase.from("employe").select("objet_id, outil, quantite"),
       supabase.from("mercenaire_equipement").select("mercenaire_id, emplacement, position, objet_id, gemmes"),
+      supabase.from("objet_quete_active").select("objet_id"),
     ]);
     if (etat.error || inv.error || lignes.error || fab.error || !etat.data) return;
     const arsenal = inv.data.find((i) => i.type === "arsenal");
@@ -1802,6 +1844,7 @@ export function App() {
       ...(sertActif ? [sertActif.arme_objet_id, sertActif.gemme_objet_id, ...(sertActif.arme_gemmes || [])] : []),
       ...(emp.data || []).map((x) => x.objet_id),
       ...(eqp.data || []).flatMap((x) => [x.objet_id, ...(x.gemmes || [])]),
+      ...(actives.data || []).map((x) => x.objet_id),
     ];
     if (idsRequis.some((id) => !cache.objets.has(id))) {
       const [o, c] = await Promise.all([
@@ -1897,6 +1940,11 @@ export function App() {
       };
     }
     setEquipements(equip);
+    // Objets de quête activés cette session (noms en minuscules) : ils déverrouillent les lieux et
+    // donnent leurs effets ; l'exemplaire a quitté l'arsenal.
+    setQuetesActives(
+      new Set((actives.data || []).map((x) => (cache.objets.get(x.objet_id)?.nom || "").trim().toLowerCase())),
+    );
     const inventory = [];
     for (const l of enStock) {
       const o = cache.objets.get(l.objet_id);
@@ -1928,6 +1976,7 @@ export function App() {
         icone: o?.icone || null,
         categorie: o ? racine(o.categorie_id) : null,
         valeur: o?.cout_achat_or ?? null,
+        description: o?.description || "",
       });
     }
     const craftingQueue = {};
@@ -2172,6 +2221,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_etat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_etat" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "objet_quete_active" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_mercenaire" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "ligne_inventaire" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_equipement" }, rafraichir)
@@ -2536,6 +2586,20 @@ export function App() {
   // (Composants/Objet divers uniquement, vérifié aussi côté serveur) et retour
   // sans restriction. Le serveur revalide tout (catégorie, place, empilement à
   // 3) ; operationPartagee affiche l'erreur telle quelle en cas de refus.
+  // Activation d'un objet de quête depuis l'arsenal : le serveur retire l'exemplaire et enregistre
+  // l'effet permanent (déverrouillage d'un lieu, sac à dos +3 pour la Calèche…).
+  async function actActiver(id) {
+    const objet = objetDe(id);
+    if (!objet) {
+      setActionError("Cet objet ne peut pas être activé.");
+      return;
+    }
+    const nom = nomDe(id);
+    const data = await operationPartagee(() => supabase.rpc("objet_quete_activer", { p_objet: objet }));
+    if (!data) return;
+    setModal(null);
+    notify(`${nom} activé : son effet est permanent pour la session.`);
+  }
   async function actEnvoyerSac(id, mercenaireId, quantity) {
     const objet = objetDe(id);
     if (!objet) {
@@ -2697,16 +2761,13 @@ export function App() {
   // compagnie la possède (le serveur applique la même règle : _sac_capacite()).
   const sacCapacite =
     9 +
-    (game.inventory.some((i) => i.quantity > 0 && /^cal[eè]che$/i.test(String(i.nom).trim())) ? 3 : 0);
+    (quetesActives.has("calèche") || quetesActives.has("caleche") ? 3 : 0);
   const locationsAvecVerrou = useMemo(() => {
     if (verrouExempte) return LOCATIONS;
-    const possede = new Set(
-      game.inventory.filter((i) => i.quantity > 0).map((i) => i.nom),
-    );
     return LOCATIONS.map((l) =>
-      LIEUX_A_VERROU.includes(l.id) ? { ...l, locked: !possede.has(l.name) } : l,
+      LIEUX_A_VERROU.includes(l.id) ? { ...l, locked: !quetesActives.has(l.name.trim().toLowerCase()) } : l,
     );
-  }, [game.inventory, verrouExempte]);
+  }, [quetesActives, verrouExempte]);
   function go(l) {
     if (l.locked) {
       setModal({ type: "locked", place: l });
@@ -4511,7 +4572,7 @@ export function App() {
               <p>{modal.place.description}</p>
               <p>
                 Ce lieu est verrouillé : accomplissez la quête qui offre l’objet
-                « {modal.place.name} » pour le débloquer.
+                « {modal.place.name} », puis activez-le depuis l’Arsenal pour le débloquer.
               </p>
             </>
           ) : modal.type === "character" ? (
@@ -4538,6 +4599,7 @@ export function App() {
               onSell={actSell}
               onDestroy={actDestroy}
               onSendToBackpack={actEnvoyerSac}
+              onActivate={actActiver}
               mercenairesRecrutes={mercenairesRecrutes}
               busy={busy}
               error={actionError}
