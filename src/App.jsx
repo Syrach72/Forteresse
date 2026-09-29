@@ -2955,13 +2955,14 @@ export function App() {
         <nav className="class-nav" aria-label="Personnages">
           <a
             className="nav-logout"
+            aria-label="Se déconnecter"
             href="#connexion"
             onClick={(e) => {
               e.preventDefault();
               supabase.auth.signOut();
             }}
           >
-            Se déconnecter
+            Déconnect.
           </a>
           {session?.user?.email?.toLowerCase() === "btestart@aol.com" && (
             <a className="nav-admin" href="#admin">
