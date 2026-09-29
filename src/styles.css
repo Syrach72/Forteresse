@@ -6189,3 +6189,16 @@ a.merc-card:hover {
     opacity: 1;
   }
 }
+
+/* Compteur de dépense d'énergie (fenêtre d'une compétence active) */
+.energie-compteur { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(60, 40, 20, 0.35); }
+.energie-compteur-titre { margin: 0 0 8px; font-weight: 600; }
+.energie-compteur-chiffres { display: flex; flex-wrap: wrap; gap: 6px; }
+.energie-chiffre {
+  min-width: 42px; min-height: 42px; padding: 0 8px; font: inherit; font-weight: 700; cursor: pointer;
+  color: #2b1c10; background: #e9dcc0; border: 1px solid #8a6a2f; border-radius: 4px;
+}
+.energie-chiffre:hover:not(:disabled) { background: #f3e7cb; }
+.energie-chiffre[aria-pressed="true"] { background: #2f5d9c; color: #fff; border-color: #1f3f6c; }
+.energie-chiffre:disabled { opacity: 0.4; cursor: not-allowed; }
+.energie-compteur-valider { margin: 10px 0 0; }

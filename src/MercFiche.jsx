@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 
 // Fiche d'un mercenaire : emplacements d'équipement (3 armes, 1 armure,
 // 3 objets) et tableau de compétences (10 lignes de vétérance, 3 cellules
@@ -372,9 +372,28 @@ export function FicheObjet({ objet }) {
 }
 
 // Fenêtre d'une cellule de compétence (fiche joueur).
-export function DetailCompetence({ cellule, veterance }) {
+// Compétence active utilisable (vétérance atteinte) par le joueur qui a recruté le mercenaire : un
+// compteur de 1 à 10 permet de dépenser cette énergie, après une validation explicite.
+export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null }) {
   const { niveau, type, competence } = cellule;
   const atteinte = veterance >= niveau;
+  const [choix, setChoix] = useState(null);
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const [depense, setDepense] = useState(null);
+  const compteur = !!competence && type !== "passive" && atteinte && !!onDepenser;
+  async function valider() {
+    setEnCours(true);
+    const res = await onDepenser(choix);
+    setEnCours(false);
+    if (res?.error) {
+      setErreur(res.error);
+      return;
+    }
+    setErreur("");
+    setDepense(choix);
+    setChoix(null);
+  }
   return (
     <div className="comp-detail">
       {competence ? (
@@ -396,6 +415,51 @@ export function DetailCompetence({ cellule, veterance }) {
       <p className={atteinte ? "comp-detail-ok" : "comp-detail-non"}>
         {atteinte ? "Vétérance atteinte : utilisable." : `Vétérance ${niveau} requise (actuelle : ${veterance}).`}
       </p>
+      {compteur && (
+        <div className="energie-compteur">
+          <p className="energie-compteur-titre">
+            Dépenser de l’énergie <span className="muted">(disponible : {energie ?? "—"})</span>
+          </p>
+          <div className="energie-compteur-chiffres" role="group" aria-label="Énergie à dépenser">
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                className="energie-chiffre"
+                aria-pressed={choix === n}
+                disabled={enCours || (energie !== null && n > energie)}
+                onClick={() => {
+                  setChoix(n);
+                  setErreur("");
+                  setDepense(null);
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          {choix !== null && (
+            <p className="energie-compteur-valider">
+              <button type="button" className="wood-button" disabled={enCours} onClick={valider}>
+                Valider : dépenser {choix} énergie{choix > 1 ? "s" : ""}
+              </button>{" "}
+              <button type="button" className="text-button" disabled={enCours} onClick={() => setChoix(null)}>
+                Annuler
+              </button>
+            </p>
+          )}
+          {depense !== null && (
+            <p className="comp-detail-ok" role="status">
+              {depense} énergie{depense > 1 ? "s" : ""} dépensée{depense > 1 ? "s" : ""}.
+            </p>
+          )}
+          {erreur && (
+            <p className="error" role="alert">
+              {erreur}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -106,6 +106,7 @@ export function Characters({
   erreur = "",
   or = 0,
   onSetActuel = async () => ({}),
+  onDepenserEnergie = async () => ({}),
   onSetCaracteristiques = async () => ({}),
   onClearError = () => {},
   busy = false,
@@ -469,9 +470,8 @@ export function Characters({
                   const n = Number(v);
                   return Number.isInteger(n) && n >= 0 && n <= 999 ? { ok: true, n } : { ok: false };
                 };
-                const inchange =
-                  santeAct === String(merc.santeActuelle ?? santeMax ?? "") &&
-                  energieAct === String(merc.energieActuelle ?? energieMax ?? "");
+                // L'énergie ne se saisit plus ici : elle se dépense depuis les compétences actives.
+                const inchange = santeAct === String(merc.santeActuelle ?? santeMax ?? "");
                 const orbes = (
                   <div className="orbes">
                     <Orbe
@@ -480,9 +480,6 @@ export function Characters({
                       id="merc-energie-actuelle"
                       max={energieMax}
                       actuelle={merc.energieActuelle ?? energieMax}
-                      editable={peutModifier}
-                      valeur={energieAct}
-                      onChange={setEnergieAct}
                     />
                     <Orbe
                       type="sante"
@@ -502,19 +499,19 @@ export function Characters({
                     noValidate
                     onSubmit={async (e) => {
                       e.preventDefault();
-                      const en = lire(energieAct);
                       const sa = lire(santeAct);
-                      if (!en.ok || !sa.ok) {
+                      if (!sa.ok) {
                         setActuelError("Saisissez des entiers de 0 à 999.");
                         return;
                       }
-                      const result = await onSetActuel(merc.id, en.n, sa.n);
+                      // L'énergie actuelle est renvoyée telle quelle (non modifiée par ce bouton).
+                      const result = await onSetActuel(merc.id, merc.energieActuelle ?? null, sa.n);
                       setActuelError(result?.error || "");
                     }}
                   >
                     {orbes}
                     <button className="wood-button" type="submit" disabled={inchange}>
-                      Enregistrer l’énergie et la santé
+                      Enregistrer la santé
                     </button>
                     {actuelError && (
                       <p className="error" role="alert">
@@ -1086,7 +1083,12 @@ export function Characters({
               </div>
             </form>
           ) : popup.type === "competence" ? (
-            <DetailCompetence cellule={popup.cellule} veterance={popup.veterance} />
+            <DetailCompetence
+              cellule={popup.cellule}
+              veterance={popup.veterance}
+              energie={merc ? (merc.energieActuelle ?? energieMax) : null}
+              onDepenser={merc && peutModifier ? (n) => onDepenserEnergie(merc.id, n) : null}
+            />
           ) : popup.type === "fougue" ? (
             <div className="ability-description">
               <ReferenceCrop

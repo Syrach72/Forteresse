@@ -1297,6 +1297,17 @@ export function App() {
     notify("Énergie et santé actuelles enregistrées.");
     return {};
   }
+  // Dépense d'énergie depuis une compétence active (1 à 10) : le serveur retire le montant de
+  // l'énergie actuelle en une seule opération et refuse si elle est insuffisante.
+  async function depenserEnergie(id, montant) {
+    const { error } = await supabase.rpc("mercenaire_depenser_energie", {
+      p_mercenaire: id,
+      p_montant: montant,
+    });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    return {};
+  }
   // Puissance, Vélocité, Mental : modifiables par le joueur qui a recruté le mercenaire (ou le MJ),
   // plafonnées à 9. Déterminent Santé Max (3 + 2×Puissance) et Énergie Max (2×Mental) sur la fiche.
   async function setCaracteristiques(id, puissance, velocite, mental) {
@@ -3031,6 +3042,7 @@ export function App() {
           erreur={actionError}
           onClearError={() => setActionError("")}
           onSetActuel={setActuel}
+          onDepenserEnergie={depenserEnergie}
           onSetCaracteristiques={setCaracteristiques}
           or={game.gold}
           busy={busy}
