@@ -6404,3 +6404,10 @@ a.merc-card:hover {
   background: #c62828; color: #fff; border: 1.5px solid #7f1616; font: 700 12px/1 Chiffres, Georgia, serif;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
+
+/* Page Forteresse : icônes des lieux agrandies (simple mise à l'échelle CSS, aucune image plus lourde). */
+.castle-map .location .sprite {
+  width: 58%;
+  max-width: 92px;
+  max-height: none;
+}
