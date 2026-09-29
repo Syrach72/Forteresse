@@ -132,6 +132,13 @@ export function Characters({
   // Le joueur qui a recruté ce mercenaire (ou le MJ) peut modifier sa fiche.
   const peutModifier = merc ? recrutes.includes(merc.id) || estAdmin : false;
   const [popup, setPopup] = useState(null);
+  // « Soigner » (infirmerie) : seulement de 1 PV jusqu'à moins que la santé max (règle de Bruno, 2026-09-29).
+  const pvActuels = merc?.santeActuelle ?? santeMax;
+  const soignable = merc ? pvActuels >= 1 && pvActuels < santeMax : false;
+  const raisonNonSoignable =
+    pvActuels < 1
+      ? "À 0 PV, un mercenaire ne peut pas être soigné à l’infirmerie : il lui faut au moins 1 PV."
+      : "Ce mercenaire a déjà tous ses PV.";
   // Confirmation de l'utilisation d'un produit alchimique du sac à dos (« Utiliser » puis « Confirmer »).
   const [confirmUsage, setConfirmUsage] = useState(false);
   useEffect(() => setConfirmUsage(false), [popup]);
@@ -580,8 +587,8 @@ export function Characters({
                       <button
                         className="wood-button merc-recruit"
                         type="button"
-                        disabled={!!absences[merc.id] || infirmerieComplete || merc.santeActuelle === 0}
-                        title={merc.santeActuelle === 0 ? "À 0 PV, un mercenaire ne peut pas être soigné à l’infirmerie : il lui faut au moins 1 PV." : undefined}
+                        disabled={!!absences[merc.id] || infirmerieComplete || !soignable}
+                        title={!soignable ? raisonNonSoignable : undefined}
                         onClick={() => onHeal(merc.id)}
                       >
                         Soigner
@@ -622,7 +629,7 @@ export function Characters({
                   <p className="merc-recrute-note">
                     {absences[merc.id]
                       ? `${merc.nom} n’est pas à la caserne (${absences[merc.id].toLowerCase()}) : il garde son lit.`
-                      : `« Instructeur » l’envoie former des élèves de sa classe${instructeurEnPlace ? " (un instructeur est déjà en place)" : ""} ; « Soigner » l’envoie à l’infirmerie (${instancesDeSoins(merc)} instance${instancesDeSoins(merc) > 1 ? "s" : ""} selon sa santé perdue)${infirmerieComplete ? " (aucun lit libre pour le moment)" : ""}${merc.santeActuelle === 0 ? " (impossible à 0 PV : il faut au moins 1 PV)" : ""} ; « Quête » l’engage dans la quête en cours${queteEnCours ? ` (${queteEnCours.nom})` : " (aucune quête choisie pour le moment)"}.`}
+                      : `« Instructeur » l’envoie former des élèves de sa classe${instructeurEnPlace ? " (un instructeur est déjà en place)" : ""} ; « Soigner » l’envoie à l’infirmerie (${instancesDeSoins(merc)} instance${instancesDeSoins(merc) > 1 ? "s" : ""} selon sa santé perdue)${infirmerieComplete ? " (aucun lit libre pour le moment)" : ""}${!soignable ? ` (impossible : ${raisonNonSoignable.charAt(0).toLowerCase()}${raisonNonSoignable.slice(1)})` : ""} ; « Quête » l’engage dans la quête en cours${queteEnCours ? ` (${queteEnCours.nom})` : " (aucune quête choisie pour le moment)"}.`}
                   </p>
                   <p className="merc-recrute-note">
                     {merc.nom} a son lit à la Caserne. Le renvoyer efface le nom
