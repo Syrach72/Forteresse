@@ -6298,3 +6298,13 @@ a.merc-card:hover {
 .round-undo:disabled { background: #cfe3d4; color: #5b7a63; border-color: #7fa38a; opacity: 0.8; }
 .round-confirm { background: #a8d5b5; border-color: #14532d; color: #0b2a14; }
 .round-oui, .round-oui:hover:not(:disabled) { background: #14532d; color: #fff; }
+
+/* Liste à choix du menu : visible uniquement sur mobile, à la place de la rangée de boutons. */
+.mobile-menu { display: none; }
+@media (max-width: 680px) {
+  .class-nav { display: none !important; }
+  .mobile-menu {
+    display: block; flex: 1 1 100%; min-height: 44px; padding: 6px 10px; font: 700 18px Chiffres, Aniron, Georgia, serif;
+    color: var(--ink); background: rgba(255, 255, 255, 0.35); border: 2px ridge #bdaa83;
+  }
+}

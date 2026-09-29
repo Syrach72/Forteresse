@@ -2952,6 +2952,35 @@ export function App() {
       </a>
       <SessionBar sess={sess} estAdmin={estAdmin} />
       <header className="game-header">
+        {/* Mobile : le menu (classes, Admin, Déconnect., Forteresse) tient dans une liste à choix. */}
+        <select
+          className="mobile-menu"
+          aria-label="Menu"
+          value={
+            route === "forteresse"
+              ? "forteresse"
+              : CHARACTER_CLASSES.find(([id]) => route.startsWith(`personnages/${id}`))?.[0] || ""
+          }
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === "deconnexion") supabase.auth.signOut();
+            else if (v === "admin") location.hash = "admin";
+            else if (v === "forteresse") location.hash = "forteresse";
+            else if (v) location.hash = `personnages/${v}`;
+          }}
+        >
+          <option value="" disabled>
+            Menu
+          </option>
+          <option value="forteresse">Forteresse</option>
+          {CHARACTER_CLASSES.map(([id, label]) => (
+            <option key={id} value={id}>
+              {label}
+            </option>
+          ))}
+          {session?.user?.email?.toLowerCase() === "btestart@aol.com" && <option value="admin">Admin.</option>}
+          <option value="deconnexion">Déconnect.</option>
+        </select>
         <nav className="class-nav" aria-label="Personnages">
           <a
             className="nav-logout"
