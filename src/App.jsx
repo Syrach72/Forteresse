@@ -2909,6 +2909,15 @@ export function App() {
   // `seulementFabricables` (« Catalogue des objets » de la Forge et de l'Armurerie) : les objets de
   // la rubrique « Objet divers » qui ont une recette ; ils se fabriquent indifféremment à la forge
   // ou à l'armurerie, selon la page d'où l'on ouvre le catalogue.
+  // Fenêtre « Matériaux et Embauche » (achat de matériaux par lots, embauche d'un bûcheron, d'un mineur, d'un
+  // tanneur…), accessible depuis la page Ressources : deux catalogues côte à côte.
+  function ouvrirMateriauxEmbauche() {
+    setActionError("");
+    loadCatalogue("market:Matériaux", "Matériaux");
+    // La rubrique catalogue s'appelle "Collecte" ; le libellé affiché au joueur reste « Embauche ».
+    loadCatalogue("market:Collecte", "Collecte");
+    setModal({ type: "market-dual" });
+  }
   async function loadCatalogue(atelier, racineNom, seulementFabricables = false) {
     if (catalogueByAtelier[atelier]) return;
     const consultation = atelier.startsWith("market:");
@@ -3419,14 +3428,26 @@ export function App() {
           <div className="room-top">
             <a href="#forteresse">‹ Forteresse</a>
             <h1 ref={titleRef} tabIndex="-1">
-              Collecte des Ressources
+              Ressources
             </h1>
           </div>
           <section className="parchment employes-panel">
+            <div className="employes-actions">
+              <button type="button" className="market-category parchment employes-materiaux" onClick={ouvrirMateriauxEmbauche}>
+                <span className="sprite asset-sprite">
+                  <img src="/assets/icons/market-materiaux.webp" alt="" />
+                </span>
+                <span>Matériaux et Embauche</span>
+              </button>
+              <p className="muted">
+                Achetez des matériaux (bois, fer, cuir… par lots) et embauchez des bûcherons, des mineurs et des
+                tanneurs.
+              </p>
+            </div>
             {employesRoster.length === 0 && employesMetiers.length === 0 ? (
               <p className="muted">
-                Aucun employé embauché pour le moment. Rendez-vous au Marché,
-                rubrique « Matériaux et Embauche ».
+                Aucun employé embauché pour le moment. Utilisez le bouton
+                « Matériaux et Embauche » ci-dessus.
               </p>
             ) : (
               <div className="employes-grid">
@@ -3529,18 +3550,6 @@ export function App() {
             <Market
               onCategory={(c) => {
                 setActionError("");
-                // Matériaux et Embauche : deux catalogues côte à côte dans
-                // une même fenêtre (les employés ne rejoignent pas
-                // l'arsenal, cf. Collecte des Ressources).
-                if (c.dual) {
-                  loadCatalogue("market:Matériaux", "Matériaux");
-                  // La rubrique catalogue s'appelle "Collecte" (déjà créée
-                  // par Bruno avec Bûcheron/Mineur/Tanneur dedans) ; le
-                  // libellé affiché au joueur reste « Embauche ».
-                  loadCatalogue("market:Collecte", "Collecte");
-                  setModal({ type: "market-dual" });
-                  return;
-                }
                 // Consultation du catalogue Supabase pour cette catégorie
                 // racine (le mode achat sera traité ensuite).
                 const atelier = `market:${c.racine}`;
@@ -4479,7 +4488,7 @@ export function App() {
                       </div>
                     )}
                     <a className="inline-link" href="#employes" onClick={() => setModal(null)}>
-                      Voir la Collecte des Ressources
+                      Voir les Ressources
                     </a>
                   </section>
                 </div>

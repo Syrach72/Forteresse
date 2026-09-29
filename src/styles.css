@@ -6411,3 +6411,8 @@ a.merc-card:hover {
   max-width: 92px;
   max-height: none;
 }
+
+/* Page Ressources : accès à la fenêtre Matériaux et Embauche (ex-bouton du Marché) */
+.employes-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.employes-actions .employes-materiaux { position: static; transform: none; width: 150px; min-height: 130px; flex: none; }
+.employes-actions p { flex: 1 1 220px; margin: 0; }
