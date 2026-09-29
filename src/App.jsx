@@ -3493,6 +3493,11 @@ export function App() {
               onChange={updateTreasury}
               Modal={Modal}
             />
+          ) : route === "cimetiere" ? (
+            <section className="journal-page parchment">
+              <h2>Cimetière</h2>
+              <p className="muted">Cette page est en construction.</p>
+            </section>
           ) : route === "journal" ? (
             <Journal log={game.log} />
           ) : route === "entrainement" ? (
