@@ -1779,18 +1779,7 @@ function CatalogueSection({ onCraftItem }) {
           </tbody>
         </table>
       </div>
-      {!editing && (
-        <>
-          {formEl}
-          <CompetencesEditor mercenaireId={null} draft={draftComp} onDraft={setDraftComp} />
-          <EquipementBaseEditor mercenaireId={null} draft={draftEquip} onDraft={setDraftEquip} />
-          <div className="admin-form admin-form-actions">
-            <button className="primary" type="submit" form="merc-form" disabled={uploading}>
-              {uploading ? "Envoi de l’image…" : "Ajouter"}
-            </button>
-          </div>
-        </>
-      )}
+      {!editing && formEl}
     </div>
   );
 }
@@ -2661,7 +2650,18 @@ function MercenairesSection() {
           </tbody>
         </table>
       </div>
-      {!editing && formEl}
+      {!editing && (
+        <>
+          {formEl}
+          <CompetencesEditor mercenaireId={null} draft={draftComp} onDraft={setDraftComp} />
+          <EquipementBaseEditor mercenaireId={null} draft={draftEquip} onDraft={setDraftEquip} />
+          <div className="admin-form admin-form-actions">
+            <button className="primary" type="submit" form="merc-form" disabled={uploading}>
+              {uploading ? "Envoi de l’image…" : "Ajouter"}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
