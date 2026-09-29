@@ -6395,3 +6395,12 @@ a.merc-card:hover {
 .badge-d { background: #e9dcc0; }
 .badge-d:disabled { opacity: 0.4; cursor: not-allowed; }
 .badges-parade-confirm { font-size: 0.9em; }
+
+/* Badge F informatif sur l'icône d'une arme ou d'un bouclier équipé (visible tant que F est rouge) */
+.equip-icone { position: relative; }
+.equip-badge-f {
+  position: absolute; top: -4px; right: -4px; z-index: 3; width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #c62828; color: #fff; border: 1.5px solid #7f1616; font: 700 12px/1 Chiffres, Georgia, serif;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}

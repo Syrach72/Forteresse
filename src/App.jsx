@@ -1827,7 +1827,7 @@ export function App() {
         .select("arme_objet_id, arme_gemmes, gemme_objet_id, restant")
         .maybeSingle(),
       supabase.from("employe").select("objet_id, outil, quantite"),
-      supabase.from("mercenaire_equipement").select("mercenaire_id, emplacement, position, objet_id, gemmes"),
+      supabase.from("mercenaire_equipement").select("mercenaire_id, emplacement, position, objet_id, gemmes, badge_f"),
       supabase.from("objet_quete_active").select("objet_id"),
     ]);
     if (etat.error || inv.error || lignes.error || fab.error || !etat.data) return;
@@ -1930,6 +1930,7 @@ export function App() {
         equip.set(e.mercenaire_id, { arme: [null, null, null], armure: [null], bouclier: [null], objet: [null, null, null] });
       equip.get(e.mercenaire_id)[e.emplacement][e.position] = {
         objetId: e.objet_id,
+        badgeF: !!e.badge_f,
         gemmes,
         gemmesIcones: gemmes.map((g) => cache.objets.get(g)?.icone).filter(Boolean),
         nom: o.nom || "Objet",
@@ -2693,6 +2694,17 @@ export function App() {
     if (!data) return;
     notify(data.message || `${nom} est détruit.`);
   }
+  // Badge F d'une arme ou d'un bouclier équipé : enregistré, donc visible aussi sur l'icône de l'objet.
+  async function actBadgeF(mercenaireId, emplacement, position, actif) {
+    await operationPartagee(() =>
+      supabase.rpc("equipement_definir_badge_f", {
+        p_mercenaire: mercenaireId,
+        p_emplacement: emplacement,
+        p_position: position,
+        p_actif: actif,
+      }),
+    );
+  }
   async function actRendreArsenal(mercenaireId, objetId, quantity, gemmes = null) {
     const nom = sacsDos.get(mercenaireId)?.find((i) => i.objetId === objetId)?.nom || "L’objet";
     const data = await operationPartagee(() =>
@@ -3298,6 +3310,7 @@ export function App() {
           onUtiliserSac={actUtiliserSac}
           onDesequiper={actDesequiper}
           onDetruireEquipement={actDetruireEquipement}
+          onBadgeFEquipement={actBadgeF}
           erreur={actionError}
           onClearError={() => setActionError("")}
           onSetActuel={setActuel}

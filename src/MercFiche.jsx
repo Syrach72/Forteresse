@@ -130,8 +130,8 @@ const valeur = (v) => (v === null || v === undefined || v === "" ? "—" : v);
 // Badges F / D à côté de la mention « Parade » d'une arme ou d'un bouclier équipé. F (blanc, puis rouge au
 // clic, et inversement) déverrouille D ; D demande une confirmation puis détruit l'objet : il est retiré du
 // mercenaire et la moitié de ses composants (arrondie à l'inférieur) rejoint l'arsenal.
-function BadgesParade({ emplacement, position, nom, onDetruire, busy }) {
-  const [f, setF] = useState(false);
+function BadgesParade({ emplacement, position, nom, actif, onDetruire, onBasculerF, busy }) {
+  const f = !!actif;
   const [confirmer, setConfirmer] = useState(false);
   if (!onDetruire) return null;
   return (
@@ -141,9 +141,10 @@ function BadgesParade({ emplacement, position, nom, onDetruire, busy }) {
         className={`badge-parade badge-f${f ? " actif" : ""}`}
         aria-pressed={f}
         title={f ? "F activé (cliquer pour désactiver)" : "F : déverrouille la destruction (D)"}
+        disabled={busy}
         onClick={() => {
-          setF((v) => !v);
           setConfirmer(false);
+          onBasculerF?.(emplacement, position, !f);
         }}
       >
         F
@@ -180,7 +181,7 @@ function BadgesParade({ emplacement, position, nom, onDetruire, busy }) {
   );
 }
 
-export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, busy = false }) {
+export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, onBasculerF = null, busy = false }) {
   const e = equip || { arme: [null, null, null], armure: [null], bouclier: [null], objet: [null, null, null] };
   const bouton = (emplacement, position, nom) => (
     <button
@@ -195,6 +196,11 @@ export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, b
   const icone = (o) => (
     <span className="equip-icone">
       {o.icone && <img src={o.icone} alt="" loading="lazy" decoding="async" />}
+      {o.badgeF && (
+        <span className="equip-badge-f" title="Badge F actif" aria-label="Badge F actif">
+          F
+        </span>
+      )}
       {o.gemmesIcones?.length > 0 && (
         <span className="equip-gemmes">
           {o.gemmesIcones.map((g, k) => (
@@ -250,7 +256,7 @@ export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, b
                 {o.parade && (
                   <p className="equip-etiquettes">
                     <span className="equip-oui">Parade {o.parade}</span>
-                    <BadgesParade emplacement="arme" position={i} nom={o.nom} onDetruire={onDetruire} busy={busy} />
+                    <BadgesParade emplacement="arme" position={i} nom={o.nom} actif={o.badgeF} onDetruire={onDetruire} onBasculerF={onBasculerF} busy={busy} />
                   </p>
                 )}
                 {(o.legere || o.deuxMains) && (
@@ -318,7 +324,9 @@ export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, b
                         emplacement="bouclier"
                         position={0}
                         nom={e.bouclier[0].nom}
+                        actif={e.bouclier[0].badgeF}
                         onDetruire={onDetruire}
+                        onBasculerF={onBasculerF}
                         busy={busy}
                       />
                     )}

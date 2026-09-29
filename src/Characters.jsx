@@ -109,6 +109,7 @@ export function Characters({
   onUtiliserSac = async () => false,
   onDesequiper = () => {},
   onDetruireEquipement = () => {},
+  onBadgeFEquipement = () => {},
   erreur = "",
   or = 0,
   onSetActuel = async () => ({}),
@@ -716,6 +717,7 @@ export function Characters({
                 busy={busy}
                 onDesequiper={(emplacement, position) => onDesequiper(merc.id, emplacement, position)}
                 onDetruire={peutModifier ? (emplacement, position) => onDetruireEquipement(merc.id, emplacement, position) : null}
+                onBasculerF={(emplacement, position, actif) => onBadgeFEquipement(merc.id, emplacement, position, actif)}
               />
             </section>
           )}
