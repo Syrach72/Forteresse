@@ -2122,6 +2122,155 @@ function CompetencesEditor({ mercenaireId }) {
   );
 }
 
+// Équipement de base d'un mercenaire (fiche admin) : mêmes emplacements que sa fiche (3 armes, 1 armure,
+// 1 bouclier, 3 objets), remplis avec des objets du catalogue. Il est installé sur le premier mercenaire
+// gratuit d'un joueur ; le joueur peut ensuite le déséquiper, le vendre ou le détruire comme d'habitude.
+const EMPLACEMENTS_BASE = [
+  ["arme", "Armes", 3, "Arme"],
+  ["armure", "Armure", 1, "Armure"],
+  ["bouclier", "Bouclier", 1, "Bouclier"],
+  ["objet", "Objets", 3, "Objet"],
+];
+function EquipementBaseEditor({ mercenaireId }) {
+  const [catalogue, setCatalogue] = useState(null);
+  const [lignes, setLignes] = useState(null);
+  const [sel, setSel] = useState(null);
+  const [choix, setChoix] = useState("");
+  const [msg, setMsg] = useState("");
+  async function charger() {
+    const [c, o, m] = await Promise.all([
+      supabase.from("categorie").select("id, nom, parent_id"),
+      supabase.from("objet_catalogue").select("id, nom, icone, categorie_id").order("nom"),
+      supabase
+        .from("mercenaire_equipement_base")
+        .select("emplacement, position, objet_id")
+        .eq("mercenaire_id", mercenaireId),
+    ]);
+    const err = c.error || o.error || m.error;
+    if (err) {
+      setMsg(err.message);
+      return;
+    }
+    const chaine = (id) => {
+      const noms = [];
+      let cur = c.data.find((x) => x.id === id);
+      while (cur) {
+        noms.push((cur.nom || "").trim().toLowerCase());
+        cur = c.data.find((x) => x.id === cur.parent_id);
+      }
+      return noms;
+    };
+    setCatalogue(
+      o.data.map((x) => {
+        const noms = chaine(x.categorie_id);
+        const racine = noms[noms.length - 1] || "";
+        const bouclier = noms.some((n) => n.startsWith("bouclier"));
+        return {
+          ...x,
+          emplacement:
+            racine === "armes"
+              ? "arme"
+              : racine === "armures"
+                ? bouclier
+                  ? "bouclier"
+                  : "armure"
+                : racine === "objet divers"
+                  ? "objet"
+                  : null,
+        };
+      }),
+    );
+    setLignes(m.data);
+    setMsg("");
+  }
+  useEffect(() => {
+    setSel(null);
+    setCatalogue(null);
+    setLignes(null);
+    charger();
+  }, [mercenaireId]);
+  if (msg && !lignes) return <p className="admin-error">{msg}</p>;
+  if (!lignes || !catalogue) return <p>Chargement de l’équipement de base…</p>;
+  const parId = new Map(catalogue.map((c) => [c.id, c]));
+  const objetPlace = (emp, pos) => {
+    const l = lignes.find((x) => x.emplacement === emp && x.position === pos);
+    return l ? parId.get(l.objet_id) || { nom: "Objet", icone: null, id: l.objet_id } : null;
+  };
+  async function placer() {
+    if (!sel) return;
+    setMsg("");
+    const ligne = { mercenaire_id: mercenaireId, emplacement: sel.emplacement, position: sel.position };
+    const { error } = choix
+      ? await supabase
+          .from("mercenaire_equipement_base")
+          .upsert({ ...ligne, objet_id: choix }, { onConflict: "mercenaire_id,emplacement,position" })
+      : await supabase.from("mercenaire_equipement_base").delete().match(ligne);
+    if (error) setMsg(error.message);
+    else {
+      setSel(null);
+      await charger();
+    }
+  }
+  const options = sel
+    ? catalogue.filter((c) => c.emplacement === sel.emplacement).map((c) => ({ value: c.id, label: c.nom }))
+    : [];
+  return (
+    <div className="admin-form equip-base-editeur">
+      <h3>Équipement de base</h3>
+      <p className="muted">
+        Cliquez un emplacement, choisissez un objet du catalogue puis « Placer ». Cet équipement est donné au premier
+        mercenaire gratuit d’un joueur.
+      </p>
+      <div className="equip-base-grille">
+        {EMPLACEMENTS_BASE.map(([emp, titre, n, libelle]) => (
+          <div className="equip-base-groupe" key={emp}>
+            <h4>{titre}</h4>
+            {Array.from({ length: n }, (_, pos) => {
+              const o = objetPlace(emp, pos);
+              const actif = sel?.emplacement === emp && sel?.position === pos;
+              return (
+                <button
+                  key={pos}
+                  type="button"
+                  className={`equip-base-slot${o ? "" : " equip-base-slot-vide"}${actif ? " actif" : ""}`}
+                  aria-pressed={actif}
+                  onClick={() => {
+                    setSel({ emplacement: emp, position: pos, libelle: n > 1 ? `${libelle} ${pos + 1}` : libelle });
+                    setChoix(o?.id || "");
+                    setMsg("");
+                  }}
+                >
+                  {o?.icone && <img src={o.icone} alt="" />}
+                  <span>{o ? o.nom : n > 1 ? `${libelle} ${pos + 1}` : libelle}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      {sel && (
+        <div className="comp-editeur-choix">
+          <strong>{sel.libelle}</strong>
+          <SearchableSelect
+            value={choix}
+            onChange={setChoix}
+            options={options}
+            emptyLabel="— Emplacement vide —"
+            ariaLabel="Objet à placer"
+          />
+          <button type="button" className="primary" onClick={placer}>
+            {choix ? "Placer" : "Vider l’emplacement"}
+          </button>
+          <button type="button" className="text-button" onClick={() => setSel(null)}>
+            Fermer
+          </button>
+        </div>
+      )}
+      {msg && <p className="admin-error">{msg}</p>}
+    </div>
+  );
+}
+
 function MercenairesSection() {
   const mercenaires = useTable("mercenaire", { order: "nom" });
   const classes = useTable("classe", { order: "nom" });
@@ -2432,6 +2581,7 @@ function MercenairesSection() {
                     <td colSpan={5}>
                       {formEl}
                       <CompetencesEditor mercenaireId={m.id} />
+                      <EquipementBaseEditor mercenaireId={m.id} />
                     </td>
                   </tr>
                 )}
@@ -2773,6 +2923,9 @@ const TABLES_SAUVEGARDE = [
   "recrutement",
   "mercenaire_competence",
   "mercenaire_equipement",
+  "mercenaire_equipement_base",
+  "objet_quete_active",
+  "recrutement_gratuit",
   "invitation",
   "profil",
 ];

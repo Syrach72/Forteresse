@@ -656,3 +656,15 @@
 .admin-arme-icone-vide {
   color: var(--muted);
 }
+
+/* Équipement de base d'un mercenaire (fiche admin) */
+.equip-base-grille { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 10px 0; }
+.equip-base-groupe { display: flex; flex-direction: column; gap: 6px; }
+.equip-base-groupe h4 { margin: 0; font-size: 0.95rem; }
+.equip-base-slot {
+  display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 8px; text-align: left; font: inherit; cursor: pointer;
+  background: var(--paper); color: var(--ink); border: 1px solid var(--edge);
+}
+.equip-base-slot img { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+.equip-base-slot-vide { opacity: 0.6; border-style: dashed; }
+.equip-base-slot.actif { outline: 2px solid var(--gold); }
