@@ -2644,7 +2644,7 @@ export function App() {
       }),
     );
     if (!data) return false;
-    notify(`${nom} utilisé.`);
+    notify(typeof data === "string" && data ? `${nom} utilisé : ${data}.` : `${nom} utilisé.`);
     return true;
   }
   // Déséquiper : l'objet retourne au sac à dos (refusé si le sac est plein).
