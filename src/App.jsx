@@ -1020,6 +1020,8 @@ export function App() {
   // Nom du joueur inscrit sur chaque mercenaire recruté (par n'importe quel
   // joueur) : le Dortoir est PARTAGÉ, chacun y voit les mêmes lits.
   const [joueurs, setJoueurs] = useState(() => new Map());
+  // Noms de joueur (minuscules) dont le premier recrutement gratuit de la session est déjà consommé.
+  const [gratuitsUtilises, setGratuitsUtilises] = useState([]);
   // Quête en cours (compteur d’instances) et mercenaires qui y sont engagés :
   // ils sont absents du dortoir (lit grisé), comme à l’entraînement.
   const [queteEnCours, setQueteEnCours] = useState(null);
@@ -1279,7 +1281,9 @@ export function App() {
     // recrute dans la même opération ; le numéro de lit est attribué par elle (premier lit
     // libre) et elle refuse si la trésorerie manque, s'il n'y a plus de lit ou si un autre
     // joueur vient de recruter ce mercenaire.
-    const cout = COUT_RECRUTEMENT_PAR_VETERANCE * (m.veterance ?? 1);
+    // Premier mercenaire recruté par ce nom de joueur dans la session : gratuit (entretien conservé).
+    const gratuit = !gratuitsUtilises.includes(joueur.trim().toLowerCase());
+    const cout = gratuit ? 0 : COUT_RECRUTEMENT_PAR_VETERANCE * (m.veterance ?? 1);
     if (game.gold < cout) {
       notify(
         `Recrutement impossible : ${m.nom} coûte ${cout} Po (100 Po × vétérance ${m.veterance ?? 1}) et la trésorerie n’en compte que ${game.gold}.`,
@@ -1301,7 +1305,7 @@ export function App() {
     }
     const lit = dormRef.current.beds.findIndex((b) => b?.heroId === m.id);
     notify(
-      `${m.nom} est recruté par ${joueur} (−${data?.cout ?? cout} Po) et prend place au lit ${lit + 1} de la Caserne.`,
+      `${m.nom} est recruté par ${joueur} (${data?.gratuit ? "gratuit : premier mercenaire du joueur" : `−${data?.cout ?? cout} Po`}) et prend place au lit ${lit + 1} de la Caserne.`,
     );
     // Recrutement réussi : on va directement voir le mercenaire dans son lit.
     location.hash = "dortoirs";
@@ -2118,7 +2122,7 @@ export function App() {
     setTreasury(next);
   }
   async function synchroniserZonesPartagees() {
-    const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage, quete, queteMercs, actuels] = await Promise.all([
+    const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage, quete, queteMercs, actuels, gratuits] = await Promise.all([
       supabase.from("entrainement_place").select("groupe, role, position, mercenaire_id"),
       supabase
         .from("entrainement_reglage")
@@ -2167,6 +2171,7 @@ export function App() {
         ),
       );
       setJoueurs(new Map(rec.data.map((r) => [r.mercenaire_id, r.nom_joueur || ""])));
+      if (!gratuits?.error) setGratuitsUtilises((gratuits?.data || []).map((g) => g.nom_cle));
       const d = buildDorm(rec.data, dortoirReglage.data?.places);
       dormRef.current = d;
       setDorm(d);
@@ -2222,6 +2227,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_etat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_etat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "objet_quete_active" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "recrutement_gratuit" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_mercenaire" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "ligne_inventaire" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_equipement" }, rafraichir)
@@ -3218,6 +3224,7 @@ export function App() {
           tousRecrutes={[...tousRecrutes]}
           estAdmin={estAdmin}
           onRecruit={recruit}
+          gratuitsUtilises={gratuitsUtilises}
           onDismiss={dismiss}
           onSetVeterance={setVeterance}
           onSetInstructor={chooseInstructor}

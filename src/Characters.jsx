@@ -82,6 +82,7 @@ export function Characters({
   tousRecrutes = [],
   estAdmin = false,
   onRecruit = () => {},
+  gratuitsUtilises = [],
   onDismiss = () => {},
   onSetVeterance = async () => ({}),
   onSetInstructor = () => {},
@@ -135,6 +136,9 @@ export function Characters({
   // Nom du joueur inscrit sur la fiche avant de recruter (enregistré avec le
   // recrutement, puis affiché sur les pages où apparaît le mercenaire).
   const [nomJoueur, setNomJoueur] = useState("");
+  // Premier recrutement gratuit du joueur (même nom, sans tenir compte des majuscules) dans la session.
+  const gratuitPremier = !!nomJoueur.trim() && !gratuitsUtilises.includes(nomJoueur.trim().toLowerCase());
+  const coutRecrutement = gratuitPremier ? 0 : COUT_RECRUTEMENT_PAR_VETERANCE * (merc?.veterance ?? 1);
   // Vétérance en cours de saisie (administrateur seulement, sur la fiche).
   const [vet, setVet] = useState("");
   const [vetError, setVetError] = useState("");
@@ -612,9 +616,18 @@ export function Characters({
                   }}
                 >
                   <p className="merc-cout-recrutement">
-                    Recrutement : {COUT_RECRUTEMENT_PAR_VETERANCE} Po × vétérance {merc.veterance ?? 1} ={" "}
-                    <strong>{COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po</strong>, prélevés sur la
-                    trésorerie. Renvoyé, il faudra le payer de nouveau pour le recruter.
+                    {gratuitPremier ? (
+                      <>
+                        <strong>Premier mercenaire de {nomJoueur.trim()} : gratuit</strong> (son entretien reste dû).
+                        Les suivants coûteront {COUT_RECRUTEMENT_PAR_VETERANCE} Po × vétérance.
+                      </>
+                    ) : (
+                      <>
+                        Recrutement : {COUT_RECRUTEMENT_PAR_VETERANCE} Po × vétérance {merc.veterance ?? 1} ={" "}
+                        <strong>{COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po</strong>, prélevés sur la
+                        trésorerie. Renvoyé, il faudra le payer de nouveau pour le recruter.
+                      </>
+                    )}
                   </p>
                   <label htmlFor="merc-nom-joueur">Nom du joueur</label>
                   <input
@@ -630,15 +643,15 @@ export function Characters({
                   <button
                     className="wood-button merc-recruit"
                     type="submit"
-                    disabled={!litLibre || !nomJoueur.trim() || or < COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)}
+                    disabled={!litLibre || !nomJoueur.trim() || or < coutRecrutement}
                   >
-                    Recruter · {COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po
+                    Recruter · {coutRecrutement === 0 ? "gratuit" : `${coutRecrutement} Po`}
                   </button>
                   <p id="merc-recruit-help" className="merc-recrute-note">
                     {!litLibre
                       ? `Aucun lit libre à la Caserne : libérez un lit ou débloquez-en un pour recruter ${merc.nom}.`
-                      : or < COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)
-                        ? `Trésorerie insuffisante : ${COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po sont nécessaires (la compagnie en possède ${or}).`
+                      : or < coutRecrutement
+                        ? `Trésorerie insuffisante : ${coutRecrutement} Po sont nécessaires (la compagnie en possède ${or}).`
                         : !nomJoueur.trim()
                         ? "Inscrivez votre nom pour pouvoir recruter ce mercenaire. Il restera affiché sur lui jusqu’à son renvoi."
                         : `${merc.nom} prendra place dans un lit de la Caserne.`}
