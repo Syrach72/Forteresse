@@ -2693,6 +2693,11 @@ export function App() {
   // restent verrouillées tant que l'objet n'a pas été obtenu.
   const LIEUX_A_VERROU = ["entrainement", "marche", "mage", "alchimie", "forge", "armurerie", "infirmerie"];
   const verrouExempte = sess.courante?.nom === "Session test";
+  // Calèche (objet de quête) : le sac à dos de chaque mercenaire passe de 9 à 12 emplacements dès que la
+  // compagnie la possède (le serveur applique la même règle : _sac_capacite()).
+  const sacCapacite =
+    9 +
+    (game.inventory.some((i) => i.quantity > 0 && /^cal[eè]che$/i.test(String(i.nom).trim())) ? 3 : 0);
   const locationsAvecVerrou = useMemo(() => {
     if (verrouExempte) return LOCATIONS;
     const possede = new Set(
@@ -3161,6 +3166,7 @@ export function App() {
           Modal={Modal}
           notify={notify}
           sacsDos={sacsDos}
+          sacCapacite={sacCapacite}
           onRendreArsenal={actRendreArsenal}
           equipements={equipements}
           competences={competencesMerc}

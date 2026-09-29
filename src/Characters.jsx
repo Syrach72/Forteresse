@@ -99,6 +99,7 @@ export function Characters({
   Modal,
   notify,
   sacsDos = new Map(),
+  sacCapacite = 9,
   onRendreArsenal = () => {},
   equipements = new Map(),
   competences = new Map(),
@@ -928,7 +929,7 @@ export function Characters({
           ) : popup.type === "sac" ? (
             <>
               <p className="muted">
-                9 emplacements, jusqu’à 3 par objet. Envoyé depuis l’Arsenal
+                {sacCapacite} emplacements, jusqu’à 3 par objet. Envoyé depuis l’Arsenal
                 (composants et produits alchimiques, armes, armures et objets divers) ;
                 rendu à l’arsenal ci-dessous, sans restriction. Armes, armures
                 et objets peuvent être équipés (bouton « Équiper »).
@@ -939,7 +940,7 @@ export function Characters({
                 </p>
               )}
               <div className="sac-dos-grid">
-                {Array.from({ length: 9 }, (_, i) => (sacsDos.get(merc.id) || [])[i] || null).map(
+                {Array.from({ length: sacCapacite }, (_, i) => (sacsDos.get(merc.id) || [])[i] || null).map(
                   (item, i) =>
                     item ? (
                       <div className="sac-dos-slot" key={`${item.objetId}:${(item.gemmes || []).join(",")}:${i}`}>
