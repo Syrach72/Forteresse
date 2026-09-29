@@ -127,7 +127,60 @@ const valeur = (v) => (v === null || v === undefined || v === "" ? "—" : v);
 
 // Emplacements d'équipement : `equip` = { arme: [3], armure: [1], objet: [3] }
 // (chaque entrée : fiche de l'objet ou null). Déséquiper renvoie l'objet au sac.
-export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
+// Badges F / D à côté de la mention « Parade » d'une arme ou d'un bouclier équipé. F (blanc, puis rouge au
+// clic, et inversement) déverrouille D ; D demande une confirmation puis détruit l'objet : il est retiré du
+// mercenaire et la moitié de ses composants (arrondie à l'inférieur) rejoint l'arsenal.
+function BadgesParade({ emplacement, position, nom, onDetruire, busy }) {
+  const [f, setF] = useState(false);
+  const [confirmer, setConfirmer] = useState(false);
+  if (!onDetruire) return null;
+  return (
+    <span className="badges-parade">
+      <button
+        type="button"
+        className={`badge-parade badge-f${f ? " actif" : ""}`}
+        aria-pressed={f}
+        title={f ? "F activé (cliquer pour désactiver)" : "F : déverrouille la destruction (D)"}
+        onClick={() => {
+          setF((v) => !v);
+          setConfirmer(false);
+        }}
+      >
+        F
+      </button>
+      <button
+        type="button"
+        className="badge-parade badge-d"
+        disabled={!f || busy}
+        title={f ? `D : détruire ${nom}` : "D est verrouillé tant que F n’est pas rouge"}
+        onClick={() => setConfirmer(true)}
+      >
+        D
+      </button>
+      {confirmer && (
+        <span className="badges-parade-confirm" role="alertdialog" aria-label="Confirmer la destruction">
+          Détruire {nom} ? Irréversible.{" "}
+          <button
+            type="button"
+            className="text-button"
+            disabled={busy}
+            onClick={() => {
+              setConfirmer(false);
+              onDetruire(emplacement, position, nom);
+            }}
+          >
+            Confirmer
+          </button>{" "}
+          <button type="button" className="text-button" onClick={() => setConfirmer(false)}>
+            Annuler
+          </button>
+        </span>
+      )}
+    </span>
+  );
+}
+
+export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, busy = false }) {
   const e = equip || { arme: [null, null, null], armure: [null], bouclier: [null], objet: [null, null, null] };
   const bouton = (emplacement, position, nom) => (
     <button
@@ -197,6 +250,7 @@ export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
                 {o.parade && (
                   <p className="equip-etiquettes">
                     <span className="equip-oui">Parade {o.parade}</span>
+                    <BadgesParade emplacement="arme" position={i} nom={o.nom} onDetruire={onDetruire} busy={busy} />
                   </p>
                 )}
                 {(o.legere || o.deuxMains) && (
@@ -257,7 +311,18 @@ export function EquipementMercenaire({ equip, onDesequiper, busy = false }) {
               <dl className="equip-stats">
                 <div>
                   <dt>Parade</dt>
-                  <dd>{valeur(e.bouclier[0].parade)}</dd>
+                  <dd>
+                    {valeur(e.bouclier[0].parade)}
+                    {aUneValeur(e.bouclier[0].parade) && (
+                      <BadgesParade
+                        emplacement="bouclier"
+                        position={0}
+                        nom={e.bouclier[0].nom}
+                        onDetruire={onDetruire}
+                        busy={busy}
+                      />
+                    )}
+                  </dd>
                 </div>
                 <div>
                   <dt>Esquive</dt>

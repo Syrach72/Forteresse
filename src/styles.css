@@ -6383,3 +6383,15 @@ a.merc-card:hover {
 @media (max-width: 680px) {
   main.interior.journal > video.interior-backdrop { object-position: 61% center !important; }
 }
+
+/* Badges F / D à côté de « Parade » sur les armes et boucliers équipés */
+.badges-parade { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-left: 8px; vertical-align: middle; }
+.badge-parade {
+  width: 26px; height: 26px; padding: 0; border-radius: 50%; font: 700 14px/1 Chiffres, Georgia, serif; cursor: pointer;
+  border: 1.5px solid #6b5a3c; color: #2b1c10;
+}
+.badge-f { background: #fff; }
+.badge-f.actif { background: #c62828; border-color: #7f1616; color: #fff; }
+.badge-d { background: #e9dcc0; }
+.badge-d:disabled { opacity: 0.4; cursor: not-allowed; }
+.badges-parade-confirm { font-size: 0.9em; }

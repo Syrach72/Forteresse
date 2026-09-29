@@ -108,6 +108,7 @@ export function Characters({
   onEquiper = () => {},
   onUtiliserSac = async () => false,
   onDesequiper = () => {},
+  onDetruireEquipement = () => {},
   erreur = "",
   or = 0,
   onSetActuel = async () => ({}),
@@ -714,6 +715,7 @@ export function Characters({
                 equip={equipements.get(merc.id)}
                 busy={busy}
                 onDesequiper={(emplacement, position) => onDesequiper(merc.id, emplacement, position)}
+                onDetruire={peutModifier ? (emplacement, position) => onDetruireEquipement(merc.id, emplacement, position) : null}
               />
             </section>
           )}

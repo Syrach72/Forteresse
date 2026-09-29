@@ -2679,6 +2679,20 @@ export function App() {
     if (!data) return;
     notify(`${nom} déséquipé : retourné au sac à dos.`);
   }
+  // Destruction d'une arme ou d'un bouclier équipé (badges F puis D de la fiche) : l'objet disparaît du
+  // mercenaire et la moitié de ses composants rejoint l'arsenal.
+  async function actDetruireEquipement(mercenaireId, emplacement, position) {
+    const nom = equipements.get(mercenaireId)?.[emplacement]?.[position]?.nom || "L’objet";
+    const data = await operationPartagee(() =>
+      supabase.rpc("equipement_detruire", {
+        p_mercenaire: mercenaireId,
+        p_emplacement: emplacement,
+        p_position: position,
+      }),
+    );
+    if (!data) return;
+    notify(data.message || `${nom} est détruit.`);
+  }
   async function actRendreArsenal(mercenaireId, objetId, quantity, gemmes = null) {
     const nom = sacsDos.get(mercenaireId)?.find((i) => i.objetId === objetId)?.nom || "L’objet";
     const data = await operationPartagee(() =>
@@ -3283,6 +3297,7 @@ export function App() {
           onEquiper={actEquiperSac}
           onUtiliserSac={actUtiliserSac}
           onDesequiper={actDesequiper}
+          onDetruireEquipement={actDetruireEquipement}
           erreur={actionError}
           onClearError={() => setActionError("")}
           onSetActuel={setActuel}
