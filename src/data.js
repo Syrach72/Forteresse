@@ -133,10 +133,11 @@ export const LOCATIONS = [
   {
     id: "quetes",
     name: "Quêtes",
-    x: 86,
-    y: 11.5,
-    w: 23,
-    h: 23,
+    x: 10.2,
+    y: 16.5,
+    w: 15.6,
+    h: 21,
+    icon: [0, 0, 60, 60],
     description: "Les prochaines aventures de la compagnie.",
   },
   // Dernier de la liste : en bas de la barre latérale, sous les Quêtes.

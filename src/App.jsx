@@ -207,14 +207,8 @@ function Sprite({ location, className = "" }) {
     typeof location === "string"
       ? LOCATIONS.find((x) => x.id === location)
       : location;
-  if (l?.id === "quetes")
-    return (
-      <span className={`sprite asset-sprite ${className}`} aria-hidden="true">
-        <img src="/assets/references/quests.webp" alt="" />
-      </span>
-    );
   if (!l?.icon) return null;
-  const assetId = l.id === "alchimie" ? "magic-items" : l.id;
+  const assetId = l.id === "alchimie" ? "magic-items" : l.id === "quetes" ? "quetes-sidebar" : l.id;
   if (assetId !== "quetes") return (
     <span className={`sprite asset-sprite ${className}`} aria-hidden="true">
       <img src={`/assets/icons/${assetId}.webp`} alt="" />
@@ -3090,12 +3084,6 @@ export function App() {
         )}
         </div>
         </div>
-        {route === "forteresse" && (
-          <button className="quest-sign header-quests" aria-label="Quêtes" onClick={() => { location.hash = "quetes"; }}>
-            <img src="/assets/references/quests.webp" alt="" />
-            <span>Quêtes</span>
-          </button>
-        )}
         </div>
       </header>
       {sess.ecran ? (
@@ -3160,11 +3148,11 @@ export function App() {
             style={{ backgroundImage: `url(${ASSETS.castle})` }}
           >
             <BackdropVideo src="/assets/video/fortress-anime3.mp4" />
-            {locationsAvecVerrou.filter((l) => l.id !== "quetes").map((l) => (
+            {locationsAvecVerrou.map((l) => (
               <button
                 key={l.id}
                 onClick={() => go(l)}
-                className={`location ${l.id === "quetes" ? "quest-sign" : "parchment"}${l.locked ? " location-locked" : ""}`}
+                className={`location parchment${l.locked ? " location-locked" : ""}`}
                 style={{
                   left: `${l.x}%`,
                   top: `${l.y}%`,
@@ -3176,18 +3164,12 @@ export function App() {
                 }}
                 aria-label={`${l.name}${l.locked ? " — verrouillé" : ""}`}
               >
-                {l.id === "quetes" ? (
-                  <img src="/assets/references/quests.webp" alt="Quêtes" />
-                ) : (
-                  <>
-                    <Sprite location={l} />
-                    <span>{l.name}</span>
-                    {l.locked && (
-                      <span className="lock-mark" aria-hidden="true">
-                        <img src="/assets/icons/lock.webp" alt="" />
-                      </span>
-                    )}
-                  </>
+                <Sprite location={l} />
+                <span>{l.name}</span>
+                {l.locked && (
+                  <span className="lock-mark" aria-hidden="true">
+                    <img src="/assets/icons/lock.webp" alt="" />
+                  </span>
                 )}
               </button>
             ))}
