@@ -1307,6 +1307,14 @@ export function App() {
     await synchroniserPartage();
     return {};
   }
+  // Restauration Arcanique : le serveur crédite +2/+3/+4/+5 énergies selon la vétérance (1/4/7/10),
+  // sans dépasser l'énergie max.
+  async function restaurerEnergie(id) {
+    const { data, error } = await supabase.rpc("mercenaire_restauration_arcanique", { p_mercenaire: id });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    return { montant: data };
+  }
   // Puissance, Vélocité, Mental : modifiables par le joueur qui a recruté le mercenaire (ou le MJ),
   // plafonnées à 9. Déterminent Santé Max (3 + 2×Puissance) et Énergie Max (2×Mental) sur la fiche.
   async function setCaracteristiques(id, puissance, velocite, mental) {
@@ -3162,6 +3170,7 @@ export function App() {
           onClearError={() => setActionError("")}
           onSetActuel={setActuel}
           onDepenserEnergie={depenserEnergie}
+          onRestaurerEnergie={restaurerEnergie}
           onSetCaracteristiques={setCaracteristiques}
           or={game.gold}
           busy={busy}

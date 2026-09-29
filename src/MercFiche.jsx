@@ -374,14 +374,39 @@ export function FicheObjet({ objet }) {
 // Fenêtre d'une cellule de compétence (fiche joueur).
 // Compétence active utilisable (vétérance atteinte) par le joueur qui a recruté le mercenaire : un
 // compteur de 1 à 10 permet de dépenser cette énergie, après une validation explicite.
-export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null }) {
+// Paliers de « Restauration Arcanique » : vétérance requise -> énergie rendue.
+const PALIERS_RESTAURATION = [
+  [1, 2],
+  [4, 3],
+  [7, 4],
+  [10, 5],
+];
+export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null }) {
   const { niveau, type, competence } = cellule;
   const atteinte = veterance >= niveau;
   const [choix, setChoix] = useState(null);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
   const [depense, setDepense] = useState(null);
-  const compteur = !!competence && type !== "passive" && atteinte && !!onDepenser;
+  const restauration = competence?.nom?.trim().toLowerCase() === "restauration arcanique";
+  const compteur = !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration;
+  // Restauration Arcanique : un seul palier utilisable, le plus haut atteint, et une fois par ouverture
+  // de la fenêtre (le bouton reste grisé jusqu'à sa fermeture).
+  const [restaure, setRestaure] = useState(null);
+  const palierActif = restauration
+    ? PALIERS_RESTAURATION.filter(([n]) => veterance >= n).at(-1)?.[0] ?? null
+    : null;
+  async function restaurer() {
+    setEnCours(true);
+    const res = await onRestaurer();
+    setEnCours(false);
+    if (res?.error) {
+      setErreur(res.error);
+      return;
+    }
+    setErreur("");
+    setRestaure(res?.montant ?? true);
+  }
   async function valider() {
     setEnCours(true);
     const res = await onDepenser(choix);
@@ -415,6 +440,36 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
       <p className={atteinte ? "comp-detail-ok" : "comp-detail-non"}>
         {atteinte ? "Vétérance atteinte : utilisable." : `Vétérance ${niveau} requise (actuelle : ${veterance}).`}
       </p>
+      {restauration && !!onRestaurer && (
+        <div className="energie-compteur">
+          <p className="energie-compteur-titre">
+            Restaurer de l’énergie <span className="muted">(disponible : {energie ?? "—"})</span>
+          </p>
+          <div className="energie-compteur-chiffres restauration-paliers" role="group" aria-label="Restauration Arcanique">
+            {PALIERS_RESTAURATION.map(([niveau, gain]) => (
+              <button
+                key={niveau}
+                type="button"
+                className="energie-chiffre restauration-palier"
+                disabled={enCours || restaure !== null || niveau !== palierActif}
+                onClick={restaurer}
+              >
+                Vétérance {niveau} : +{gain} énergies
+              </button>
+            ))}
+          </div>
+          {restaure !== null && (
+            <p className="comp-detail-ok" role="status">
+              Énergie restaurée{typeof restaure === "number" ? " : +" + restaure : ""}. Fermez la fenêtre pour pouvoir l’utiliser de nouveau.
+            </p>
+          )}
+          {erreur && (
+            <p className="error" role="alert">
+              {erreur}
+            </p>
+          )}
+        </div>
+      )}
       {compteur && (
         <div className="energie-compteur">
           <p className="energie-compteur-titre">

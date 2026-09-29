@@ -6308,3 +6308,4 @@ a.merc-card:hover {
     color: var(--ink); background: rgba(255, 255, 255, 0.35); border: 2px ridge #bdaa83;
   }
 }
+.restauration-paliers .restauration-palier { min-width: 0; flex: 1 1 130px; padding: 8px 10px; }

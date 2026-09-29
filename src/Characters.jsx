@@ -107,6 +107,7 @@ export function Characters({
   or = 0,
   onSetActuel = async () => ({}),
   onDepenserEnergie = async () => ({}),
+  onRestaurerEnergie = async () => ({}),
   onSetCaracteristiques = async () => ({}),
   onClearError = () => {},
   busy = false,
@@ -1088,6 +1089,7 @@ export function Characters({
               veterance={popup.veterance}
               energie={merc ? (merc.energieActuelle ?? energieMax) : null}
               onDepenser={merc && peutModifier ? (n) => onDepenserEnergie(merc.id, n) : null}
+              onRestaurer={merc && peutModifier ? () => onRestaurerEnergie(merc.id) : null}
             />
           ) : popup.type === "fougue" ? (
             <div className="ability-description">
