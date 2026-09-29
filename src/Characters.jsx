@@ -104,6 +104,7 @@ export function Characters({
   equipements = new Map(),
   competences = new Map(),
   onEquiper = () => {},
+  onUtiliserSac = async () => false,
   onDesequiper = () => {},
   erreur = "",
   or = 0,
@@ -127,6 +128,9 @@ export function Characters({
   // Le joueur qui a recruté ce mercenaire (ou le MJ) peut modifier sa fiche.
   const peutModifier = merc ? recrutes.includes(merc.id) || estAdmin : false;
   const [popup, setPopup] = useState(null);
+  // Confirmation de l'utilisation d'un produit alchimique du sac à dos (« Utiliser » puis « Confirmer »).
+  const [confirmUsage, setConfirmUsage] = useState(false);
+  useEffect(() => setConfirmUsage(false), [popup]);
   const [errors, setErrors] = useState({});
   // Nom du joueur inscrit sur la fiche avant de recruter (enregistré avec le
   // recrutement, puis affiché sur les pages où apparaît le mercenaire).
@@ -925,6 +929,38 @@ export function Characters({
               </button>
               <h3 className="fiche-objet-titre">{popup.objet.nom}</h3>
               <FicheObjet objet={popup.objet} />
+              {popup.objet.categorie === "Produits Alchimiques" && peutModifier && (
+                <div className="item-detail-actions">
+                  {!confirmUsage ? (
+                    <button type="button" className="wood-button" disabled={busy} onClick={() => setConfirmUsage(true)}>
+                      Utiliser
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="wood-button"
+                        disabled={busy}
+                        onClick={async () => {
+                          const ok = await onUtiliserSac(merc.id, popup.objet.objetId, popup.objet.gemmes);
+                          if (ok) setPopup({ type: "sac" });
+                          else setConfirmUsage(false);
+                        }}
+                      >
+                        Confirmer
+                      </button>
+                      <button type="button" className="text-button" disabled={busy} onClick={() => setConfirmUsage(false)}>
+                        Annuler
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+              {erreur && (
+                <p className="error" role="alert">
+                  {erreur}
+                </p>
+              )}
             </>
           ) : popup.type === "sac" ? (
             <>

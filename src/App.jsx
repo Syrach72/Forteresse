@@ -2632,6 +2632,21 @@ export function App() {
     if (!data) return;
     notify(`${nom} équipé.`);
   }
+  // Utiliser un produit alchimique du sac à dos : consomme 1 exemplaire (la ligne disparaît s'il
+  // n'en reste qu'un). Renvoie true en cas de succès.
+  async function actUtiliserSac(mercenaireId, objetId, gemmes = []) {
+    const nom = sacsDos.get(mercenaireId)?.find((i) => i.objetId === objetId)?.nom || "Le produit";
+    const data = await operationPartagee(() =>
+      supabase.rpc("sac_dos_utiliser", {
+        p_mercenaire: mercenaireId,
+        p_objet: objetId,
+        p_gemmes: gemmes && gemmes.length ? gemmes : null,
+      }),
+    );
+    if (!data) return false;
+    notify(`${nom} utilisé.`);
+    return true;
+  }
   // Déséquiper : l'objet retourne au sac à dos (refusé si le sac est plein).
   async function actDesequiper(mercenaireId, emplacement, position) {
     const nom = equipements.get(mercenaireId)?.[emplacement]?.[position]?.nom || "L’objet";
@@ -3232,6 +3247,7 @@ export function App() {
           equipements={equipements}
           competences={competencesMerc}
           onEquiper={actEquiperSac}
+          onUtiliserSac={actUtiliserSac}
           onDesequiper={actDesequiper}
           erreur={actionError}
           onClearError={() => setActionError("")}
