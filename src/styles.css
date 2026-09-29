@@ -6262,3 +6262,10 @@ a.merc-card:hover {
   .header-actions { min-height: 120px; }
   .class-nav > a:last-child { background: rgba(15, 35, 90, 0.88); color: #fff4da; }
 }
+
+/* Mobile : la pièce d'or occupe toute la largeur, le bloc Rd / Catalogue / +1 Instance passe dessous. */
+@media (max-width: 680px) {
+  .header-treasury { flex-direction: column; }
+  .header-treasury .gold-counter { flex: none; min-height: 44px; }
+  .header-actions { width: 100%; }
+}
