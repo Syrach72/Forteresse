@@ -276,7 +276,7 @@ export function Characters({
         </div>
         <a
           href={
-            merc && recrutes.includes(merc.id)
+            merc && tousRecrutes.includes(merc.id)
               ? "#dortoirs"
               : hero || merc
                 ? `#personnages/${classId}`
@@ -284,7 +284,7 @@ export function Characters({
           }
         >
           {merc
-            ? recrutes.includes(merc.id)
+            ? tousRecrutes.includes(merc.id)
               ? "‹ Caserne"
               : `‹ ${cls?.[1] || "Personnages"}`
             : hero
@@ -719,7 +719,7 @@ export function Characters({
               <div className="merc-bloc-entete">
                 <h2 id="merc-equipement-titre">Équipement</h2>
                 {/* Sac à dos (inventaire) : dans la rubrique Équipement. */}
-                {recrutes.includes(merc.id) && (
+                {peutModifier && (
                   <button
                     className="merc-sac-dos merc-sac-equipement"
                     type="button"
