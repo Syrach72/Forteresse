@@ -766,7 +766,8 @@ export function Characters({
           <section className="parchment empty-class">
             <h2>Fiche réservée</h2>
             <p>Ce mercenaire a été recruté : sa fiche n’est accessible qu’à son recruteur.</p>
-            <a href={`#personnages/${classId}`}>Retour</a>
+            {/* On y arrive en cliquant un mercenaire de la Caserne : « Retour » ramène à la Caserne. */}
+            <a href="#dortoirs">Retour</a>
           </section>
         )
       ) : heroId && !hero && mercenaires.length === 0 ? (
