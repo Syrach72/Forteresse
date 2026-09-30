@@ -209,7 +209,8 @@ export function Characters({
   ) : null;
   useEffect(() => {
     setOnglet("general");
-    setPopup(null);
+    // Retour depuis l'Arsenal : ne pas fermer le sac que l'on est en train de rouvrir.
+    if (!(sacARouvrir && merc && sacARouvrir === merc.id)) setPopup(null);
     onClearError();
     setNomJoueur("");
     document.title = `${hero?.name || cls?.[1] || "Personnages"} · Forteresse`;
