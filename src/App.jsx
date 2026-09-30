@@ -1627,7 +1627,7 @@ export function App() {
           return;
         }
         if (gains.quete?.termine && gains.quete.attente) {
-          setRecompenseQuete({ nom: gains.quete.nom, or: gains.quete.or || 0, items: gains.quete.items || [] });
+          setRecompenseQuete((c) => c || { nom: gains.quete.nom, or: gains.quete.or || 0, items: gains.quete.items || [], ouvertLe: Date.now() });
         }
         const nom = (id) =>
           peopleRef.current.find((w) => w.id === id)?.name || "Un mercenaire";
@@ -1842,9 +1842,13 @@ export function App() {
       supabase.from("quete_etat").select("recompenses_attente").not("recompenses_attente", "is", null).limit(1),
     ]);
     if (etat.error || inv.error || lignes.error || fab.error || !etat.data) return;
+    // Récompenses de fin de quête en attente : la fenêtre s'ouvre chez tous les joueurs de la session ;
+    // dès qu'elles sont récupérées (chez n'importe lequel), elle se ferme chez les autres.
     const enAttente = attente.data?.[0]?.recompenses_attente;
     if (enAttente) {
-      setRecompenseQuete((c) => c || { nom: enAttente.nom, or: enAttente.or || 0, items: enAttente.items || [] });
+      setRecompenseQuete((c) => c || { nom: enAttente.nom, or: enAttente.or || 0, items: enAttente.items || [], ouvertLe: Date.now() });
+    } else {
+      setRecompenseQuete((c) => (c && Date.now() - (c.ouvertLe || 0) > 4000 ? null : c));
     }
     const arsenal = inv.data.find((i) => i.type === "arsenal");
     const enStock = lignes.data.filter(
@@ -4176,7 +4180,7 @@ export function App() {
           {roomNav}
         </main>
       )}
-      {estAdmin && recompenseQuete && (
+      {recompenseQuete && (
         <RecompenseQuete recompense={recompenseQuete} onClose={recupererRecompensesQuete} />
       )}
       {alerteSolde && game.gold < 0 && (

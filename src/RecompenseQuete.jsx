@@ -10,7 +10,7 @@ export function RecompenseQuete({ recompense, onClose }) {
   const [revele, setRevele] = useState(false);
   const [busy, setBusy] = useState(false);
   const items = recompense.items || [];
-  const mystere = items.find((i) => i.mystere);
+  const mysteres = items.filter((i) => i.mystere);
   const fixes = items.filter((i) => !i.mystere);
 
   useEffect(() => {
@@ -40,7 +40,6 @@ export function RecompenseQuete({ recompense, onClose }) {
     await onClose();
   }
 
-  const objMyst = mystere && objets[mystere.objet_id];
   return (
     <Modal title={`Quête accomplie : ${recompense.nom}`} onClose={fermer} className="recompense-quete">
       <div className="recompense-grille">
@@ -62,16 +61,19 @@ export function RecompenseQuete({ recompense, onClose }) {
             <span className="recompense-nom">Or</span>
           </div>
         )}
-        {mystere && (
-          <div className={`recompense-case${revele ? " recompense-revele" : ""}`}>
-            <span className="recompense-vignette recompense-mystere">
-              {!revele && <img className="recompense-point" src="/assets/icons/mystere.webp" alt="" />}
-              {revele && objMyst?.icone && <img className="recompense-objet" src={objMyst.icone} alt="" />}
-              {revele && <span className="recompense-eclat" aria-hidden="true" />}
-            </span>
-            <span className="recompense-nom">{revele ? objMyst?.nom || "…" : "Récompense mystère"}</span>
-          </div>
-        )}
+        {mysteres.map((i, n) => {
+          const o = objets[i.objet_id];
+          return (
+            <div className={`recompense-case${revele ? " recompense-revele" : ""}`} key={"m" + n}>
+              <span className="recompense-vignette recompense-mystere">
+                {!revele && <img className="recompense-point" src="/assets/icons/mystere.webp" alt="" />}
+                {revele && o?.icone && <img className="recompense-objet" src={o.icone} alt="" />}
+                {revele && <span className="recompense-eclat" aria-hidden="true" />}
+              </span>
+              <span className="recompense-nom">{revele ? o?.nom || "…" : "Récompense mystère"}</span>
+            </div>
+          );
+        })}
       </div>
       <p className="muted">Ces récompenses rejoignent l’arsenal de la compagnie dès que vous fermez cette fenêtre.</p>
       <button type="button" className="wood-button" onClick={fermer} disabled={busy}>

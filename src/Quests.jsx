@@ -231,18 +231,6 @@ export function Quests({
                   })}
                   <button
                     type="button"
-                    className="quest-reward-slot quest-reward-mystere"
-                    onClick={() =>
-                      notify(
-                        "Récompense mystère : à la fin de la quête, un objet tiré au hasard parmi les armes, boucliers, objets divers et produits alchimiques.",
-                      )
-                    }
-                    aria-label="Récompense mystère : un objet tiré au hasard à la fin de la quête"
-                  >
-                    <img src="/assets/icons/mystere.webp" alt="" />
-                  </button>
-                  <button
-                    type="button"
                     className="quest-reward-slot quest-reward-or"
                     disabled={!q.recompense_or}
                     onClick={() => q.recompense_or && notify(`Récompense : ${q.recompense_or} Po.`)}

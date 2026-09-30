@@ -4035,7 +4035,7 @@ video.interior-backdrop-boxed {
    livraison reste manuelle, au +1 Instance de l'administrateur). */
 .quest-rewards {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 6px;
   margin-top: 20px;
 }
