@@ -7,7 +7,7 @@ const fmtDate = (d) =>
 // — entretien mercenaires (dortoir), entretien de la Collecte, achats/embauches/
 // déblocages faits depuis le dernier +1 Instance, dernière quête accomplie et
 // dernier tribut du village. Chaque nouvelle instance applique ces montants et
-// tire un nouveau tribut aléatoire (50 à 100 Po). Présentation en livre
+// tire un nouveau tribut aléatoire (25 à 50 Po × vétérance moyenne des mercenaires). Présentation en livre
 // comptable : deux panneaux de même largeur (Dépenses / Recettes), chacun avec
 // son total, et le Solde dans un encart séparé.
 export function Treasury({
@@ -157,7 +157,7 @@ export function Treasury({
         <p className="muted">
           La prochaine instance appliquera : −{fmt(entretienMercenaires + entretienCollecte)} Po
           d’entretien, +{fmt(treasury.income)} Po d’autre recette, et un tribut du village
-          aléatoire (50 à 100 Po) — plus la récompense de la quête en cours si elle se termine.
+          aléatoire (25 à 50 Po × la vétérance moyenne des mercenaires de la Caserne) — plus la récompense de la quête en cours si elle se termine.
         </p>
         {gold < 0 && (
           <p className="error">

@@ -39,7 +39,7 @@ export function Dortoir({
       <section
         ref={boardRef}
         className="dorm-board dorm-named parchment glass-board"
-        aria-label="Lits des mercenaires embauchés"
+        aria-label="Places des mercenaires embauchés"
       >
         <div
           ref={layerRef}
@@ -59,7 +59,7 @@ export function Dortoir({
             </span>
           )}
           <span>
-            {hired} embauché{hired > 1 ? "s" : ""} · {dorm.capacity} lits
+            {hired} embauché{hired > 1 ? "s" : ""} · {dorm.capacity} places
             débloqués
           </span>
         </div>
@@ -88,11 +88,11 @@ export function Dortoir({
                   aria-label={
                     locked
                       ? purchasable
-                        ? `Débloquer le lit ${slot + 1} pour ${prix} pièces d’or`
-                        : `Lit ${slot + 1} verrouillé`
+                        ? `Débloquer la place ${slot + 1} pour ${prix} pièces d’or`
+                        : `Place ${slot + 1} verrouillée`
                       : merc
                         ? `${merc.name}, vétérance ${merc.veterancy}${merc.player ? `, joueur ${merc.player}` : ""}${away ? `, ${away.toLowerCase()}` : ""}`
-                        : `Lit ${slot + 1} libre`
+                        : `Place ${slot + 1} disponible`
                   }
                 >
                   <span className="bed-frame" aria-hidden="true">
@@ -117,7 +117,7 @@ export function Dortoir({
                       {prix != null && <strong>{prix} Po</strong>}
                     </>
                   ) : (
-                    <span className="free-bed">Lit libre</span>
+                    <span className="free-bed">Place disponible</span>
                   )}
                 </button>
                 {!locked && (
@@ -137,17 +137,17 @@ export function Dortoir({
         <Modal
           title={
             popup.type === "unlock"
-              ? "Débloquer un lit"
+              ? "Débloquer une place"
               : popup.type === "locked"
-                ? "Lit verrouillé"
-                : "Lit libre"
+                ? "Place verrouillée"
+                : "Place disponible"
           }
           onClose={() => setPopup(null)}
         >
           {popup.type === "unlock" ? (
             <>
               <p>
-                Débloquez un lit supplémentaire pour embaucher un mercenaire de
+                Débloquez une place supplémentaire pour embaucher un mercenaire de
                 plus. La trésorerie de la compagnie sera débitée de{" "}
                 <strong>{prixPopup} Po</strong>.
               </p>
@@ -175,14 +175,14 @@ export function Dortoir({
           ) : popup.type === "locked" ? (
             <p>
               {estAdmin
-                ? "Les lits se débloquent dans l’ordre."
-                : "Seul le maître du jeu peut débloquer un lit, dans l’ordre."}{" "}
+                ? "Les places se débloquent dans l’ordre."
+                : "Seul le maître du jeu peut débloquer une place, dans l’ordre."}{" "}
               Celui-ci coûte <strong>{prixPopup} Po</strong>
-              {estAdmin ? " une fois les lits précédents débloqués" : ""}.
+              {estAdmin ? " une fois les places précédentes débloquées" : ""}.
             </p>
           ) : (
             <p>
-              Ce lit est libre. Un mercenaire y prend place dès qu’il est
+              Cette place est disponible. Un mercenaire y prend place dès qu’il est
               recruté, depuis les pages Personnages.
             </p>
           )}

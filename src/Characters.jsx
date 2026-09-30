@@ -632,8 +632,8 @@ export function Characters({
                       : `« Instructeur » l’envoie former des élèves de sa classe${instructeurEnPlace ? " (un instructeur est déjà en place)" : ""} ; « Soigner » l’envoie à l’infirmerie (${instancesDeSoins(merc)} instance${instancesDeSoins(merc) > 1 ? "s" : ""} selon sa santé perdue)${infirmerieComplete ? " (aucun lit libre pour le moment)" : ""}${!soignable ? ` (impossible : ${raisonNonSoignable.charAt(0).toLowerCase()}${raisonNonSoignable.slice(1)})` : ""} ; « Quête » l’engage dans la quête en cours${queteEnCours ? ` (${queteEnCours.nom})` : " (aucune quête choisie pour le moment)"}.`}
                   </p>
                   <p className="merc-recrute-note">
-                    {merc.nom} a son lit à la Caserne. Le renvoyer efface le nom
-                    du joueur et libère le lit ; il conserve sa vétérance, son
+                    {merc.nom} a sa place à la Caserne. Le renvoyer efface le nom
+                    du joueur et libère la place ; il conserve sa vétérance, son
                     équipement et ses PV actuels (seule son énergie revient au
                     maximum). Le recruter de nouveau ne réinitialise rien et coûterait{" "}
                     {COUT_RECRUTEMENT_PAR_VETERANCE * (merc.veterance ?? 1)} Po.
@@ -690,12 +690,12 @@ export function Characters({
                   </button>
                   <p id="merc-recruit-help" className="merc-recrute-note">
                     {!litLibre
-                      ? `Aucun lit libre à la Caserne : libérez un lit ou débloquez-en un pour recruter ${merc.nom}.`
+                      ? `Aucune place disponible à la Caserne : libérez une place ou débloquez-en une pour recruter ${merc.nom}.`
                       : or < coutRecrutement
                         ? `Trésorerie insuffisante : ${coutRecrutement} Po sont nécessaires (la compagnie en possède ${or}).`
                         : !nomJoueur.trim()
                         ? "Inscrivez votre nom pour pouvoir recruter ce mercenaire. Il restera affiché sur lui jusqu’à son renvoi."
-                        : `${merc.nom} prendra place dans un lit de la Caserne.`}
+                        : `${merc.nom} prendra place dans une place de la Caserne.`}
                   </p>
                 </form>
               )}
@@ -1083,7 +1083,7 @@ export function Characters({
           ) : popup.type === "renvoi" ? (
             <>
               <p>
-                <strong>{merc?.nom}</strong> quitte la compagnie : son lit et le
+                <strong>{merc?.nom}</strong> quitte la compagnie : sa place et le
                 nom du joueur sont effacés. Il redevient disponible sur la page
                 de sa classe, avec sa vétérance et tout ce qu’il a acquis.
               </p>
