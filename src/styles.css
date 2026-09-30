@@ -6679,3 +6679,25 @@ a.merc-card:hover {
   color: var(--muted);
   font-weight: 400;
 }
+
+/* Téléphone : « Matériaux et Embauche » et page Ressources. Icônes plus grandes ; plus de zone de
+   défilement dans la fenêtre (c'est la fenêtre qui défile) ; l'étiquette de prix passe sous le nom. */
+@media (max-width: 700px) {
+  dialog.modal-market-dual .db-item-icon,
+  dialog.modal-market-dual .db-item-icon-wrap {
+    width: 72px;
+    height: 72px;
+  }
+  dialog.modal .db-item-list {
+    max-height: none;
+    overflow: visible;
+  }
+  dialog.modal .db-item-tag {
+    display: block;
+    margin: 2px 0 0;
+    text-align: left;
+  }
+  .employe-card .item-art {
+    width: 112px;
+  }
+}
