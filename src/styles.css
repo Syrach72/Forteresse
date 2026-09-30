@@ -6523,3 +6523,40 @@ a.merc-card:hover {
   .recompense-point, .recompense-objet, .recompense-eclat, .recompense-revele .recompense-nom { animation: none; }
   .recompense-eclat { display: none; }
 }
+
+/* Téléphone : les fenêtres (pop-ups) tiennent dans la largeur de l'écran, sans défilement latéral.
+   La largeur est bornée à l'écran, les colonnes de grille peuvent rétrécir (minmax(0, 1fr)) et les
+   textes longs passent à la ligne au lieu de pousser la fenêtre. */
+@media (max-width: 700px) {
+  dialog.modal,
+  dialog.modal.modal-sac,
+  dialog.modal.modal-market-dual {
+    box-sizing: border-box;
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  dialog.modal :is(div, section, form, ul, ol, li, p, span, label, fieldset, header, article, h1, h2, h3, strong, small) {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  dialog.modal :is(img, video, canvas, svg, select, input, textarea) {
+    max-width: 100%;
+  }
+  dialog.modal .market-dual {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  dialog.modal .sac-dos-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  dialog.modal :is(.materials, .edit-stats) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  dialog.modal .merc-sheet {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 100%;
+  }
+}
