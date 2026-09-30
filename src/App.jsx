@@ -997,6 +997,7 @@ export function App() {
   const [treasuryLive, setTreasuryLive] = useState(EMPTY_TREASURY_LIVE);
   // Fenêtre de récompenses de fin de quête (MJ) : { nom, or, items } tant qu'elles n'ont pas été récupérées.
   const [recompenseQuete, setRecompenseQuete] = useState(null);
+  const syncErreurSignalee = useRef(false);
   const [training, setTraining] = useState(() =>
     structuredClone(INITIAL_TRAINING),
   );
@@ -1846,6 +1847,16 @@ export function App() {
     if (!etat.error && typeof etat.data?.or_compagnie === "number") {
       gameRef.current = { ...gameRef.current, gold: etat.data.or_compagnie };
       setGame(gameRef.current);
+    }
+    // Diagnostic : si la synchronisation échoue, on l'affiche une fois (au lieu de laisser 0 Po sans explication).
+    const pbSync = etat.error || inv.error || lignes.error || fab.error;
+    if ((pbSync || !etat.data) && !syncErreurSignalee.current) {
+      syncErreurSignalee.current = true;
+      notify(
+        pbSync
+          ? `Synchronisation incomplète : ${pbSync.message}`
+          : "Synchronisation impossible : aucune donnée de partie trouvée pour cette session (solde indisponible).",
+      );
     }
     if (etat.error || inv.error || lignes.error || fab.error || !etat.data) return;
     // Récompenses de fin de quête en attente : la fenêtre s'ouvre chez tous les joueurs de la session ;
