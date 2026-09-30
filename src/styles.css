@@ -187,6 +187,26 @@ img {
 .interior .parchment label {
   color: #fff;
 }
+/* Règle de Bruno : sur un fond clair, le texte est noir (et sans ombre). La règle générale ci-dessus met
+   tout en blanc pour les décors sombres ; ces blocs ont leur propre fond clair et plein. */
+.interior .parchment :is(
+  .sertissage-slot,
+  .sertissage-panel .sertissage-result,
+  .db-item-row,
+  .market-dual-row,
+  .hero-stat,
+  .weapon-scroll,
+  .bed-player,
+  .placement-status,
+  .card-caption,
+  .merc-caption,
+  .quest-merc-candidat,
+  .time-controls,
+  .training-place
+) :is(h1, h2, h3, p, span, strong, small, label) {
+  color: var(--ink);
+  text-shadow: none;
+}
 /* Triptyque Metal/Cuir/Bois : fond propre (carte claire, pas le fond de
    decor), donc texte simplement noir sans contour, comme avant l'effet
    verre depoli. */
