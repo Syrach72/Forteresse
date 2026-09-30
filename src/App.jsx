@@ -30,6 +30,7 @@ import {
 import { CHARACTER_CLASSES, COUT_RECRUTEMENT_PAR_VETERANCE } from "./characters";
 import { Admin } from "./Admin.jsx";
 import { Modal } from "./Modal.jsx";
+import { RecompenseQuete } from "./RecompenseQuete.jsx";
 import { supabase } from "./supabaseClient";
 import { useGlassWindows } from "./glassWindows.js";
 import { chargerMercenaires, chargerVeterances, chargerActuels, chargerQueteEnCours } from "./etat.js";
@@ -994,6 +995,8 @@ export function App() {
   // l'instance en cours, dernière quête, dernier tribut) : chargée par
   // synchroniserEconomie(), pas stockée en base (voir treasury-data.js).
   const [treasuryLive, setTreasuryLive] = useState(EMPTY_TREASURY_LIVE);
+  // Fenêtre de récompenses de fin de quête (MJ) : { nom, or, items } tant qu'elles n'ont pas été récupérées.
+  const [recompenseQuete, setRecompenseQuete] = useState(null);
   const [training, setTraining] = useState(() =>
     structuredClone(INITIAL_TRAINING),
   );
@@ -1623,6 +1626,9 @@ export function App() {
           notify(`+1 Instance : ${erreur}`);
           return;
         }
+        if (gains.quete?.termine && gains.quete.attente) {
+          setRecompenseQuete({ nom: gains.quete.nom, or: gains.quete.or || 0, items: gains.quete.items || [] });
+        }
         const nom = (id) =>
           peopleRef.current.find((w) => w.id === id)?.name || "Un mercenaire";
         const phrases = [
@@ -1658,7 +1664,7 @@ export function App() {
                   `${gains.quete.nom} : encore ${gains.quete.apres} instance${gains.quete.apres > 1 ? "s" : ""} requise${gains.quete.apres > 1 ? "s" : ""}.`,
                 ]
               : [
-                  `${gains.quete.nom} accomplie : +${gains.quete.or} Po et ${gains.quete.items.length} objet(s) rejoignent l'arsenal${gains.quete.mystere_nom ? ` (récompense mystère : ${gains.quete.mystere_nom})` : ""}${gains.quete.mercenaires?.length ? `, ${gains.quete.mercenaires.length} mercenaire(s) retournent à la caserne (+1 de vétérance pour ${gains.quete.mercenaires.filter((m) => m.veterance_apres > m.veterance_avant).length})` : ""}.`,
+                  `${gains.quete.nom} accomplie : les récompenses vous attendent dans la fenêtre qui s'ouvre${gains.quete.mercenaires?.length ? `, ${gains.quete.mercenaires.length} mercenaire(s) retournent à la caserne (+1 de vétérance pour ${gains.quete.mercenaires.filter((m) => m.veterance_apres > m.veterance_avant).length})` : ""}.`,
                 ]
             : []),
           ...(() => {
@@ -1816,7 +1822,7 @@ export function App() {
   // Or de la compagnie, arsenal, journal et fabrications en cours : lus en base
   // et reversés dans `game` (même forme qu'avant, pour l'affichage existant).
   async function synchroniserEconomie() {
-    const [etat, inv, lignes, fab, jour, sert, emp, eqp, actives] = await Promise.all([
+    const [etat, inv, lignes, fab, jour, sert, emp, eqp, actives, attente] = await Promise.all([
       supabase.from("partie_etat").select("or_compagnie, instance_courante, round_courant").maybeSingle(),
       supabase.from("inventaire").select("id, type, mercenaire_id"),
       supabase.from("ligne_inventaire").select("id, inventaire_id, objet_id, quantite, gemmes"),
@@ -1833,8 +1839,13 @@ export function App() {
       supabase.from("employe").select("objet_id, outil, quantite"),
       supabase.from("mercenaire_equipement").select("mercenaire_id, emplacement, position, objet_id, gemmes, badge_f"),
       supabase.from("objet_quete_active").select("objet_id"),
+      supabase.from("quete_etat").select("recompenses_attente").not("recompenses_attente", "is", null).limit(1),
     ]);
     if (etat.error || inv.error || lignes.error || fab.error || !etat.data) return;
+    const enAttente = attente.data?.[0]?.recompenses_attente;
+    if (enAttente) {
+      setRecompenseQuete((c) => c || { nom: enAttente.nom, or: enAttente.or || 0, items: enAttente.items || [] });
+    }
     const arsenal = inv.data.find((i) => i.type === "arsenal");
     const enStock = lignes.data.filter(
       (l) => l.inventaire_id === arsenal?.id && l.quantite > 0,
@@ -2326,6 +2337,16 @@ export function App() {
         .filter(Boolean)
         .join(" "),
     };
+  }
+  // Fermeture de la fenêtre de récompenses : l'or et les objets rejoignent la compagnie (serveur).
+  async function recupererRecompensesQuete() {
+    const { error } = await supabase.rpc("quete_recompenses_recuperer");
+    if (error) {
+      notify(error.message);
+      return;
+    }
+    setRecompenseQuete(null);
+    await synchroniserPartage();
   }
   // Fiche du mercenaire (Dortoir) : bouton « Instructeur ».
   async function chooseInstructor(id) {
@@ -4154,6 +4175,9 @@ export function App() {
           )}
           {roomNav}
         </main>
+      )}
+      {estAdmin && recompenseQuete && (
+        <RecompenseQuete recompense={recompenseQuete} onClose={recupererRecompensesQuete} />
       )}
       {alerteSolde && game.gold < 0 && (
         <Modal title="Trésorerie négative" onClose={() => setAlerteSolde(false)}>
