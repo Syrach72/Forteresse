@@ -6543,8 +6543,16 @@ a.merc-card:hover {
     max-width: 100%;
     overflow-wrap: anywhere;
   }
-  dialog.modal :is(img, video, canvas, svg, select, input, textarea) {
+  dialog.modal :is(video, canvas, select, input, textarea) {
     max-width: 100%;
+  }
+  /* Les icônes et vignettes gardent leur taille (elles ne doivent jamais rétrécir avec la fenêtre). */
+  dialog.modal :is(img, .item-art, .db-item-icon-wrap, .db-item-icon, .sprite, .asset-sprite, .db-item-art, .db-item-icon-wrap *) {
+    flex-shrink: 0;
+    min-width: auto;
+  }
+  dialog.modal :is(img, .db-item-icon, .db-item-icon-wrap, .item-art, .sprite, .asset-sprite) {
+    max-width: none;
   }
   dialog.modal .market-dual {
     grid-template-columns: minmax(0, 1fr);
