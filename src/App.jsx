@@ -37,6 +37,25 @@ import { useGlassWindows } from "./glassWindows.js";
 import { chargerMercenaires, chargerVeterances, chargerActuels, chargerQueteEnCours } from "./etat.js";
 import { useSessions, SessionBar, EcranSession } from "./Sessions.jsx";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
+// Descriptif de ce qu'apporte un bâtiment (Scierie, Camp de Mineur, Tannerie…) : le texte de la fiche du
+// catalogue, puis l'effet déduit des métiers qui l'ont pour outil (production doublée). `objets` = objets
+// du catalogue (avec emploi_outil_id, emploi_materiau_id, emploi_production).
+function descriptifBatiment(bat, objets, nomDe) {
+  const metiers = objets.filter((j) => j.emploi_outil_id === bat.id && j.emploi_materiau_id);
+  const effet = metiers.length
+    ? "Double la production " +
+      metiers
+        .map((j) => {
+          const mat = nomDe(j.emploi_materiau_id);
+          return j.emploi_production == null
+            ? `des ${j.nom}s : 10 à 20${mat ? " " + mat : ""} par instance et par ouvrier, au lieu de 5 à 10`
+            : `des ${j.nom}s`;
+        })
+        .join(" ; ") +
+      "."
+    : "";
+  return [bat.description, effet].filter(Boolean).join(" ");
+}
 const BACKDROP_VIDEO = {
   alchimie: "/assets/video/alchimiste-anime2.mp4",
   mage: "/assets/video/mage-test.mp4",
@@ -1053,6 +1072,8 @@ export function App() {
   // Métiers du catalogue (Mineur, Bûcheron, Tanneur…) : la page Collecte les
   // montre tous, même sans employé embauché (cartes à ×0).
   const [employesMetiers, setEmployesMetiers] = useState([]);
+  // Descriptif des bâtiments (Scierie…) par identifiant d'objet, pour la page Ressources.
+  const [descriptifsBatiments, setDescriptifsBatiments] = useState({});
   const tousRecrutes = useMemo(
     () => new Set([...recrutesServeur, ...mesRecrutes.keys()]),
     [recrutesServeur, mesRecrutes],
@@ -1163,7 +1184,7 @@ export function App() {
   // ne la quitte pas (voir partie_annuler, côté serveur). Vidée dès que la fiche se
   // ferme, change d'objet ou que la page change.
   const [undoStack, setUndoStack] = useState([]);
-  // Dernière vente annulable : { journalId, texte } ; la bannière disparaît d'elle-même après 30 s.
+  // Dernière opération annulable (vente, congédiement) : { journalId, texte, rpc, bouton } ; la bannière disparaît d'elle-même après 30 s.
   const [derniereVente, setDerniereVente] = useState(null);
   useEffect(() => {
     if (!derniereVente) return undefined;
@@ -1512,10 +1533,15 @@ export function App() {
     let annule = false;
     supabase
       .from("objet_catalogue")
-      .select("id, nom, icone, actif, emploi_materiau_id, emploi_production, emploi_entretien")
+      .select("id, nom, icone, actif, description, emploi_materiau_id, emploi_outil_id, emploi_production, emploi_entretien")
       .then(({ data, error }) => {
         if (annule || error || !data) return;
         const parId = new Map(data.map((o) => [o.id, o]));
+        const desc = {};
+        for (const b of data.filter((o) => data.some((j) => j.emploi_outil_id === o.id))) {
+          desc[b.id] = descriptifBatiment(b, data, (id) => parId.get(id)?.nom || "");
+        }
+        setDescriptifsBatiments(desc);
         setEmployesMetiers(
           data
             .filter((o) => o.emploi_materiau_id && o.actif !== false)
@@ -2695,14 +2721,19 @@ export function App() {
     setModal(null);
     notify(`Vente de ${nom} ×${quantity} : +${data.gain} Po.`);
     if (data.journal_id) {
-      setDerniereVente({ journalId: data.journal_id, texte: `${nom} ×${quantity} vendu : +${data.gain} Po.` });
+      setDerniereVente({
+        journalId: data.journal_id,
+        texte: `${nom} ×${quantity} vendu : +${data.gain} Po.`,
+        rpc: "partie_annuler",
+        bouton: "Annuler la vente",
+      });
     }
   }
   // Annule la dernière vente (une erreur de manipulation) : l'objet revient à l'arsenal, l'or est repris.
   async function annulerVente() {
     if (!derniereVente) return;
-    const { journalId } = derniereVente;
-    const data = await operationPartagee(() => supabase.rpc("partie_annuler", { p_journal: journalId }));
+    const { journalId, rpc } = derniereVente;
+    const data = await operationPartagee(() => supabase.rpc(rpc, { p_journal: journalId }));
     if (!data) return;
     setDerniereVente(null);
     notify(data.message);
@@ -2895,7 +2926,11 @@ export function App() {
       supabase.rpc("employe_embaucher", { p_objet: objet.id, p_quantite: quantite }),
     );
     if (!data) return;
-    notify(`${quantite} ${objet.nom}(s) embauché(s) : −${quantite * objet.cout_achat_or} Po.`);
+    notify(
+      objet.emploi_materiau_id
+        ? `${quantite} ${objet.nom}(s) embauché(s) : −${quantite * objet.cout_achat_or} Po.`
+        : `${objet.nom} construit : −${quantite * objet.cout_achat_or} Po.`,
+    );
   }
   // Congédiement définitif (Collecte des Ressources), sans remboursement.
   async function actCongedier(objetId, outil, quantite, nom) {
@@ -2904,6 +2939,14 @@ export function App() {
     );
     if (!data) return;
     notify(`${quantite} ${nom}(s) congédié(s).`);
+    if (data.journal_id) {
+      setDerniereVente({
+        journalId: data.journal_id,
+        texte: `${quantite} ${nom}(s) congédié(s).`,
+        rpc: "employe_annuler_congediement",
+        bouton: "Annuler le congédiement",
+      });
+    }
   }
   // Équipe l'outil spécialisé du métier (consomme l'outil dans l'arsenal).
   async function actEquiperOutil(objetId, quantite, nom) {
@@ -3551,6 +3594,7 @@ export function App() {
                             entretienUnitaire: m.entretienUnitaire,
                             entretienTotal: 0,
                             outilId: null,
+                            materiauId: "metier",
                           },
                         ];
                   }),
@@ -3562,7 +3606,13 @@ export function App() {
                       {e.nom}
                       {e.outil ? " (outillé)" : ""}
                     </h3>
-                    <p className="muted">×{e.quantite}</p>
+                    {e.materiauId ? (
+                      <p className="muted">×{e.quantite}</p>
+                    ) : (
+                      descriptifsBatiments[e.objetId] && (
+                        <p className="muted employe-batiment-etat">{descriptifsBatiments[e.objetId]}</p>
+                      )
+                    )}
                     {e.materiauNom && (
                       <div className="stat-line">
                         <span>Production / instance</span>
@@ -3587,7 +3637,7 @@ export function App() {
                       </p>
                     )}
                     <div className="employe-actions">
-                      {e.quantite > 0 && (
+                      {e.quantite > 0 && e.materiauId && (
                         <button
                           className="wood-button"
                           disabled={busy}
@@ -4252,7 +4302,7 @@ export function App() {
         <div className="vente-annulable" role="status">
           <span>{derniereVente.texte}</span>
           <button type="button" className="wood-button" onClick={annulerVente}>
-            Annuler la vente
+            {derniereVente.bouton}
           </button>
           <button type="button" className="text-button" onClick={() => setDerniereVente(null)}>
             Fermer
@@ -4518,6 +4568,16 @@ export function App() {
                           // toute la case se grise au lieu d'afficher un badge de quantité.
                           const estBatiment = !o.emploi_materiau_id;
                           const possede = estBatiment && dejaEmbauche >= 1;
+                          const descriptif = estBatiment
+                            ? descriptifBatiment(
+                                o,
+                                embauche.items,
+                                (id) =>
+                                  catalogueByAtelier["market:Matériaux"]?.items?.find((x) => x.id === id)?.nom ||
+                                  catalogueCacheRef.current.objets.get(id)?.nom ||
+                                  "",
+                              )
+                            : "";
                           return (
                             <div
                               className={`market-dual-row${possede ? " market-dual-row-owned" : ""}`}
@@ -4544,8 +4604,9 @@ export function App() {
                                       ? "Coût non défini"
                                       : `${o.cout_achat_or} Po pièce`}
                                 </small>
+                                {descriptif && <small className="db-item-desc">{descriptif}</small>}
                               </span>
-                              {possede ? (
+                              {possede || estBatiment ? (
                                 <span aria-hidden="true" />
                               ) : (
                                 <input
@@ -4579,7 +4640,7 @@ export function App() {
                                   ? "Construit"
                                   : o.cout_achat_or === null || o.cout_achat_or === undefined
                                     ? "Coût non défini"
-                                    : `Embaucher · ${cout} Po`}
+                                    : `${estBatiment ? "Construire" : "Embaucher"} · ${cout} Po`}
                               </button>
                             </div>
                           );
