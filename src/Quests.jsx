@@ -12,8 +12,9 @@ const MERC_SLOTS = [0, 1, 2, 3, 4, 5];
 // (somme des vétérances des mercenaires engagés ÷ 4) ÷ FP de la quête ; 1 est le ratio optimal.
 // Compteur interne de −10 à +10 (invisible), 0 = ratio 1 = centre de la zone blanche :
 // compteur = (ratio − 1) × 10, borné. Rouge (< −3,5) : trop dure ; blanc : autorisée ; vert
-// (> +3,5) : trop facile.
-const ZONE_BLANCHE = 3.5;
+// (> +3,33) : trop facile.
+// Limites de la zone « adaptée » = les deux onglets fixes de la jauge, au tiers et aux deux tiers de la barre.
+const ZONE_BLANCHE = 10 / 3;
 export function compteurDifficulte(sommeVeterances, fp) {
   const ratio = sommeVeterances / 4 / Math.max(1, Number(fp) || 1);
   return Math.max(-10, Math.min(10, (ratio - 1) * 10));
@@ -33,6 +34,8 @@ function JaugeDifficulte({ somme, fp }) {
   return (
     <div className="quest-jauge" role="img" aria-label={TEXTE_ZONE[zone]} title={TEXTE_ZONE[zone]}>
       <div className="quest-jauge-barre">
+        <span className="quest-jauge-onglet" style={{ left: "33.333%" }} aria-hidden="true" />
+        <span className="quest-jauge-onglet" style={{ left: "66.667%" }} aria-hidden="true" />
         <span className="quest-jauge-marqueur" style={{ left: `${position}%` }} />
       </div>
     </div>
