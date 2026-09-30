@@ -1163,6 +1163,13 @@ export function App() {
   // ne la quitte pas (voir partie_annuler, côté serveur). Vidée dès que la fiche se
   // ferme, change d'objet ou que la page change.
   const [undoStack, setUndoStack] = useState([]);
+  // Dernière vente annulable : { journalId, texte } ; la bannière disparaît d'elle-même après 30 s.
+  const [derniereVente, setDerniereVente] = useState(null);
+  useEffect(() => {
+    if (!derniereVente) return undefined;
+    const t = setTimeout(() => setDerniereVente(null), 30000);
+    return () => clearTimeout(t);
+  }, [derniereVente]);
   // Objet visé depuis l'admin (bouton « Placer dans la forge » d'une
   // recette) : mémorise quel objet sélectionner une fois arrivé sur la
   // bonne page et son catalogue chargé, avant de s'effacer lui-même.
@@ -2687,6 +2694,18 @@ export function App() {
     if (!data) return;
     setModal(null);
     notify(`Vente de ${nom} ×${quantity} : +${data.gain} Po.`);
+    if (data.journal_id) {
+      setDerniereVente({ journalId: data.journal_id, texte: `${nom} ×${quantity} vendu : +${data.gain} Po.` });
+    }
+  }
+  // Annule la dernière vente (une erreur de manipulation) : l'objet revient à l'arsenal, l'or est repris.
+  async function annulerVente() {
+    if (!derniereVente) return;
+    const { journalId } = derniereVente;
+    const data = await operationPartagee(() => supabase.rpc("partie_annuler", { p_journal: journalId }));
+    if (!data) return;
+    setDerniereVente(null);
+    notify(data.message);
   }
   // Sac à dos d'un mercenaire (fiche des Personnages) : envoi depuis l'Arsenal
   // (Composants/Objet divers uniquement, vérifié aussi côté serveur) et retour
@@ -4228,6 +4247,17 @@ export function App() {
             le solde reste négatif.
           </p>
         </Modal>
+      )}
+      {derniereVente && (
+        <div className="vente-annulable" role="status">
+          <span>{derniereVente.texte}</span>
+          <button type="button" className="wood-button" onClick={annulerVente}>
+            Annuler la vente
+          </button>
+          <button type="button" className="text-button" onClick={() => setDerniereVente(null)}>
+            Fermer
+          </button>
+        </div>
       )}
       {toast && (
         <div role="status" className="toast">
