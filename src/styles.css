@@ -6729,3 +6729,44 @@ a.merc-card:hover {
 .stock-panel .retour-sac {
   margin: 0 0 14px;
 }
+
+/* « Matériaux et Embauche » : mise en page des lignes (tous écrans). La règle générale
+   « .market-dual-row > span { flex: 1 } » s'appliquait aussi à l'enveloppe de l'icône : elle se
+   déformait selon la longueur du texte voisin. L'icône garde sa forme carrée et sa taille ; le nom (avec
+   son descriptif) prend toute la place restante ; plus de liste à défilement interne. */
+.modal-market-dual .market-dual-row > .db-item-icon-wrap {
+  flex: 0 0 auto;
+  width: 60px;
+  height: 60px;
+}
+.modal-market-dual .db-item-icon {
+  width: 60px;
+  height: 60px;
+  aspect-ratio: 1;
+  object-fit: contain;
+  flex: none;
+}
+.modal-market-dual .market-dual-row > span:not(.db-item-icon-wrap) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.modal-market-dual .market-dual-row > span[aria-hidden="true"] {
+  display: none;
+}
+.modal-market-dual .db-item-list {
+  max-height: none;
+  overflow: visible;
+}
+.modal-market-dual .market-dual-row .db-item-tag {
+  margin-left: 0;
+}
+.modal-market-dual .db-item-desc {
+  white-space: normal;
+}
+@media (max-width: 700px) {
+  dialog.modal-market-dual .market-dual-row > .db-item-icon-wrap,
+  dialog.modal-market-dual .db-item-icon {
+    width: 72px;
+    height: 72px;
+  }
+}
