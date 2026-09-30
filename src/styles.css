@@ -6775,3 +6775,28 @@ a.merc-card:hover {
     height: 72px;
   }
 }
+
+/* Quêtes : fond vidéo vertical (810 × 1440) aligné en haut de la page, à sa largeur d'origine, centré,
+   sans recadrage ni zoom (les bords de l'arche restent visibles). Plus étroit que 810 px, il se réduit
+   à la largeur de l'écran. La page est plus haute que la vidéo dès qu'il y a beaucoup de quêtes : le
+   reste prend le brun sombre des bords de la vidéo, et les bords/le bas de l'image s'y fondent. */
+.interior.quetes {
+  background: #2b1a13;
+}
+.interior video.interior-backdrop.interior-backdrop-top {
+  inset: auto;
+  top: 0;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  width: min(810px, 100%);
+  height: auto;
+  object-fit: fill;
+  transform: translateX(-50%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.5%, #000 98.5%, transparent 100%),
+    linear-gradient(to bottom, #000 0, #000 88%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 1.5%, #000 98.5%, transparent 100%),
+    linear-gradient(to bottom, #000 0, #000 88%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}

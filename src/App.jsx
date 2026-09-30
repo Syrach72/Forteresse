@@ -108,10 +108,12 @@ const BACKDROP_LOOP_FADE = 1.1;
 // Vidéos qui ne bouclent pas (la caméra recule : première et dernière image
 // très différentes). Un fondu enchaîné y superpose deux capuches ; on fait donc
 // un fondu par le noir (sortie puis entrée, en secondes) : aucun dédoublement.
+// Fond vertical aligné en haut de la page, à sa largeur d'origine (sans recadrage ni zoom) : rapport largeur / hauteur.
+const BACKDROP_VIDEO_TOP = { quetes: "810 / 1440" };
 const BACKDROP_VIDEO_DIP = { alchimie: 0.4 };
 // Vitesse de lecture (1 = normale) : le Laboratoire est ralenti.
 const BACKDROP_VIDEO_RATE = { alchimie: 0.6 };
-function BackdropVideo({ src, ratio, dip, rate = 1, baseClass = "interior-backdrop" }) {
+function BackdropVideo({ src, ratio, dip, rate = 1, top, baseClass = "interior-backdrop" }) {
   const ref1 = useRef(null);
   const ref2 = useRef(null);
   useEffect(() => {
@@ -199,8 +201,8 @@ function BackdropVideo({ src, ratio, dip, rate = 1, baseClass = "interior-backdr
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [src, ratio, dip, rate]);
-  const className = `${baseClass}${ratio ? " interior-backdrop-boxed" : ""}`;
-  const style = ratio ? { aspectRatio: ratio } : undefined;
+  const className = `${baseClass}${top ? " interior-backdrop-top" : ratio ? " interior-backdrop-boxed" : ""}`;
+  const style = top ? { aspectRatio: top } : ratio ? { aspectRatio: ratio } : undefined;
   return (
     <>
       <video ref={ref1} className={className} style={style} src={src} muted playsInline disablePictureInPicture disableRemotePlayback controlsList="nofullscreen nodownload noremoteplayback" aria-hidden="true" tabIndex={-1} />
@@ -3680,7 +3682,7 @@ export function App() {
       ) : (
         <main id="main" className={`interior ${route}`}>
           {BACKDROP_VIDEO[route] ? (
-            <BackdropVideo src={BACKDROP_VIDEO[route]} ratio={BACKDROP_VIDEO_RATIO[route]} dip={BACKDROP_VIDEO_DIP[route]} rate={BACKDROP_VIDEO_RATE[route]} />
+            <BackdropVideo src={BACKDROP_VIDEO[route]} ratio={BACKDROP_VIDEO_RATIO[route]} top={BACKDROP_VIDEO_TOP[route]} dip={BACKDROP_VIDEO_DIP[route]} rate={BACKDROP_VIDEO_RATE[route]} />
           ) : (
             <div
               className="interior-backdrop"
