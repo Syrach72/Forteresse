@@ -4420,7 +4420,7 @@ h1,
 .asset-sprite img { position: static; width: 100%; height: 100%; object-fit: contain; }
 /* Le mannequin de paille occupe moins de place dans son cadre que les autres icônes : agrandi
    avec la propriété `scale` (indépendante du transform du survol). */
-.asset-sprite[data-lieu="entrainement"] img { scale: 1.3; }
+.asset-sprite[data-lieu="entrainement"] img { scale: 1.6; }
 .location .lock-mark { padding: 0; border: 0; background: none; box-shadow: none; width: 31px; height: 40px; top: -13px; right: -10px; }
 .location .lock-mark img { width: 100%; height: 100%; object-fit: contain; }
 .market-category .asset-sprite { width: 47%; max-width: 65px; }
