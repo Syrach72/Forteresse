@@ -6145,6 +6145,23 @@ a.merc-card:hover {
 .journal-page .ledger-row > strong {
   white-space: nowrap;
 }
+/* Une instance = un bloc, séparé du suivant par un bandeau doré bien visible. */
+.journal-instance + .journal-instance {
+  margin-top: 26px;
+}
+.journal-instance-titre {
+  margin: 0 0 6px;
+  padding: 8px 12px;
+  font-size: 20px;
+  border-top: 3px double rgba(139, 92, 30, 0.85);
+  border-bottom: 1px solid rgba(139, 92, 30, 0.5);
+  background: rgba(139, 92, 30, 0.14);
+}
+.journal-instance-titre em {
+  font-style: normal;
+  font-size: 0.8em;
+  opacity: 0.75;
+}
 .journal .interior-backdrop {
   background-position: 65% 15%;
 }

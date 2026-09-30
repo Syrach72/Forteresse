@@ -2084,12 +2084,17 @@ export function App() {
         };
       });
     setEmployesRoster(roster);
-    const log = (jour.data || []).map((j) => ({
-      id: j.id,
-      message: caserne(j.message),
-      amount: j.montant,
-      date: j.created_at,
-    }));
+    // Journal : seules les 3 dernières instances (en cours + 2 précédentes) sont affichées.
+    const instanceJournal = etat.data.instance_courante ?? 0;
+    const log = (jour.data || [])
+      .filter((j) => j.instance_no > instanceJournal - 3)
+      .map((j) => ({
+        id: j.id,
+        message: caserne(j.message),
+        amount: j.montant,
+        date: j.created_at,
+        instance: j.instance_no,
+      }));
     const g = {
       ...gameRef.current,
       gold: etat.data.or_compagnie,
