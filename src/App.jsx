@@ -214,7 +214,7 @@ function Sprite({ location, className = "" }) {
   if (!l?.icon) return null;
   const assetId = l.id === "alchimie" ? "magic-items" : l.id === "quetes" ? "quetes-sidebar" : l.id;
   if (assetId !== "quetes") return (
-    <span className={`sprite asset-sprite ${className}`} aria-hidden="true">
+    <span className={`sprite asset-sprite ${className}`} data-lieu={assetId} aria-hidden="true">
       <img src={`/assets/icons/${assetId}.webp`} alt="" />
     </span>
   );
