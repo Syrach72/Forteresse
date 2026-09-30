@@ -1841,6 +1841,12 @@ export function App() {
       supabase.from("objet_quete_active").select("objet_id"),
       supabase.from("quete_etat").select("recompenses_attente").not("recompenses_attente", "is", null).limit(1),
     ]);
+    // Le solde ne dépend que de partie_etat : on l'affiche même si une autre lecture a échoué
+    // (sinon il resterait à 0 dans l'en-tête tant qu'une synchronisation complète n'a pas abouti).
+    if (!etat.error && typeof etat.data?.or_compagnie === "number") {
+      gameRef.current = { ...gameRef.current, gold: etat.data.or_compagnie };
+      setGame(gameRef.current);
+    }
     if (etat.error || inv.error || lignes.error || fab.error || !etat.data) return;
     // Récompenses de fin de quête en attente : la fenêtre s'ouvre chez tous les joueurs de la session ;
     // dès qu'elles sont récupérées (chez n'importe lequel), elle se ferme chez les autres.
