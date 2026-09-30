@@ -31,7 +31,7 @@ import { CHARACTER_CLASSES, COUT_RECRUTEMENT_PAR_VETERANCE } from "./characters"
 import { Admin } from "./Admin.jsx";
 import { Modal } from "./Modal.jsx";
 import { RecompenseQuete } from "./RecompenseQuete.jsx";
-import { Diagnostic } from "./Diagnostic.jsx";
+import { Diagnostic, DebugBadge } from "./Diagnostic.jsx";
 import { supabase } from "./supabaseClient";
 import { useGlassWindows } from "./glassWindows.js";
 import { chargerMercenaires, chargerVeterances, chargerActuels, chargerQueteEnCours } from "./etat.js";
@@ -1849,6 +1849,12 @@ export function App() {
       gameRef.current = { ...gameRef.current, gold: etat.data.or_compagnie };
       setGame(gameRef.current);
     }
+    window.__dernierSync = {
+      t: Date.now(),
+      or: etat.data?.or_compagnie,
+      err: etat.error?.message,
+      n: (window.__dernierSync?.n || 0) + 1,
+    };
     // Diagnostic : si la synchronisation échoue, on l'affiche une fois (au lieu de laisser 0 Po sans explication).
     const pbSync = etat.error || inv.error || lignes.error || fab.error;
     if ((pbSync || !etat.data) && !syncErreurSignalee.current) {
@@ -4199,6 +4205,7 @@ export function App() {
         </main>
       )}
       {route === "diagnostic" && <Diagnostic game={game} estAdmin={estAdmin} sess={sess} />}
+      <DebugBadge game={game} route={route} />
       {recompenseQuete && (
         <RecompenseQuete recompense={recompenseQuete} onClose={recupererRecompensesQuete} />
       )}

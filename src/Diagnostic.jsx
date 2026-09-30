@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 
 // Page de diagnostic (#diagnostic) : affiche ce que la base renvoie au compte connecté, pour comprendre
@@ -66,7 +66,54 @@ export function Diagnostic({ game, estAdmin, sess }) {
         {busy ? "Lecture…" : "Lancer le diagnostic"}
       </button>{" "}
       <a href="#forteresse">Retour</a>
+      <p>
+        <button
+          type="button"
+          className="wood-button"
+          onClick={() => {
+            try {
+              const on = localStorage.getItem("fortress-debug") === "1";
+              localStorage.setItem("fortress-debug", on ? "0" : "1");
+              alert(on ? "Badge de debug désactivé." : "Badge de debug activé : il s'affiche en bas de chaque page.");
+            } catch {
+              alert("Impossible d'enregistrer le réglage sur ce navigateur.");
+            }
+          }}
+        >
+          Activer / désactiver le badge de debug
+        </button>
+      </p>
       <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all", marginTop: 12, fontSize: 12 }}>{rapport}</pre>
+    </div>
+  );
+}
+
+// Badge de debug (activé depuis #diagnostic, mémorisé dans ce navigateur) : affiche en bas de chaque page
+// ce que l'application a en mémoire (or, inventaire) et le dernier résultat de la synchronisation.
+export function DebugBadge({ game, route }) {
+  const [, setT] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setT((v) => v + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  let actif = false;
+  try {
+    actif = localStorage.getItem("fortress-debug") === "1";
+  } catch {
+    actif = false;
+  }
+  if (!actif || route === "diagnostic") return null;
+  const s = window.__dernierSync || {};
+  return (
+    <div
+      style={{
+        position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 9998, background: "#000c", color: "#0f0",
+        fontSize: 11, padding: "4px 8px", fontFamily: "monospace", lineHeight: 1.3, pointerEvents: "none",
+      }}
+    >
+      route={route} | game.gold={String(game.gold)} ({typeof game.gold}) | inv={game.inventory.reduce((a, b) => a + b.quantity, 0)}
+      <br />
+      sync: {s.t ? new Date(s.t).toLocaleTimeString() : "jamais"} | etat.or={String(s.or)} | etat.err={s.err || "-"} | n={s.n || 0}
     </div>
   );
 }
