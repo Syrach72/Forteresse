@@ -6428,6 +6428,9 @@ a.merc-card:hover {
   max-width: 92px;
   max-height: none;
 }
+/* Mannequin de paille, cadres carrés (barre latérale…) : il remplit la largeur comme les autres
+   icônes ; s'il dépasse, c'est le pied (bas du poteau) qui est rogné, jamais la tête. */
+.asset-sprite[data-lieu="entrainement"] img { object-fit: cover; object-position: 50% 0; }
 /* Le mannequin de paille occupe moins de place dans son cadre que les autres icônes : agrandi de
    40 %, centré dans la tuile (sans en sortir) ; le libellé reste en bas, par-dessus l'icône. */
 .castle-map .location .asset-sprite[data-lieu="entrainement"] {
