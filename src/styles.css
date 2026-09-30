@@ -6541,7 +6541,17 @@ a.merc-card:hover {
   dialog.modal :is(div, section, form, ul, ol, li, p, span, label, fieldset, header, article, h1, h2, h3, strong, small) {
     min-width: 0;
     max-width: 100%;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+  }
+  /* Lignes « icône + nom + bouton » : le bouton passe à la ligne plutôt que d'écraser le nom. */
+  dialog.modal :is(.db-item-row, .market-dual-row) {
+    flex-wrap: wrap;
+  }
+  dialog.modal :is(.db-item-row, .market-dual-row) > span:not(.db-item-icon-wrap) {
+    flex: 1 1 110px;
+  }
+  dialog.modal :is(.db-item-row, .market-dual-row) > button {
+    flex: 0 0 auto;
   }
   dialog.modal :is(video, canvas, select, input, textarea) {
     max-width: 100%;
