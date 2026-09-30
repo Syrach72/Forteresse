@@ -6650,3 +6650,22 @@ a.merc-card:hover {
     min-width: 0;
   }
 }
+
+/* Téléphone : les boutons « Catalogue des armes / des objets » ne flottent plus par-dessus le panneau
+   (ils le recouvraient) ; ils passent en tête de l'atelier, l'un sous l'autre, sur toute la largeur. */
+@media (max-width: 680px) {
+  .workshop {
+    display: flex;
+    flex-direction: column;
+  }
+  .workshop > .catalog-button,
+  .workshop > .catalog-button + .catalog-button-objets {
+    position: static;
+    order: -1;
+    width: 100%;
+    margin: 0 0 10px;
+    inset: auto;
+    box-sizing: border-box;
+    text-align: center;
+  }
+}
