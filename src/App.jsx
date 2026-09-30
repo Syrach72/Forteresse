@@ -1615,7 +1615,7 @@ export function App() {
     const undoId = crypto.randomUUID();
     setInstanceUndo({
       id: undoId,
-      gains: { entrainement: [], infirmerie: [], ateliers: [], employes: [], cimetiere: [], budget: 0, quete: null },
+      gains: { entrainement: [], infirmerie: [], ateliers: [], employes: [], cimetiere: [], energie: [], budget: 0, quete: null },
     });
     setInstanceTicks((v) => v + 1);
     // Seul l'administrateur fait avancer l'instance (une fois pour tous les
@@ -1641,6 +1641,9 @@ export function App() {
             : []),
           ...(gains.tributPhrase
             ? [`${gains.tributPhrase} +${money(gains.tribut)} Po.`]
+            : []),
+          ...(gains.energie?.length
+            ? [`L’énergie de ${gains.energie.length} mercenaire(s) revient au maximum.`]
             : []),
           ...gains.entrainement.map((g) =>
             g.gradue
@@ -1775,6 +1778,10 @@ export function App() {
         }
         if (g.quete) {
           const { error } = await supabase.rpc("quetes_annuler_instance", { p_gains: g.quete });
+          if (error) erreurs.push(error.message);
+        }
+        if (g.energie?.length) {
+          const { error } = await supabase.rpc("energie_annuler_instance", { p_gains: g.energie });
           if (error) erreurs.push(error.message);
         }
         {
@@ -2334,6 +2341,8 @@ export function App() {
     // l'entretien calculé sur les vétérances d'avant la progression. Un solde
     // négatif ne bloque rien.
     const e = await supabase.rpc("budget_appliquer_instance");
+    // L'énergie de tous les mercenaires revient au maximum (avant la quête : elle garde ses propres règles).
+    const en = await supabase.rpc("energie_instance");
     const t = await supabase.rpc("entrainement_instance");
     const i = await supabase.rpc("infirmerie_instance");
     const a = await supabase.rpc("ateliers_instance");
@@ -2350,6 +2359,7 @@ export function App() {
         ateliers: liste(a),
         employes: liste(emp),
         cimetiere: liste(cim),
+        energie: liste(en),
         // `budget` reste le net TOTAL (recettes − dépenses + tribut du
         // village) : c'est ce que budget_annuler_instance() doit annuler.
         // `budgetStructure` (recettes − dépenses seules) sert uniquement à
@@ -2361,7 +2371,7 @@ export function App() {
         tributPhrase: e.data?.tribut_phrase || "",
         quete: q.data || null,
       },
-      erreur: [e.error?.message, t.error?.message, i.error?.message, a.error?.message, q.error?.message, emp.error?.message, cim.error?.message]
+      erreur: [e.error?.message, en.error?.message, t.error?.message, i.error?.message, a.error?.message, q.error?.message, emp.error?.message, cim.error?.message]
         .filter(Boolean)
         .join(" "),
     };
