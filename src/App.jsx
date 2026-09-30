@@ -31,6 +31,7 @@ import { CHARACTER_CLASSES, COUT_RECRUTEMENT_PAR_VETERANCE } from "./characters"
 import { Admin } from "./Admin.jsx";
 import { Modal } from "./Modal.jsx";
 import { RecompenseQuete } from "./RecompenseQuete.jsx";
+import { Diagnostic } from "./Diagnostic.jsx";
 import { supabase } from "./supabaseClient";
 import { useGlassWindows } from "./glassWindows.js";
 import { chargerMercenaires, chargerVeterances, chargerActuels, chargerQueteEnCours } from "./etat.js";
@@ -4197,6 +4198,7 @@ export function App() {
           {roomNav}
         </main>
       )}
+      {route === "diagnostic" && <Diagnostic game={game} estAdmin={estAdmin} sess={sess} />}
       {recompenseQuete && (
         <RecompenseQuete recompense={recompenseQuete} onClose={recupererRecompensesQuete} />
       )}
