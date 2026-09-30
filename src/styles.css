@@ -6605,3 +6605,49 @@ a.merc-card:hover {
     font-size: 16px;
   }
 }
+
+/* Sertissage (Forge) : l'icône remplit exactement son emplacement. Les règles de la fiche d'atelier
+   (.equipment-panel .item-art : largeur fixe + cadre) s'appliquaient aussi ici et faisaient déborder
+   l'image de son cadre. */
+.equipment-panel .sertissage-slot .item-art,
+.sertissage-slot .item-art {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 6px;
+  box-sizing: border-box;
+  aspect-ratio: 1;
+}
+/* Téléphone : emplacements plus grands (deux colonnes qui se partagent la largeur), textes lisibles,
+   objet obtenu centré et proportionné. */
+@media (max-width: 700px) {
+  .sertissage-slots {
+    gap: 8px;
+  }
+  .sertissage-slot {
+    box-sizing: border-box;
+    width: calc(50% - 22px);
+    max-width: 180px;
+    padding: 6px;
+  }
+  .sertissage-slot-label {
+    font-size: 14px;
+  }
+  .sertissage-slot-empty {
+    font-size: 15px;
+    padding: 24px 2px;
+  }
+  .sertissage-plus {
+    font-size: 26px;
+  }
+  .sertissage-panel .item-art.sertissage-result {
+    width: min(60%, 200px);
+    box-sizing: border-box;
+  }
+  .sertissage-actions {
+    flex-wrap: wrap;
+  }
+  .sertissage-actions > * {
+    flex: 1 1 130px;
+  }
+}
