@@ -6428,12 +6428,21 @@ a.merc-card:hover {
   max-width: 92px;
   max-height: none;
 }
-/* Le mannequin de paille occupe moins de place dans son cadre que les autres icônes : cadre élargi
-   de 40 % (il reste centré dans la tuile, sans déborder) ; le libellé chevauche le bas de l'icône. */
+/* Le mannequin de paille occupe moins de place dans son cadre que les autres icônes : agrandi de
+   40 %, centré dans la tuile (sans en sortir) ; le libellé reste en bas, par-dessus l'icône. */
 .castle-map .location .asset-sprite[data-lieu="entrainement"] {
-  width: 81%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 71%;
   max-width: 129px;
-  margin-bottom: -14px;
+  aspect-ratio: 458 / 528;
+}
+.castle-map .location:has(.asset-sprite[data-lieu="entrainement"]) > span:not(.sprite):not(.lock-mark) {
+  position: relative;
+  z-index: 2;
+  margin-top: auto;
 }
 
 /* Page Ressources : accès à la fenêtre Matériaux et Embauche (ex-bouton du Marché) */
