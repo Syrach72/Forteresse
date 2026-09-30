@@ -5,17 +5,17 @@
 -- Reprend quetes_instance() et quete_recompenses_recuperer() de 20260930140000.
 
 -- L'objet « Récompense mystère » : à placer dans un emplacement de récompense d'une quête (quantité =
--- nombre d'objets tirés au hasard). Rubrique « Objets de Quête », visible dans toutes les sessions.
-insert into objet_catalogue (code_unique, nom, description, icone, categorie_id, empilable, utilisable, actif, session_id)
+-- nombre d'objets tirés au hasard). Rubrique « Objets de Quête » (le catalogue est commun à toutes les sessions).
+insert into objet_catalogue (code_unique, nom, description, icone, categorie_id, empilable, utilisable, actif)
 select 'recompense-mystere', 'Récompense mystère',
   'Objet aléatoire : à la fin de la quête, il est remplacé par un objet tiré au hasard parmi les armes, boucliers, objets divers et produits alchimiques.',
-  '/assets/icons/mystere.webp', c.id, true, false, true, null
+  '/assets/icons/mystere.webp', c.id, true, false, true
 from categorie c
 where c.nom = 'Objets de Quête' and c.parent_id is null
   and not exists (select 1 from objet_catalogue x where x.code_unique = 'recompense-mystere');
 
 -- Tirage d'un objet au hasard, à égalité, parmi les Armes, les Boucliers, les Objets divers et les
--- Produits alchimiques du catalogue (objets actifs, visibles dans la session).
+-- Produits alchimiques du catalogue (objets actifs du catalogue).
 create or replace function _objet_mystere_tirer()
 returns table (id uuid, nom text)
 language sql
@@ -25,10 +25,6 @@ as $$
   select o.id, o.nom
     from objet_catalogue o
     where o.actif
-      and (o.session_id = ctx_session()
-           or (o.session_id is null
-               and not exists (select 1 from objet_catalogue s
-                               where s.session_id = ctx_session() and s.code_unique = o.code_unique)))
       and (
         _est_bouclier(o.categorie_id)
         or _racine_categorie(o.categorie_id) in ('Objet divers', 'Produits Alchimiques')
