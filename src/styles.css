@@ -6644,10 +6644,9 @@ a.merc-card:hover {
     width: min(60%, 200px);
     box-sizing: border-box;
   }
-  .sertissage-actions {
-    flex-wrap: wrap;
-  }
-  .sertissage-actions > * {
-    flex: 1 1 130px;
+  .sertissage-actions > *,
+  .sertissage-actions .primary {
+    flex: 1 1 0;
+    min-width: 0;
   }
 }
