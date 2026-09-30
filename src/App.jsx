@@ -1060,6 +1060,21 @@ export function App() {
   // Vrai quand le joueur vient d'une case « Mercenaires engagés » de la page
   // Quêtes : le Dortoir affiche alors « Retour aux quêtes ».
   const [retourQuetes, setRetourQuetes] = useState(false);
+  // Arsenal ouvert depuis le sac à dos d'un mercenaire : { hash, nom, mercId, vu } ; le bouton « Retour » de
+  // l'Arsenal ramène à la fiche et rouvre le sac (sacARouvrir = id du mercenaire).
+  const [retourSac, setRetourSac] = useState(null);
+  const [sacARouvrir, setSacARouvrir] = useState(null);
+  function ouvrirArsenalDepuisSac(merc) {
+    setRetourSac({ hash: location.hash.slice(1), nom: merc.nom, mercId: merc.id, vu: false });
+    location.hash = "stock";
+  }
+  function retourAuSac() {
+    if (!retourSac) return;
+    setSacARouvrir(retourSac.mercId);
+    const h = retourSac.hash;
+    setRetourSac(null);
+    location.hash = h;
+  }
   // Sac à dos de chaque mercenaire (id -> [{objetId, quantite, nom, icone}]),
   // reconstruit à chaque synchronisation partagée (cf. synchroniserEconomie).
   const [sacsDos, setSacsDos] = useState(() => new Map());
@@ -1156,6 +1171,11 @@ export function App() {
     return m;
   }, [training, infirm, mercenaires, mercsEnQuete, queteEnCours]);
   const [route, setRoute] = useState(location.hash.slice(1) || "forteresse");
+  useEffect(() => {
+    if (!retourSac) return;
+    if (route === "stock" && !retourSac.vu) setRetourSac((r) => (r ? { ...r, vu: true } : r));
+    else if (route !== "stock" && retourSac.vu) setRetourSac(null);
+  }, [route, retourSac]);
   // Or, arsenal, journal et fabrications sont PARTAGÉS (base de données) : ils
   // arrivent par synchroniserEconomie() ; les valeurs de démonstration locales
   // (905 Po, matériaux, objets de démo) ne sont plus utilisées.
@@ -3474,6 +3494,9 @@ export function App() {
           onDepenserEnergie={depenserEnergie}
           onRestaurerEnergie={restaurerEnergie}
           onSetCaracteristiques={setCaracteristiques}
+          onOuvrirArsenal={ouvrirArsenalDepuisSac}
+          sacARouvrir={sacARouvrir}
+          onSacRouvert={() => setSacARouvrir(null)}
           or={game.gold}
           busy={busy}
         />
@@ -4107,6 +4130,11 @@ export function App() {
             </>
           ) : route === "stock" ? (
             <section className="stock-panel parchment">
+              {retourSac && (
+                <button type="button" className="wood-button retour-sac" onClick={retourAuSac}>
+                  ‹ Retour au sac à dos de {retourSac.nom}
+                </button>
+              )}
               <div className="arsenal-tabs">
                 {ARSENAL_TABS.map((t) => (
                   <button

@@ -6701,3 +6701,31 @@ a.merc-card:hover {
     width: 112px;
   }
 }
+
+/* Sac à dos : accès à l'Arsenal, et bouton de retour depuis l'Arsenal vers le sac. */
+.sac-arsenal-lien {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 6px 14px 6px 8px;
+  border: 3px ridge #b9914e;
+  background: var(--wood);
+  color: #fff0cc;
+  font: 18px Chiffres, Georgia, serif;
+  box-shadow: inset 0 0 10px #201007, 0 3px 7px #0005;
+  cursor: pointer;
+}
+.sac-arsenal-lien:hover {
+  background: #674321;
+  border-color: var(--gold);
+}
+.sac-arsenal-lien img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.stock-panel .retour-sac {
+  margin: 0 0 14px;
+}

@@ -117,6 +117,9 @@ export function Characters({
   onRestaurerEnergie = async () => ({}),
   onSetCaracteristiques = async () => ({}),
   onClearError = () => {},
+  onOuvrirArsenal = () => {},
+  sacARouvrir = null,
+  onSacRouvert = () => {},
   busy = false,
 }) {
   const [, classId, heroId] = route.split("/");
@@ -132,6 +135,13 @@ export function Characters({
   // Le joueur qui a recruté ce mercenaire (ou le MJ) peut modifier sa fiche.
   const peutModifier = merc ? recrutes.includes(merc.id) || estAdmin : false;
   const [popup, setPopup] = useState(null);
+  // Retour depuis l'Arsenal (ouvert depuis ce sac à dos) : la fenêtre du sac se rouvre toute seule.
+  useEffect(() => {
+    if (sacARouvrir && merc && sacARouvrir === merc.id) {
+      setPopup({ type: "sac" });
+      onSacRouvert();
+    }
+  }, [sacARouvrir, merc?.id]);
   // « Soigner » (infirmerie) : seulement de 1 PV jusqu'à moins que la santé max (règle de Bruno, 2026-09-29).
   const pvActuels = merc?.santeActuelle ?? santeMax;
   const soignable = merc ? pvActuels >= 1 && pvActuels < santeMax : false;
@@ -1024,6 +1034,17 @@ export function Characters({
             </>
           ) : popup.type === "sac" ? (
             <>
+              {/* Accès direct à l'Arsenal ; un bouton « Retour » y ramène à ce sac à dos. */}
+              <button
+                type="button"
+                className="sac-arsenal-lien"
+                onClick={() => onOuvrirArsenal(merc)}
+                title="Ouvrir l’Arsenal"
+                aria-label="Ouvrir l’Arsenal"
+              >
+                <img src="/assets/icons/stock.webp" alt="" />
+                <span>Arsenal</span>
+              </button>
               <p className="muted">
                 {sacCapacite} emplacements, jusqu’à 3 par objet. Envoyé depuis l’Arsenal
                 (composants et produits alchimiques, armes, armures et objets divers) ;
