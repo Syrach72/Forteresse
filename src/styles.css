@@ -6800,3 +6800,18 @@ a.merc-card:hover {
   -webkit-mask-composite: source-in;
   mask-composite: intersect;
 }
+
+/* Téléphone, Quêtes : contrairement aux autres décors (collés à l'écran), ce fond vertical suit la page, aligné
+   en haut, à la largeur de l'écran, sans recadrage ; le bas de la page prend le brun sombre. */
+@media (max-width: 680px) {
+  main.interior > video.interior-backdrop.interior-backdrop-top {
+    position: absolute !important;
+    inset: auto !important;
+    top: 0 !important;
+    left: 50% !important;
+    width: 100% !important;
+    height: auto !important;
+    transform: translateX(-50%) !important;
+    object-fit: fill !important;
+  }
+}
