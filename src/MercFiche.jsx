@@ -184,7 +184,9 @@ function BadgesParade({ emplacement, position, nom, actif, onDetruire, onBascule
 
 export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, onBasculerF = null, onVoirFiche = null, busy = false }) {
   const e = equip || { arme: [null, null, null], armure: [null], bouclier: [null], objet: [null, null, null] };
-  const bouton = (emplacement, position, nom) => (
+  // Équipement de base d'un mercenaire non recruté : lecture seule, pas de bouton Déséquiper.
+  const bouton = (emplacement, position, nom) =>
+    !onDesequiper ? null : (
     <button
       type="button"
       className="text-button equip-retirer"

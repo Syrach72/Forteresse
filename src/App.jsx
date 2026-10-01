@@ -1084,6 +1084,8 @@ export function App() {
   // Équipement de chaque mercenaire (id -> { arme: [3], armure: [1], objet: [3] }, session
   // active) et cellules de compétences (id -> [{veterance, type, position, competence}], commun).
   const [equipements, setEquipements] = useState(() => new Map());
+  // Équipement de base des mercenaires non recrutés (visible de tous avant le recrutement).
+  const [equipementsBase, setEquipementsBase] = useState(() => new Map());
   const [competencesMerc, setCompetencesMerc] = useState(() => new Map());
   // Effectif embauché (Collecte des Ressources), partagé comme l'arsenal.
   const [employesRoster, setEmployesRoster] = useState([]);
@@ -1887,7 +1889,7 @@ export function App() {
   // Or de la compagnie, arsenal, journal et fabrications en cours : lus en base
   // et reversés dans `game` (même forme qu'avant, pour l'affichage existant).
   async function synchroniserEconomie() {
-    const [etat, inv, lignes, fab, jour, sert, emp, eqp, actives, attente] = await Promise.all([
+    const [etat, inv, lignes, fab, jour, sert, emp, eqp, actives, attente, baseEquip] = await Promise.all([
       supabase.from("partie_etat").select("or_compagnie, instance_courante, round_courant").maybeSingle(),
       supabase.from("inventaire").select("id, type, mercenaire_id"),
       supabase.from("ligne_inventaire").select("id, inventaire_id, objet_id, quantite, gemmes"),
@@ -1905,6 +1907,7 @@ export function App() {
       supabase.from("mercenaire_equipement").select("mercenaire_id, emplacement, position, objet_id, gemmes, badge_f"),
       supabase.from("objet_quete_active").select("objet_id"),
       supabase.from("quete_etat").select("recompenses_attente").not("recompenses_attente", "is", null).limit(1),
+      supabase.from("mercenaire_equipement_base").select("mercenaire_id, emplacement, position, objet_id"),
     ]);
     // Le solde ne dépend que de partie_etat : on l'affiche même si une autre lecture a échoué
     // (sinon il resterait à 0 dans l'en-tête tant qu'une synchronisation complète n'a pas abouti).
@@ -1961,6 +1964,7 @@ export function App() {
       ...(sertActif ? [sertActif.arme_objet_id, sertActif.gemme_objet_id, ...(sertActif.arme_gemmes || [])] : []),
       ...(emp.data || []).map((x) => x.objet_id),
       ...(eqp.data || []).flatMap((x) => [x.objet_id, ...(x.gemmes || [])]),
+      ...(baseEquip.data || []).map((x) => x.objet_id),
       ...(actives.data || []).map((x) => x.objet_id),
     ];
     if (idsRequis.some((id) => !cache.objets.has(id))) {
@@ -2027,9 +2031,11 @@ export function App() {
       sacs.set(s.mercenaire_id, items);
     }
     setSacsDos(sacs);
-    // Équipement des mercenaires (table absente ou illisible : simplement vide).
+    // Équipement des mercenaires (table absente ou illisible : simplement vide), puis équipement de base
+    // des mercenaires non recrutés (même forme, lecture seule dans la fiche).
+    const construireEquip = (lignesEquip) => {
     const equip = new Map();
-    for (const e of eqp.data || []) {
+    for (const e of lignesEquip) {
       const o = cache.objets.get(e.objet_id) || {};
       const gemmes = e.gemmes && e.gemmes.length ? e.gemmes : [];
       if (!equip.has(e.mercenaire_id))
@@ -2060,7 +2066,10 @@ export function App() {
         armeIcone2: o.arme_icone_2 || null,
       };
     }
-    setEquipements(equip);
+    return equip;
+    };
+    setEquipements(construireEquip(eqp.data || []));
+    setEquipementsBase(construireEquip(baseEquip.data || []));
     // Objets de quête activés cette session (noms en minuscules) : ils déverrouillent les lieux et
     // donnent leurs effets ; l'exemplaire a quitté l'arsenal.
     setQuetesActives(
@@ -3480,6 +3489,7 @@ export function App() {
           sacCapacite={sacCapacite}
           onRendreArsenal={actRendreArsenal}
           equipements={equipements}
+          equipementsBase={equipementsBase}
           competences={competencesMerc}
           onEquiper={actEquiperSac}
           onUtiliserSac={actUtiliserSac}

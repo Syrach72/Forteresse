@@ -104,6 +104,7 @@ export function Characters({
   sacCapacite = 9,
   onRendreArsenal = () => {},
   equipements = new Map(),
+  equipementsBase = new Map(),
   competences = new Map(),
   onEquiper = () => {},
   onUtiliserSac = async () => false,
@@ -134,6 +135,8 @@ export function Characters({
   const accesFiche = (id) => morts.includes(id) || !tousRecrutes.includes(id) || recrutes.includes(id) || estAdmin;
   // Le joueur qui a recruté ce mercenaire (ou le MJ) peut modifier sa fiche.
   const peutModifier = merc ? recrutes.includes(merc.id) || estAdmin : false;
+  // Équipement affiché : celui du mercenaire recruté, sinon son équipement de base (visible de tous).
+  const equipDe = (id) => (tousRecrutes.includes(id) ? equipements.get(id) : equipementsBase.get(id));
   const [popup, setPopup] = useState(null);
   // Retour depuis l'Arsenal (ouvert depuis ce sac à dos) : la fenêtre du sac se rouvre toute seule.
   useEffect(() => {
@@ -384,7 +387,7 @@ export function Characters({
           <div className="merc-onglets" role="tablist" aria-label="Rubriques de la fiche">
             {[
               ["general", "Général"],
-              ...(tousRecrutes.includes(merc.id) ? [["equipement", "Équipement"]] : []),
+              ["equipement", "Équipement"],
               ["competences", "Compétences"],
             ].map(([id, libelle]) => (
               <button
@@ -420,7 +423,7 @@ export function Characters({
               <div className="merc-sous-portrait">
                 {merc.mouvement !== null && merc.mouvement !== undefined && (() => {
                   // Le malus de Vitesse de l'armure portée (−1 ou plus) réduit d'autant les cases de déplacement.
-                  const malusArmure = Math.min(0, Number(equipements.get(merc.id)?.armure?.[0]?.malusVitesse) || 0);
+                  const malusArmure = Math.min(0, Number(equipDe(merc.id)?.armure?.[0]?.malusVitesse) || 0);
                   const deplacement = Math.max(0, merc.mouvement + malusArmure);
                   return (
                     <div className="merc-carac merc-carac-bottes">
@@ -434,10 +437,10 @@ export function Characters({
                     </div>
                   );
                 })()}
-                {meilleureParade(equipements.get(merc.id)) && (
+                {meilleureParade(equipDe(merc.id)) && (
                   <div className="merc-carac">
                     <span className="merc-carac-libelle">Parade</span>
-                    <strong className="merc-carac-valeur">{meilleureParade(equipements.get(merc.id))}</strong>
+                    <strong className="merc-carac-valeur">{meilleureParade(equipDe(merc.id))}</strong>
                   </div>
                 )}
               </div>
@@ -713,13 +716,13 @@ export function Characters({
             </div>
           </section>
           )}
-          {onglet === "equipement" && tousRecrutes.includes(merc.id) && (
+          {onglet === "equipement" && (
             <section className="merc-bloc parchment" id="merc-rubrique-equipement" role="tabpanel" aria-labelledby="merc-onglet-equipement">
               {titreMerc}
               <div className="merc-bloc-entete">
                 <h2 id="merc-equipement-titre">Équipement</h2>
                 {/* Sac à dos (inventaire) : dans la rubrique Équipement. */}
-                {peutModifier && (
+                {peutModifier && tousRecrutes.includes(merc.id) && (
                   <button
                     className="merc-sac-dos merc-sac-equipement"
                     type="button"
@@ -733,7 +736,9 @@ export function Characters({
                 )}
               </div>
               <p className="muted">
-                3 armes, 1 armure, 1 bouclier et 3 objets. On équipe depuis le sac à dos ; déséquiper renvoie l’objet au sac.
+                {tousRecrutes.includes(merc.id)
+                  ? "3 armes, 1 armure, 1 bouclier et 3 objets. On équipe depuis le sac à dos ; déséquiper renvoie l’objet au sac."
+                  : `Équipement de base de ${merc.nom} : il arrive avec lui s’il est recruté.`}
               </p>
               {erreur && (
                 <p className="error" role="alert">
@@ -741,10 +746,10 @@ export function Characters({
                 </p>
               )}
               <EquipementMercenaire
-                equip={equipements.get(merc.id)}
+                equip={equipDe(merc.id)}
                 busy={busy}
-                onDesequiper={(emplacement, position) => onDesequiper(merc.id, emplacement, position)}
-                onDetruire={peutModifier ? (emplacement, position) => onDetruireEquipement(merc.id, emplacement, position) : null}
+                onDesequiper={tousRecrutes.includes(merc.id) ? (emplacement, position) => onDesequiper(merc.id, emplacement, position) : null}
+                onDetruire={tousRecrutes.includes(merc.id) && peutModifier ? (emplacement, position) => onDetruireEquipement(merc.id, emplacement, position) : null}
                 onBasculerF={(emplacement, position, actif) => onBadgeFEquipement(merc.id, emplacement, position, actif)}
                 onVoirFiche={(o) => setPopup({ type: "fiche", objet: o, title: o.nom })}
               />
