@@ -1,3 +1,4 @@
+import { RichText } from "./RichText.jsx";
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { Modal } from "./Modal.jsx";
@@ -220,12 +221,12 @@ export function Quests({
                 >
                   {q.facteur_puissance ?? 1}
                 </span>
-                <p>{q.description}</p>
+                <p><RichText text={q.description} /></p>
                 {estAdmin && scenarios.find((s) => s.quete_id === q.id)?.texte && (
                   <>
                     <h3 className="quest-section-title">Scénario (MJ)</h3>
-                    <p className="quest-scenario" style={{ whiteSpace: "pre-wrap" }}>
-                      {scenarios.find((s) => s.quete_id === q.id).texte}
+                    <p className="quest-scenario">
+                      <RichText text={scenarios.find((s) => s.quete_id === q.id).texte} />
                     </p>
                   </>
                 )}
@@ -354,7 +355,7 @@ export function Quests({
       {ficheObjet && (
         <Modal title={ficheObjet.nom} onClose={() => setFicheObjet(null)}>
           {ficheObjet.icone && <img className="db-item-art" src={ficheObjet.icone} alt={ficheObjet.nom} />}
-          <p>{ficheObjet.description || "Description à définir."}</p>
+          <p><RichText text={ficheObjet.description || "Description à définir."} /></p>
           <p className="muted">Récompense de la quête : ×{ficheObjet.quantite}.</p>
         </Modal>
       )}

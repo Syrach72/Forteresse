@@ -1,3 +1,4 @@
+import { RichText } from "./RichText.jsx";
 import { Fragment, useState } from "react";
 
 // Fiche d'un mercenaire : emplacements d'équipement (3 armes, 1 armure,
@@ -251,7 +252,7 @@ export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, o
                     ))}
                   </span>
                 </strong>
-                {o.description && <p className="equip-description">{o.description}</p>}
+                {o.description && <p className="equip-description"><RichText text={o.description} /></p>}
                 <dl className="equip-stats">
                   {aUneValeur(o.portee) && (
                     <div>
@@ -392,7 +393,7 @@ export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, o
               {icone(o)}
               <div className="equip-texte">
                 <strong {...lien(o)}>{o.nom}</strong>
-                {o.description && <p className="equip-description">{o.description}</p>}
+                {o.description && <p className="equip-description"><RichText text={o.description} /></p>}
                 {bouton("objet", i, o.nom)}
               </div>
             </div>
@@ -440,7 +441,7 @@ export function FicheObjet({ objet }) {
           </span>
         )}
       </div>
-      <p className="fiche-objet-description">{o.description || "Aucune description pour le moment."}</p>
+      <p className="fiche-objet-description"><RichText text={o.description || "Aucune description pour le moment."} /></p>
       <div className="fiche-objet-stats">
         {(arme || armure) && ligne("Vétérance requise", o.veteranceRequise)}
         {o.categorie === "Produits Alchimiques" && aUneValeur(o.portee) && ligne("Portée", o.portee)}
@@ -531,7 +532,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
           <p className="comp-detail-meta">
             Compétence {type === "passive" ? "passive" : "active"} · Vétérance requise {niveau}
           </p>
-          <p>{competence.description || "Aucune description pour le moment."}</p>
+          <p><RichText text={competence.description || "Aucune description pour le moment."} /></p>
         </>
       ) : (
         <>

@@ -6815,3 +6815,12 @@ a.merc-card:hover {
     object-fit: fill !important;
   }
 }
+
+/* Barre de mise en forme des textes (G / I / S / couleurs) */
+.richtext { width: 100%; }
+.richtext-barre { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 4px; }
+.richtext-barre button { min-width: 28px; height: 28px; padding: 0 6px; border: 1px solid #8b7355; border-radius: 3px; background: #e8e0d0; color: #2b1d0e; cursor: pointer; font-family: inherit; }
+.richtext-barre button:hover, .richtext-barre button:focus-visible { background: #f3ecdc; outline: 2px solid #1f5f99; outline-offset: 1px; }
+.richtext-barre .richtext-couleur { min-width: 22px; width: 22px; height: 22px; padding: 0; }
+.richtext-sep { width: 1px; height: 20px; background: #8b7355; margin: 0 4px; }
+.richtext-apercu { margin: 6px 0 0; padding: 6px 8px; border: 1px dashed #8b7355; border-radius: 3px; }

@@ -1,3 +1,4 @@
+import { RichText } from "./RichText.jsx";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { ASSETS, LOCATIONS, CLASSES, ITEMS } from "./data";
 import { initialGame, transact, RESOURCE_ALIASES, materialQuantity, ingredientQuantity, sellableValue } from "./game";
@@ -373,7 +374,7 @@ function ItemActionPanel({
     return (
       <>
         <div className="item-detail-art">{art}</div>
-        <p>{own.description || "Aucune description pour le moment."}</p>
+        <p><RichText text={own.description || "Aucune description pour le moment."} /></p>
         {!confirmActivate ? (
           <div className="item-detail-actions">
             <button className="wood-button" disabled={busy} onClick={() => setConfirmActivate(true)}>
@@ -693,7 +694,7 @@ function CatalogueItemDetail({
         <img className="db-item-art" src={item.icone} alt={item.nom} />
       )}
       <h2>{item.nom}</h2>
-      <p>{item.description || "Description à définir."}</p>
+      <p><RichText text={item.description || "Description à définir."} /></p>
       <CombatStats item={item} />
       {showCraft && (
         <>
@@ -3883,7 +3884,7 @@ export function App() {
                       <>
                         <ItemArt item={item} />
                         <h2>{item.name}</h2>
-                        <p>{item.description}</p>
+                        <p><RichText text={item.description} /></p>
                         <div className="stat-line">
                           <span>
                             {item.type === "Armes" ? "Attaque" : "Protection"}
@@ -4956,7 +4957,7 @@ function Catalog({ items, game, busy, onBuy, onSelect }) {
           <div>
             <small>{i.type}</small>
             <h3>{i.name}</h3>
-            <p>{i.description}</p>
+            <p><RichText text={i.description} /></p>
             <span>{game.stock[i.id]} en stock</span>
             <div className="catalog-actions">
               <button

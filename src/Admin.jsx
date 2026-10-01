@@ -3,6 +3,7 @@ import { supabase } from "./supabaseClient";
 import { ASSETS } from "./data";
 import { useSessions } from "./Sessions.jsx";
 import { TableauCompetences, ICONE_ARME_PAR_DEFAUT } from "./MercFiche.jsx";
+import { RichTextarea } from "./RichText.jsx";
 
 // Atelier de fabrication d'un objet, déduit de la rubrique racine de sa
 // catégorie (vérifié sur les recettes existantes : aucune exception). Il n'y
@@ -1564,19 +1565,13 @@ function CatalogueSection({ onCraftItem }) {
       <div className="field">
         <label htmlFor="cat-desc">Description</label>
         <div className="input-wrap">
-          <textarea
+          {/* Hauteur ajustée au contenu (saisie ou ouverture d'une fiche à longue description). */}
+          <RichTextarea
             id="cat-desc"
             rows={2}
+            grow
             value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            ref={(el) => {
-              // Hauteur ajustee au contenu a chaque rendu (saisie ou
-              // ouverture d'une fiche existante avec une longue description).
-              if (el) {
-                el.style.height = "auto";
-                el.style.height = `${el.scrollHeight}px`;
-              }
-            }}
+            onChange={(v) => setForm({ ...form, description: v })}
           />
         </div>
       </div>
@@ -3300,32 +3295,22 @@ function QuetesSection() {
       </div>
       <div className="field">
         <label htmlFor="quete-desc">Description</label>
-        <textarea
+        <RichTextarea
           id="quete-desc"
           rows={3}
           value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          onChange={(v) => setForm({ ...form, description: v })}
         />
       </div>
       <div className="field">
         <label htmlFor="quete-scenario">Scénario (MJ)</label>
-        <textarea
+        {/* Pas de hauteur maximale : la zone grandit avec le texte. */}
+        <RichTextarea
           id="quete-scenario"
           rows={6}
-          style={{ resize: "vertical", overflow: "hidden" }}
+          grow
           value={form.scenario}
-          onChange={(e) => {
-            // Pas de hauteur maximale : la zone grandit avec le texte.
-            e.target.style.height = "auto";
-            e.target.style.height = `${e.target.scrollHeight}px`;
-            setForm({ ...form, scenario: e.target.value });
-          }}
-          ref={(el) => {
-            if (el) {
-              el.style.height = "auto";
-              el.style.height = `${el.scrollHeight}px`;
-            }
-          }}
+          onChange={(v) => setForm({ ...form, scenario: v })}
         />
       </div>
       <div className="field">
