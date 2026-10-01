@@ -3073,7 +3073,7 @@ function EtatMaintien() {
 }
 
 function emptyQuete() {
-  return { nom: "", description: "", facteur_puissance: "1", instances_requises: "1", recompense_or: "", icone: "" };
+  return { nom: "", description: "", scenario: "", facteur_puissance: "1", instances_requises: "1", recompense_or: "", icone: "" };
 }
 const QUETE_SLOTS = [0, 1, 2, 3, 4];
 
@@ -3089,6 +3089,7 @@ function QuetesSection() {
   // Avancement propre à la session choisie (vide dans le contexte « base de départ »).
   const etats = useTable("quete_etat", { order: "quete_id", key: "quete_id" });
   const recompenses = useTable("quete_recompense", { order: "position" });
+  const scenarios = useTable("quete_scenario", { order: "quete_id", key: "quete_id" });
   const catalogue = useTable("objet_catalogue", { order: "nom" });
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyQuete());
@@ -3099,9 +3100,14 @@ function QuetesSection() {
   const [msg, setMsg] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
 
-  if (quetes.error || recompenses.error || catalogue.error || etats.error)
-    return <p className="admin-error">{quetes.error || recompenses.error || catalogue.error || etats.error}</p>;
-  if (!quetes.rows || !recompenses.rows || !catalogue.rows || !etats.rows) return <p>Chargement…</p>;
+  if (quetes.error || recompenses.error || catalogue.error || etats.error || scenarios.error)
+    return (
+      <p className="admin-error">
+        {quetes.error || recompenses.error || catalogue.error || etats.error || scenarios.error}
+      </p>
+    );
+  if (!quetes.rows || !recompenses.rows || !catalogue.rows || !etats.rows || !scenarios.rows)
+    return <p>Chargement…</p>;
   const etatDe = (id) => etats.rows.find((e) => e.quete_id === id);
 
   function nomObjet(id) {
@@ -3117,6 +3123,7 @@ function QuetesSection() {
     setForm({
       nom: q.nom,
       description: q.description || "",
+      scenario: scenarios.rows.find((s) => s.quete_id === q.id)?.texte || "",
       facteur_puissance: q.facteur_puissance ?? 1,
       instances_requises: q.instances_requises ?? 1,
       recompense_or: q.recompense_or ?? "",
@@ -3185,6 +3192,14 @@ function QuetesSection() {
       }
       queteId = data.id;
     }
+    // Scénario (MJ) : table admin-only ; une ligne par quête, supprimée quand le texte est vidé.
+    const { error: scenErr } = form.scenario.trim()
+      ? await supabase.from("quete_scenario").upsert({ quete_id: queteId, texte: form.scenario })
+      : await supabase.from("quete_scenario").delete().eq("quete_id", queteId);
+    if (scenErr) {
+      setMsg(scenErr.message);
+      return;
+    }
     const { error: delErr } = await supabase.from("quete_recompense").delete().eq("quete_id", queteId);
     if (delErr) {
       setMsg(delErr.message);
@@ -3211,6 +3226,7 @@ function QuetesSection() {
     }
     await quetes.reload();
     await recompenses.reload();
+    await scenarios.reload();
     cancel();
   }
   async function del(id) {
@@ -3282,6 +3298,27 @@ function QuetesSection() {
           rows={3}
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="quete-scenario">Scénario (MJ)</label>
+        <textarea
+          id="quete-scenario"
+          rows={6}
+          style={{ resize: "vertical", overflow: "hidden" }}
+          value={form.scenario}
+          onChange={(e) => {
+            // Pas de hauteur maximale : la zone grandit avec le texte.
+            e.target.style.height = "auto";
+            e.target.style.height = `${e.target.scrollHeight}px`;
+            setForm({ ...form, scenario: e.target.value });
+          }}
+          ref={(el) => {
+            if (el) {
+              el.style.height = "auto";
+              el.style.height = `${el.scrollHeight}px`;
+            }
+          }}
         />
       </div>
       <div className="field">

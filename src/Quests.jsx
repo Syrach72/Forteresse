@@ -46,7 +46,8 @@ function JaugeDifficulte({ somme, fp }) {
 // icônes/noms des récompenses), puis se tient à jour en direct : la sélection
 // d'une quête par un joueur, ou sa résolution par l'administrateur au +1
 // Instance, doit se refléter chez tout le monde sans recharger la page.
-function useQuetes() {
+function useQuetes(estAdmin) {
+  const [scenarios, setScenarios] = useState([]);
   const [quetes, setQuetes] = useState(null);
   const [recompenses, setRecompenses] = useState(null);
   const [objets, setObjets] = useState(null);
@@ -65,6 +66,13 @@ function useQuetes() {
       return;
     }
     setError("");
+    // Scénarios (MJ) : table réservée à l'administrateur, jamais demandée pour un joueur.
+    if (estAdmin) {
+      const s = await supabase.from("quete_scenario").select("quete_id, texte");
+      if (!s.error) setScenarios(s.data);
+    } else {
+      setScenarios([]);
+    }
     setQuetes(q.data);
     setRecompenses(r.data);
     setObjets(o.data);
@@ -80,8 +88,8 @@ function useQuetes() {
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_mercenaire" }, reload)
       .subscribe();
     return () => supabase.removeChannel(canal);
-  }, []);
-  return { quetes, recompenses, objets, engages, error, reload };
+  }, [estAdmin]);
+  return { quetes, recompenses, objets, engages, scenarios, error, reload };
 }
 
 // Une case libre de « Mercenaires engagés » ouvre le Dortoir (`onChoisirMercenaire`) :
@@ -96,7 +104,7 @@ export function Quests({
   estAdmin = false,
   onChanged = () => {},
 }) {
-  const { quetes, recompenses, objets, engages, error, reload } = useQuetes();
+  const { quetes, recompenses, objets, engages, scenarios, error, reload } = useQuetes(estAdmin);
   const [busy, setBusy] = useState(false);
   // Objet dont la fiche (icône, nom, descriptif) est affichée après un clic
   // sur son emplacement de récompense ; null = aucune fiche ouverte.
@@ -213,6 +221,14 @@ export function Quests({
                   {q.facteur_puissance ?? 1}
                 </span>
                 <p>{q.description}</p>
+                {estAdmin && scenarios.find((s) => s.quete_id === q.id)?.texte && (
+                  <>
+                    <h3 className="quest-section-title">Scénario (MJ)</h3>
+                    <p className="quest-scenario" style={{ whiteSpace: "pre-wrap" }}>
+                      {scenarios.find((s) => s.quete_id === q.id).texte}
+                    </p>
+                  </>
+                )}
                 <h3 className="quest-section-title">Récompenses attendues</h3>
                 <div className="quest-rewards" aria-label="Récompenses attendues">
                   {REWARD_SLOTS.map((i) => {
