@@ -7,7 +7,8 @@ import { useLayoutEffect, useRef } from "react";
 const BALISE = /\[(\/?)(b|i|u|c)(?:=(#[0-9a-fA-F]{3,8}))?\]/g;
 const STYLE = {
   b: { fontWeight: "bold" },
-  i: { fontStyle: "italic" },
+  // La feuille de style coupe la synthèse des polices (font-synthesis: none) et la police n'a pas d'italique propre : on autorise ici l'italique simulé.
+  i: { fontStyle: "italic", fontSynthesis: "style" },
   u: { textDecoration: "underline" },
 };
 
