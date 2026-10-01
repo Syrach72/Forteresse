@@ -1220,6 +1220,8 @@ function CatalogueSection({ onCraftItem }) {
           </select>
         </div>
       </div>
+      {/* Une compétence (active ou passive) n'est pas un objet possédé en plusieurs exemplaires : pas de case « Empilable ». */}
+      {!/comp[ée]tences/i.test(racineDe(categories.rows, form.categorie_id)?.nom || "") && (
       <div className="admin-checkbox-row">
         <label className="admin-checkbox">
           <input
@@ -1230,6 +1232,7 @@ function CatalogueSection({ onCraftItem }) {
           Empilable
         </label>
       </div>
+      )}
       {(() => {
         const { arme, armure, bouclier, alchimique, emploi, craftable, achetable, atelier } = categorieFlags(
           form.categorie_id,
