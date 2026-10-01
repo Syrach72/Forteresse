@@ -3166,20 +3166,15 @@ export function App() {
       }
       return false;
     };
-    // Marché : « Objets divers » regroupe aussi les catégories racines sans
-    // bouton dédié, sous leur propre onglet — sauf les Gemmes, qui ne
-    // s'obtiennent que par fabrication (Tour du Mage) et ne sont pas en vente.
     const rootOf = (categorieId) => {
       let c = categories.find((x) => x.id === categorieId);
       while (c?.parent_id) c = categories.find((x) => x.id === c.parent_id);
       return c;
     };
-    const MARKET_BUTTON_ROOTS = ["armes", "armures", "composants", "matériaux", "produits alchimiques", "gemmes", "collecte"];
-    const isDivers = consultation && racineNom.trim().toLowerCase() === "objet divers";
-    const included = (o) =>
-      isDivers
-        ? !MARKET_BUTTON_ROOTS.includes((rootOf(o.categorie_id)?.nom || "").trim().toLowerCase())
-        : isUnderRacine(o.categorie_id);
+    // (Bruno, 2026-10-01) : « Objets divers » ne montre plus que la rubrique « Objet divers »
+    // elle-même ; les autres racines (compétences, objets de quête…) ne se vendent pas.
+    const isDivers = false;
+    const included = (o) => isUnderRacine(o.categorie_id);
     // Catalogue global : onglet = catégorie de niveau 2 sous la racine propre
     // à chaque objet (même principe que groupName, racine par racine).
     const groupeSousRacine = (categorieId, root) => {
