@@ -974,7 +974,7 @@ function CatalogueSection({ onCraftItem }) {
   function cancel() {
     setEditing(null);
     setBrouillon(BROUILLON_VIDE);
-    setForm(emptyCatalogueItem(categories.rows?.[0]?.id || ""));
+    setForm(emptyCatalogueItem(filterCategorie || categories.rows?.[0]?.id || ""));
     setIconFile(null);
     setArmeIconeFiles([null, null]);
     setMsg("");
@@ -1696,7 +1696,11 @@ function CatalogueSection({ onCraftItem }) {
         <select
           id="cat-filter"
           value={filterCategorie}
-          onChange={(e) => setFilterCategorie(e.target.value)}
+          onChange={(e) => {
+            setFilterCategorie(e.target.value);
+            // La rubrique affichée devient la catégorie par défaut du formulaire « Ajouter un objet ».
+            if (e.target.value && !editing) setForm({ ...form, categorie_id: e.target.value });
+          }}
         >
           <option value="">Toutes les catégories ({rows.length} objets)</option>
           {categoryTreeOptions(null, 0)}
