@@ -3298,7 +3298,7 @@ export function App() {
   }
   if (!session) return null; // redirection vers #connexion en cours (effet ci-dessus)
   return (
-    <div className={`app${route === "forteresse" ? " app-fullwidth" : ""}`}>
+    <div className={`app${route === "forteresse" ? " app-fullwidth" : ""}${route.startsWith("personnages/") ? " app-persos" : ""}`}>
       <a className="skip" href="#main">
         Aller au contenu
       </a>
@@ -3472,6 +3472,10 @@ export function App() {
         <EcranSession sess={sess} estAdmin={estAdmin} />
       ) : route.startsWith("personnages/") ? (
         <div className="personnages-cadre">
+        {/* Fond des pages Guerrier, Roublard… : le même fond animé que la page Connexion. */}
+        <div className="persos-fond" aria-hidden="true" style={{ backgroundImage: `url(${ASSETS.login})` }}>
+          <BackdropVideo src={AUTH_VIDEO} baseClass="auth-video" />
+        </div>
         <Characters
           route={route}
           warriors={warriors}

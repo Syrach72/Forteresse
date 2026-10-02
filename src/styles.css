@@ -6882,3 +6882,7 @@ a.merc-card:hover {
 .creature-page { padding-right: 76px; }
 .creature-titre-page { color: #3a2614; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35); }
 @media (max-width: 760px) { .creature-page { padding-right: 12px; } }
+
+/* Pages Guerrier, Roublard… : même fond animé que la page Connexion (image fixe puis vidéo en boucle) */
+.app.app-persos { background: transparent; }
+.persos-fond { position: fixed; inset: 0; z-index: -1; background-size: cover; background-position: center; pointer-events: none; overflow: hidden; }
