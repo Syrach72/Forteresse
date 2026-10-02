@@ -42,7 +42,7 @@ export async function chargerMercenaires(colonnes = "*") {
 export async function chargerActuels() {
   const { data, error } = await supabase
     .from("mercenaire_etat")
-    .select("mercenaire_id, energie_actuelle, sante_actuelle, attaque, defense, esprit");
+    .select("mercenaire_id, energie_actuelle, sante_actuelle, attaque, defense, esprit, etat, etat_niveau, etat_rounds");
   if (error) return { error };
   return {
     data: new Map(
@@ -54,6 +54,9 @@ export async function chargerActuels() {
           attaque: x.attaque ?? null,
           defense: x.defense ?? null,
           esprit: x.esprit ?? null,
+          etat: x.etat ?? null,
+          etatNiveau: x.etat_niveau ?? 1,
+          etatRounds: x.etat_rounds ?? 0,
         },
       ]),
     ),

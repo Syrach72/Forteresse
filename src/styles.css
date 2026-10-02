@@ -6861,3 +6861,10 @@ a.merc-card:hover {
 .quest-creatures { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 2px; }
 .quest-creatures li { display: flex; justify-content: space-between; gap: 12px; }
 .quest-creature-detruite { color: #8b1a1a; text-decoration: line-through; }
+
+/* Mercenaires en quête : onglets de navigation rapide et état */
+.merc-quete-onglets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 8px; }
+.merc-quete-onglets-titre { font-weight: 700; color: var(--paper-light, #f3e7cb); }
+.merc-quete-onglet { padding: 6px 12px; border: 1px solid rgba(60, 40, 20, 0.6); background: rgba(60, 40, 20, 0.55); color: #f3e7cb; text-decoration: none; border-radius: 6px; }
+.merc-quete-onglet.actif { background: #f3e7cb; color: #3a2614; font-weight: 700; }
+.merc-etats { margin-top: 12px; }

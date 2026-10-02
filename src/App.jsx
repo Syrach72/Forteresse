@@ -1418,6 +1418,19 @@ export function App() {
     await synchroniserPartage();
     return {};
   }
+  // État d'un mercenaire engagé dans une quête (agrippé, étourdi…) : choisi par son joueur ou le MJ ; le
+  // serveur le refuse hors quête. Les rounds se décomptent au clic du MJ sur RD.
+  async function definirEtat(id, etat, niveau = 1, rounds = 0) {
+    const { error } = await supabase.rpc("mercenaire_definir_etat", {
+      p_mercenaire: id,
+      p_etat: etat,
+      p_niveau: niveau,
+      p_rounds: rounds,
+    });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    return {};
+  }
   // Restauration Arcanique : le serveur crédite +2/+3/+4/+5 énergies selon la vétérance (1/4/7/10),
   // sans dépasser l'énergie max.
   async function restaurerEnergie(id) {
@@ -2298,13 +2311,20 @@ export function App() {
           const puissance = a?.attaque ?? m.puissance;
           const velocite = a?.defense ?? m.velocite;
           const mental = a?.esprit ?? m.mental;
-          return energie === m.energieActuelle &&
+          // État en quête (un seul à la fois) et rounds restants : propres à la session.
+          const etat = a?.etat ?? null;
+          const etatNiveau = a?.etatNiveau ?? 1;
+          const etatRounds = a?.etatRounds ?? 0;
+          return etat === (m.etat ?? null) &&
+            etatNiveau === (m.etatNiveau ?? 1) &&
+            etatRounds === (m.etatRounds ?? 0) &&
+            energie === m.energieActuelle &&
             sante === m.santeActuelle &&
             puissance === m.puissance &&
             velocite === m.velocite &&
             mental === m.mental
             ? m
-            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental };
+            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental, etat, etatNiveau, etatRounds };
         }),
       );
     }
@@ -3501,6 +3521,8 @@ export function App() {
           onClearError={() => setActionError("")}
           onSetActuel={setActuel}
           onDepenserEnergie={depenserEnergie}
+          onDefinirEtat={definirEtat}
+          mercsEnQuete={mercsEnQuete}
           onRestaurerEnergie={restaurerEnergie}
           onSetCaracteristiques={setCaracteristiques}
           onOuvrirArsenal={ouvrirArsenalDepuisSac}

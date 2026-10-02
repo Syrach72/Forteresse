@@ -5,6 +5,7 @@ import { instancesDeSoins, estBlesse } from "./dormitory.js";
 import { CoeurBlesse } from "./CoeurBlesse.jsx";
 import { VetBadge } from "./VetBadge.jsx";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
+import { EtatsBoutons } from "./CreaturesQuete.jsx";
 // Caractéristiques affichées par une icône plutôt que par leur nom (le nom reste en texte alternatif).
 const ICONES_STATS = {
   Puissance: "/assets/icons/puissance.webp",
@@ -115,6 +116,8 @@ export function Characters({
   or = 0,
   onSetActuel = async () => ({}),
   onDepenserEnergie = async () => ({}),
+  onDefinirEtat = async () => ({}),
+  mercsEnQuete = [],
   onRestaurerEnergie = async () => ({}),
   onSetCaracteristiques = async () => ({}),
   onClearError = () => {},
@@ -137,6 +140,13 @@ export function Characters({
   const peutModifier = merc ? recrutes.includes(merc.id) || estAdmin : false;
   // Équipement affiché : celui du mercenaire recruté, sinon son équipement de base (visible de tous).
   const equipDe = (id) => (tousRecrutes.includes(id) ? equipements.get(id) : equipementsBase.get(id));
+  // Mercenaires de ce joueur engagés dans la quête en cours : onglets de navigation rapide sur la fiche, et
+  // choix de l'état du mercenaire (les joueurs agissent eux-mêmes ; le MJ aussi).
+  const enQuete = merc ? mercsEnQuete.some((e) => e.mercenaire_id === merc.id) : false;
+  const mesEngages = mercenaires.filter(
+    (m) => (recrutes.includes(m.id) || estAdmin) && mercsEnQuete.some((e) => e.mercenaire_id === m.id),
+  );
+  const [etatErreur, setEtatErreur] = useState("");
   const [popup, setPopup] = useState(null);
   // Retour depuis l'Arsenal (ouvert depuis ce sac à dos) : la fenêtre du sac se rouvre toute seule.
   useEffect(() => {
@@ -383,6 +393,22 @@ export function Characters({
       ) : merc ? (
         accesFiche(merc.id) ? (
           <div className={`merc-fiche${morts.includes(merc.id) ? " merc-fiche-morte" : ""}`} data-onglet={onglet}>
+          {/* Un joueur qui a engagé plusieurs mercenaires dans la quête passe de l'un à l'autre d'un clic. */}
+          {enQuete && mesEngages.length > 1 && (
+            <nav className="merc-quete-onglets" aria-label="Mes mercenaires en quête">
+              <span className="merc-quete-onglets-titre">En quête :</span>
+              {mesEngages.map((m) => (
+                <a
+                  key={m.id}
+                  href={`#personnages/${classeRoute(m.classe)}/${m.id}`}
+                  className={`merc-quete-onglet${m.id === merc.id ? " actif" : ""}`}
+                  aria-current={m.id === merc.id ? "page" : undefined}
+                >
+                  {m.nom}
+                </a>
+              ))}
+            </nav>
+          )}
           {/* Onglets de parapheur, en haut à droite : Général, Équipement (mercenaire recruté), Compétences. */}
           <div className="merc-onglets" role="tablist" aria-label="Rubriques de la fiche">
             {[
@@ -583,6 +609,36 @@ export function Characters({
                   orbes
                 );
               })()}
+              {/* État du mercenaire engagé dans la quête : choisi par son joueur (ou le MJ) ; chaque clic du
+                  MJ sur RD retire un round, et l'état disparaît à 0. */}
+              {enQuete && (
+                <div className="merc-etats">
+                  <h4 className="creature-section">État en quête</h4>
+                  <EtatsBoutons
+                    etat={merc.etat ?? null}
+                    niveau={merc.etatNiveau ?? 1}
+                    rounds={merc.etatRounds ?? 0}
+                    desactive={!peutModifier}
+                    onEtat={async (e) => {
+                      const r = merc.etat === e.id ? await onDefinirEtat(merc.id, null) : await onDefinirEtat(merc.id, e.id, 1, 0);
+                      setEtatErreur(r?.error || "");
+                    }}
+                    onNiveau={async (n) => {
+                      const r = await onDefinirEtat(merc.id, "epuise", n, merc.etatRounds ?? 0);
+                      setEtatErreur(r?.error || "");
+                    }}
+                    onRounds={async (n) => {
+                      const r = await onDefinirEtat(merc.id, merc.etat, merc.etat === "epuise" ? merc.etatNiveau ?? 1 : 1, n);
+                      setEtatErreur(r?.error || "");
+                    }}
+                  />
+                  {etatErreur && (
+                    <p className="error" role="alert">
+                      {etatErreur}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
             {/* Zone pleine largeur, sous le portrait : actions, recrutement. */}
             <div className="merc-pleine-largeur">
