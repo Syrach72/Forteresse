@@ -110,7 +110,7 @@ const BACKDROP_LOOP_FADE = 1.1;
 // très différentes). Un fondu enchaîné y superpose deux capuches ; on fait donc
 // un fondu par le noir (sortie puis entrée, en secondes) : aucun dédoublement.
 // Fond vertical aligné en haut de la page, à sa largeur d'origine (sans recadrage ni zoom) : rapport largeur / hauteur.
-const BACKDROP_VIDEO_TOP = { quetes: "810 / 1440" };
+const BACKDROP_VIDEO_TOP = { quetes: "810 / 1440", cimetiere: "16 / 9" };
 const BACKDROP_VIDEO_DIP = { alchimie: 0.4 };
 // Vitesse de lecture (1 = normale) : le Laboratoire est ralenti.
 const BACKDROP_VIDEO_RATE = { alchimie: 0.6 };
