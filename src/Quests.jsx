@@ -247,6 +247,7 @@ export function Quests({
                 {estAdmin && q.en_cours && creaturesJeu.some((c) => c.quete_id === q.id) && (
                   <>
                     <h3 className="quest-section-title">Créatures (MJ)</h3>
+                    <div className="quest-creatures-bloc">
                     <ul className="quest-creatures">
                       {creaturesJeu
                         .filter((c) => c.quete_id === q.id)
@@ -259,9 +260,10 @@ export function Quests({
                           </li>
                         ))}
                     </ul>
-                    <a className="wood-button quest-choix" href="#creatures">
-                      Ouvrir la page des créatures
+                    <a className="wood-button quest-creatures-bouton" href="#creatures">
+                      Ouvrir les fiches
                     </a>
+                    </div>
                   </>
                 )}
                 {estAdmin &&
@@ -269,6 +271,7 @@ export function Quests({
                   creaturesPrevues.some((c) => c.quete_id === q.id) && (
                     <>
                       <h3 className="quest-section-title">Créatures prévues (MJ)</h3>
+                      <div className="quest-creatures-bloc">
                       <ul className="quest-creatures">
                         {creaturesPrevues
                           .filter((c) => c.quete_id === q.id)
@@ -279,9 +282,10 @@ export function Quests({
                             </li>
                           ))}
                       </ul>
-                      <a className="wood-button quest-choix" href={"#creatures/quete/" + q.id}>
-                        Voir les fiches des créatures
+                      <a className="wood-button quest-creatures-bouton" href={"#creatures/quete/" + q.id}>
+                        Voir les fiches
                       </a>
+                      </div>
                     </>
                   )}
                 <h3 className="quest-section-title">Récompenses attendues</h3>
