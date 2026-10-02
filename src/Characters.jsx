@@ -558,6 +558,14 @@ export function Characters({
                 };
                 // L'énergie ne se saisit plus ici : elle se dépense depuis les compétences actives.
                 const inchange = santeAct === String(merc.santeActuelle ?? santeMax ?? "");
+                // −1 / +1 enregistrent aussitôt (0 à 999, jamais de valeur négative) ; « Valider » enregistre la saisie.
+                const santeCourante = merc.santeActuelle ?? santeMax ?? 0;
+                const enregistrerSante = async (n) => {
+                  const v = Math.max(0, Math.min(999, n));
+                  setSanteAct(String(v));
+                  const result = await onSetActuel(merc.id, merc.energieActuelle ?? null, v);
+                  setActuelError(result?.error || "");
+                };
                 const orbes = (
                   <div className="orbes">
                     <Orbe
@@ -596,9 +604,27 @@ export function Characters({
                     }}
                   >
                     {orbes}
-                    <button className="wood-button" type="submit" disabled={inchange}>
-                      Enregistrer la santé
-                    </button>
+                    <div className="creature-sante-boutons">
+                      <button
+                        type="button"
+                        className="wood-button"
+                        onClick={() => enregistrerSante(santeCourante - 1)}
+                        aria-label="Retirer 1 de santé"
+                      >
+                        −1
+                      </button>
+                      <button className="wood-button" type="submit" disabled={inchange}>
+                        Valider
+                      </button>
+                      <button
+                        type="button"
+                        className="wood-button"
+                        onClick={() => enregistrerSante(santeCourante + 1)}
+                        aria-label="Ajouter 1 de santé"
+                      >
+                        +1
+                      </button>
+                    </div>
                     {actuelError && (
                       <p className="error" role="alert">
                         {actuelError}
