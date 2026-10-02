@@ -32,6 +32,8 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
       supabase.from("creature_quete").select("*").eq("quete_id", qe.data.quete_id).order("ordre"),
     ]);
     if (q.error || l.error) return setErreur((q.error || l.error).message);
+    // Quête déjà choisie mais sans créature en jeu (créatures ajoutées après le choix) : on montre l'aperçu.
+    if (apercuQuete === qe.data.quete_id && !l.data.length) return chargerApercu(true);
     const ids = [...new Set(l.data.map((x) => x.creature_id))];
     let creatures = [];
     let liens = [];
@@ -62,7 +64,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
     setDonnees({ quete: q.data, lignes: l.data, creatures, liens, icones, capacites, competences });
   }
   // Aperçu d'une quête pas encore choisie : une entrée par exemplaire prévu (mêmes noms d'onglet qu'au choix).
-  async function chargerApercu() {
+  async function chargerApercu(dejaChoisie = false) {
     const [q, qc] = await Promise.all([
       supabase.from("quete").select("id, nom").eq("id", apercuQuete).single(),
       supabase.from("quete_creature").select("creature_id, quantite").eq("quete_id", apercuQuete),
@@ -113,7 +115,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
         });
     }
     setErreur("");
-    setDonnees({ apercu: true, quete: q.data, lignes, creatures, liens, icones, capacites, competences });
+    setDonnees({ apercu: true, dejaChoisie, quete: q.data, lignes, creatures, liens, icones, capacites, competences });
   }
   useEffect(() => {
     if (!estAdmin) return undefined;
@@ -144,7 +146,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
         </div>
       </section>
     );
-  const { quete, lignes, creatures, liens, icones, capacites, competences, apercu } = donnees;
+  const { quete, lignes, creatures, liens, icones, capacites, competences, apercu, dejaChoisie } = donnees;
   const base = apercu ? "#creatures/quete/" + quete.id + "/" : "#creatures/";
   if (!lignes.length)
     return (
@@ -185,8 +187,9 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
       <h2 className="creature-titre-page">Créatures — {quete.nom}</h2>
       {apercu && (
         <p className="creature-apercu-bandeau" role="note">
-          Aperçu : cette quête n’est pas encore choisie. Les créatures seront créées au choix de la quête ; leur santé, leur
-          énergie et leurs états ne peuvent pas encore être modifiés.
+          {dejaChoisie
+            ? "Aperçu : cette quête est déjà choisie, mais ces créatures y ont été ajoutées après le choix. Annulez le choix puis choisissez-la de nouveau pour les créer ; d’ici là leur santé, leur énergie et leurs états ne peuvent pas être modifiés."
+            : "Aperçu : cette quête n’est pas encore choisie. Les créatures seront créées au choix de la quête ; leur santé, leur énergie et leurs états ne peuvent pas encore être modifiés."}
         </p>
       )}
       <div className="creature-onglets" role="tablist" aria-label="Créatures de la quête">
