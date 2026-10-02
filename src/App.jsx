@@ -1111,22 +1111,6 @@ export function App() {
         })),
     [mercenaires, recrutesServeur, joueurs],
   );
-  const warriors = useMemo(
-    () =>
-      mercenaires
-        .filter((m) => mesRecrutes.has(m.id))
-        .map((m) => ({
-          id: m.id,
-          name: m.nom,
-          role: m.classe,
-          portrait: m.portrait || "/assets/icons/lock.webp",
-          veterancy: m.veterance ?? 1,
-          blesse: estBlesse(m),
-          player: mesRecrutes.get(m.id) || "",
-          notes: "",
-        })),
-    [mercenaires, mesRecrutes],
-  );
   // Tous les mercenaires recrutés (par n'importe quel joueur), avec le nom du
   // joueur : ce sont eux qui occupent les lits du Dortoir partagé.
   const dormPeople = useMemo(
@@ -1268,6 +1252,31 @@ export function App() {
   // Compte administrateur (affichage uniquement ; les droits réels sont
   // portés par la base, cf. is_admin()).
   const estAdmin = session?.user?.email?.toLowerCase() === "btestart@aol.com";
+  // Mercenaires « à moi » : ceux que j'ai recrutés ; pour le MJ, TOUS les mercenaires recrutés : il agit pour
+  // n'importe quel joueur comme s'il était le propriétaire (fiche, renvoi, instructeur, soins, quête, équipement).
+  const mesMercs = useMemo(
+    () =>
+      estAdmin
+        ? new Map([...tousRecrutes].map((id) => [id, joueurs.get(id) || mesRecrutes.get(id) || ""]))
+        : mesRecrutes,
+    [estAdmin, tousRecrutes, joueurs, mesRecrutes],
+  );
+  const warriors = useMemo(
+    () =>
+      mercenaires
+        .filter((m) => mesMercs.has(m.id))
+        .map((m) => ({
+          id: m.id,
+          name: m.nom,
+          role: m.classe,
+          portrait: m.portrait || "/assets/icons/lock.webp",
+          veterancy: m.veterance ?? 1,
+          blesse: estBlesse(m),
+          player: mesMercs.get(m.id) || "",
+          notes: "",
+        })),
+    [mercenaires, mesMercs],
+  );
   // Sessions de jeu (équipes indépendantes) : session choisie, écrans d'attente,
   // lancement par le MJ au premier « +1 Instance ».
   const sess = useSessions(session?.user?.id, estAdmin);
@@ -1461,12 +1470,11 @@ export function App() {
   // future doit vivre sur le mercenaire, pas sur le recrutement.
   async function dismiss(id) {
     const m = mercenaires.find((x) => x.id === id);
-    if (!m || !mesRecrutes.has(id)) return;
-    const { error } = await supabase
-      .from("recrutement")
-      .delete()
-      .eq("mercenaire_id", id)
-      .eq("user_id", session.user.id);
+    if (!m || !mesMercs.has(id)) return;
+    // Le MJ renvoie n'importe quel mercenaire ; un joueur seulement les siens (le serveur le contrôle aussi).
+    let requete = supabase.from("recrutement").delete().eq("mercenaire_id", id);
+    if (!estAdmin) requete = requete.eq("user_id", session.user.id);
+    const { error } = await requete;
     if (error) {
       notify(`Renvoi impossible : ${error.message}`);
       return;
@@ -3479,7 +3487,7 @@ export function App() {
           route={route}
           warriors={warriors}
           mercenaires={mercenaires}
-          recrutes={[...mesRecrutes.keys()]}
+          recrutes={[...mesMercs.keys()]}
           nomsJoueur={Object.fromEntries(joueurs)}
           tousRecrutes={[...tousRecrutes]}
           estAdmin={estAdmin}
