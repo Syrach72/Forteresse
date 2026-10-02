@@ -6886,3 +6886,8 @@ a.merc-card:hover {
 /* Pages Guerrier, Roublard… : même fond animé que la page Connexion (image fixe puis vidéo en boucle) */
 .app.app-persos { background: transparent; }
 .persos-fond { position: fixed; inset: 0; z-index: -1; background-size: cover; background-position: center; pointer-events: none; overflow: hidden; }
+.app-persos .characters-page { background: transparent; }
+.app-persos .characters-heading h1,
+.app-persos .characters-heading .eyebrow,
+.app-persos .characters-heading > a,
+.app-persos .characters-page > p:not(.error) { color: #fff5df; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85); }
