@@ -51,6 +51,8 @@ function useQuetes(estAdmin) {
   const [scenarios, setScenarios] = useState([]);
   // Créatures en jeu (MJ seul) : onglet + santé, pour le résumé de la quête en cours.
   const [creaturesJeu, setCreaturesJeu] = useState([]);
+  // Créatures prévues par quête (catalogue) : visibles du MJ même avant le choix de la quête.
+  const [creaturesPrevues, setCreaturesPrevues] = useState([]);
   const [quetes, setQuetes] = useState(null);
   const [recompenses, setRecompenses] = useState(null);
   const [objets, setObjets] = useState(null);
@@ -78,9 +80,12 @@ function useQuetes(estAdmin) {
         .select("id, quete_id, nom_onglet, sante_actuelle, ordre, creature:creature_id(sante_max)")
         .order("ordre");
       if (!c.error) setCreaturesJeu(c.data);
+      const p = await supabase.from("quete_creature").select("quete_id, quantite, creature:creature_id(nom)");
+      if (!p.error) setCreaturesPrevues(p.data);
     } else {
       setScenarios([]);
       setCreaturesJeu([]);
+      setCreaturesPrevues([]);
     }
     setQuetes(q.data);
     setRecompenses(r.data);
@@ -99,7 +104,7 @@ function useQuetes(estAdmin) {
       .subscribe();
     return () => supabase.removeChannel(canal);
   }, [estAdmin]);
-  return { quetes, recompenses, objets, engages, scenarios, creaturesJeu, error, reload };
+  return { quetes, recompenses, objets, engages, scenarios, creaturesJeu, creaturesPrevues, error, reload };
 }
 
 // Une case libre de « Mercenaires engagés » ouvre le Dortoir (`onChoisirMercenaire`) :
@@ -114,7 +119,7 @@ export function Quests({
   estAdmin = false,
   onChanged = () => {},
 }) {
-  const { quetes, recompenses, objets, engages, scenarios, creaturesJeu, error, reload } = useQuetes(estAdmin);
+  const { quetes, recompenses, objets, engages, scenarios, creaturesJeu, creaturesPrevues, error, reload } = useQuetes(estAdmin);
   const [busy, setBusy] = useState(false);
   // Objet dont la fiche (icône, nom, descriptif) est affichée après un clic
   // sur son emplacement de récompense ; null = aucune fiche ouverte.
@@ -259,6 +264,26 @@ export function Quests({
                     </a>
                   </>
                 )}
+                {estAdmin &&
+                  !(q.en_cours && creaturesJeu.some((c) => c.quete_id === q.id)) &&
+                  creaturesPrevues.some((c) => c.quete_id === q.id) && (
+                    <>
+                      <h3 className="quest-section-title">Créatures prévues (MJ)</h3>
+                      <ul className="quest-creatures">
+                        {creaturesPrevues
+                          .filter((c) => c.quete_id === q.id)
+                          .map((c, i) => (
+                            <li key={i}>
+                              <span>{c.creature?.nom || "?"}</span>
+                              <span>×{c.quantite}</span>
+                            </li>
+                          ))}
+                      </ul>
+                      <a className="wood-button quest-choix" href={"#creatures/quete/" + q.id}>
+                        Voir les fiches des créatures
+                      </a>
+                    </>
+                  )}
                 <h3 className="quest-section-title">Récompenses attendues</h3>
                 <div className="quest-rewards" aria-label="Récompenses attendues">
                   {REWARD_SLOTS.map((i) => {

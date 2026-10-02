@@ -11,7 +11,12 @@ import { CATEGORIES_CAPACITES, ETATS_JEU, TAILLES_CREATURE, entier, nomEtat } fr
 // nom d'onglet, commentaires) se modifie ici, par créature. Santé/énergie vides = maximum.
 const CHIFFRES_ENERGIE = Array.from({ length: 10 }, (_, i) => i + 1);
 
-export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () => {} }) {
+// Routes : #creatures (quête en cours), #creatures/<id> (une créature), et en APERÇU, avant que la quête soit
+// choisie : #creatures/quete/<idQuête>[/<clé>] (fiches lues dans le catalogue, rien à modifier).
+export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", notify = () => {} }) {
+  const parts = route.split("/");
+  const apercuQuete = parts[1] === "quete" ? parts[2] : null;
+  const routeId = apercuQuete ? parts[3] : parts[1];
   const [donnees, setDonnees] = useState(undefined);
   const [erreur, setErreur] = useState("");
   const [fenetre, setFenetre] = useState(null); // { ligneId, capacite }
@@ -19,6 +24,8 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
   async function charger() {
     const qe = await supabase.from("quete_etat").select("quete_id").eq("en_cours", true).maybeSingle();
     if (qe.error) return setErreur(qe.error.message);
+    // Aperçu : la quête demandée n'est pas (ou plus) la quête en cours -> créatures prévues, lues au catalogue.
+    if (apercuQuete && qe.data?.quete_id !== apercuQuete) return chargerApercu();
     if (!qe.data) return setDonnees({ quete: null, lignes: [] });
     const [q, l] = await Promise.all([
       supabase.from("quete").select("id, nom").eq("id", qe.data.quete_id).single(),
@@ -54,8 +61,63 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
     setErreur("");
     setDonnees({ quete: q.data, lignes: l.data, creatures, liens, icones, capacites, competences });
   }
+  // Aperçu d'une quête pas encore choisie : une entrée par exemplaire prévu (mêmes noms d'onglet qu'au choix).
+  async function chargerApercu() {
+    const [q, qc] = await Promise.all([
+      supabase.from("quete").select("id, nom").eq("id", apercuQuete).single(),
+      supabase.from("quete_creature").select("creature_id, quantite").eq("quete_id", apercuQuete),
+    ]);
+    if (q.error || qc.error) return setErreur((q.error || qc.error).message);
+    const ids = [...new Set(qc.data.map((x) => x.creature_id))];
+    let creatures = [];
+    let liens = [];
+    let icones = [];
+    let capacites = [];
+    let competences = [];
+    if (ids.length) {
+      const [c, li, ic, cap] = await Promise.all([
+        supabase.from("creature").select("*").in("id", ids),
+        supabase.from("creature_capacite").select("*").in("creature_id", ids).order("position"),
+        supabase.from("creature_icone").select("*").in("creature_id", ids).order("position"),
+        supabase.from("capacite_creature").select("*"),
+      ]);
+      const err = c.error || li.error || ic.error || cap.error;
+      if (err) return setErreur(err.message);
+      creatures = c.data;
+      liens = li.data;
+      icones = ic.data;
+      capacites = cap.data;
+      const compIds = [...new Set(ic.data.map((x) => x.competence_id))];
+      if (compIds.length) {
+        const comp = await supabase.from("objet_catalogue").select("id, nom, description, icone").in("id", compIds);
+        if (comp.error) return setErreur(comp.error.message);
+        competences = comp.data;
+      }
+    }
+    const lignes = [];
+    for (const x of [...qc.data].sort((a, b) =>
+      (creatures.find((c) => c.id === a.creature_id)?.nom || "").localeCompare(creatures.find((c) => c.id === b.creature_id)?.nom || "", "fr"),
+    )) {
+      const f = creatures.find((c) => c.id === x.creature_id);
+      for (let n = 1; n <= x.quantite; n++)
+        lignes.push({
+          id: "apercu-" + x.creature_id + "-" + n,
+          creature_id: x.creature_id,
+          nom_onglet: x.quantite > 1 ? f.nom + " " + n : f.nom,
+          sante_actuelle: null,
+          energie_actuelle: null,
+          etat: null,
+          etat_niveau: 1,
+          etat_rounds: 0,
+          commentaires: "",
+        });
+    }
+    setErreur("");
+    setDonnees({ apercu: true, quete: q.data, lignes, creatures, liens, icones, capacites, competences });
+  }
   useEffect(() => {
     if (!estAdmin) return undefined;
+    setDonnees(undefined);
     charger();
     const canal = supabase
       .channel("creatures-live")
@@ -63,7 +125,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_etat" }, charger)
       .subscribe();
     return () => supabase.removeChannel(canal);
-  }, [estAdmin]);
+  }, [estAdmin, apercuQuete]);
   // Un clic sur RD (ou son annulation) change l'énergie et les rounds d'état : on relit.
   useEffect(() => {
     if (estAdmin && donnees !== undefined) charger();
@@ -82,7 +144,8 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
         </div>
       </section>
     );
-  const { quete, lignes, creatures, liens, icones, capacites, competences } = donnees;
+  const { quete, lignes, creatures, liens, icones, capacites, competences, apercu } = donnees;
+  const base = apercu ? "#creatures/quete/" + quete.id + "/" : "#creatures/";
   if (!lignes.length)
     return (
       <section className="creature-page">
@@ -90,7 +153,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
           <h2>Créatures — {quete.nom}</h2>
           <p>
             Aucune créature n’a été prévue pour cette quête (onglet « Créatures » de l’administration, puis formulaire de
-            la quête).
+            la quête). Si vous venez de les ajouter à une quête déjà choisie, annulez son choix puis choisissez-la de nouveau : les créatures sont créées au choix.
           </p>
         </div>
       </section>
@@ -114,12 +177,18 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
   // Navigation d'une créature à l'autre (flèches, en boucle) en plus des onglets.
   const indexCourant = lignes.findIndex((l) => l.id === courante.id);
   const aller = (delta) => {
-    location.hash = `creatures/${lignes[(indexCourant + delta + lignes.length) % lignes.length].id}`;
+    location.hash = base.slice(1) + lignes[(indexCourant + delta + lignes.length) % lignes.length].id;
   };
 
   return (
     <section className="creature-page">
       <h2 className="creature-titre-page">Créatures — {quete.nom}</h2>
+      {apercu && (
+        <p className="creature-apercu-bandeau" role="note">
+          Aperçu : cette quête n’est pas encore choisie. Les créatures seront créées au choix de la quête ; leur santé, leur
+          énergie et leurs états ne peuvent pas encore être modifiés.
+        </p>
+      )}
       <div className="creature-onglets" role="tablist" aria-label="Créatures de la quête">
         {lignes.length > 1 && (
           <button type="button" className="creature-fleche" onClick={() => aller(-1)} aria-label="Créature précédente" title="Créature précédente">
@@ -135,7 +204,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
               role="tab"
               aria-selected={l.id === courante.id}
               className={`creature-onglet${l.id === courante.id ? " actif" : ""}${sante === 0 ? " detruite" : ""}`}
-              href={`#creatures/${l.id}`}
+              href={base + l.id}
             >
               {l.nom_onglet} <small className="creature-onglet-pv">{sante ?? "?"}/{f?.sante_max ?? "?"}</small>
             </a>
@@ -149,6 +218,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
       </div>
       {fiche && (
         <FicheCreatureJeu
+          apercu={!!apercu}
           key={courante.id}
           ligne={courante}
           fiche={fiche}
@@ -163,6 +233,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
       {fenetre && (
         <FenetreCapacite
           capacite={fenetre.capacite}
+          apercu={!!apercu}
           ligne={lignes.find((l) => l.id === fenetre.ligneId)}
           fiche={fiche}
           onClose={() => setFenetre(null)}
@@ -173,7 +244,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
   );
 }
 
-function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, competences, sauver, ouvrirIcone }) {
+function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, competences, sauver, ouvrirIcone, apercu = false }) {
   const santeMax = fiche.sante_max;
   const energieMax = fiche.energie_max;
   const sante = ligne.sante_actuelle ?? santeMax;
@@ -220,7 +291,7 @@ function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, competences, sau
     ) : null;
 
   return (
-    <article className={`creature-fiche parchment${sante === 0 ? " creature-detruite" : ""}`}>
+    <article className={`creature-fiche parchment${sante === 0 ? " creature-detruite" : ""}${apercu ? " creature-apercu" : ""}`}>
       <header className="creature-fiche-tete">
         <div>
           <h3>{fiche.nom}</h3>
@@ -438,7 +509,7 @@ export function EtatsBoutons({ etat, niveau, rounds, onEtat, onNiveau, onRounds,
 
 // Fenêtre d'une icône : texte de la capacité, puis tableau 1 à 10 pour choisir l'énergie à dépenser
 // (comme pour les mercenaires). Un montant supérieur à l'énergie actuelle est bloqué.
-function FenetreCapacite({ capacite, ligne, fiche, onClose, onEnergie }) {
+function FenetreCapacite({ capacite, ligne, fiche, onClose, onEnergie, apercu = false }) {
   const energie = ligne.energie_actuelle ?? fiche.energie_max;
   const [choix, setChoix] = useState(null);
   const [enCours, setEnCours] = useState(false);
@@ -467,6 +538,9 @@ function FenetreCapacite({ capacite, ligne, fiche, onClose, onEnergie }) {
         <p>
           <RichText text={capacite.texte || "Aucune description pour le moment."} />
         </p>
+        {apercu ? (
+          <p className="muted">L’énergie se dépense une fois la quête choisie.</p>
+        ) : (
         <div className="energie-compteur">
           <p className="energie-compteur-titre">
             Dépenser de l’énergie <span className="muted">(disponible : {energie})</span>
@@ -510,6 +584,7 @@ function FenetreCapacite({ capacite, ligne, fiche, onClose, onEnergie }) {
             </p>
           )}
         </div>
+        )}
       </div>
     </Modal>
   );

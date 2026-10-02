@@ -3539,7 +3539,7 @@ export function App() {
           <CreaturesQuete
             estAdmin={estAdmin}
             roundCourant={roundCourant}
-            routeId={route.split("/")[1]}
+            route={route}
             notify={notify}
           />
           {roomNav}
