@@ -6896,15 +6896,8 @@ a.merc-card:hover {
 .orbes { align-items: flex-start; }
 .orbe-colonne { display: flex; flex-direction: column; align-items: center; }
 .orbe-colonne .creature-sante-boutons { margin-top: 8px; }
-/* Cimetière : vidéo 16:9 affichée en entier, à la largeur de la page (aucun recadrage ni zoom : la crypte
-   et les bougies de gauche et de droite restent visibles) ; le bas de la page se fond dans le noir bleuté. */
-.interior.cimetiere {
-  background: #0f1517;
-}
-.interior.cimetiere video.interior-backdrop.interior-backdrop-top {
-  width: 100%;
-  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 80%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0, #000 80%, transparent 100%);
-  -webkit-mask-composite: initial;
-  mask-composite: initial;
+/* Cimetière : vidéo 16:9 (crypte vers 56 % de la largeur, bougies à gauche vers 27 % et à droite vers 74 %).
+   Cadrée pour garder la crypte au centre et au moins les bougies de droite visibles quand la page est étroite. */
+.cimetiere video.interior-backdrop {
+  object-position: 58% 50%;
 }
