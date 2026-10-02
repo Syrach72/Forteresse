@@ -30,6 +30,7 @@ import {
 } from "./dormitory";
 import { CHARACTER_CLASSES, COUT_RECRUTEMENT_PAR_VETERANCE } from "./characters";
 import { Admin } from "./Admin.jsx";
+import { CreaturesQuete } from "./CreaturesQuete.jsx";
 import { Modal } from "./Modal.jsx";
 import { RecompenseQuete } from "./RecompenseQuete.jsx";
 import { Diagnostic, DebugBadge } from "./Diagnostic.jsx";
@@ -3509,6 +3510,17 @@ export function App() {
           busy={busy}
         />
         {roomNav}
+        </div>
+      ) : route === "creatures" || route.startsWith("creatures/") ? (
+        // Page MJ des créatures de la quête en cours : le menu du haut (dont le RD) reste visible.
+        <div className="personnages-cadre creatures-cadre">
+          <CreaturesQuete
+            estAdmin={estAdmin}
+            roundCourant={roundCourant}
+            routeId={route.split("/")[1]}
+            notify={notify}
+          />
+          {roomNav}
         </div>
       ) : route === "forteresse" ? (
         <main id="main" className="home">

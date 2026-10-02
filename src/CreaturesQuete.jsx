@@ -1,0 +1,483 @@
+import { useEffect, useState } from "react";
+import { supabase } from "./supabaseClient";
+import { RichText } from "./RichText.jsx";
+import { Modal } from "./Modal.jsx";
+import { Orbe } from "./MercFiche.jsx";
+import { CATEGORIES_CAPACITES, ETATS_JEU, TAILLES_CREATURE, entier, nomEtat } from "./creatures-data.js";
+
+// Page MJ des créatures en jeu (route #creatures), visible et modifiable du MJ seul. Une fiche par
+// créature de la quête en cours, avec un onglet renommable. La fiche est lue dans le catalogue (une
+// correction du catalogue s'y répercute aussitôt) ; seul l'état de jeu (santé, énergie, état, rounds,
+// nom d'onglet, commentaires) se modifie ici, par créature. Santé/énergie vides = maximum.
+const CHIFFRES_ENERGIE = Array.from({ length: 10 }, (_, i) => i + 1);
+
+export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () => {} }) {
+  const [donnees, setDonnees] = useState(undefined);
+  const [erreur, setErreur] = useState("");
+  const [fenetre, setFenetre] = useState(null); // { ligneId, capacite }
+
+  async function charger() {
+    const qe = await supabase.from("quete_etat").select("quete_id").eq("en_cours", true).maybeSingle();
+    if (qe.error) return setErreur(qe.error.message);
+    if (!qe.data) return setDonnees({ quete: null, lignes: [] });
+    const [q, l] = await Promise.all([
+      supabase.from("quete").select("id, nom").eq("id", qe.data.quete_id).single(),
+      supabase.from("creature_quete").select("*").eq("quete_id", qe.data.quete_id).order("ordre"),
+    ]);
+    if (q.error || l.error) return setErreur((q.error || l.error).message);
+    const ids = [...new Set(l.data.map((x) => x.creature_id))];
+    let creatures = [];
+    let liens = [];
+    let icones = [];
+    let capacites = [];
+    if (ids.length) {
+      const [c, li, ic, cap] = await Promise.all([
+        supabase.from("creature").select("*").in("id", ids),
+        supabase.from("creature_capacite").select("*").in("creature_id", ids).order("position"),
+        supabase.from("creature_icone").select("*").in("creature_id", ids).order("position"),
+        supabase.from("capacite_creature").select("*"),
+      ]);
+      const err = c.error || li.error || ic.error || cap.error;
+      if (err) return setErreur(err.message);
+      creatures = c.data;
+      liens = li.data;
+      icones = ic.data;
+      capacites = cap.data;
+    }
+    setErreur("");
+    setDonnees({ quete: q.data, lignes: l.data, creatures, liens, icones, capacites });
+  }
+  useEffect(() => {
+    if (!estAdmin) return undefined;
+    charger();
+    const canal = supabase
+      .channel("creatures-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "creature_quete" }, charger)
+      .on("postgres_changes", { event: "*", schema: "public", table: "quete_etat" }, charger)
+      .subscribe();
+    return () => supabase.removeChannel(canal);
+  }, [estAdmin]);
+  // Un clic sur RD (ou son annulation) change l'énergie et les rounds d'état : on relit.
+  useEffect(() => {
+    if (estAdmin && donnees !== undefined) charger();
+  }, [roundCourant]);
+
+  if (!estAdmin) return <p className="muted">Cette page est réservée au MJ.</p>;
+  if (erreur) return <p className="error">{erreur}</p>;
+  if (donnees === undefined) return <p>Chargement…</p>;
+  if (!donnees.quete)
+    return (
+      <section className="creature-page">
+        <div className="parchment creature-vide">
+          <h2>Créatures de la quête</h2>
+          <p>Aucune quête n’est en cours. Choisissez une quête pour retrouver ses créatures ici.</p>
+          <a href="#quetes">Aller aux quêtes</a>
+        </div>
+      </section>
+    );
+  const { quete, lignes, creatures, liens, icones, capacites } = donnees;
+  if (!lignes.length)
+    return (
+      <section className="creature-page">
+        <div className="parchment creature-vide">
+          <h2>Créatures — {quete.nom}</h2>
+          <p>
+            Aucune créature n’a été prévue pour cette quête (onglet « Créatures » de l’administration, puis formulaire de
+            la quête).
+          </p>
+        </div>
+      </section>
+    );
+
+  const courante = lignes.find((l) => l.id === routeId) || lignes[0];
+  const fiche = creatures.find((c) => c.id === courante.creature_id);
+
+  function majLocal(id, patch) {
+    setDonnees((d) => ({ ...d, lignes: d.lignes.map((l) => (l.id === id ? { ...l, ...patch } : l)) }));
+  }
+  async function sauver(id, patch) {
+    majLocal(id, patch);
+    const { error } = await supabase.from("creature_quete").update(patch).eq("id", id);
+    if (error) {
+      notify(error.message);
+      charger();
+    }
+  }
+  const capDe = (id) => capacites.find((c) => c.id === id);
+
+  return (
+    <section className="creature-page">
+      <h2 className="creature-titre-page">Créatures — {quete.nom}</h2>
+      <div className="creature-onglets" role="tablist" aria-label="Créatures de la quête">
+        {lignes.map((l) => {
+          const f = creatures.find((c) => c.id === l.creature_id);
+          const sante = l.sante_actuelle ?? f?.sante_max;
+          return (
+            <a
+              key={l.id}
+              role="tab"
+              aria-selected={l.id === courante.id}
+              className={`creature-onglet${l.id === courante.id ? " actif" : ""}${sante === 0 ? " detruite" : ""}`}
+              href={`#creatures/${l.id}`}
+            >
+              {l.nom_onglet}
+            </a>
+          );
+        })}
+      </div>
+      {fiche && (
+        <FicheCreatureJeu
+          key={courante.id}
+          ligne={courante}
+          fiche={fiche}
+          liens={liens.filter((x) => x.creature_id === fiche.id)}
+          icones={icones.filter((x) => x.creature_id === fiche.id)}
+          capDe={capDe}
+          sauver={(patch) => sauver(courante.id, patch)}
+          ouvrirIcone={(capacite) => setFenetre({ ligneId: courante.id, capacite })}
+        />
+      )}
+      {fenetre && (
+        <FenetreCapacite
+          capacite={fenetre.capacite}
+          ligne={lignes.find((l) => l.id === fenetre.ligneId)}
+          fiche={fiche}
+          onClose={() => setFenetre(null)}
+          onEnergie={(valeur) => majLocal(fenetre.ligneId, { energie_actuelle: valeur })}
+        />
+      )}
+    </section>
+  );
+}
+
+function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, sauver, ouvrirIcone }) {
+  const santeMax = fiche.sante_max;
+  const energieMax = fiche.energie_max;
+  const sante = ligne.sante_actuelle ?? santeMax;
+  const energie = ligne.energie_actuelle ?? energieMax;
+  const [santeSaisie, setSanteSaisie] = useState(String(sante));
+  const [nomOnglet, setNomOnglet] = useState(ligne.nom_onglet);
+  const [commentaires, setCommentaires] = useState(ligne.commentaires || "");
+  useEffect(() => setSanteSaisie(String(sante)), [sante]);
+  useEffect(() => setNomOnglet(ligne.nom_onglet), [ligne.nom_onglet]);
+
+  // 0 = créature détruite ; jamais de valeur négative.
+  const validerSante = (v) => {
+    const n = entier(v, 0, 9999);
+    setSanteSaisie(String(n));
+    if (n !== sante) sauver({ sante_actuelle: n });
+  };
+  const choisirEtat = (e) =>
+    ligne.etat === e.id
+      ? sauver({ etat: null, etat_niveau: 1, etat_rounds: 0, etat_efface: null })
+      : sauver({ etat: e.id, etat_niveau: 1 });
+  const lignesPar = (cat) =>
+    liens
+      .filter((x) => x.categorie === cat)
+      .sort((a, b) => a.position - b.position)
+      .map((x) => capDe(x.capacite_id))
+      .filter(Boolean);
+  const slots = icones.map((i) => ({ position: i.position, cap: capDe(i.capacite_id) })).filter((s) => s.cap);
+  const listeTexte = (libelle, valeurs) =>
+    valeurs?.length ? (
+      <div className="stat-line">
+        <span>{libelle}</span>
+        <strong>{valeurs.join(", ")}</strong>
+      </div>
+    ) : null;
+
+  return (
+    <article className={`creature-fiche parchment${sante === 0 ? " creature-detruite" : ""}`}>
+      <header className="creature-fiche-tete">
+        <div>
+          <h3>{fiche.nom}</h3>
+          <p className="muted">
+            {[fiche.type, fiche.sous_type, TAILLES_CREATURE.find(([c]) => c === fiche.taille)?.[1]]
+              .filter(Boolean)
+              .join(" · ") || "—"}
+          </p>
+        </div>
+        <label className="creature-nom-onglet">
+          Nom de l’onglet
+          <input
+            value={nomOnglet}
+            onChange={(e) => setNomOnglet(e.target.value)}
+            onBlur={() =>
+              nomOnglet.trim()
+                ? nomOnglet.trim() !== ligne.nom_onglet && sauver({ nom_onglet: nomOnglet.trim() })
+                : setNomOnglet(ligne.nom_onglet)
+            }
+            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+          />
+        </label>
+      </header>
+
+      <div className="creature-jauges">
+        <div className="creature-sante">
+          <Orbe
+            type="sante"
+            libelle="Santé"
+            id="creature-sante"
+            max={santeMax}
+            actuelle={sante}
+            editable
+            valeur={santeSaisie}
+            onChange={setSanteSaisie}
+          />
+          <div className="creature-sante-boutons">
+            <button type="button" className="wood-button" onClick={() => validerSante(sante - 1)} aria-label="Retirer 1 de santé">
+              −1
+            </button>
+            <button
+              type="button"
+              className="wood-button"
+              onClick={() => validerSante(santeSaisie)}
+              disabled={Number(santeSaisie) === sante}
+            >
+              Valider
+            </button>
+            <button type="button" className="wood-button" onClick={() => validerSante(sante + 1)} aria-label="Ajouter 1 de santé">
+              +1
+            </button>
+          </div>
+          {sante === 0 && <p className="creature-detruite-texte">Détruite (0 PV)</p>}
+        </div>
+        <Orbe type="energie" libelle="Énergie" id="creature-energie" max={energieMax} actuelle={energie} />
+      </div>
+
+      <div className="creature-stats">
+        <div className="stat-line">
+          <span>FP</span>
+          <strong>{fiche.fp}</strong>
+        </div>
+        <div className="stat-line">
+          <span>Vitesse</span>
+          <strong>{fiche.vitesse} case(s)</strong>
+        </div>
+        <div className="stat-line">
+          <span>Puissance</span>
+          <strong>{fiche.puissance}</strong>
+        </div>
+        <div className="stat-line">
+          <span>Vélocité</span>
+          <strong>{fiche.velocite}</strong>
+        </div>
+        <div className="stat-line">
+          <span>Mental</span>
+          <strong>{fiche.mental}</strong>
+        </div>
+        {listeTexte("Vulnérabilités", fiche.vulnerabilites)}
+        {listeTexte("Résistances", fiche.resistances)}
+        {listeTexte("Immunités aux dégâts", fiche.immunites_degats)}
+        {listeTexte("Immunités aux états", fiche.immunites_etats)}
+        {listeTexte("Sens", fiche.sens)}
+      </div>
+
+      <h4 className="creature-section">État</h4>
+      <EtatsBoutons
+        etat={ligne.etat}
+        niveau={ligne.etat_niveau}
+        rounds={ligne.etat_rounds}
+        onEtat={choisirEtat}
+        onNiveau={(n) => sauver({ etat: "epuise", etat_niveau: n })}
+        onRounds={(n) => sauver({ etat_rounds: n })}
+      />
+
+      {slots.length > 0 && (
+        <>
+          <h4 className="creature-section">Icônes</h4>
+          <div className="creature-icones" role="group" aria-label="Capacités utilisables">
+            {slots.map((s) => (
+              <button
+                type="button"
+                key={s.position}
+                className="creature-icone-bouton"
+                onClick={() => ouvrirIcone(s.cap)}
+                title={s.cap.titre}
+              >
+                {s.cap.icone ? <img src={s.cap.icone} alt={s.cap.titre} /> : <span>{s.cap.titre}</span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {CATEGORIES_CAPACITES.map((cat) => {
+        const entrees = lignesPar(cat.id);
+        return entrees.length ? (
+          <div key={cat.id}>
+            <h4 className="creature-section">{cat.label}</h4>
+            {entrees.map((c) => (
+              <p className="creature-entree" key={c.id}>
+                <strong>{c.titre}.</strong> <RichText text={c.texte} />
+              </p>
+            ))}
+          </div>
+        ) : null;
+      })}
+
+      {fiche.description && (
+        <>
+          <h4 className="creature-section">Description</h4>
+          <p>
+            <RichText text={fiche.description} />
+          </p>
+        </>
+      )}
+
+      <h4 className="creature-section">Commentaires</h4>
+      <textarea
+        className="creature-commentaires"
+        rows={3}
+        value={commentaires}
+        onChange={(e) => setCommentaires(e.target.value)}
+        onBlur={() => commentaires !== (ligne.commentaires || "") && sauver({ commentaires })}
+        aria-label="Commentaires sur cette créature"
+        placeholder="Notes de partie…"
+      />
+    </article>
+  );
+}
+
+// Les quinze états du jeu : un seul actif à la fois, les autres grisés. « Épuisé » a trois niveaux.
+// Un seul sélecteur de rounds (— = sans durée, 1 à 9) : chaque clic sur RD en retire 1 ; à 0 l'état
+// disparaît. Utilisé aussi sur la fiche d'un mercenaire en quête.
+export function EtatsBoutons({ etat, niveau, rounds, onEtat, onNiveau, onRounds, desactive = false }) {
+  return (
+    <div className="creature-etats">
+      <div className="creature-etats-boutons" role="group" aria-label="États">
+        {ETATS_JEU.map((e) => (
+          <button
+            type="button"
+            key={e.id}
+            className={`creature-etat${etat === e.id ? " actif" : ""}`}
+            aria-pressed={etat === e.id}
+            disabled={desactive}
+            onClick={() => onEtat(e)}
+          >
+            {e.nom}
+            {e.id === "epuise" && etat === "epuise" ? ` ${niveau}` : ""}
+          </button>
+        ))}
+      </div>
+      {etat === "epuise" && (
+        <div className="creature-etat-niveaux" role="group" aria-label="Niveau d’épuisement">
+          {[1, 2, 3].map((n) => (
+            <button
+              type="button"
+              key={n}
+              className={`creature-etat${niveau === n ? " actif" : ""}`}
+              aria-pressed={niveau === n}
+              disabled={desactive}
+              onClick={() => onNiveau(n)}
+            >
+              Niveau {n}
+            </button>
+          ))}
+        </div>
+      )}
+      <label className="creature-rounds">
+        Rounds restants
+        <select
+          value={rounds}
+          disabled={desactive || !etat}
+          onChange={(e) => onRounds(Number(e.target.value))}
+          aria-label="Rounds restants pour l’état"
+        >
+          <option value={0}>—</option>
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </label>
+      {etat && (
+        <p className="muted creature-etat-resume">
+          {nomEtat(etat)}
+          {etat === "epuise" ? ` (niveau ${niveau})` : ""}
+          {rounds ? ` — encore ${rounds} round${rounds > 1 ? "s" : ""}` : " — sans durée"}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Fenêtre d'une icône : texte de la capacité, puis tableau 1 à 10 pour choisir l'énergie à dépenser
+// (comme pour les mercenaires). Un montant supérieur à l'énergie actuelle est bloqué.
+function FenetreCapacite({ capacite, ligne, fiche, onClose, onEnergie }) {
+  const energie = ligne.energie_actuelle ?? fiche.energie_max;
+  const [choix, setChoix] = useState(null);
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const [depense, setDepense] = useState(null);
+  async function valider() {
+    setEnCours(true);
+    const { data, error } = await supabase.rpc("creature_depenser_energie", {
+      p_creature_quete: ligne.id,
+      p_montant: choix,
+    });
+    setEnCours(false);
+    if (error) {
+      setErreur(error.message);
+      return;
+    }
+    setErreur("");
+    setDepense(choix);
+    setChoix(null);
+    onEnergie(data);
+  }
+  return (
+    <Modal title={capacite.titre} onClose={onClose}>
+      <div className="comp-detail">
+        {capacite.icone && <img className="comp-detail-icone" src={capacite.icone} alt="" />}
+        <p>
+          <RichText text={capacite.texte || "Aucune description pour le moment."} />
+        </p>
+        <div className="energie-compteur">
+          <p className="energie-compteur-titre">
+            Dépenser de l’énergie <span className="muted">(disponible : {energie})</span>
+          </p>
+          <div className="energie-compteur-chiffres" role="group" aria-label="Énergie à dépenser">
+            {CHIFFRES_ENERGIE.map((n) => (
+              <button
+                key={n}
+                type="button"
+                className="energie-chiffre"
+                aria-pressed={choix === n}
+                disabled={enCours || n > energie}
+                onClick={() => {
+                  setChoix(n);
+                  setErreur("");
+                  setDepense(null);
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          {choix !== null && (
+            <p className="energie-compteur-valider">
+              <button type="button" className="wood-button" disabled={enCours} onClick={valider}>
+                Valider : dépenser {choix} énergie{choix > 1 ? "s" : ""}
+              </button>{" "}
+              <button type="button" className="text-button" disabled={enCours} onClick={() => setChoix(null)}>
+                Annuler
+              </button>
+            </p>
+          )}
+          {depense !== null && (
+            <p className="comp-detail-ok" role="status">
+              {depense} énergie{depense > 1 ? "s" : ""} dépensée{depense > 1 ? "s" : ""}.
+            </p>
+          )}
+          {erreur && (
+            <p className="error" role="alert">
+              {erreur}
+            </p>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}

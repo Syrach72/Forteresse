@@ -6824,3 +6824,40 @@ a.merc-card:hover {
 .richtext-barre .richtext-couleur { min-width: 22px; width: 22px; height: 22px; padding: 0; }
 .richtext-sep { width: 1px; height: 20px; background: #8b7355; margin: 0 4px; }
 .richtext-apercu { margin: 6px 0 0; padding: 6px 8px; border: 1px dashed #8b7355; border-radius: 3px; }
+
+/* Créatures (page MJ) */
+.creature-page { max-width: 980px; margin: 0 auto; padding: 12px 12px 40px; }
+.creature-vide { padding: 20px; }
+.creature-titre-page { margin: 0 0 10px; color: var(--paper-light, #f3e7cb); }
+.creature-onglets { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: -1px; position: relative; z-index: 1; }
+.creature-onglet { padding: 8px 14px; border: 1px solid rgba(60, 40, 20, 0.6); border-bottom: 0; background: rgba(60, 40, 20, 0.55); color: #f3e7cb; text-decoration: none; border-radius: 6px 6px 0 0; }
+.creature-onglet.actif { background: #f3e7cb; color: #3a2614; font-weight: 700; }
+.creature-onglet.detruite { text-decoration: line-through; opacity: 0.75; }
+.creature-fiche { padding: 16px 18px 20px; }
+.creature-fiche-tete { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.creature-fiche-tete h3 { margin: 0; font-size: 28px; }
+.creature-nom-onglet { display: flex; flex-direction: column; gap: 2px; font-size: 0.85rem; }
+.creature-nom-onglet input { min-width: 200px; }
+.creature-jauges { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; margin: 14px 0; }
+.creature-sante-boutons { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
+.creature-detruite-texte { margin: 4px 0 0; text-align: center; font-weight: 700; color: #8b1a1a; }
+.creature-detruite .creature-fiche-tete h3 { text-decoration: line-through; }
+.creature-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0 24px; }
+.creature-section { margin: 18px 0 6px; padding-bottom: 3px; border-bottom: 1px solid rgba(60, 40, 20, 0.35); }
+.creature-entree { margin: 4px 0; }
+.creature-etats-boutons, .creature-etat-niveaux { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.creature-etat { padding: 6px 10px; border: 1px solid rgba(60, 40, 20, 0.45); background: rgba(60, 40, 20, 0.14); color: rgba(60, 40, 20, 0.55); font: inherit; cursor: pointer; }
+.creature-etat:hover:not(:disabled) { background: rgba(60, 40, 20, 0.24); }
+.creature-etat.actif { background: #7a3b1d; color: #fff; border-color: #4d2410; font-weight: 700; }
+.creature-etat:disabled { cursor: not-allowed; opacity: 0.5; }
+.creature-rounds { display: inline-flex; align-items: center; gap: 8px; margin-top: 4px; }
+.creature-rounds select { width: 4.2em; height: 2.4em; text-align: center; }
+.creature-etat-resume { margin: 4px 0 0; }
+.creature-icones { display: flex; flex-wrap: wrap; gap: 8px; }
+.creature-icone-bouton { width: 64px; height: 64px; padding: 2px; display: grid; place-items: center; border: 1px solid rgba(60, 40, 20, 0.6); background: rgba(60, 40, 20, 0.12); cursor: pointer; font-size: 0.7rem; }
+.creature-icone-bouton:hover { outline: 2px solid var(--gold, #c9a227); }
+.creature-icone-bouton img { width: 100%; height: 100%; object-fit: contain; }
+.creature-commentaires { width: 100%; resize: vertical; font: inherit; }
+.quest-creatures { list-style: none; margin: 4px 0 8px; padding: 0; display: grid; gap: 2px; }
+.quest-creatures li { display: flex; justify-content: space-between; gap: 12px; }
+.quest-creature-detruite { color: #8b1a1a; text-decoration: line-through; }

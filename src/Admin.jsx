@@ -4,6 +4,7 @@ import { ASSETS } from "./data";
 import { useSessions } from "./Sessions.jsx";
 import { TableauCompetences, ICONE_ARME_PAR_DEFAUT } from "./MercFiche.jsx";
 import { RichTextarea } from "./RichText.jsx";
+import { CreaturesSection } from "./Creatures.jsx";
 
 // Atelier de fabrication d'un objet, déduit de la rubrique racine de sa
 // catégorie (vérifié sur les recettes existantes : aucune exception). Il n'y
@@ -3093,22 +3094,32 @@ function QuetesSection() {
   const recompenses = useTable("quete_recompense", { order: "position" });
   const scenarios = useTable("quete_scenario", { order: "quete_id", key: "quete_id" });
   const catalogue = useTable("objet_catalogue", { order: "nom" });
+  // Créatures « piochées » dans le catalogue pour cette quête (MJ seul) : copiées en jeu au choix de la quête.
+  const creaturesCat = useTable("creature", { order: "nom" });
+  const queteCreatures = useTable("quete_creature", { order: "quete_id" });
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyQuete());
   const [iconFile, setIconFile] = useState(null);
   // 5 emplacements (position 1 à 5) : null si vide, sinon { objet_id, quantite }.
   const [slots, setSlots] = useState([null, null, null, null, null]);
+  // Créatures de la quête : [{ creature_id, quantite }].
+  const [pioche, setPioche] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
 
-  if (quetes.error || recompenses.error || catalogue.error || etats.error || scenarios.error)
-    return (
-      <p className="admin-error">
-        {quetes.error || recompenses.error || catalogue.error || etats.error || scenarios.error}
-      </p>
-    );
-  if (!quetes.rows || !recompenses.rows || !catalogue.rows || !etats.rows || !scenarios.rows)
+  const erreurQuetes =
+    quetes.error || recompenses.error || catalogue.error || etats.error || scenarios.error || creaturesCat.error || queteCreatures.error;
+  if (erreurQuetes) return <p className="admin-error">{erreurQuetes}</p>;
+  if (
+    !quetes.rows ||
+    !recompenses.rows ||
+    !catalogue.rows ||
+    !etats.rows ||
+    !scenarios.rows ||
+    !creaturesCat.rows ||
+    !queteCreatures.rows
+  )
     return <p>Chargement…</p>;
   const etatDe = (id) => etats.rows.find((e) => e.quete_id === id);
 
@@ -3137,6 +3148,11 @@ function QuetesSection() {
       next[r.position - 1] = { objet_id: r.objet_id, quantite: r.quantite };
     });
     setSlots(next);
+    setPioche(
+      queteCreatures.rows
+        .filter((c) => c.quete_id === q.id)
+        .map((c) => ({ creature_id: c.creature_id, quantite: c.quantite })),
+    );
     setMsg("");
   }
   function cancel() {
@@ -3144,6 +3160,7 @@ function QuetesSection() {
     setForm(emptyQuete());
     setIconFile(null);
     setSlots([null, null, null, null, null]);
+    setPioche([]);
     setMsg("");
   }
   function setSlot(index, patch) {
@@ -3226,9 +3243,30 @@ function QuetesSection() {
         return;
       }
     }
+    // Créatures de la quête : remplacées en bloc (une ligne par créature, avec sa quantité).
+    const { error: delCre } = await supabase.from("quete_creature").delete().eq("quete_id", queteId);
+    if (delCre) {
+      setMsg(delCre.message);
+      return;
+    }
+    const parCreature = new Map();
+    for (const p of pioche) {
+      if (!p.creature_id) continue;
+      parCreature.set(p.creature_id, Math.min(20, (parCreature.get(p.creature_id) || 0) + Math.max(1, Math.floor(Number(p.quantite) || 1))));
+    }
+    if (parCreature.size) {
+      const { error: insCre } = await supabase
+        .from("quete_creature")
+        .insert([...parCreature].map(([creature_id, quantite]) => ({ quete_id: queteId, creature_id, quantite })));
+      if (insCre) {
+        setMsg(insCre.message);
+        return;
+      }
+    }
     await quetes.reload();
     await recompenses.reload();
     await scenarios.reload();
+    await queteCreatures.reload();
     cancel();
   }
   async function del(id) {
@@ -3368,6 +3406,54 @@ function QuetesSection() {
             )}
           </div>
         ))}
+      </div>
+      <div className="admin-recette-block">
+        <p className="eyebrow admin-section-label">
+          Créatures de la quête (piochées dans le catalogue, visibles du MJ seul)
+        </p>
+        {pioche.map((p, i) => (
+          <div className="admin-ingredient-form" key={i}>
+            <SearchableSelect
+              value={p.creature_id || ""}
+              onChange={(v) =>
+                v
+                  ? setPioche((prev) => prev.map((x, k) => (k === i ? { ...x, creature_id: v } : x)))
+                  : setPioche((prev) => prev.filter((_, k) => k !== i))
+              }
+              options={creaturesCat.rows.map((c) => ({ value: c.id, label: c.nom }))}
+              emptyLabel="— Retirer cette créature —"
+              ariaLabel={`Créature ${i + 1}`}
+            />
+            <input
+              type="number"
+              min="1"
+              max="20"
+              value={p.quantite}
+              onChange={(e) =>
+                setPioche((prev) => prev.map((x, k) => (k === i ? { ...x, quantite: e.target.value } : x)))
+              }
+              aria-label={`Quantité, créature ${i + 1}`}
+            />
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => setPioche((prev) => prev.filter((_, k) => k !== i))}
+            >
+              Retirer
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          className="text-button"
+          onClick={() => setPioche((prev) => [...prev, { creature_id: "", quantite: 1 }])}
+        >
+          + Piocher une créature
+        </button>
+        <p className="muted">
+          Les créatures sont créées quand la quête est choisie ; modifier cette liste n’agit pas sur une quête déjà
+          en cours.
+        </p>
       </div>
       {msg && <p className="admin-error">{msg}</p>}
       <div className="admin-form-actions">
@@ -4155,6 +4241,9 @@ export function Admin({ onCraftItem = () => {} }) {
         <button className={tab === "quetes" ? "active" : ""} onClick={() => setTab("quetes")}>
           Quêtes
         </button>
+        <button className={tab === "creatures" ? "active" : ""} onClick={() => setTab("creatures")}>
+          Créatures
+        </button>
         <button className={tab === "invitations" ? "active" : ""} onClick={() => setTab("invitations")}>
           Invitations
         </button>
@@ -4197,6 +4286,7 @@ export function Admin({ onCraftItem = () => {} }) {
         {sess.pret && tab === "mercenaires" && <MercenairesSection />}
         {sess.pret && !arsenalIndisponible && tab === "arsenal" && (sess.base ? <DepartBaseSection /> : <ArsenalSection />)}
         {sess.pret && tab === "quetes" && <QuetesSection />}
+        {sess.pret && tab === "creatures" && <CreaturesSection kit={{ uploadImage, DeleteButton }} />}
         {tab === "invitations" && <InvitationsSection sess={sess} sessionInitiale={sessionInvit} />}
       </div>
     </main>

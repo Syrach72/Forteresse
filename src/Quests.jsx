@@ -49,6 +49,8 @@ function JaugeDifficulte({ somme, fp }) {
 // Instance, doit se refléter chez tout le monde sans recharger la page.
 function useQuetes(estAdmin) {
   const [scenarios, setScenarios] = useState([]);
+  // Créatures en jeu (MJ seul) : onglet + santé, pour le résumé de la quête en cours.
+  const [creaturesJeu, setCreaturesJeu] = useState([]);
   const [quetes, setQuetes] = useState(null);
   const [recompenses, setRecompenses] = useState(null);
   const [objets, setObjets] = useState(null);
@@ -71,8 +73,14 @@ function useQuetes(estAdmin) {
     if (estAdmin) {
       const s = await supabase.from("quete_scenario").select("quete_id, texte");
       if (!s.error) setScenarios(s.data);
+      const c = await supabase
+        .from("creature_quete")
+        .select("id, quete_id, nom_onglet, sante_actuelle, ordre, creature:creature_id(sante_max)")
+        .order("ordre");
+      if (!c.error) setCreaturesJeu(c.data);
     } else {
       setScenarios([]);
+      setCreaturesJeu([]);
     }
     setQuetes(q.data);
     setRecompenses(r.data);
@@ -87,10 +95,11 @@ function useQuetes(estAdmin) {
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_etat" }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_recompense" }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_mercenaire" }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "creature_quete" }, reload)
       .subscribe();
     return () => supabase.removeChannel(canal);
   }, [estAdmin]);
-  return { quetes, recompenses, objets, engages, scenarios, error, reload };
+  return { quetes, recompenses, objets, engages, scenarios, creaturesJeu, error, reload };
 }
 
 // Une case libre de « Mercenaires engagés » ouvre le Dortoir (`onChoisirMercenaire`) :
@@ -105,7 +114,7 @@ export function Quests({
   estAdmin = false,
   onChanged = () => {},
 }) {
-  const { quetes, recompenses, objets, engages, scenarios, error, reload } = useQuetes(estAdmin);
+  const { quetes, recompenses, objets, engages, scenarios, creaturesJeu, error, reload } = useQuetes(estAdmin);
   const [busy, setBusy] = useState(false);
   // Objet dont la fiche (icône, nom, descriptif) est affichée après un clic
   // sur son emplacement de récompense ; null = aucune fiche ouverte.
@@ -228,6 +237,26 @@ export function Quests({
                     <p className="quest-scenario">
                       <RichText text={scenarios.find((s) => s.quete_id === q.id).texte} />
                     </p>
+                  </>
+                )}
+                {estAdmin && q.en_cours && creaturesJeu.some((c) => c.quete_id === q.id) && (
+                  <>
+                    <h3 className="quest-section-title">Créatures (MJ)</h3>
+                    <ul className="quest-creatures">
+                      {creaturesJeu
+                        .filter((c) => c.quete_id === q.id)
+                        .map((c) => (
+                          <li key={c.id}>
+                            <a href={`#creatures/${c.id}`}>{c.nom_onglet}</a>
+                            <span className={c.sante_actuelle === 0 ? "quest-creature-detruite" : undefined}>
+                              {c.sante_actuelle ?? c.creature?.sante_max ?? "?"} / {c.creature?.sante_max ?? "?"} PV
+                            </span>
+                          </li>
+                        ))}
+                    </ul>
+                    <a className="wood-button quest-choix" href="#creatures">
+                      Ouvrir la page des créatures
+                    </a>
                   </>
                 )}
                 <h3 className="quest-section-title">Récompenses attendues</h3>
