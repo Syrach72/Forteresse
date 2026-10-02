@@ -6878,3 +6878,7 @@ a.merc-card:hover {
 .quest-creatures-bloc { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .quest-creatures-bloc .quest-creatures { flex: 1; min-width: 0; margin: 4px 0 8px; }
 .quest-creatures-bouton { flex: 0 0 auto; display: grid; place-items: center; width: 84px; height: 84px; padding: 6px; text-align: center; text-decoration: none; line-height: 1.15; font-size: 0.9rem; }
+/* Page des créatures : titre lisible sur le parchemin, et place pour la barre des lieux à droite */
+.creature-page { padding-right: 76px; }
+.creature-titre-page { color: #3a2614; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35); }
+@media (max-width: 760px) { .creature-page { padding-right: 12px; } }
