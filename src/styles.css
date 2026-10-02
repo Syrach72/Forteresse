@@ -6891,3 +6891,4 @@ a.merc-card:hover {
 .app-persos .characters-heading .eyebrow,
 .app-persos .characters-heading > a,
 .app-persos .characters-page > p:not(.error) { color: #fff5df; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85); }
+.app-persos .characters-heading { background: rgba(33, 27, 22, 0.62); padding: 8px 16px; border-radius: 4px; }
