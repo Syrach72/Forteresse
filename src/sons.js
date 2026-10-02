@@ -1,5 +1,6 @@
-// Bruitages des fonds animés (Web Audio). Les sons sont de petits MP3 (quelques dizaines de Ko) chargés à
-// l'arrivée sur la page ; ils se déclenchent à des instants précis de la vidéo (voir BackdropVideo dans App.jsx).
+// Sons des fonds animés (Web Audio). La bande-son d'une vidéo est un petit MP3 (quelques dizaines de Ko) chargé à
+// l'arrivée sur la page et joué en même temps que la vidéo, recalé en continu sur sa lecture (voir BackdropVideo
+// dans App.jsx).
 //
 // Les navigateurs interdisent le son tant que le visiteur n'a pas agi sur le site (clic, touche) : le
 // contexte audio est réveillé au premier geste. Après la connexion ou un clic dans le menu, le son démarre donc
@@ -53,17 +54,49 @@ export function chargerSon(url) {
   return promesse;
 }
 
-// Joue un son décodé ; `poids` (0 à 1) règle son niveau relatif. Rien ne se joue tant que le contexte n'est pas
-// réveillé (on évite d'empiler des sons en retard).
-export function jouerSon(tampon, poids = 1) {
-  const c = contexte;
-  if (!c || !tampon || c.state !== "running") return;
-  const niveau = volumeSon() * poids;
-  if (niveau < 0.005) return;
-  const source = c.createBufferSource();
-  source.buffer = tampon;
-  const gain = c.createGain();
-  gain.gain.value = niveau;
-  source.connect(gain).connect(c.destination);
-  source.start();
+// Piste son attachée à UN élément vidéo : `maj(video, poids)` est appelée à chaque image. Elle démarre la bande-son
+// à la position de la vidéo, la rejoue si elle dérive de plus de 0,1 s (reprise de la boucle, retard…), l'arrête
+// quand la vidéo s'arrête, et règle son niveau sur `poids` (0 à 1 : visibilité de cette vidéo pendant le fondu).
+export function creerPiste(tampon, { decalage = 0, gain = 1 } = {}) {
+  const etat = { source: null, gain: null, t0: 0, depart: 0 };
+  function arreter() {
+    if (!etat.source) return;
+    const c = contexte;
+    try {
+      etat.gain.gain.setTargetAtTime(0, c.currentTime, 0.015);
+      etat.source.stop(c.currentTime + 0.1);
+    } catch {
+      // déjà arrêtée
+    }
+    etat.source = null;
+    etat.gain = null;
+  }
+  function maj(video, poids) {
+    const c = contexte;
+    if (!c || c.state !== "running" || !tampon) return;
+    if (video.paused || video.ended || poids < 0.02) {
+      arreter();
+      return;
+    }
+    const t = video.currentTime + decalage;
+    if (etat.source && Math.abs(etat.depart + (c.currentTime - etat.t0) - t) > 0.1) arreter();
+    if (!etat.source) {
+      if (t < 0 || t >= tampon.duration - 0.05) return;
+      const source = c.createBufferSource();
+      source.buffer = tampon;
+      const g = c.createGain();
+      g.gain.value = 0;
+      source.connect(g).connect(c.destination);
+      source.start(0, t);
+      source.onended = () => {
+        if (etat.source === source) {
+          etat.source = null;
+          etat.gain = null;
+        }
+      };
+      Object.assign(etat, { source, gain: g, t0: c.currentTime, depart: t });
+    }
+    etat.gain.gain.setTargetAtTime(volumeSon() * poids * gain, c.currentTime, 0.03);
+  }
+  return { maj, arreter };
 }

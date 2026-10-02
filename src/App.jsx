@@ -35,7 +35,7 @@ import { Modal } from "./Modal.jsx";
 import { RecompenseQuete } from "./RecompenseQuete.jsx";
 import { Diagnostic, DebugBadge } from "./Diagnostic.jsx";
 import { supabase } from "./supabaseClient";
-import { chargerSon, jouerSon } from "./sons.js";
+import { chargerSon, creerPiste } from "./sons.js";
 import { useGlassWindows } from "./glassWindows.js";
 import { chargerMercenaires, chargerVeterances, chargerActuels, chargerQueteEnCours } from "./etat.js";
 import { useSessions, SessionBar, EcranSession } from "./Sessions.jsx";
@@ -77,13 +77,10 @@ const BACKDROP_VIDEO = {
 // Fond animé des pages Connexion / Inscription (herse figée ouverte) ; l'image
 // coastal-castle.jpg reste affichée derrière tant que la vidéo n'est pas chargée.
 const AUTH_VIDEO = "/assets/video/connexion-anime.mp4";
+// Bande-son des vidéos de fond (le son d'origine de l'animation, extrait en MP3 mono) : jouée en même temps que la
+// vidéo et recalée sur elle. `decalage` : écart en secondes entre la vidéo du site et sa bande-son (0 = calées).
 const SONS_VIDEO = {
-  forge: {
-    evenements: [0.167, 1.083, 2.233, 3.233, 4.483],
-    fichiers: ["/assets/sons/forge-frappe-1.mp3", "/assets/sons/forge-frappe-2.mp3", "/assets/sons/forge-frappe-3.mp3"],
-    avance: 0.04,
-    gain: 1,
-  },
+  forge: { piste: "/assets/sons/forge.mp3", decalage: 0, gain: 1 },
 };
 const BACKDROP_VIDEO_RATIO = {
   armurerie: "1 / 1",
@@ -126,39 +123,24 @@ const BACKDROP_VIDEO_RATE = { alchimie: 0.6 };
 function BackdropVideo({ src, ratio, dip, rate = 1, top, sons, baseClass = "interior-backdrop" }) {
   const ref1 = useRef(null);
   const ref2 = useRef(null);
-  // Bruitages synchronisés avec la vidéo : chaque élément vidéo déclenche ses sons quand sa lecture franchit un
-  // instant prévu. Pendant le fondu de boucle, le niveau de chaque vidéo suit sa visibilité à l'écran.
+  // Bande-son synchronisée avec la vidéo : chaque élément vidéo a sa piste, dont le niveau suit sa visibilité à
+  // l'écran pendant le fondu de boucle (le dessous reste opaque, le dessus apparaît et disparaît).
   useEffect(() => {
     if (!sons) return undefined;
     const a = ref1.current;
     const b = ref2.current;
     if (!a || !b) return undefined;
     let annule = false;
-    let tampons = [];
-    Promise.all(sons.fichiers.map(chargerSon)).then((r) => {
-      if (!annule) tampons = r.filter(Boolean);
+    let pistes = null;
+    chargerSon(sons.piste).then((tampon) => {
+      if (!annule && tampon) pistes = [creerPiste(tampon, sons), creerPiste(tampon, sons)];
     });
-    const dernier = new Map([
-      [a, a.currentTime],
-      [b, b.currentTime],
-    ]);
-    let compteur = 0;
     let raf;
     const tick = () => {
-      const opaciteB = parseFloat(b.style.opacity) || 0;
-      for (const [v, poids] of [
-        [a, 1 - opaciteB],
-        [b, opaciteB],
-      ]) {
-        const t = v.currentTime + (sons.avance || 0);
-        const prec = dernier.get(v);
-        // saut en arrière (reprise de la boucle) ou grand écart : pas de son
-        if (!v.paused && t > prec && t - prec < 0.3 && poids > 0.05 && tampons.length) {
-          for (const e of sons.evenements) {
-            if (prec < e && e <= t) jouerSon(tampons[compteur++ % tampons.length], poids * (sons.gain ?? 1));
-          }
-        }
-        dernier.set(v, t);
+      if (pistes) {
+        const opaciteB = parseFloat(b.style.opacity) || 0;
+        pistes[0].maj(a, 1 - opaciteB);
+        pistes[1].maj(b, opaciteB);
       }
       raf = requestAnimationFrame(tick);
     };
@@ -166,6 +148,7 @@ function BackdropVideo({ src, ratio, dip, rate = 1, top, sons, baseClass = "inte
     return () => {
       annule = true;
       cancelAnimationFrame(raf);
+      if (pistes) pistes.forEach((p) => p.arreter());
     };
   }, [src, sons]);
   useEffect(() => {
