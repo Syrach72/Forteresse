@@ -35,6 +35,7 @@ import { Modal } from "./Modal.jsx";
 import { RecompenseQuete } from "./RecompenseQuete.jsx";
 import { Diagnostic, DebugBadge } from "./Diagnostic.jsx";
 import { supabase } from "./supabaseClient";
+import { chargerSon, jouerSon } from "./sons.js";
 import { useGlassWindows } from "./glassWindows.js";
 import { chargerMercenaires, chargerVeterances, chargerActuels, chargerQueteEnCours } from "./etat.js";
 import { useSessions, SessionBar, EcranSession } from "./Sessions.jsx";
@@ -76,6 +77,14 @@ const BACKDROP_VIDEO = {
 // Fond animé des pages Connexion / Inscription (herse figée ouverte) ; l'image
 // coastal-castle.jpg reste affichée derrière tant que la vidéo n'est pas chargée.
 const AUTH_VIDEO = "/assets/video/connexion-anime.mp4";
+const SONS_VIDEO = {
+  forge: {
+    evenements: [0.167, 1.083, 2.233, 3.233, 4.483],
+    fichiers: ["/assets/sons/forge-frappe-1.mp3", "/assets/sons/forge-frappe-2.mp3", "/assets/sons/forge-frappe-3.mp3"],
+    avance: 0.04,
+    gain: 1,
+  },
+};
 const BACKDROP_VIDEO_RATIO = {
   armurerie: "1 / 1",
   entrainement: "1 / 1",
@@ -114,9 +123,51 @@ const BACKDROP_VIDEO_TOP = { quetes: "810 / 1440" };
 const BACKDROP_VIDEO_DIP = { alchimie: 0.4 };
 // Vitesse de lecture (1 = normale) : le Laboratoire est ralenti.
 const BACKDROP_VIDEO_RATE = { alchimie: 0.6 };
-function BackdropVideo({ src, ratio, dip, rate = 1, top, baseClass = "interior-backdrop" }) {
+function BackdropVideo({ src, ratio, dip, rate = 1, top, sons, baseClass = "interior-backdrop" }) {
   const ref1 = useRef(null);
   const ref2 = useRef(null);
+  // Bruitages synchronisés avec la vidéo : chaque élément vidéo déclenche ses sons quand sa lecture franchit un
+  // instant prévu. Pendant le fondu de boucle, le niveau de chaque vidéo suit sa visibilité à l'écran.
+  useEffect(() => {
+    if (!sons) return undefined;
+    const a = ref1.current;
+    const b = ref2.current;
+    if (!a || !b) return undefined;
+    let annule = false;
+    let tampons = [];
+    Promise.all(sons.fichiers.map(chargerSon)).then((r) => {
+      if (!annule) tampons = r.filter(Boolean);
+    });
+    const dernier = new Map([
+      [a, a.currentTime],
+      [b, b.currentTime],
+    ]);
+    let compteur = 0;
+    let raf;
+    const tick = () => {
+      const opaciteB = parseFloat(b.style.opacity) || 0;
+      for (const [v, poids] of [
+        [a, 1 - opaciteB],
+        [b, opaciteB],
+      ]) {
+        const t = v.currentTime + (sons.avance || 0);
+        const prec = dernier.get(v);
+        // saut en arrière (reprise de la boucle) ou grand écart : pas de son
+        if (!v.paused && t > prec && t - prec < 0.3 && poids > 0.05 && tampons.length) {
+          for (const e of sons.evenements) {
+            if (prec < e && e <= t) jouerSon(tampons[compteur++ % tampons.length], poids * (sons.gain ?? 1));
+          }
+        }
+        dernier.set(v, t);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      annule = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [src, sons]);
   useEffect(() => {
     const a = ref1.current;
     const b = ref2.current;
@@ -3733,7 +3784,7 @@ export function App() {
       ) : (
         <main id="main" className={`interior ${route}`}>
           {BACKDROP_VIDEO[route] ? (
-            <BackdropVideo src={BACKDROP_VIDEO[route]} ratio={BACKDROP_VIDEO_RATIO[route]} top={BACKDROP_VIDEO_TOP[route]} dip={BACKDROP_VIDEO_DIP[route]} rate={BACKDROP_VIDEO_RATE[route]} />
+            <BackdropVideo src={BACKDROP_VIDEO[route]} ratio={BACKDROP_VIDEO_RATIO[route]} top={BACKDROP_VIDEO_TOP[route]} dip={BACKDROP_VIDEO_DIP[route]} rate={BACKDROP_VIDEO_RATE[route]} sons={SONS_VIDEO[route]} />
           ) : (
             <div
               className="interior-backdrop"
