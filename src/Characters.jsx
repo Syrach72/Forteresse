@@ -557,6 +557,30 @@ export function Characters({
                   const result = await onSetActuel(merc.id, merc.energieActuelle ?? null, v);
                   setActuelError(result?.error || "");
                 };
+                // Boutons de santé : alignés sous la jauge de Santé seulement (pas entre les deux jauges).
+                const boutonsSante = peutModifier ? (
+                  <div className="creature-sante-boutons">
+                    <button
+                      type="button"
+                      className="wood-button"
+                      onClick={() => enregistrerSante(santeCourante - 1)}
+                      aria-label="Retirer 1 de santé"
+                    >
+                      −1
+                    </button>
+                    <button className="wood-button" type="submit" disabled={inchange}>
+                      Valider
+                    </button>
+                    <button
+                      type="button"
+                      className="wood-button"
+                      onClick={() => enregistrerSante(santeCourante + 1)}
+                      aria-label="Ajouter 1 de santé"
+                    >
+                      +1
+                    </button>
+                  </div>
+                ) : null;
                 const orbes = (
                   <div className="orbes">
                     <Orbe
@@ -566,16 +590,19 @@ export function Characters({
                       max={energieMax}
                       actuelle={merc.energieActuelle ?? energieMax}
                     />
-                    <Orbe
-                      type="sante"
-                      libelle="Santé"
-                      id="merc-sante-actuelle"
-                      max={santeMax}
-                      actuelle={merc.santeActuelle ?? santeMax}
-                      editable={peutModifier}
-                      valeur={santeAct}
-                      onChange={setSanteAct}
-                    />
+                    <div className="orbe-colonne">
+                      <Orbe
+                        type="sante"
+                        libelle="Santé"
+                        id="merc-sante-actuelle"
+                        max={santeMax}
+                        actuelle={merc.santeActuelle ?? santeMax}
+                        editable={peutModifier}
+                        valeur={santeAct}
+                        onChange={setSanteAct}
+                      />
+                      {boutonsSante}
+                    </div>
                   </div>
                 );
                 return peutModifier ? (
@@ -595,27 +622,6 @@ export function Characters({
                     }}
                   >
                     {orbes}
-                    <div className="creature-sante-boutons">
-                      <button
-                        type="button"
-                        className="wood-button"
-                        onClick={() => enregistrerSante(santeCourante - 1)}
-                        aria-label="Retirer 1 de santé"
-                      >
-                        −1
-                      </button>
-                      <button className="wood-button" type="submit" disabled={inchange}>
-                        Valider
-                      </button>
-                      <button
-                        type="button"
-                        className="wood-button"
-                        onClick={() => enregistrerSante(santeCourante + 1)}
-                        aria-label="Ajouter 1 de santé"
-                      >
-                        +1
-                      </button>
-                    </div>
                     {actuelError && (
                       <p className="error" role="alert">
                         {actuelError}
