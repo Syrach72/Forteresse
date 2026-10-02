@@ -77,7 +77,6 @@ const BACKDROP_VIDEO = {
 // coastal-castle.jpg reste affichée derrière tant que la vidéo n'est pas chargée.
 const AUTH_VIDEO = "/assets/video/connexion-anime.mp4";
 const BACKDROP_VIDEO_RATIO = {
-  cimetiere: "1 / 1",
   armurerie: "1 / 1",
   entrainement: "1 / 1",
   tresorerie: "1 / 1",

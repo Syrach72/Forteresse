@@ -6896,3 +6896,8 @@ a.merc-card:hover {
 .orbes { align-items: flex-start; }
 .orbe-colonne { display: flex; flex-direction: column; align-items: center; }
 .orbe-colonne .creature-sante-boutons { margin-top: 8px; }
+/* Cimetière : vidéo 16:9 (crypte vers 56 % de la largeur, bougies à gauche vers 27 % et à droite vers 74 %).
+   Cadrée pour garder la crypte au centre et au moins les bougies de droite visibles quand la page est étroite. */
+.cimetiere video.interior-backdrop {
+  object-position: 58% 50%;
+}
