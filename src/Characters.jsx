@@ -269,15 +269,6 @@ export function Characters({
     <main
       id="main"
       className={`characters-page ${hero || merc ? "character-detail" : "character-gallery"}`}
-      style={
-        PARCHMENT_CLASSES.includes(classId)
-          ? {
-              backgroundImage: `url(${ASSETS.parchment})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }
-          : undefined
-      }
     >
       <div className="characters-heading">
         <div>
