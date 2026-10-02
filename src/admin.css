@@ -685,3 +685,11 @@
 .creature-capacite-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
 .creature-capacite-tete > input[type="text"], .creature-capacite-tete > input:not([type]) { flex: 1; min-width: 160px; }
 .creature-capacite-note { margin: 4px 0 0; font-size: 0.85rem; }
+.creature-slots { display: flex; flex-wrap: wrap; gap: 8px; }
+.creature-slot-cell { width: 56px; height: 56px; padding: 2px; display: grid; place-items: center; border: 1px solid var(--edge); background: var(--paper); cursor: pointer; font: inherit; color: var(--ink); }
+.creature-slot-cell.vide { border-style: dashed; opacity: 0.75; }
+.creature-slot-cell.ouvert { outline: 2px solid var(--gold); }
+.creature-slot-cell img { width: 100%; height: 100%; object-fit: contain; }
+.creature-slot-cell small { font-size: 0.65rem; line-height: 1.1; overflow: hidden; }
+.creature-slot-choix { display: flex; align-items: center; gap: 10px; margin: 8px 0 14px; max-width: 520px; }
+.creature-slot-choix .searchable-select { flex: 1; }

@@ -47,11 +47,14 @@ function listesVides() {
 }
 
 export function CreaturesSection({ kit }) {
-  const { uploadImage, DeleteButton } = kit;
+  const { uploadImage, DeleteButton, SearchableSelect } = kit;
   const [creatures, setCreatures] = useState(null);
   const [capacites, setCapacites] = useState([]);
   const [liens, setLiens] = useState([]);
   const [icones, setIcones] = useState([]);
+  // Compétences des mercenaires (objets du catalogue des rubriques « Compétences ») : source des 12 icônes.
+  const [competences, setCompetences] = useState([]);
+  const [slotOuvert, setSlotOuvert] = useState(null);
   const [erreur, setErreur] = useState("");
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(creatureVide());
@@ -62,13 +65,15 @@ export function CreaturesSection({ kit }) {
   const [confirmingId, setConfirmingId] = useState(null);
 
   async function charger() {
-    const [c, p, l, i] = await Promise.all([
+    const [c, p, l, i, cat, obj] = await Promise.all([
       supabase.from("creature").select("*").order("nom"),
       supabase.from("capacite_creature").select("*").order("titre"),
       supabase.from("creature_capacite").select("*").order("position"),
       supabase.from("creature_icone").select("*").order("position"),
+      supabase.from("categorie").select("id, nom, parent_id"),
+      supabase.from("objet_catalogue").select("id, nom, description, icone, categorie_id").order("nom"),
     ]);
-    const err = c.error || p.error || l.error || i.error;
+    const err = c.error || p.error || l.error || i.error || cat.error || obj.error;
     if (err) {
       setErreur(err.message);
       return;
@@ -78,6 +83,16 @@ export function CreaturesSection({ kit }) {
     setCapacites(p.data);
     setLiens(l.data);
     setIcones(i.data);
+    const racine = (id) => {
+      let cur = cat.data.find((x) => x.id === id);
+      while (cur?.parent_id) cur = cat.data.find((x) => x.id === cur.parent_id);
+      return cur?.nom || "";
+    };
+    setCompetences(
+      obj.data
+        .map((o) => ({ ...o, racine: racine(o.categorie_id) }))
+        .filter((o) => /comp[ée]tences/i.test(o.racine)),
+    );
   }
   useEffect(() => {
     charger();
@@ -88,9 +103,7 @@ export function CreaturesSection({ kit }) {
 
   const capParTitre = (t) => capacites.find((c) => cle(c.titre) === cle(t));
   const nbUtilisations = (capId) => new Set(liens.filter((l) => l.capacite_id === capId).map((l) => l.creature_id)).size;
-  const titresConnus = [
-    ...new Set([...capacites.map((c) => c.titre), ...Object.values(listes).flat().map((e) => e.titre.trim()).filter(Boolean)]),
-  ].sort((a, b) => a.localeCompare(b, "fr"));
+  const titresConnus = capacites.map((c) => c.titre).sort((a, b) => a.localeCompare(b, "fr"));
 
   function startEdit(c) {
     setEditing(c.id);
@@ -119,16 +132,25 @@ export function CreaturesSection({ kit }) {
       .sort((a, b) => a.position - b.position)
       .forEach((l) => {
         const cap = capacites.find((x) => x.id === l.capacite_id);
-        if (cap) next[l.categorie]?.push({ titre: cap.titre, texte: cap.texte || "", icone: cap.icone || "", fichier: null, auto: cap.texte || "" });
+        if (cap)
+          next[l.categorie]?.push({
+            titre: cap.titre,
+            texte: l.texte ?? cap.texte ?? "",
+            icone: cap.icone || "",
+            fichier: null,
+            auto: cap.texte || "",
+            majBase: false,
+          });
       });
     setListes(next);
     const s = Array(EMPLACEMENTS_ICONES).fill("");
     icones
       .filter((i) => i.creature_id === c.id)
       .forEach((i) => {
-        s[i.position] = capacites.find((x) => x.id === i.capacite_id)?.titre || "";
+        s[i.position] = i.competence_id;
       });
     setSlots(s);
+    setSlotOuvert(null);
     setMsg("");
     window.scrollTo?.({ top: 0, behavior: "smooth" });
   }
@@ -137,6 +159,7 @@ export function CreaturesSection({ kit }) {
     setForm(creatureVide());
     setListes(listesVides());
     setSlots(Array(EMPLACEMENTS_ICONES).fill(""));
+    setSlotOuvert(null);
     setMsg("");
   }
   const champ = (k) => (e) => setForm({ ...form, [k]: e.target.value });
@@ -147,7 +170,7 @@ export function CreaturesSection({ kit }) {
   function changerTitre(cat, i, titre) {
     const e = listes[cat][i];
     const connue = capParTitre(titre);
-    const patch = { titre };
+    const patch = { titre, majBase: false };
     // Titre déjà connu : son texte et son icône se remplissent tout seuls (sauf texte saisi à la main).
     if (connue && (!e.texte.trim() || e.texte === e.auto)) {
       patch.texte = connue.texte || "";
@@ -195,58 +218,59 @@ export function CreaturesSection({ kit }) {
         if (error) throw error;
         id = data.id;
       }
-      // Capacités partagées : créées ou mises à jour par titre.
-      const idParTitre = new Map();
-      for (const cat of CATEGORIES_CAPACITES) {
-        for (const e of listes[cat.id]) {
-          const titre = e.titre.trim();
-          if (!titre || idParTitre.has(cle(titre))) continue;
-          let icone = e.icone || null;
-          if (e.fichier) {
-            const r = await uploadImage("catalogue-icones", e.fichier, `creature-${titre}`);
-            if (r.error) throw new Error(r.error);
-            icone = r.url;
-          }
-          const connue = capParTitre(titre);
-          if (connue) {
-            if ((connue.texte || "") !== e.texte || (connue.icone || null) !== icone) {
-              const { error } = await supabase.from("capacite_creature").update({ texte: e.texte, icone }).eq("id", connue.id);
-              if (error) throw error;
-            }
-            idParTitre.set(cle(titre), connue.id);
-          } else {
-            const { data, error } = await supabase
-              .from("capacite_creature")
-              .insert({ titre, texte: e.texte, icone })
-              .select("id")
-              .single();
-            if (error) throw error;
-            idParTitre.set(cle(titre), data.id);
-          }
-        }
-      }
-      const { error: delCap } = await supabase.from("creature_capacite").delete().eq("creature_id", id);
-      if (delCap) throw delCap;
+      // Capacités : le titre renvoie à une capacité commune (texte + icône). Un texte modifié pour cette
+      // créature est gardé sur elle seule (creature_capacite.texte) ; « Appliquer à toutes » corrige le texte commun.
+      const creees = new Map();
+      const baseDe = (titre) => creees.get(cle(titre)) || capParTitre(titre);
       const lignes = [];
       for (const cat of CATEGORIES_CAPACITES) {
         let pos = 0;
         for (const e of listes[cat.id]) {
-          const capId = idParTitre.get(cle(e.titre));
-          if (capId) lignes.push({ creature_id: id, categorie: cat.id, position: pos++, capacite_id: capId });
+          const titre = e.titre.trim();
+          if (!titre) continue;
+          let icone = e.icone || null;
+          if (e.fichier) {
+            const r = await uploadImage("catalogue-icones", e.fichier, "creature-" + titre);
+            if (r.error) throw new Error(r.error);
+            icone = r.url;
+          }
+          let base = baseDe(titre);
+          let surcharge = null;
+          if (!base) {
+            const { data, error } = await supabase
+              .from("capacite_creature")
+              .insert({ titre, texte: e.texte, icone })
+              .select("id, titre, texte, icone")
+              .single();
+            if (error) throw error;
+            base = data;
+            creees.set(cle(titre), base);
+          } else {
+            const patch = {};
+            if (e.majBase && (base.texte || "") !== e.texte) patch.texte = e.texte;
+            if ((base.icone || null) !== icone) patch.icone = icone;
+            if (Object.keys(patch).length) {
+              const { error } = await supabase.from("capacite_creature").update(patch).eq("id", base.id);
+              if (error) throw error;
+              base = { ...base, ...patch };
+              creees.set(cle(titre), base);
+            }
+            surcharge = e.texte !== (base.texte || "") ? e.texte : null;
+          }
+          lignes.push({ creature_id: id, categorie: cat.id, position: pos++, capacite_id: base.id, texte: surcharge });
         }
       }
+      const { error: delCap } = await supabase.from("creature_capacite").delete().eq("creature_id", id);
+      if (delCap) throw delCap;
       if (lignes.length) {
         const { error } = await supabase.from("creature_capacite").insert(lignes);
         if (error) throw error;
       }
-      // Emplacements d'icônes cliquables.
+      // Emplacements d'icônes cliquables : compétences des mercenaires.
       const { error: delIco } = await supabase.from("creature_icone").delete().eq("creature_id", id);
       if (delIco) throw delIco;
       const icoLignes = slots
-        .map((t, position) => {
-          const capId = idParTitre.get(cle(t)) || capParTitre(t)?.id;
-          return t && capId ? { creature_id: id, position, capacite_id: capId } : null;
-        })
+        .map((competence_id, position) => (competence_id ? { creature_id: id, position, competence_id } : null))
         .filter(Boolean);
       if (icoLignes.length) {
         const { error } = await supabase.from("creature_icone").insert(icoLignes);
@@ -340,32 +364,43 @@ export function CreaturesSection({ kit }) {
         <MultiChoix libelle="Sens" options={SENS_CREATURE} valeur={form.sens} onChange={(v) => setForm({ ...form, sens: v })} />
       </div>
 
-      <p className="eyebrow admin-section-label">Icônes cliquables en jeu (12 emplacements, chacun relié à une capacité par son titre)</p>
-      <div className="creature-slots">
-        {slots.map((titre, i) => {
-          const cap = capParTitre(titre) || Object.values(listes).flat().find((e) => cle(e.titre) === cle(titre));
-          const icone = cap?.icone;
+      <p className="eyebrow admin-section-label">
+        Icônes cliquables en jeu (12 emplacements : mêmes icônes que les compétences des mercenaires)
+      </p>
+      <div className="creature-slots" role="group" aria-label="Icônes cliquables">
+        {slots.map((id, i) => {
+          const comp = competences.find((x) => x.id === id);
           return (
-            <div className="creature-slot" key={i}>
-              <span className="creature-slot-icone" aria-hidden="true">
-                {icone ? <img src={icone} alt="" /> : <small>{i + 1}</small>}
-              </span>
-              <select
-                aria-label={`Icône ${i + 1}`}
-                value={titre}
-                onChange={(e) => setSlots((prev) => prev.map((s, k) => (k === i ? e.target.value : s)))}
-              >
-                <option value="">— vide —</option>
-                {titresConnus.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <button
+              type="button"
+              key={i}
+              className={"creature-slot-cell" + (slotOuvert === i ? " ouvert" : "") + (comp ? "" : " vide")}
+              onClick={() => setSlotOuvert(slotOuvert === i ? null : i)}
+              title={comp ? comp.nom : "Emplacement " + (i + 1) + " : choisir une compétence"}
+              aria-label={comp ? "Emplacement " + (i + 1) + " : " + comp.nom : "Emplacement " + (i + 1) + " vide"}
+            >
+              {comp?.icone ? <img src={comp.icone} alt="" /> : comp ? <small>{comp.nom}</small> : <small>{i + 1}</small>}
+            </button>
           );
         })}
       </div>
+      {slotOuvert !== null && (
+        <div className="creature-slot-choix">
+          <SearchableSelect
+            value={slots[slotOuvert]}
+            onChange={(v) => {
+              setSlots((prev) => prev.map((x, k) => (k === slotOuvert ? v : x)));
+              if (!v) setSlotOuvert(null);
+            }}
+            options={competences.map((c) => ({ value: c.id, label: c.nom, group: c.racine }))}
+            emptyLabel="— Vider cet emplacement —"
+            ariaLabel={"Compétence de l’emplacement " + (slotOuvert + 1)}
+          />
+          <button type="button" className="text-button" onClick={() => setSlotOuvert(null)}>
+            Fermer
+          </button>
+        </div>
+      )}
 
       {CATEGORIES_CAPACITES.map((cat) => (
         <div className="admin-recette-block" key={cat.id}>
@@ -411,10 +446,24 @@ export function CreaturesSection({ kit }) {
                   value={e.texte}
                   onChange={(v) => majEntree(cat.id, i, { texte: v })}
                 />
-                {connue && (
+                {connue && e.texte === (connue.texte || "") && (
                   <p className="muted creature-capacite-note">
-                    Texte et icône partagés avec {Math.max(0, nbUtilisations(connue.id) - (editing && liens.some((l) => l.creature_id === editing && l.capacite_id === connue.id) ? 1 : 0))} autre(s) créature(s) :
-                    toute correction s’applique à toutes.
+                    Texte commun repris du titre « {connue.titre} » (partagé avec{" "}
+                    {Math.max(0, nbUtilisations(connue.id) - (editing && liens.some((l) => l.creature_id === editing && l.capacite_id === connue.id) ? 1 : 0))}{" "}
+                    autre(s) créature(s)). Vous pouvez l’adapter pour cette créature seulement.
+                  </p>
+                )}
+                {connue && e.texte !== (connue.texte || "") && (
+                  <p className="muted creature-capacite-note">
+                    Texte adapté pour cette créature seulement.{" "}
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={e.majBase}
+                        onChange={(ev) => majEntree(cat.id, i, { majBase: ev.target.checked })}
+                      />{" "}
+                      Appliquer ce texte à toutes les créatures qui portent ce titre
+                    </label>
                   </p>
                 )}
               </div>
@@ -426,7 +475,7 @@ export function CreaturesSection({ kit }) {
             onClick={() =>
               setListes((prev) => ({
                 ...prev,
-                [cat.id]: [...prev[cat.id], { titre: "", texte: "", icone: "", fichier: null, auto: "" }],
+                [cat.id]: [...prev[cat.id], { titre: "", texte: "", icone: "", fichier: null, auto: "", majBase: false }],
               }))
             }
           >

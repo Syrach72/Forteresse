@@ -4286,7 +4286,7 @@ export function Admin({ onCraftItem = () => {} }) {
         {sess.pret && tab === "mercenaires" && <MercenairesSection />}
         {sess.pret && !arsenalIndisponible && tab === "arsenal" && (sess.base ? <DepartBaseSection /> : <ArsenalSection />)}
         {sess.pret && tab === "quetes" && <QuetesSection />}
-        {sess.pret && tab === "creatures" && <CreaturesSection kit={{ uploadImage, DeleteButton }} />}
+        {sess.pret && tab === "creatures" && <CreaturesSection kit={{ uploadImage, DeleteButton, SearchableSelect }} />}
         {tab === "invitations" && <InvitationsSection sess={sess} sessionInitiale={sessionInvit} />}
       </div>
     </main>

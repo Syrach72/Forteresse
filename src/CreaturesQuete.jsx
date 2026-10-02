@@ -30,6 +30,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
     let liens = [];
     let icones = [];
     let capacites = [];
+    let competences = [];
     if (ids.length) {
       const [c, li, ic, cap] = await Promise.all([
         supabase.from("creature").select("*").in("id", ids),
@@ -43,9 +44,15 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
       liens = li.data;
       icones = ic.data;
       capacites = cap.data;
+      const compIds = [...new Set(ic.data.map((x) => x.competence_id))];
+      if (compIds.length) {
+        const comp = await supabase.from("objet_catalogue").select("id, nom, description, icone").in("id", compIds);
+        if (comp.error) return setErreur(comp.error.message);
+        competences = comp.data;
+      }
     }
     setErreur("");
-    setDonnees({ quete: q.data, lignes: l.data, creatures, liens, icones, capacites });
+    setDonnees({ quete: q.data, lignes: l.data, creatures, liens, icones, capacites, competences });
   }
   useEffect(() => {
     if (!estAdmin) return undefined;
@@ -75,7 +82,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
         </div>
       </section>
     );
-  const { quete, lignes, creatures, liens, icones, capacites } = donnees;
+  const { quete, lignes, creatures, liens, icones, capacites, competences } = donnees;
   if (!lignes.length)
     return (
       <section className="creature-page">
@@ -148,6 +155,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
           liens={liens.filter((x) => x.creature_id === fiche.id)}
           icones={icones.filter((x) => x.creature_id === fiche.id)}
           capDe={capDe}
+          competences={competences}
           sauver={(patch) => sauver(courante.id, patch)}
           ouvrirIcone={(capacite) => setFenetre({ ligneId: courante.id, capacite })}
         />
@@ -165,7 +173,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
   );
 }
 
-function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, sauver, ouvrirIcone }) {
+function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, competences, sauver, ouvrirIcone }) {
   const santeMax = fiche.sante_max;
   const energieMax = fiche.energie_max;
   const sante = ligne.sante_actuelle ?? santeMax;
@@ -190,9 +198,19 @@ function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, sauver, ouvrirIc
     liens
       .filter((x) => x.categorie === cat)
       .sort((a, b) => a.position - b.position)
-      .map((x) => capDe(x.capacite_id))
+      .map((x) => {
+        const cap = capDe(x.capacite_id);
+        // Texte adapté à cette créature (s'il y en a un), sinon le texte commun du titre.
+        return cap ? { ...cap, texte: x.texte ?? cap.texte } : null;
+      })
       .filter(Boolean);
-  const slots = icones.map((i) => ({ position: i.position, cap: capDe(i.capacite_id) })).filter((s) => s.cap);
+  // Icônes : compétences des mercenaires (nom, description, icône du catalogue).
+  const slots = icones
+    .map((i) => {
+      const c = competences.find((x) => x.id === i.competence_id);
+      return { position: i.position, cap: c ? { id: c.id, titre: c.nom, texte: c.description, icone: c.icone } : null };
+    })
+    .filter((s) => s.cap);
   const listeTexte = (libelle, valeurs) =>
     valeurs?.length ? (
       <div className="stat-line">
