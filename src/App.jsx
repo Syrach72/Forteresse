@@ -123,24 +123,25 @@ const BACKDROP_VIDEO_RATE = { alchimie: 0.6 };
 function BackdropVideo({ src, ratio, dip, rate = 1, top, sons, baseClass = "interior-backdrop" }) {
   const ref1 = useRef(null);
   const ref2 = useRef(null);
-  // Bande-son synchronisée avec la vidéo : chaque élément vidéo a sa piste, dont le niveau suit sa visibilité à
-  // l'écran pendant le fondu de boucle (le dessous reste opaque, le dessus apparaît et disparaît).
+  // Bande-son synchronisée avec la vidéo, UN SEUL son à la fois : pendant le fondu de boucle, deux copies de la
+  // vidéo jouent ensemble ; le son suit la plus récemment relancée (celle dont la lecture est la moins avancée), et
+  // l'ancien son est coupé aussitôt. Le son s'arrête dès qu'on quitte la page (nettoyage de l'effet).
   useEffect(() => {
     if (!sons) return undefined;
     const a = ref1.current;
     const b = ref2.current;
     if (!a || !b) return undefined;
     let annule = false;
-    let pistes = null;
+    let piste = null;
     chargerSon(sons.piste).then((tampon) => {
-      if (!annule && tampon) pistes = [creerPiste(tampon, sons), creerPiste(tampon, sons)];
+      if (!annule && tampon) piste = creerPiste(tampon, sons);
     });
     let raf;
     const tick = () => {
-      if (pistes) {
-        const opaciteB = parseFloat(b.style.opacity) || 0;
-        pistes[0].maj(a, 1 - opaciteB);
-        pistes[1].maj(b, opaciteB);
+      if (piste) {
+        const jouant = [a, b].filter((v) => !v.paused && !v.ended);
+        if (jouant.length) piste.maj(jouant.reduce((x, y) => (y.currentTime < x.currentTime ? y : x)));
+        else piste.arreter();
       }
       raf = requestAnimationFrame(tick);
     };
@@ -148,7 +149,8 @@ function BackdropVideo({ src, ratio, dip, rate = 1, top, sons, baseClass = "inte
     return () => {
       annule = true;
       cancelAnimationFrame(raf);
-      if (pistes) pistes.forEach((p) => p.arreter());
+      if (piste) piste.arreter();
+      piste = null;
     };
   }, [src, sons]);
   useEffect(() => {
