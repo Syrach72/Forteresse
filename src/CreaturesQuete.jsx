@@ -104,11 +104,21 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
     }
   }
   const capDe = (id) => capacites.find((c) => c.id === id);
+  // Navigation d'une créature à l'autre (flèches, en boucle) en plus des onglets.
+  const indexCourant = lignes.findIndex((l) => l.id === courante.id);
+  const aller = (delta) => {
+    location.hash = `creatures/${lignes[(indexCourant + delta + lignes.length) % lignes.length].id}`;
+  };
 
   return (
     <section className="creature-page">
       <h2 className="creature-titre-page">Créatures — {quete.nom}</h2>
       <div className="creature-onglets" role="tablist" aria-label="Créatures de la quête">
+        {lignes.length > 1 && (
+          <button type="button" className="creature-fleche" onClick={() => aller(-1)} aria-label="Créature précédente" title="Créature précédente">
+            ‹
+          </button>
+        )}
         {lignes.map((l) => {
           const f = creatures.find((c) => c.id === l.creature_id);
           const sante = l.sante_actuelle ?? f?.sante_max;
@@ -120,10 +130,15 @@ export function CreaturesQuete({ estAdmin, roundCourant, routeId, notify = () =>
               className={`creature-onglet${l.id === courante.id ? " actif" : ""}${sante === 0 ? " detruite" : ""}`}
               href={`#creatures/${l.id}`}
             >
-              {l.nom_onglet}
+              {l.nom_onglet} <small className="creature-onglet-pv">{sante ?? "?"}/{f?.sante_max ?? "?"}</small>
             </a>
           );
         })}
+        {lignes.length > 1 && (
+          <button type="button" className="creature-fleche" onClick={() => aller(1)} aria-label="Créature suivante" title="Créature suivante">
+            ›
+          </button>
+        )}
       </div>
       {fiche && (
         <FicheCreatureJeu

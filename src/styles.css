@@ -6868,3 +6868,7 @@ a.merc-card:hover {
 .merc-quete-onglet { padding: 6px 12px; border: 1px solid rgba(60, 40, 20, 0.6); background: rgba(60, 40, 20, 0.55); color: #f3e7cb; text-decoration: none; border-radius: 6px; }
 .merc-quete-onglet.actif { background: #f3e7cb; color: #3a2614; font-weight: 700; }
 .merc-etats { margin-top: 12px; }
+.creature-onglets { align-items: flex-end; }
+.creature-fleche { padding: 8px 12px; border: 1px solid rgba(60, 40, 20, 0.6); border-bottom: 0; background: rgba(60, 40, 20, 0.8); color: #f3e7cb; font: inherit; font-size: 1.1rem; line-height: 1; cursor: pointer; border-radius: 6px 6px 0 0; }
+.creature-fleche:hover { background: #7a3b1d; }
+.creature-onglet-pv { opacity: 0.75; font-size: 0.75em; }
