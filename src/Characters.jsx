@@ -454,12 +454,44 @@ export function Characters({
                     </div>
                   );
                 })()}
-                {meilleureParade(equipDe(merc.id)) && (
-                  <div className="merc-carac">
-                    <span className="merc-carac-libelle">Parade</span>
-                    <strong className="merc-carac-valeur">{meilleureParade(equipDe(merc.id))}</strong>
-                  </div>
-                )}
+                {(() => {
+                  // Pavé de défense : Esquive (Vélocité ÷ 3, arrondi inférieur, minimum 1), Parade, Armure.
+                  const equip = equipDe(merc.id);
+                  const velocite = Number(merc.velocite);
+                  const esquive = Number.isFinite(velocite) ? Math.max(1, Math.floor(velocite / 3)) : "—";
+                  const armure = equip?.armure?.[0];
+                  const v = (x) => (x === null || x === undefined || String(x).trim() === "" ? "—" : x);
+                  const valeurArmure = armure
+                    ? `${v(armure.protection)}/${v(armure.malusDiscretion)}/${v(armure.malusVitesse)}`
+                    : "—";
+                  const lignes = [
+                    ["Esquive", esquive],
+                    ["Parade", meilleureParade(equip) || "—"],
+                    ["Armure", valeurArmure],
+                  ];
+                  return (
+                    <div className="merc-defense">
+                      <button
+                        type="button"
+                        className="merc-defense-aide"
+                        aria-label="Explication de l’Esquive, de la Parade et de l’Armure"
+                        title="Explication"
+                        onClick={() => setPopup({ type: "aide-defense", title: "Esquive, Parade et Armure", text: "Explication à rédiger." })}
+                      >
+                        ?
+                      </button>
+                      {lignes.map(([libelle, valeurLigne]) => (
+                        <div className="merc-defense-ligne" key={libelle}>
+                          {ICONES_STATS[libelle] && (
+                            <img className="merc-defense-icone" src={ICONES_STATS[libelle]} alt="" />
+                          )}
+                          <span className="merc-defense-libelle">{libelle}</span>
+                          <strong className="merc-defense-valeur">{valeurLigne}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
             <div className="merc-colonne-droite">
