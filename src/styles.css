@@ -4778,11 +4778,11 @@ a.merc-card:hover {
 /* Sélecteur à deux classes (plus spécifique que .merc-carac-icone tout court, défini plus bas)
    pour que la taille l'emporte quel que soit l'ordre des règles dans la feuille de styles. */
 .merc-carac-bottes .merc-bottes-icone {
-  width: 140px;
-  height: 140px;
+  width: 110px;
+  height: 110px;
 }
 .merc-carac-bottes .merc-carac-valeur {
-  font-size: 64px;
+  font-size: 52px;
 }
 .merc-carac {
   display: flex;
@@ -6998,4 +6998,8 @@ a.merc-card:hover {
   border-radius: 8px;
   background: #f3e8cc99;
   box-shadow: inset 0 0 0 1px #fff6;
+}
+/* Fiche : Énergie/Santé descendues pour se centrer par rapport à l'ensemble des deux colonnes. */
+.merc-colonne-droite .orbes {
+  margin-top: 44px;
 }
