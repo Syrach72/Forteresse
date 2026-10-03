@@ -4564,7 +4564,7 @@ export function App() {
                 (own) =>
                   arsenalCategoryOf(own) === categorieVoulue &&
                   own.quantity > 0 &&
-                  (modal.slot !== "arme" || (own.gemmes?.length || 0) < 3),
+                  (modal.slot !== "arme" || ((own.gemmes?.length || 0) < 3 && !own.estBouclier)),
               );
               return candidats.length ? (
                 <div className="db-item-list">
