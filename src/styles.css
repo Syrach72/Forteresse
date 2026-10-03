@@ -6986,3 +6986,7 @@ a.merc-card:hover {
   display: block;
   margin-top: 8px;
 }
+.aide-defense-rubrique p {
+  text-align: justify;
+  hyphens: auto;
+}
