@@ -517,6 +517,15 @@ export function Characters({
                   le joueur qui a recruté le mercenaire (ou le MJ), plafonnées à 9 : déterminent
                   Santé Max et Énergie Max ci-dessous. */}
               <div className="merc-trio">
+                <button
+                  type="button"
+                  className="merc-defense-aide"
+                  aria-label="Explication de la Puissance, de la Vélocité et du Mental"
+                  title="Explication"
+                  onClick={() => setPopup({ type: "aide-caracs", title: "Puissance, Vélocité et Mental" })}
+                >
+                  ?
+                </button>
                 {[
                   ["Puissance", "puissance"],
                   ["Vélocité", "velocite"],
@@ -1350,6 +1359,22 @@ export function Characters({
                 En dépensant 3 Énergies (limité à une fois par 24h), le Guerrier
                 peut prendre une Action supplémentaire.
               </p>
+            </div>
+          ) : popup.type === "aide-caracs" ? (
+            <div className="aide-defense">
+              {[
+                ["Puissance", "Corps-à-Corps, Lancer, lutte, Athlétisme, Intimidation, Saut, Portage, résistance aux Poisons et Maladies, toute utilisation de la force physique et de la constitution physique."],
+                ["Vélocité", "Tir, Lancer, armes légères, Esquive, Acrobatie, Discrétion, Escamotage, Réactivité, ce qui nécessite des réflexes, Kit de Bricolage."],
+                ["Mental", "La grande majorité des Capacités utilisées par les Incantateurs, résistance aux Enchantements et divers sorts, mais aussi Dressage, Persuasion, Tromperie, Histoire, Religion, Nature, toute connaissance, Investigation, Médecine, Survie, Représentation, Perspicacité, utilisation de tous les Kits sauf Bricolage."],
+              ].map(([titre, texte]) => (
+                <section className="aide-defense-rubrique" key={titre}>
+                  <h3>
+                    <img src={ICONES_STATS[titre]} alt="" />
+                    {titre}
+                  </h3>
+                  <p>{texte}</p>
+                </section>
+              ))}
             </div>
           ) : popup.type === "aide-defense" ? (
             <div className="aide-defense">

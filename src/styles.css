@@ -6990,3 +6990,12 @@ a.merc-card:hover {
   text-align: justify;
   hyphens: auto;
 }
+/* Puissance, Vélocité, Mental : même pavé que la défense, avec son point d'interrogation dans l'angle. */
+.merc-trio {
+  position: relative;
+  padding: 12px 34px 8px 16px;
+  border: 2px solid #a89067;
+  border-radius: 8px;
+  background: #f3e8cc99;
+  box-shadow: inset 0 0 0 1px #fff6;
+}
