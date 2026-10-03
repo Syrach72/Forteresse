@@ -4567,18 +4567,22 @@ export function App() {
             </>
           ) : modal.type === "sertissage-aide" ? (
             <div className="aide-defense">
+              {atelierSert === "forge" && (
               <section className="aide-defense-rubrique">
                 <h3>Armes</h3>
                 <p>
                   Une Arme Gemmée devient Magique et inflige +1 🎲 de dégâts par Gemme sertie, du type de dégâts déployé par la Gemme. Une arme peut contenir jusqu’à 3 Gemmes, mais toutes de la même énergie.
                 </p>
               </section>
+              )}
+              {atelierSert === "armurerie" && (
               <section className="aide-defense-rubrique">
                 <h3>Armures</h3>
                 <p>
                   Une Armure Gemmée devient Magique et absorbe par attaque ou sort subi : 1 Impact par Gemme sertie, du type de dégâts déployé par la Gemme. Une armure peut contenir jusqu’à 3 Gemmes, mais toutes de la même énergie.
                 </p>
               </section>
+              )}
             </div>
           ) : modal.type === "sertissage-pick" ? (
             (() => {
