@@ -461,9 +461,8 @@ export function Characters({
                   const esquive = Number.isFinite(velocite) ? Math.max(1, Math.floor(velocite / 3)) : "—";
                   const armure = equip?.armure?.[0];
                   const v = (x) => (x === null || x === undefined || String(x).trim() === "" ? "—" : x);
-                  const valeurArmure = armure
-                    ? `${v(armure.protection)}/${v(armure.malusDiscretion)}/${v(armure.malusVitesse)}`
-                    : "—";
+                  // Protection de la fiche armure, déjà au format P/T/K (Perforant / Tranchant / Contondant).
+                  const valeurArmure = v(armure?.protection);
                   const lignes = [
                     ["Esquive", esquive],
                     ["Parade", meilleureParade(equip) || "—"],
