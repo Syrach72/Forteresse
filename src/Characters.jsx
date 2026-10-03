@@ -12,6 +12,9 @@ const ICONES_STATS = {
   Vélocité: "/assets/icons/velocite.webp",
   Mental: "/assets/icons/mental.webp",
   Mouvement: "/assets/mercenaire-fiche/bottes.webp",
+  Esquive: "/assets/icons/esquive.webp",
+  Parade: "/assets/icons/parade.webp",
+  Armure: "/assets/icons/armure.webp",
 };
 // Objets qui peuvent être équipés depuis le sac à dos (rubriques du catalogue).
 const EQUIPABLES = ["Armes", "Armures", "Objet divers"];
