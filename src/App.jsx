@@ -1244,7 +1244,15 @@ export function App() {
   const [arsenalTab, setArsenalTab] = useState("Général");
   // Sertissage de la Forge : arme et gemme choisies dans l'arsenal, en
   // attente du lancement (rien n'est débité tant que ce n'est que local).
-  const [sertStage, setSertStage] = useState({ arme: null, gemme: null });
+  // Un emplacement d'attente par atelier (Forge : armes ; Armurerie : armures).
+  const [sertStages, setSertStages] = useState({});
+  const atelierSert = route === "armurerie" ? "armurerie" : "forge";
+  const sertStage = sertStages[atelierSert] || { arme: null, gemme: null };
+  const setSertStage = (u) =>
+    setSertStages((p) => {
+      const cur = p[atelierSert] || { arme: null, gemme: null };
+      return { ...p, [atelierSert]: typeof u === "function" ? u(cur) : u };
+    });
   // Quantité à embaucher saisie pour chaque métier (fenêtre Matériaux et
   // Embauche), remise à 1 par défaut tant que rien n'a été tapé.
   const [embaucheQty, setEmbaucheQty] = useState({});
@@ -1776,7 +1784,9 @@ export function App() {
             .map((g) =>
               g.atelier === "sertissage"
                 ? "Le sertissage à la forge est terminé."
-                : `La fabrication de l'atelier ${g.atelier} est terminée.`,
+                : g.atelier === "sertissage-armurerie"
+                  ? "Le sertissage à l’armurerie est terminé."
+                  : `La fabrication de l'atelier ${g.atelier} est terminée.`,
             ),
           ...(gains.quete
             ? gains.quete.termine === false
@@ -1958,8 +1968,7 @@ export function App() {
         .limit(300),
       supabase
         .from("forge_sertissage")
-        .select("arme_objet_id, arme_gemmes, gemme_objet_id, restant")
-        .maybeSingle(),
+        .select("atelier, arme_objet_id, arme_gemmes, gemme_objet_id, restant"),
       supabase.from("employe").select("objet_id, outil, quantite"),
       supabase.from("mercenaire_equipement").select("mercenaire_id, emplacement, position, objet_id, gemmes, badge_f"),
       supabase.from("objet_quete_active").select("objet_id"),
@@ -2011,14 +2020,15 @@ export function App() {
     // Ids d'objets à connaître : lignes d'arsenal/sacs/fabrications, plus les
     // gemmes serties sur une arme (dans la colonne gemmes, pas leur propre
     // ligne) et l'éventuel sertissage en cours à la forge.
-    const sertActif = sert.data?.arme_objet_id ? sert.data : null;
+    const sertActifs = (sert.data || []).filter((x) => x.arme_objet_id);
+    const sertActif = sertActifs.find((x) => x.atelier === "forge") || null;
     const idsRequis = [
       ...enStock.map((x) => x.objet_id),
       ...lignesSacs.map((x) => x.objet_id),
       ...lignesSacs.flatMap((x) => x.gemmes || []),
       ...fab.data.map((x) => x.objet_id),
       ...enStock.flatMap((x) => x.gemmes || []),
-      ...(sertActif ? [sertActif.arme_objet_id, sertActif.gemme_objet_id, ...(sertActif.arme_gemmes || [])] : []),
+      ...sertActifs.flatMap((x) => [x.arme_objet_id, x.gemme_objet_id, ...(x.arme_gemmes || [])]),
       ...(emp.data || []).map((x) => x.objet_id),
       ...(eqp.data || []).flatMap((x) => [x.objet_id, ...(x.gemmes || [])]),
       ...(baseEquip.data || []).map((x) => x.objet_id),
@@ -2196,21 +2206,25 @@ export function App() {
     }
     // Sertissage en cours à la forge (table forge_sertissage, une seule
     // ligne) : null tant que personne n'en a lancé un.
-    const sertissage = sertActif
-      ? {
-          armeObjetId: sertActif.arme_objet_id,
-          armeGemmesAvant: sertActif.arme_gemmes || [],
-          gemmeObjetId: sertActif.gemme_objet_id,
-          restant: sertActif.restant,
-          armeNom: cache.objets.get(sertActif.arme_objet_id)?.nom || "Arme",
-          armeIcone: cache.objets.get(sertActif.arme_objet_id)?.icone || null,
-          gemmeNom: cache.objets.get(sertActif.gemme_objet_id)?.nom || "Gemme",
-          gemmeIcone: cache.objets.get(sertActif.gemme_objet_id)?.icone || null,
-          gemmesIconesAvant: (sertActif.arme_gemmes || [])
-            .map((idg) => cache.objets.get(idg)?.icone)
-            .filter(Boolean),
-        }
-      : null;
+    const resumeSertissage = (x) => ({
+      armeObjetId: x.arme_objet_id,
+      armeGemmesAvant: x.arme_gemmes || [],
+      gemmeObjetId: x.gemme_objet_id,
+      restant: x.restant,
+      armeNom: cache.objets.get(x.arme_objet_id)?.nom || "Objet",
+      armeIcone: cache.objets.get(x.arme_objet_id)?.icone || null,
+      gemmeNom: cache.objets.get(x.gemme_objet_id)?.nom || "Gemme",
+      gemmeIcone: cache.objets.get(x.gemme_objet_id)?.icone || null,
+      gemmesIconesAvant: (x.arme_gemmes || [])
+        .map((idg) => cache.objets.get(idg)?.icone)
+        .filter(Boolean),
+    });
+    const sertissage = sertActif ? resumeSertissage(sertActif) : null;
+    const sertissageArmurerie = sertActifs.find((x) => x.atelier === "armurerie");
+    const sertissages = {
+      forge: sertissage,
+      armurerie: sertissageArmurerie ? resumeSertissage(sertissageArmurerie) : null,
+    };
     // Effectif embauché (Collecte des Ressources) : une entrée par (métier,
     // avec/sans outil), avec le nom/icône du métier et du matériau produit
     // (résolus via le cache catalogue), pour l'affichage de la page.
@@ -2270,6 +2284,7 @@ export function App() {
       craftingQueue,
       durations,
       sertissage,
+      sertissages,
       log,
     };
     gameRef.current = g;
@@ -2999,17 +3014,18 @@ export function App() {
         p_arme_objet: sertStage.arme.objetId,
         p_arme_gemmes: sertStage.arme.gemmes,
         p_gemme_objet: sertStage.gemme.objetId,
+        p_atelier: atelierSert,
       }),
     );
     if (!data) return;
     setSertStage({ arme: null, gemme: null });
-    notify("Sertissage lancé à la forge.");
+    notify(atelierSert === "armurerie" ? "Sertissage lancé à l’armurerie." : "Sertissage lancé à la forge.");
   }
   // Sertissage terminé (durée d'instance à 0) : l'arme sertie rejoint
   // l'arsenal, la forge est libérée.
   async function actSertirRecuperer() {
     const data = await operationPartagee(() =>
-      supabase.rpc("sertissage_recuperer"),
+      supabase.rpc("sertissage_recuperer", { p_atelier: atelierSert }),
     );
     if (!data) return;
     notify(data.message);
@@ -4100,48 +4116,50 @@ export function App() {
                   </button>
                 )}
               </div>
-              {route === "forge" && (
+              {(route === "forge" || route === "armurerie") && (() => {
+                const sertEnCours = game.sertissages?.[atelierSert] || null;
+                return (
                 <section className="equipment-panel parchment sertissage-panel">
-                  <p className="eyebrow">Sertissage de puissance</p>
-                  {game.sertissage ? (
+                  <p className="eyebrow">{route === "armurerie" ? "Sertissage d’armure" : "Sertissage de puissance"}</p>
+                  {sertEnCours ? (
                     <>
                       <span className="item-art sertissage-result">
-                        {game.sertissage.armeIcone && (
-                          <img src={game.sertissage.armeIcone} alt="" />
+                        {sertEnCours.armeIcone && (
+                          <img src={sertEnCours.armeIcone} alt="" />
                         )}
                         <span className="item-art-gemmes" aria-hidden="true">
-                          {[...game.sertissage.gemmesIconesAvant, game.sertissage.gemmeIcone]
+                          {[...sertEnCours.gemmesIconesAvant, sertEnCours.gemmeIcone]
                             .filter(Boolean)
                             .map((src, i) => (
                               <img key={i} src={src} alt="" />
                             ))}
                         </span>
                       </span>
-                      <h2>{game.sertissage.armeNom}</h2>
+                      <h2>{sertEnCours.armeNom}</h2>
                       <div className="stat-line">
                         <span>Durée d’instance restante</span>
-                        <strong>{game.sertissage.restant}</strong>
+                        <strong>{sertEnCours.restant}</strong>
                       </div>
                       <button
                         className="primary"
-                        disabled={busy || game.sertissage.restant > 0}
+                        disabled={busy || sertEnCours.restant > 0}
                         onClick={actSertirRecuperer}
                       >
-                        {game.sertissage.restant > 0
+                        {sertEnCours.restant > 0
                           ? "Sertissage en cours…"
                           : "Envoyer à l’Arsenal"}
                       </button>
                       <p className="muted">
-                        {game.sertissage.restant > 0
-                          ? `Sertissage en cours : encore ${game.sertissage.restant} instance(s) avant de pouvoir l’envoyer à l’arsenal.`
-                          : "Sertissage terminé : cliquez sur « Envoyer à l’Arsenal » pour libérer la forge."}
+                        {sertEnCours.restant > 0
+                          ? `Sertissage en cours : encore ${sertEnCours.restant} instance(s) avant de pouvoir l’envoyer à l’arsenal.`
+                          : `Sertissage terminé : cliquez sur « Envoyer à l’Arsenal » pour libérer ${route === "armurerie" ? "l’armurerie" : "la forge"}.`}
                       </p>
                     </>
                   ) : (
                     <>
                       <p className="muted">
-                        Placez une arme et une gemme prélevées dans l’arsenal :
-                        une arme peut recevoir jusqu’à 3 gemmes. Le sertissage
+                        Placez {route === "armurerie" ? "une armure" : "une arme"} et une gemme prélevées dans l’arsenal :
+                        {route === "armurerie" ? " une armure" : " une arme"} peut recevoir jusqu’à 3 gemmes. Le sertissage
                         compte toujours pour 1 instance, en parallèle d’une
                         fabrication en cours.
                       </p>
@@ -4169,7 +4187,7 @@ export function App() {
                               <small className="sertissage-slot-label">{sertStage.arme.nom}</small>
                             </>
                           ) : (
-                            <span className="sertissage-slot-empty">Choisir une arme</span>
+                            <span className="sertissage-slot-empty">{route === "armurerie" ? "Choisir une armure" : "Choisir une arme"}</span>
                           )}
                         </button>
                         <span className="sertissage-plus" aria-hidden="true">+</span>
@@ -4215,7 +4233,8 @@ export function App() {
                     </p>
                   )}
                 </section>
-              )}
+                );
+              })()}
             </>
           ) : route === "stock" ? (
             <section className="stock-panel parchment">
@@ -4446,7 +4465,9 @@ export function App() {
                     : modal.titre || `Catalogue : ${modal.racine}`
                 : modal.type === "sertissage-pick"
                 ? modal.slot === "arme"
-                  ? "Choisir une arme"
+                  ? atelierSert === "armurerie"
+                    ? "Choisir une armure"
+                    : "Choisir une arme"
                   : "Choisir une gemme"
                 : modal.type === "market-dual"
                 ? "Matériaux et Embauche"
@@ -4538,7 +4559,7 @@ export function App() {
             (() => {
               // Uniquement des objets déjà dans l'arsenal, jamais achetés ni
               // fabriqués ici : le sertissage prélève, il ne produit pas.
-              const categorieVoulue = modal.slot === "arme" ? "Armes" : "Gemmes";
+              const categorieVoulue = modal.slot === "arme" ? (atelierSert === "armurerie" ? "Armures" : "Armes") : "Gemmes";
               const candidats = game.inventory.filter(
                 (own) =>
                   arsenalCategoryOf(own) === categorieVoulue &&
@@ -4581,7 +4602,7 @@ export function App() {
               ) : (
                 <p className="muted">
                   {modal.slot === "arme"
-                    ? "Aucune arme disponible dans l’arsenal (ou déjà sertie de 3 gemmes)."
+                    ? `Aucune ${atelierSert === "armurerie" ? "armure" : "arme"} disponible dans l’arsenal (ou déjà sertie de 3 gemmes).`
                     : "Aucune gemme disponible dans l’arsenal."}
                 </p>
               );
