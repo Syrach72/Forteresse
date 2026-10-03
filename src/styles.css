@@ -6957,5 +6957,5 @@ a.merc-card:hover {
 /* Cimetière : vidéo 16:9 (crypte vers 56 % de la largeur, bougies à gauche vers 27 % et à droite vers 74 %).
    Cadrée pour garder la crypte au centre et au moins les bougies de droite visibles quand la page est étroite. */
 .cimetiere video.interior-backdrop {
-  object-position: 58% 50%;
+  object-position: 56% 50%;
 }
