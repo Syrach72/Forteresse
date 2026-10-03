@@ -478,7 +478,7 @@ export function Characters({
                         className="merc-defense-aide"
                         aria-label="Explication de l’Esquive, de la Parade et de l’Armure"
                         title="Explication"
-                        onClick={() => setPopup({ type: "aide-defense", })}
+                        onClick={() => setPopup({ type: "aide-defense", title: "Esquive, Parade et Armure" })}
                       >
                         ?
                       </button>
