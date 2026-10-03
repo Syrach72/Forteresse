@@ -6978,3 +6978,11 @@ a.merc-card:hover {
 .aide-defense-rubrique p {
   margin: 0;
 }
+.aide-defense-precision {
+  font-size: 0.7em;
+  font-weight: 400;
+}
+.aide-defense-note {
+  display: block;
+  margin-top: 8px;
+}

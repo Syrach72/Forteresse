@@ -1354,14 +1354,36 @@ export function Characters({
           ) : popup.type === "aide-defense" ? (
             <div className="aide-defense">
               {[
-                ["Esquive", "Texte à rédiger."],
-                ["Parade", "Texte à rédiger."],
-                ["Armure", "Texte à rédiger."],
-              ].map(([titre, texte]) => (
+                [
+                  "Esquive",
+                  "",
+                  <>
+                    <strong>Conditions :</strong> un personnage peut tenter d’Esquiver une attaque à condition qu’aucun objet lourd (meuble, arbre, mur) ou aucune autre créature que son attaquant ne lui soit adjacente. L’Esquive est également impossible si le personnage porte une armure lourde ou un bouclier. L’Esquive se décide avant le lancer de dés de l’attaquant. L’Esquive fonctionne contre les attaques PTK ou magiques ne nécessitant pas de jet de Sauv., y compris les attaques et sorts à distance. Le défenseur dépense une Réaction pour retirer 1🎲 au lancer de l’attaquant tous les 3 niveaux de Vélocité qu’il possède (les dés critiques puis énergétiques sont retirés en dernier). En tout état de cause, l’attaquant conservera minimum 1🎲 d’attaque. S’il ne conserve qu’un seul 🎲, celui-ci ne peut pas être un Critique (puisqu’il ne pourra pas être validé par le « 6 » d’un autre dé). Certaines classes ou certains niveaux de Vétérance permettent d’éliminer davantage de dés de l’attaquant grâce à une Esquive supérieure.
+                  </>,
+                ],
+                [
+                  "Parade",
+                  "",
+                  <>
+                    <strong>Conditions :</strong> nécessite de tenir un bouclier ou une arme de Parade, de ne pas Esquiver, et l’attaquant utilise une arme infligeant des dégâts PTK (y compris attaques à distance). La Parade se décide avant le lancer de dés de l’attaquant. Le défenseur dépense une Réaction pour ajouter 1 à 3🎲 à sa défense d’armure (Nb défini par le niveau de parade de l’objet utilisé I à III, sans cumul arme de Parade + Bouclier).
+                  </>,
+                ],
+                [
+                  "Armure",
+                  " (défense passive)",
+                  <>
+                    Qu’une Parade ou Esquive soit utilisée ou non, le défenseur lance le nombre de dé correspondant à sa défense d’armure selon le type de dégâts (P/T/K) + dés de parade éventuels. Chaque « 6 » annule un Impact non-énergétique (ceux-ci sont appliqués après avoir tenu compte des Immunités ou RD éventuelles). Si le défenseur obtient davantage de « 1 » que d’autres chiffres contre une arme de Destruction, son Bouclier, son arme de Parade ou son Armure est Fragilisé (dans cet ordre ; Brisé s’il était déjà Fragilisé<sup>2</sup>).
+                    <small className="aide-defense-note">
+                      <sup>2</sup> Une arme ou un bouclier brisé est perdu ; s’il est fragilisé, l’objet peut être réparé chez le Forgeron (arme) ou l’Armurier (Bouclier) au prix d’une instance, ou avec un kit de bricolage entre deux instances d’une même quête.
+                    </small>
+                  </>,
+                ],
+              ].map(([titre, precision, texte]) => (
                 <section className="aide-defense-rubrique" key={titre}>
                   <h3>
                     <img src={ICONES_STATS[titre]} alt="" />
                     {titre}
+                    {precision && <span className="aide-defense-precision">{precision}</span>}
                   </h3>
                   <p>{texte}</p>
                 </section>
