@@ -7003,3 +7003,7 @@ a.merc-card:hover {
 .merc-colonne-droite .orbes {
   margin-top: 44px;
 }
+/* Sertissage (Forge, Armurerie) : le point d'interrogation se place dans l'angle du panneau. */
+.sertissage-panel {
+  position: relative;
+}

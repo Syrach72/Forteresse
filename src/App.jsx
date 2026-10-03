@@ -4119,6 +4119,15 @@ export function App() {
                 const sertEnCours = game.sertissages?.[atelierSert] || null;
                 return (
                 <section className="equipment-panel parchment sertissage-panel">
+                  <button
+                    type="button"
+                    className="merc-defense-aide"
+                    aria-label="Explication du sertissage"
+                    title="Explication"
+                    onClick={() => setModal({ type: "sertissage-aide" })}
+                  >
+                    ?
+                  </button>
                   <p className="eyebrow">{route === "armurerie" ? "Sertissage d’armure" : "Sertissage de puissance"}</p>
                   {sertEnCours ? (
                     <>
@@ -4462,6 +4471,8 @@ export function App() {
                   : modal.global
                     ? "Catalogue"
                     : modal.titre || `Catalogue : ${modal.racine}`
+                : modal.type === "sertissage-aide"
+                ? "Sertissage"
                 : modal.type === "sertissage-pick"
                 ? modal.slot === "arme"
                   ? atelierSert === "armurerie"
@@ -4554,6 +4565,21 @@ export function App() {
                 }}
               />
             </>
+          ) : modal.type === "sertissage-aide" ? (
+            <div className="aide-defense">
+              <section className="aide-defense-rubrique">
+                <h3>Armes</h3>
+                <p>
+                  Une Arme Gemmée devient Magique et inflige +1 🎲 de dégâts par Gemme sertie, du type de dégâts déployé par la Gemme. Une arme peut contenir jusqu’à 3 Gemmes, mais toutes de la même énergie.
+                </p>
+              </section>
+              <section className="aide-defense-rubrique">
+                <h3>Armures</h3>
+                <p>
+                  Une Armure Gemmée devient Magique et absorbe par attaque ou sort subi : 1 Impact par Gemme sertie, du type de dégâts déployé par la Gemme. Une armure peut contenir jusqu’à 3 Gemmes, mais toutes de la même énergie.
+                </p>
+              </section>
+            </div>
           ) : modal.type === "sertissage-pick" ? (
             (() => {
               // Uniquement des objets déjà dans l'arsenal, jamais achetés ni
