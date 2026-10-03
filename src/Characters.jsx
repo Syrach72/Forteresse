@@ -478,16 +478,13 @@ export function Characters({
                         className="merc-defense-aide"
                         aria-label="Explication de l’Esquive, de la Parade et de l’Armure"
                         title="Explication"
-                        onClick={() => setPopup({ type: "aide-defense", title: "Esquive, Parade et Armure", text: "Explication à rédiger." })}
+                        onClick={() => setPopup({ type: "aide-defense", })}
                       >
                         ?
                       </button>
                       {lignes.map(([libelle, valeurLigne]) => (
                         <div className="merc-defense-ligne" key={libelle}>
-                          {ICONES_STATS[libelle] && (
-                            <img className="merc-defense-icone" src={ICONES_STATS[libelle]} alt="" />
-                          )}
-                          <span className="merc-defense-libelle">{libelle}</span>
+                          <img className="merc-defense-icone" src={ICONES_STATS[libelle]} alt={libelle} title={libelle} />
                           <strong className="merc-defense-valeur">{valeurLigne}</strong>
                         </div>
                       ))}
@@ -1353,6 +1350,22 @@ export function Characters({
                 En dépensant 3 Énergies (limité à une fois par 24h), le Guerrier
                 peut prendre une Action supplémentaire.
               </p>
+            </div>
+          ) : popup.type === "aide-defense" ? (
+            <div className="aide-defense">
+              {[
+                ["Esquive", "Texte à rédiger."],
+                ["Parade", "Texte à rédiger."],
+                ["Armure", "Texte à rédiger."],
+              ].map(([titre, texte]) => (
+                <section className="aide-defense-rubrique" key={titre}>
+                  <h3>
+                    <img src={ICONES_STATS[titre]} alt="" />
+                    {titre}
+                  </h3>
+                  <p>{texte}</p>
+                </section>
+              ))}
             </div>
           ) : (
             <p>{popup.text}</p>

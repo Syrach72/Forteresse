@@ -6959,3 +6959,22 @@ a.merc-card:hover {
 .cimetiere video.interior-backdrop {
   object-position: 56% 50%;
 }
+
+/* Pop-up d'aide du pavé de défense : une rubrique par icône (Esquive, Parade, Armure). */
+.aide-defense-rubrique + .aide-defense-rubrique {
+  margin-top: 14px;
+}
+.aide-defense-rubrique h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 4px;
+}
+.aide-defense-rubrique h3 img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.aide-defense-rubrique p {
+  margin: 0;
+}
