@@ -488,6 +488,18 @@ export function Characters({
                           <strong className="merc-defense-valeur">{valeurLigne}</strong>
                         </div>
                       ))}
+                      {armure && (
+                        <>
+                          <div className="merc-defense-ligne merc-defense-sous">
+                            <span className="merc-defense-libelle">Discrétion</span>
+                            <strong className="merc-defense-valeur">{v(armure.malusDiscretion)}</strong>
+                          </div>
+                          <div className="merc-defense-ligne merc-defense-sous">
+                            <span className="merc-defense-libelle">Réduction de vitesse (inclus)</span>
+                            <strong className="merc-defense-valeur">{v(armure.malusVitesse)}</strong>
+                          </div>
+                        </>
+                      )}
                     </div>
                   );
                 })()}

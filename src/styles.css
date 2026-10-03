@@ -4744,6 +4744,13 @@ a.merc-card:hover {
   font: 700 20px Chiffres, Georgia, serif;
   color: #3a2814;
 }
+.merc-defense-sous .merc-defense-libelle {
+  font-size: 15px;
+  font-weight: 600;
+}
+.merc-defense-sous .merc-defense-valeur {
+  font-size: 20px;
+}
 .merc-defense-valeur {
   margin-left: auto;
   font: 700 26px Chiffres, Georgia, serif;
