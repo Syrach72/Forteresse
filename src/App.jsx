@@ -81,6 +81,7 @@ const AUTH_VIDEO = "/assets/video/connexion-anime.mp4";
 // vidéo et recalée sur elle. `decalage` : écart en secondes entre la vidéo du site et sa bande-son (0 = calées).
 const SONS_VIDEO = {
   forge: { piste: "/assets/sons/forge.mp3", decalage: 0, gain: 1 },
+  armurerie: { piste: "/assets/sons/armurerie.mp3", decalage: 0, gain: 1 },
 };
 const BACKDROP_VIDEO_RATIO = {
   armurerie: "1 / 1",
