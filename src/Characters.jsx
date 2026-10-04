@@ -444,14 +444,23 @@ export function Characters({
                 {merc.mouvement !== null && merc.mouvement !== undefined && (() => {
                   // Le malus de Vitesse de l'armure portée (−1 ou plus) réduit d'autant les cases de déplacement.
                   const malusArmure = Math.min(0, Number(equipDe(merc.id)?.armure?.[0]?.malusVitesse) || 0);
-                  const deplacement = Math.max(0, merc.mouvement + malusArmure);
+                  // Déplacement Sans Armure : bonus de vétérance seulement si aucune armure n'est portée.
+                  const sansArmure = !equipDe(merc.id)?.armure?.[0];
+                  const bonusMouvement = sansArmure ? merc.bonusMouvementSansArmure ?? 0 : 0;
+                  const deplacement = Math.max(0, merc.mouvement + malusArmure + bonusMouvement);
                   return (
                     <div className="merc-carac merc-carac-bottes">
                       <img
                         className="merc-carac-icone merc-bottes-icone"
                         src={ICONES_STATS.Mouvement}
                         alt="Mouvement"
-                        title={malusArmure < 0 ? `Mouvement : ${merc.mouvement} cases, réduit de ${-malusArmure} par l’armure` : "Mouvement"}
+                        title={
+                          malusArmure < 0
+                            ? `Mouvement : ${merc.mouvement} cases, réduit de ${-malusArmure} par l’armure`
+                            : bonusMouvement > 0
+                              ? `Mouvement : ${merc.mouvement} cases, +${bonusMouvement} (Déplacement Sans Armure)`
+                              : "Mouvement"
+                        }
                       />
                       <strong className="merc-carac-valeur">{deplacement}<span className="merc-carac-unite">c</span></strong>
                     </div>
