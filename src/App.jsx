@@ -1132,11 +1132,11 @@ export function App() {
           (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "nain des montagnes",
         );
         const bonus = possede ? [3, 6, 9].filter((n) => vet >= n).length : 0;
-        // Nain des Collines : +1 de Santé max par vétérance au-delà de la première (serveur : _bonus_sante).
+        // Nain des Collines : +1 de Santé max par niveau de vétérance, dès le niveau 1 (serveur : _bonus_sante).
         const collines = (competencesMerc.get(m.id) || []).some(
           (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "nain des collines",
         );
-        const bonusSante = collines ? Math.max(0, vet - 1) : 0;
+        const bonusSante = collines ? vet : 0;
         // Déplacement Sans Armure : +1 case à chaque niveau pair de vétérance (2, 4, 6…) ; la fiche ne
         // l'applique que si le mercenaire ne porte aucune armure (un bouclier n'est pas une armure).
         const sansArmure = (competencesMerc.get(m.id) || []).some(
