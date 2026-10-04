@@ -80,7 +80,7 @@ export const AIDES = {
     rubriques: [
       [
         "À quoi ça sert",
-        "Le laboratoire fabrique les produits alchimiques. Le catalogue donne pour chacun sa fiche et sa recette, faite de composants pris dans l’arsenal.",
+        "Le laboratoire fabrique les produits alchimiques. Le catalogue donne pour chacun sa fiche et sa recette, faite de composants pris dans l’arsenal. Ces composants proviennent du Marché ou de certaines Quêtes.",
       ],
       ...fabrication("Fabriquer", "Le laboratoire"),
     ],
