@@ -19,7 +19,7 @@ export function BoutonAide({ aide }) {
         ?
       </button>
       {ouvert && (
-        <Modal title={aide.titre} onClose={() => setOuvert(false)}>
+        <Modal verre title={aide.titre} onClose={() => setOuvert(false)}>
           <div className="aide-defense">
             {aide.rubriques.map(([titre, texte]) => (
               <section className="aide-defense-rubrique" key={titre}>

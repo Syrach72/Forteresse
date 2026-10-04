@@ -1139,6 +1139,7 @@ export function Characters({
       )}
       {popup && (
         <Modal
+          verre={String(popup.type).startsWith("aide")}
           className={popup.type === "sac" ? "modal-sac" : ""}
           title={
             popup.type === "edit"

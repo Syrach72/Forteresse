@@ -7138,3 +7138,8 @@ a.merc-card:hover {
 .pave-aide:focus-visible {
   background: #f3e8cc;
 }
+
+/* Enveloppe des fenêtres d'aide en verre dépoli : donne le style .interior à la fenêtre sans boîte propre. */
+.modal-verre-racine {
+  display: contents;
+}

@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 
-export function Modal({ title, children, onClose, className = "" }) {
+// `verre` : fenêtre en verre dépoli (celle des pages de jeu), pour les fenêtres d'aide ouvertes par un « ? ».
+// Le style vient de `.interior .parchment` : la fenêtre est donc placée dans une enveloppe `.interior` sans
+// boîte propre (display: contents), ce qui lui donne le même aspect partout, même hors d'une page de jeu.
+export function Modal({ title, children, onClose, className = "", verre = false }) {
   const ref = useRef(null);
   useEffect(() => {
     const prev = document.activeElement;
@@ -12,7 +15,7 @@ export function Modal({ title, children, onClose, className = "" }) {
       prev?.focus();
     };
   }, []);
-  return (
+  const fenetre = (
     <dialog
       ref={ref}
       onCancel={(e) => {
@@ -31,4 +34,5 @@ export function Modal({ title, children, onClose, className = "" }) {
       {children}
     </dialog>
   );
+  return verre ? <div className="interior modal-verre-racine">{fenetre}</div> : fenetre;
 }

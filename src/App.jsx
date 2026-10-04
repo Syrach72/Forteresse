@@ -4639,6 +4639,7 @@ export function App() {
       )}
       {modal && (
         <Modal
+          verre={String(modal.type).endsWith("-aide")}
           title={
             modal.type === "catalog"
               ? "Catalogue"

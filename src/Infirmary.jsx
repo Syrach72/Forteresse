@@ -140,6 +140,7 @@ export function Infirmary({
       </section>
       {popup && (
         <Modal
+          verre={popup.type === "aide"}
           title={
             popup.type === "aide"
               ? "L’infirmerie : mode d’emploi"
