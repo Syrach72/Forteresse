@@ -176,7 +176,7 @@ export function Infirmary({
                 <h3>Les soins</h3>
                 <p>
                   Chaque « +1 Instance » du maître du jeu rend au mercenaire un tiers de sa santé max (arrondi au
-                  supérieur). Sa santé max est de 3 + 2 × sa Puissance. Le chiffre sur le lit indique le nombre
+                  supérieur). Le chiffre sur le lit indique le nombre
                   d’instances de soin encore nécessaires (1 à 3, selon les points de vie perdus). Quand il a retrouvé
                   toute sa santé, le mercenaire retourne tout seul à sa place à la Caserne.
                 </p>
@@ -186,13 +186,6 @@ export function Infirmary({
                 <p>
                   En cliquant sur son lit, son recruteur (ou le maître du jeu) peut le rappeler à la Caserne avant la
                   fin des soins. Il garde les points de vie déjà regagnés.
-                </p>
-              </section>
-              <section className="aide-defense-rubrique">
-                <h3>Les lits</h3>
-                <p>
-                  Deux lits sont disponibles au départ. Les quatre autres se débloquent dans l’ordre, par le maître du
-                  jeu seul, contre 300, 500, 800 puis 1 200 Po prélevés sur la trésorerie de la compagnie.
                 </p>
               </section>
               <section className="aide-defense-rubrique">
