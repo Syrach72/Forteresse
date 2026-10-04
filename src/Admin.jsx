@@ -3076,7 +3076,7 @@ function EtatMaintien() {
 }
 
 function emptyQuete() {
-  return { nom: "", description: "", scenario: "", facteur_puissance: "1", instances_requises: "1", recompense_or: "", icone: "" };
+  return { nom: "", description: "", scenario: "", facteur_puissance: "1", instances_requises: "1", recompense_or: "", icone: "", debloque_objet_id: "" };
 }
 const QUETE_SLOTS = [0, 1, 2, 3, 4];
 
@@ -3152,6 +3152,7 @@ function QuetesSection() {
       facteur_puissance: q.facteur_puissance ?? 1,
       instances_requises: q.instances_requises ?? 1,
       recompense_or: q.recompense_or ?? "",
+      debloque_objet_id: q.debloque_objet_id || "",
       icone: q.icone || "",
     });
     setIconFile(null);
@@ -3207,6 +3208,7 @@ function QuetesSection() {
       facteur_puissance: Math.max(1, toIntOrNull(form.facteur_puissance) ?? 1),
       instances_requises: Math.min(99, Math.max(1, toIntOrNull(form.instances_requises) ?? 1)),
       recompense_or: toIntOrNull(form.recompense_or) ?? 0,
+      debloque_objet_id: form.debloque_objet_id || null,
       icone,
     };
     let queteId = editing;
@@ -3362,6 +3364,25 @@ function QuetesSection() {
               value={form.recompense_or}
               onChange={(e) => setForm({ ...form, recompense_or: e.target.value })}
             />
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="quete-debloque">Débloque l’embauche de</label>
+          <div className="input-wrap">
+            <select
+              id="quete-debloque"
+              value={form.debloque_objet_id}
+              onChange={(e) => setForm({ ...form, debloque_objet_id: e.target.value })}
+            >
+              <option value="">— aucun métier —</option>
+              {catalogue.rows
+                .filter((o) => o.emploi_materiau_id)
+                .map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.nom}
+                  </option>
+                ))}
+            </select>
           </div>
         </div>
       </div>

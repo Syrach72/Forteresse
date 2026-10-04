@@ -1193,6 +1193,9 @@ export function App() {
   );
   // Effectif embauché (Collecte des Ressources), partagé comme l'arsenal.
   const [employesRoster, setEmployesRoster] = useState([]);
+  // Métiers de Collecte (Bûcheron, Mineur, Tanneur) : objet -> { debloque, queteNom }. Verrouillés tant que la
+  // quête qui permet d'obtenir un premier ouvrier n'est pas réussie.
+  const [metiersEmbauche, setMetiersEmbauche] = useState(() => new Map());
   // Métiers du catalogue (Mineur, Bûcheron, Tanneur…) : la page Collecte les
   // montre tous, même sans employé embauché (cartes à ×0).
   const [employesMetiers, setEmployesMetiers] = useState([]);
@@ -2412,7 +2415,15 @@ export function App() {
       synchroniserZonesPartagees(),
       synchroniserEconomie(),
       synchroniserBudget(),
+      synchroniserMetiers(),
     ]);
+  }
+  // Métiers de Collecte débloqués ou non dans la session (le serveur fait foi : employe_embaucher refuse
+  // un métier verrouillé).
+  async function synchroniserMetiers() {
+    const { data, error } = await supabase.rpc("metiers_embauche");
+    if (error || !data) return;
+    setMetiersEmbauche(new Map(data.map((x) => [x.objet_id, { debloque: x.debloque, queteNom: x.quete_nom }])));
   }
   // Recettes et postes de dépenses (les mêmes pour tous les joueurs).
   async function synchroniserBudget() {
@@ -4952,6 +4963,9 @@ export function App() {
                           // toute la case se grise au lieu d'afficher un badge de quantité.
                           const estBatiment = !o.emploi_materiau_id;
                           const possede = estBatiment && dejaEmbauche >= 1;
+                          // Métier verrouillé tant que sa quête n'est pas réussie (cadenas).
+                          const verrou = !estBatiment && metiersEmbauche.get(o.id)?.debloque === false;
+                          const queteVerrou = metiersEmbauche.get(o.id)?.queteNom;
                           const descriptif = estBatiment
                             ? descriptifBatiment(
                                 o,
@@ -4964,7 +4978,7 @@ export function App() {
                             : "";
                           return (
                             <div
-                              className={`market-dual-row${possede ? " market-dual-row-owned" : ""}`}
+                              className={`market-dual-row${possede ? " market-dual-row-owned" : ""}${verrou ? " market-dual-row-locked" : ""}`}
                               key={o.id}
                             >
                               <span className="db-item-icon-wrap">
@@ -4973,24 +4987,31 @@ export function App() {
                                 ) : (
                                   <span className="db-item-icon" aria-hidden="true" />
                                 )}
-                                {!estBatiment && (
+                                {!estBatiment && !verrou && (
                                   <span className="qty-badge qty-badge-2" title="Déjà embauché(s)">
                                     {dejaEmbauche}
                                   </span>
+                                )}
+                                {verrou && (
+                                  <img className="metier-cadenas" src="/assets/icons/lock.webp" alt="Verrouillé" />
                                 )}
                               </span>
                               <span>
                                 {o.nom}
                                 <small className="db-item-tag">
-                                  {possede
-                                    ? "Déjà construit"
-                                    : o.cout_achat_or === null || o.cout_achat_or === undefined
-                                      ? "Coût non défini"
-                                      : `${o.cout_achat_or} Po pièce`}
+                                  {verrou
+                                    ? queteVerrou
+                                      ? `Verrouillé : se débloque en réussissant la quête « ${queteVerrou} »`
+                                      : "Verrouillé : se débloque en réussissant une quête"
+                                    : possede
+                                      ? "Déjà construit"
+                                      : o.cout_achat_or === null || o.cout_achat_or === undefined
+                                        ? "Coût non défini"
+                                        : `${o.cout_achat_or} Po pièce`}
                                 </small>
                                 {descriptif && <small className="db-item-desc">{descriptif}</small>}
                               </span>
-                              {possede || estBatiment ? (
+                              {possede || estBatiment || verrou ? (
                                 <span aria-hidden="true" />
                               ) : (
                                 <input
@@ -5013,6 +5034,7 @@ export function App() {
                                 className="wood-button"
                                 disabled={
                                   possede ||
+                                  verrou ||
                                   busy ||
                                   o.cout_achat_or === null ||
                                   o.cout_achat_or === undefined ||
@@ -5020,7 +5042,9 @@ export function App() {
                                 }
                                 onClick={() => actEmbaucher(o)}
                               >
-                                {possede
+                                {verrou
+                                  ? "Verrouillé"
+                                  : possede
                                   ? "Construit"
                                   : o.cout_achat_or === null || o.cout_achat_or === undefined
                                     ? "Coût non défini"

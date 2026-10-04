@@ -7143,3 +7143,21 @@ a.merc-card:hover {
 .modal-verre-racine {
   display: contents;
 }
+
+/* Embauche d'un métier de Collecte verrouillé par une quête : ligne estompée avec un cadenas sur l'icône. */
+.market-dual-row-locked {
+  opacity: 0.7;
+}
+.market-dual-row-locked .db-item-icon {
+  filter: grayscale(0.8);
+}
+.db-item-icon-wrap {
+  position: relative;
+}
+.metier-cadenas {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 26px !important;
+  height: 26px !important;
+}
