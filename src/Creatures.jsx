@@ -119,6 +119,9 @@ export function CreaturesSection({ kit }) {
       puissance: String(c.puissance),
       velocite: String(c.velocite),
       mental: String(c.mental),
+      esquive: c.esquive || "",
+      parade: c.parade || "",
+      armure: c.armure || "",
       vulnerabilites: c.vulnerabilites || [],
       resistances: c.resistances || [],
       immunites_degats: c.immunites_degats || [],
@@ -202,6 +205,9 @@ export function CreaturesSection({ kit }) {
         puissance: entier(form.puissance, 0, 99),
         velocite: entier(form.velocite, 0, 99),
         mental: entier(form.mental, 0, 99),
+        esquive: form.esquive.trim() || null,
+        parade: form.parade.trim() || null,
+        armure: form.armure.trim() || null,
         vulnerabilites: form.vulnerabilites,
         resistances: form.resistances,
         immunites_degats: form.immunites_degats,
@@ -300,6 +306,15 @@ export function CreaturesSection({ kit }) {
     </div>
   );
 
+  const texteCourt = (k, libelle) => (
+    <div className="field" key={k}>
+      <label htmlFor={`cr-${k}`}>{libelle}</label>
+      <div className="input-wrap">
+        <input id={`cr-${k}`} maxLength={12} value={form[k]} onChange={champ(k)} />
+      </div>
+    </div>
+  );
+
   const formEl = (
     <form className="admin-form" onSubmit={submit}>
       <h3>{editing ? "Modifier la créature" : "Ajouter une créature"}</h3>
@@ -355,6 +370,9 @@ export function CreaturesSection({ kit }) {
         {nombre("puissance", "Puissance", 0, 99)}
         {nombre("velocite", "Vélocité", 0, 99)}
         {nombre("mental", "Mental", 0, 99)}
+        {texteCourt("esquive", "Esquive (ex. 1)")}
+        {texteCourt("parade", "Parade (ex. II)")}
+        {texteCourt("armure", "Armure (ex. 2/3/3)")}
       </div>
       <div className="creature-multis">
         <MultiChoix libelle="Vulnérabilités" options={TYPES_DEGATS} valeur={form.vulnerabilites} onChange={(v) => setForm({ ...form, vulnerabilites: v })} />

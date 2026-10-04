@@ -352,6 +352,19 @@ function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, competences, sau
         <Orbe type="energie" libelle="Énergie" id="creature-energie" max={energieMax} actuelle={energie} />
       </div>
 
+      <div className="merc-defense creature-defense">
+        {[
+          ["Esquive", "/assets/icons/esquive.webp", fiche.esquive],
+          ["Parade", "/assets/icons/parade.webp", fiche.parade],
+          ["Armure", "/assets/icons/armure.webp", fiche.armure],
+        ].map(([libelle, icone, valeur]) => (
+          <div className="merc-defense-ligne" key={libelle}>
+            <img className="merc-defense-icone" src={icone} alt={libelle} title={libelle} />
+            <strong className="merc-defense-valeur">{valeur || "—"}</strong>
+          </div>
+        ))}
+      </div>
+
       <div className="creature-stats">
         <div className="stat-line">
           <span>FP</span>
