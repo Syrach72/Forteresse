@@ -3128,6 +3128,25 @@ export function App() {
         : `${objet.nom} construit : −${quantite * objet.cout_achat_or} Po.`,
     );
   }
+  // MJ : détruit un bâtiment (Camp de Mineur, Scierie, Tannerie), sans remboursement ; il pourra être reconstruit.
+  async function actDetruireBatiment(objet) {
+    if (!window.confirm(`Détruire ${objet.nom} ? Il n’y a aucun remboursement : il faudra le reconstruire pour retrouver son bonus.`))
+      return;
+    const data = await operationPartagee(() => supabase.rpc("batiment_detruire", { p_objet: objet.id }));
+    if (!data) return;
+    notify(`${objet.nom} est détruit.`);
+  }
+  // MJ : un mercenaire quitte le cimetière et redevient recrutable (à pleine santé).
+  async function retirerDuCimetiere(m) {
+    if (!window.confirm(`Retirer ${m.nom} du cimetière ? Il redeviendra recrutable, à pleine santé.`)) return;
+    const { error } = await supabase.rpc("cimetiere_retirer", { p_mercenaire: m.id });
+    if (error) {
+      notify(error.message);
+      return;
+    }
+    await synchroniserPartage();
+    notify(`${m.nom} quitte le cimetière : il est de nouveau recrutable.`);
+  }
   // Congédiement définitif (Collecte des Ressources), sans remboursement.
   async function actCongedier(objetId, outil, quantite, nom) {
     const data = await operationPartagee(() =>
@@ -3858,6 +3877,16 @@ export function App() {
                           Congédier {e.quantite}
                         </button>
                       )}
+                      {/* MJ : un bâtiment construit (Camp de Mineur, Scierie, Tannerie) peut être détruit. */}
+                      {estAdmin && e.quantite > 0 && !e.materiauId && !e.outil && (
+                        <button
+                          className="wood-button"
+                          disabled={busy}
+                          onClick={() => actDetruireBatiment({ id: e.objetId, nom: e.nom })}
+                        >
+                          Détruire
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -3933,25 +3962,31 @@ export function App() {
                   {mercenaires
                     .filter((m) => morts.includes(m.id))
                     .map((m) => (
-                      <a
-                        className="merc-card recrute cimetiere-carte"
-                        key={m.id}
-                        href={`#personnages/${classeRoute(m.classe)}/${m.id}`}
-                        aria-label={`Consulter la fiche de ${m.nom}`}
-                      >
-                        <span className="merc-portrait">
-                          {m.portrait ? (
-                            <img src={m.portrait} alt={`Portrait de ${m.nom}`} />
-                          ) : (
-                            <span className="merc-portrait-vide" aria-hidden="true" />
-                          )}
-                          <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="" />
-                        </span>
-                        <span className="merc-caption">
-                          <strong>{m.nom}</strong>
-                          <span className="merc-vet">Vétérance {m.veterance ?? 1}</span>
-                        </span>
-                      </a>
+                      <div className="cimetiere-item" key={m.id}>
+                        <a
+                          className="merc-card recrute cimetiere-carte"
+                          href={`#personnages/${classeRoute(m.classe)}/${m.id}`}
+                          aria-label={`Consulter la fiche de ${m.nom}`}
+                        >
+                          <span className="merc-portrait">
+                            {m.portrait ? (
+                              <img src={m.portrait} alt={`Portrait de ${m.nom}`} />
+                            ) : (
+                              <span className="merc-portrait-vide" aria-hidden="true" />
+                            )}
+                            <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="" />
+                          </span>
+                          <span className="merc-caption">
+                            <strong>{m.nom}</strong>
+                            <span className="merc-vet">Vétérance {m.veterance ?? 1}</span>
+                          </span>
+                        </a>
+                        {estAdmin && (
+                          <button type="button" className="wood-button cimetiere-retirer" onClick={() => retirerDuCimetiere(m)}>
+                            Retirer du cimetière
+                          </button>
+                        )}
+                      </div>
                     ))}
                 </div>
               ) : (
@@ -4902,6 +4937,16 @@ export function App() {
                                     ? "Coût non défini"
                                     : `${estBatiment ? "Construire" : "Embaucher"} · ${cout} Po`}
                               </button>
+                              {possede && estAdmin && (
+                                <button
+                                  type="button"
+                                  className="wood-button"
+                                  disabled={busy}
+                                  onClick={() => actDetruireBatiment(o)}
+                                >
+                                  Détruire
+                                </button>
+                              )}
                             </div>
                           );
                         })}
