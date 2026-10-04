@@ -1160,6 +1160,9 @@ export function App() {
           veterancy: m.veterance ?? 1,
           blesse: estBlesse(m),
           player: joueurs.get(m.id) || "",
+          etat: m.etat ?? null,
+          etatNiveau: m.etatNiveau ?? 1,
+          etatRounds: m.etatRounds ?? 0,
         })),
     [mercenaires, tousRecrutes, joueurs],
   );
@@ -3828,6 +3831,7 @@ export function App() {
               mesIds={new Set(warriors.map((w) => w.id))}
               estAdmin={estAdmin}
               onChanged={synchroniserPartage}
+              onDefinirEtat={definirEtat}
             />
           ) : route === "tresorerie" ? (
             <Treasury
