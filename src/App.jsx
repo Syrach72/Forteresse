@@ -1137,9 +1137,15 @@ export function App() {
           (c) =>
             c.type === "passive" &&
             c.veterance <= vet &&
-            ["nain des montagnes", "semi-orc"].includes(c.competence?.nom?.trim().toLowerCase()),
+            ["nain des montagnes", "semi-orc", "halflin robuste"].includes(c.competence?.nom?.trim().toLowerCase()),
         );
         const bonus = possede ? Math.floor(vet / 3) : 0;
+        // Halflin Pied Léger : +1 Vélocité tous les 3 niveaux de vétérance, dès le niveau 3 (serveur : _bonus_velocite).
+        const piedLeger = (competencesMerc.get(m.id) || []).some(
+          (c) =>
+            c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "halflin pied léger",
+        );
+        const bonusVelocite = piedLeger ? Math.floor(vet / 3) : 0;
         // Nain des Collines : +1 de Santé max par niveau de vétérance, dès le niveau 1 (serveur : _bonus_sante).
         const collines = (competencesMerc.get(m.id) || []).some(
           (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "nain des collines",
@@ -1166,11 +1172,12 @@ export function App() {
         );
         return bonus === (m.bonusPuissance ?? 0) &&
           estHumain === (m.estHumain ?? false) &&
+          bonusVelocite === (m.bonusVelocite ?? 0) &&
           bonusSante === (m.bonusSante ?? 0) &&
           bonusMouvementSansArmure === (m.bonusMouvementSansArmure ?? 0) &&
           bonusMental === (m.bonusMental ?? 0)
           ? m
-          : { ...m, bonusPuissance: bonus, bonusSante, bonusMouvementSansArmure, bonusMental, estHumain };
+          : { ...m, bonusPuissance: bonus, bonusSante, bonusMouvementSansArmure, bonusMental, estHumain, bonusVelocite };
       }),
     [mercenairesBase, competencesMerc],
   );

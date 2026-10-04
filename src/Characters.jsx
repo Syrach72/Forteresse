@@ -469,7 +469,7 @@ export function Characters({
                 {(() => {
                   // Pavé de défense : Esquive (Vélocité ÷ 3, arrondi inférieur, minimum 1), Parade, Armure.
                   const equip = equipDe(merc.id);
-                  const velocite = Number(merc.velocite);
+                  const velocite = Number(merc.velocite) + (merc.bonusVelocite ?? 0);
                   const esquive = Number.isFinite(velocite) ? Math.max(1, Math.floor(velocite / 3)) : "—";
                   const armure = equip?.armure?.[0];
                   const v = (x) => (x === null || x === undefined || String(x).trim() === "" ? "—" : x);
@@ -562,6 +562,11 @@ export function Characters({
                     {cle === "puissance" && merc.bonusPuissance > 0 && (
                       <span className="merc-carac-bonus" title="Bonus de race (Nain des Montagnes, Semi-Orc : +1 Puissance tous les 3 niveaux de vétérance)">
                         +{merc.bonusPuissance}
+                      </span>
+                    )}
+                    {cle === "velocite" && merc.bonusVelocite > 0 && (
+                      <span className="merc-carac-bonus" title="Bonus de la compétence Halflin Pied Léger (+1 Vélocité tous les 3 niveaux de vétérance)">
+                        +{merc.bonusVelocite}
                       </span>
                     )}
                     {cle === "mental" && merc.bonusMental > 0 && (
