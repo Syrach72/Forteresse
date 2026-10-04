@@ -565,7 +565,7 @@ export function Characters({
                       </span>
                     )}
                     {cle === "mental" && merc.bonusMental > 0 && (
-                      <span className="merc-carac-bonus" title="Bonus de la compétence de race elfe (+1 Mental tous les 3 niveaux de vétérance)">
+                      <span className="merc-carac-bonus" title="Bonus de la compétence de race (Haut-Elfe, Elfe Sylvestre, Drow : +1 Mental tous les 3 niveaux de vétérance)">
                         +{merc.bonusMental}
                       </span>
                     )}
