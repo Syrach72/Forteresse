@@ -7110,3 +7110,31 @@ a.merc-card:hover {
 .employes-aide:focus-visible {
   background: #f3e8cc;
 }
+
+/* « ? » d'aide en haut à droite du pavé d'un lieu (ateliers, entraînement, caserne, quêtes). */
+.equipment-panel,
+.training-workspace,
+.dorm-board,
+.quests-workspace {
+  position: relative;
+}
+.pave-aide {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #6b4f26;
+  border-radius: 50%;
+  background: #e6d5a8;
+  color: #3a2814;
+  font: 700 15px Georgia, serif;
+  line-height: 1;
+  cursor: pointer;
+}
+.pave-aide:hover,
+.pave-aide:focus-visible {
+  background: #f3e8cc;
+}

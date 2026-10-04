@@ -33,6 +33,7 @@ import { Admin } from "./Admin.jsx";
 import { CreaturesQuete } from "./CreaturesQuete.jsx";
 import { Modal } from "./Modal.jsx";
 import { BonusHumain } from "./BonusHumain.jsx";
+import { BoutonAide, AIDES } from "./AideLieu.jsx";
 import { RecompenseQuete } from "./RecompenseQuete.jsx";
 import { Diagnostic, DebugBadge } from "./Diagnostic.jsx";
 import { supabase } from "./supabaseClient";
@@ -4069,6 +4070,7 @@ export function App() {
             <>
               <div className="workshop">
                 <section className="equipment-panel parchment">
+                  <BoutonAide aide={AIDES[route]} />
                   <p className="eyebrow">{WORKSHOP_TEXT[route].eyebrow}</p>
                   {(() => {
                     const queued = game.craftingQueue?.[route];

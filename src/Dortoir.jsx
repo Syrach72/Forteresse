@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { ReferenceCrop, classeRoute } from "./Characters.jsx";
 import { VetBadge } from "./VetBadge.jsx";
+import { BoutonAide, AIDES } from "./AideLieu.jsx";
 import { CoeurBlesse } from "./CoeurBlesse.jsx";
 import { useGlassWindows } from "./glassWindows.js";
 import { prixLitDortoir } from "./dormitory.js";
@@ -41,6 +42,7 @@ export function Dortoir({
         className="dorm-board dorm-named parchment glass-board"
         aria-label="Places des mercenaires embauchés"
       >
+        <BoutonAide aide={AIDES.dortoirs} />
         <div
           ref={layerRef}
           className="glass-layer"

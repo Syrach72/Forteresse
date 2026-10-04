@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ReferenceCrop } from "./Characters.jsx";
 import { VetBadge } from "./VetBadge.jsx";
+import { BoutonAide, AIDES } from "./AideLieu.jsx";
 import {
   PRIX_INSTRUCTEUR_GROUPE_2,
   PRIX_PLACE_ELEVE,
@@ -300,6 +301,7 @@ export function Training({
   }
   return (
     <section className="training-workspace">
+      <BoutonAide aide={AIDES.entrainement} />
       {cohorte(1)}
       {cohorte(2)}
       {popup && (

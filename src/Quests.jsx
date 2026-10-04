@@ -5,6 +5,7 @@ import { Modal } from "./Modal.jsx";
 import { ITEMS } from "./data.js";
 import { chargerQuetes } from "./etat.js";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
+import { BoutonAide, AIDES } from "./AideLieu.jsx";
 
 const REWARD_SLOTS = [0, 1, 2, 3, 4];
 // Jusqu’à 6 mercenaires engagés par quête (positions 0 à 5).
@@ -189,6 +190,7 @@ export function Quests({
 
   return (
     <section className="quests-workspace">
+      <BoutonAide aide={AIDES.quetes} />
       {error && (
         <p className="error" role="alert">
           {error}
