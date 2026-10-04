@@ -67,6 +67,15 @@ export function Infirmary({
           style={windows ? { clipPath: `path(evenodd, "${windows}")` } : undefined}
           aria-hidden="true"
         />
+        <button
+          type="button"
+          className="infirmerie-aide"
+          aria-label="Explication du fonctionnement de l’infirmerie"
+          title="Comment fonctionne l’infirmerie ?"
+          onClick={() => setPopup({ type: "aide" })}
+        >
+          ?
+        </button>
         <div className="dorm-title">
           <span>
             {enSoin} en soin · {infirmary.capacity} places débloquées
@@ -132,7 +141,9 @@ export function Infirmary({
       {popup && (
         <Modal
           title={
-            popup.type === "unlock"
+            popup.type === "aide"
+              ? "L’infirmerie : mode d’emploi"
+              : popup.type === "unlock"
               ? "Débloquer un lit"
               : popup.type === "locked"
                 ? "Lit verrouillé"
@@ -142,7 +153,57 @@ export function Infirmary({
           }
           onClose={close}
         >
-          {popup.type === "unlock" ? (
+          {popup.type === "aide" ? (
+            <div className="aide-defense">
+              <section className="aide-defense-rubrique">
+                <h3>À quoi ça sert</h3>
+                <p>
+                  L’infirmerie rend leurs points de vie aux mercenaires blessés. Elle est partagée par tous les
+                  joueurs de la compagnie.
+                </p>
+              </section>
+              <section className="aide-defense-rubrique">
+                <h3>Envoyer un mercenaire se faire soigner</h3>
+                <p>
+                  Ouvrez sa fiche depuis la Caserne et cliquez sur « Soigner » : seul son recruteur peut le faire. Il
+                  prend alors un lit libre de l’infirmerie, tandis que son lit de la Caserne lui est conservé. Il faut
+                  qu’il soit blessé (de 1 PV jusqu’à moins que sa santé max), qu’il ne soit pas déjà en soin ni à
+                  l’entraînement, et qu’un lit soit libre. Un mercenaire à 0 PV ne peut pas être admis : il lui faut
+                  d’abord au moins 1 PV, par exemple avec une potion de vie.
+                </p>
+              </section>
+              <section className="aide-defense-rubrique">
+                <h3>Les soins</h3>
+                <p>
+                  Chaque « +1 Instance » du maître du jeu rend au mercenaire un tiers de sa santé max (arrondi au
+                  supérieur). Sa santé max est de 3 + 2 × sa Puissance. Le chiffre sur le lit indique le nombre
+                  d’instances de soin encore nécessaires (1 à 3, selon les points de vie perdus). Quand il a retrouvé
+                  toute sa santé, le mercenaire retourne tout seul à sa place à la Caserne.
+                </p>
+              </section>
+              <section className="aide-defense-rubrique">
+                <h3>Le rappeler avant la fin</h3>
+                <p>
+                  En cliquant sur son lit, son recruteur (ou le maître du jeu) peut le rappeler à la Caserne avant la
+                  fin des soins. Il garde les points de vie déjà regagnés.
+                </p>
+              </section>
+              <section className="aide-defense-rubrique">
+                <h3>Les lits</h3>
+                <p>
+                  Deux lits sont disponibles au départ. Les quatre autres se débloquent dans l’ordre, par le maître du
+                  jeu seul, contre 300, 500, 800 puis 1 200 Po prélevés sur la trésorerie de la compagnie.
+                </p>
+              </section>
+              <section className="aide-defense-rubrique">
+                <h3>Attention</h3>
+                <p>
+                  Un mercenaire encore à 0 PV à la fin d’une instance repose au cimetière : son équipement retourne à
+                  l’arsenal et il n’est plus disponible.
+                </p>
+              </section>
+            </div>
+          ) : popup.type === "unlock" ? (
             <>
               <p>
                 Débloquez un lit supplémentaire pour soigner un mercenaire de

@@ -7060,3 +7060,28 @@ a.merc-card:hover {
   align-items: stretch;
   gap: 6px;
 }
+
+/* Infirmerie : petit « ? » en haut à droite du pavé, qui ouvre l'explication du fonctionnement. */
+.infirmary-board {
+  position: relative;
+}
+.infirmerie-aide {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #6b4f26;
+  border-radius: 50%;
+  background: #e6d5a8;
+  color: #3a2814;
+  font: 700 15px Georgia, serif;
+  line-height: 1;
+  cursor: pointer;
+}
+.infirmerie-aide:hover,
+.infirmerie-aide:focus-visible {
+  background: #f3e8cc;
+}
