@@ -7182,3 +7182,15 @@ a.merc-card:hover {
   filter: drop-shadow(0 2px 4px #000a);
   z-index: 2;
 }
+
+/* Matériaux et Embauche : aucun défilement latéral. Le texte (dont « Verrouillé : se débloque… ») passe à la
+   ligne au lieu d'élargir la fenêtre, et les colonnes peuvent rétrécir. */
+.modal-market-dual .market-dual-row > span {
+  min-width: 0;
+}
+.modal-market-dual .market-dual-row .db-item-tag {
+  white-space: normal;
+}
+.modal-market-dual .market-dual-col {
+  min-width: 0;
+}
