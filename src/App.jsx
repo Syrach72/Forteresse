@@ -3808,6 +3808,15 @@ export function App() {
             </h1>
           </div>
           <section className="parchment employes-panel">
+            <button
+              type="button"
+              className="employes-aide"
+              aria-label="Explication des matériaux et de l’embauche"
+              title="Comment ça fonctionne ?"
+              onClick={() => setModal({ type: "employes-aide" })}
+            >
+              ?
+            </button>
             <div className="employes-actions">
               <button type="button" className="market-category parchment employes-materiaux" onClick={ouvrirMateriauxEmbauche}>
                 <span className="sprite asset-sprite">
@@ -4639,6 +4648,8 @@ export function App() {
                   : modal.global
                     ? "Catalogue"
                     : modal.titre || `Catalogue : ${modal.racine}`
+                : modal.type === "employes-aide"
+                ? "Matériaux et embauche : mode d’emploi"
                 : modal.type === "sertissage-aide"
                 ? "Sertissage"
                 : modal.type === "sertissage-pick"
@@ -4733,6 +4744,41 @@ export function App() {
                 }}
               />
             </>
+          ) : modal.type === "employes-aide" ? (
+            <div className="aide-defense">
+              <section className="aide-defense-rubrique">
+                <h3>Les matériaux</h3>
+                <p>
+                  Le bois, le fer et le cuir servent essentiellement à fabriquer les armes et les armures, à la
+                  Forge et à l’Armurerie. Ils sont stockés dans l’arsenal de la compagnie, et chaque fabrication en
+                  consomme la quantité indiquée par sa recette.
+                </p>
+              </section>
+              <section className="aide-defense-rubrique">
+                <h3>Se les procurer</h3>
+                <p>
+                  Deux moyens : les acheter par lots au Marché (bouton « Matériaux et Embauche »), ou les faire
+                  produire par des ouvriers embauchés : bûcherons pour le bois, mineurs pour le fer, tanneurs pour le
+                  cuir.
+                </p>
+              </section>
+              <section className="aide-defense-rubrique">
+                <h3>Les ouvriers</h3>
+                <p>
+                  Chaque ouvrier coûte 100 Po à l’embauche. À chaque « +1 Instance » du maître du jeu, chacun produit
+                  au hasard de 5 à 10 matériaux, versés directement à l’arsenal, et la compagnie paie 10 Po d’entretien
+                  par ouvrier. Congédier un ouvrier est définitif et ne rembourse rien.
+                </p>
+              </section>
+              <section className="aide-defense-rubrique">
+                <h3>Les bâtiments</h3>
+                <p>
+                  La Scierie, le Camp de Mineur et la Tannerie coûtent 1 000 Po et ne peuvent être construits qu’une
+                  seule fois. Tant qu’un bâtiment existe, il double la production de son métier : de 10 à 20 matériaux
+                  par ouvrier et par instance.
+                </p>
+              </section>
+            </div>
           ) : modal.type === "sertissage-aide" ? (
             <div className="aide-defense">
               {atelierSert === "forge" && (
