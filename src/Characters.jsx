@@ -565,7 +565,7 @@ export function Characters({
                       </span>
                     )}
                     {cle === "velocite" && merc.bonusVelocite > 0 && (
-                      <span className="merc-carac-bonus" title="Bonus de race (Halflin Pied Léger, Gnome des Forêts : +1 Vélocité tous les 3 niveaux de vétérance)">
+                      <span className="merc-carac-bonus" title="Bonus de race (Halflin Pied Léger, Gnome des Forêts : +1 Vélocité tous les 3 niveaux de vétérance ; Semi-Elfe : +1 de départ)">
                         +{merc.bonusVelocite}
                       </span>
                     )}

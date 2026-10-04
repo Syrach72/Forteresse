@@ -1148,7 +1148,11 @@ export function App() {
             c.veterance <= vet &&
             ["halflin pied léger", "gnome des forêts"].includes(c.competence?.nom?.trim().toLowerCase()),
         );
-        const bonusVelocite = piedLeger ? Math.floor(vet / 3) : 0;
+        // Semi-Elfe : +1 Vélocité dès le début de carrière (permanent, calculé ; serveur : _bonus_velocite).
+        const semiElfe = (competencesMerc.get(m.id) || []).some(
+          (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "semi-elfe",
+        );
+        const bonusVelocite = (piedLeger ? Math.floor(vet / 3) : 0) + (semiElfe ? 1 : 0);
         // Nain des Collines : +1 de Santé max par niveau de vétérance, dès le niveau 1 (serveur : _bonus_sante).
         const collines = (competencesMerc.get(m.id) || []).some(
           (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "nain des collines",
