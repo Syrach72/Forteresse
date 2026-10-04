@@ -141,7 +141,7 @@ export const AIDES = {
       ],
       [
         "L’entretien",
-        "À chaque « +1 Instance », la compagnie paie 10 Po × la vétérance de chaque mercenaire de la Caserne. Les places supplémentaires se débloquent par le maître du jeu seul.",
+        "À chaque « +1 Instance », la compagnie paie 10 Po × la vétérance de chaque mercenaire de la Caserne. Les places supplémentaires se débloquent par le maître de jeu seul et en réussissant certaines quêtes.",
       ],
     ],
   },
