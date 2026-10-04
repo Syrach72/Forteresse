@@ -7045,3 +7045,10 @@ a.merc-card:hover {
   height: 48px;
   object-fit: contain;
 }
+
+/* Marché : prix de vente à droite de chaque ligne du catalogue d'une rubrique. */
+.db-item-prix {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+}

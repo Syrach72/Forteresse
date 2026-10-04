@@ -5083,6 +5083,14 @@ export function App() {
                                   .join(" · ")}
                               </small>
                             )}
+                            {/* Marché : prix de vente de chaque produit, à droite de la ligne. */}
+                            {modal.market && !modal.global && (
+                              <strong className="db-item-tag db-item-prix">
+                                {a.cout_achat_or !== null && a.cout_achat_or !== undefined
+                                  ? `${a.cout_achat_or} Po`
+                                  : "Prix à définir"}
+                              </strong>
+                            )}
                           </button>
                         ))}
                       </div>
