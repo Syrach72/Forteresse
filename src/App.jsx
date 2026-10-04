@@ -32,6 +32,7 @@ import { CHARACTER_CLASSES, COUT_RECRUTEMENT_PAR_VETERANCE } from "./characters"
 import { Admin } from "./Admin.jsx";
 import { CreaturesQuete } from "./CreaturesQuete.jsx";
 import { Modal } from "./Modal.jsx";
+import { BonusHumain } from "./BonusHumain.jsx";
 import { RecompenseQuete } from "./RecompenseQuete.jsx";
 import { Diagnostic, DebugBadge } from "./Diagnostic.jsx";
 import { supabase } from "./supabaseClient";
@@ -1121,6 +1122,9 @@ export function App() {
   const [equipements, setEquipements] = useState(() => new Map());
   // Équipement de base des mercenaires non recrutés (visible de tous avant le recrutement).
   const [equipementsBase, setEquipementsBase] = useState(() => new Map());
+  // Mercenaires Humains dont le joueur a repoussé le choix du +1 caractéristique (la fenêtre revient au
+  // prochain chargement tant que le bonus n'est pas utilisé).
+  const [humainReporte, setHumainReporte] = useState([]);
   const [competencesMerc, setCompetencesMerc] = useState(() => new Map());
   // Nain des Montagnes (compétence passive) : +1 de Puissance aux vétérances 3, 6 et 9. Bonus calculé,
   // jamais enregistré : `puissance` reste la valeur saisie ; le serveur applique la même règle (_bonus_puissance).
@@ -1152,12 +1156,17 @@ export function App() {
             ["haut-elfe", "elfe sylvestre", "drow"].includes(c.competence?.nom?.trim().toLowerCase()),
         );
         const bonusMental = hautElfe ? Math.floor(vet / 3) : 0;
+        // Humain (compétence passive, dès la vétérance 1) : +1 caractéristique au choix à son recrutement.
+        const estHumain = (competencesMerc.get(m.id) || []).some(
+          (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "humain",
+        );
         return bonus === (m.bonusPuissance ?? 0) &&
+          estHumain === (m.estHumain ?? false) &&
           bonusSante === (m.bonusSante ?? 0) &&
           bonusMouvementSansArmure === (m.bonusMouvementSansArmure ?? 0) &&
           bonusMental === (m.bonusMental ?? 0)
           ? m
-          : { ...m, bonusPuissance: bonus, bonusSante, bonusMouvementSansArmure, bonusMental };
+          : { ...m, bonusPuissance: bonus, bonusSante, bonusMouvementSansArmure, bonusMental, estHumain };
       }),
     [mercenairesBase, competencesMerc],
   );
@@ -1204,6 +1213,11 @@ export function App() {
           etatRounds: m.etatRounds ?? 0,
         })),
     [mercenaires, tousRecrutes, joueurs],
+  );
+  // Mercenaire Humain recruté par ce joueur dont le +1 caractéristique n'est pas encore choisi
+  // (`humainUtilise === false` : seulement une fois l'état de la session chargé).
+  const humainEnAttente = mercenaires.find(
+    (m) => mesRecrutes.has(m.id) && m.estHumain && m.humainUtilise === false && !humainReporte.includes(m.id),
   );
   // Entretien d'une instance : 10 Po par point de vétérance de tous les
   // mercenaires du dortoir (le serveur le prélève à chaque +1 Instance).
@@ -1520,6 +1534,14 @@ export function App() {
       p_niveau: niveau,
       p_rounds: rounds,
     });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    return {};
+  }
+  // Humain : à son recrutement, +1 point à la caractéristique choisie (une fois par mercenaire et par
+  // session ; le serveur vérifie la compétence, le droit sur le mercenaire et le plafond de 9).
+  async function choisirBonusHumain(id, carac) {
+    const { error } = await supabase.rpc("mercenaire_humain_bonus", { p_mercenaire: id, p_carac: carac });
     if (error) return { error: error.message };
     await synchroniserPartage();
     return {};
@@ -2414,7 +2436,10 @@ export function App() {
           const etat = a?.etat ?? null;
           const etatNiveau = a?.etatNiveau ?? 1;
           const etatRounds = a?.etatRounds ?? 0;
+          // Bonus Humain (+1 caractéristique au recrutement) déjà utilisé ? Défini seulement une fois chargé.
+          const humainUtilise = a?.humainUtilise ?? false;
           return etat === (m.etat ?? null) &&
+            humainUtilise === m.humainUtilise &&
             etatNiveau === (m.etatNiveau ?? 1) &&
             etatRounds === (m.etatRounds ?? 0) &&
             energie === m.energieActuelle &&
@@ -2423,7 +2448,7 @@ export function App() {
             velocite === m.velocite &&
             mental === m.mental
             ? m
-            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental, etat, etatNiveau, etatRounds };
+            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental, etat, etatNiveau, etatRounds, humainUtilise };
         }),
       );
     }
@@ -4474,6 +4499,13 @@ export function App() {
       <DebugBadge game={game} route={route} />
       {recompenseQuete && (
         <RecompenseQuete recompense={recompenseQuete} onClose={recupererRecompensesQuete} />
+      )}
+      {humainEnAttente && (
+        <BonusHumain
+          merc={humainEnAttente}
+          onChoisir={choisirBonusHumain}
+          onClose={() => setHumainReporte((r) => [...r, humainEnAttente.id])}
+        />
       )}
       {alerteSolde && game.gold < 0 && (
         <Modal title="Trésorerie négative" onClose={() => setAlerteSolde(false)}>

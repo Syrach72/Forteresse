@@ -7025,3 +7025,23 @@ a.merc-card:hover {
 .richtext-lien:focus-visible {
   color: #7b3fa0;
 }
+
+/* Bonus Humain : trois boutons de caractéristique à choisir au recrutement. */
+.humain-choix {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.humain-carac {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 96px;
+}
+.humain-carac img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
