@@ -1,10 +1,14 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { supabase } from "./supabaseClient";
+import { Modal } from "./Modal.jsx";
 
 // Mise en forme légère des textes (descriptifs, scénarios) : le texte reste une simple chaîne en base,
-// avec des balises [b]gras[/b], [i]italique[/i], [u]souligné[/u] et [c=#d4a017]couleur[/c].
+// avec des balises [b]gras[/b], [i]italique[/i], [u]souligné[/u], [c=#d4a017]couleur[/c] et
+// [l]Nom d'un objet[/l] (lien : ouvre la fiche de l'objet du catalogue de ce nom, fermable).
 // Un texte sans balise s'affiche comme avant. L'affichage fabrique des éléments React (jamais de HTML
-// brut) et n'accepte que ces quatre balises avec des couleurs hexadécimales : pas de risque d'injection.
-const BALISE = /\[(\/?)(b|i|u|c)(?:=(#[0-9a-fA-F]{3,8}))?\]/g;
+// brut) et n'accepte que ces cinq balises avec des couleurs hexadécimales : pas de risque d'injection.
+const BALISE = /\[(\/?)(b|i|u|c|l)(?:=(#[0-9a-fA-F]{3,8}))?\]/g;
 const STYLE = {
   b: { fontWeight: "bold" },
   // La feuille de style coupe la synthèse des polices (font-synthesis: none) et la police n'a pas d'italique propre : on autorise ici l'italique simulé.
@@ -40,10 +44,80 @@ function analyser(texte) {
   return racine.enfants;
 }
 
+const texteSimple = (noeuds) => noeuds.map((n) => (typeof n === "string" ? n : texteSimple(n.enfants))).join("");
+
+// Lien vers la fiche d'un objet du catalogue (produit alchimique, arme…) : un clic ouvre une fenêtre
+// par-dessus la page active ; « Fermer » (ou Échap) y ramène. L'objet est cherché par son nom, sans
+// tenir compte des majuscules ni du type d'apostrophe.
+function LienObjet({ nom, children }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [objet, setObjet] = useState(undefined); // undefined = chargement, null = introuvable
+  async function ouvrir(e) {
+    e.stopPropagation();
+    setOuvert(true);
+    if (objet !== undefined) return;
+    const motif = nom.trim().replace(/[%_\\]/g, "\\$&").replace(/['’]/g, "_");
+    const { data } = await supabase
+      .from("objet_catalogue")
+      .select("nom, icone, description, portee")
+      .ilike("nom", motif)
+      .limit(1);
+    setObjet(data?.[0] ?? null);
+  }
+  return (
+    <>
+      <span
+        className="richtext-lien"
+        role="link"
+        tabIndex={0}
+        onClick={ouvrir}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            ouvrir(e);
+          }
+        }}
+      >
+        {children}
+      </span>
+      {ouvert &&
+        createPortal(
+          <div onClick={(e) => e.stopPropagation()}>
+            <Modal title={objet?.nom || nom} onClose={() => setOuvert(false)}>
+              {objet === undefined ? (
+                <p>Chargement…</p>
+              ) : objet === null ? (
+                <p className="muted">Aucun objet « {nom} » dans le catalogue.</p>
+              ) : (
+                <>
+                  {objet.icone && <img className="db-item-art" src={objet.icone} alt={objet.nom} />}
+                  <p>
+                    <RichText text={objet.description || "Description à définir."} />
+                  </p>
+                  {objet.portee && (
+                    <div className="stat-line">
+                      <span>Portée</span>
+                      <strong>{objet.portee}</strong>
+                    </div>
+                  )}
+                </>
+              )}
+            </Modal>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
 function rendre(noeuds) {
   return noeuds.map((n, i) =>
     typeof n === "string" ? (
       n
+    ) : n.type === "l" ? (
+      <LienObjet key={i} nom={texteSimple(n.enfants)}>
+        {rendre(n.enfants)}
+      </LienObjet>
     ) : (
       <span key={i} style={n.type === "c" ? { color: n.couleur } : STYLE[n.type]}>
         {rendre(n.enfants)}
@@ -90,7 +164,7 @@ export function RichTextarea({ id, value, onChange, rows = 3, grow = false }) {
       el.setSelectionRange(debut + ouvrante.length, fin + ouvrante.length);
     });
   }
-  const avecBalises = /\[\/?[biuc](=#[0-9a-fA-F]{3,8})?\]/.test(value || "");
+  const avecBalises = /\[\/?[biucl](=#[0-9a-fA-F]{3,8})?\]/.test(value || "");
 
   return (
     <div className="richtext">
@@ -103,6 +177,14 @@ export function RichTextarea({ id, value, onChange, rows = 3, grow = false }) {
         </button>
         <button type="button" title="Souligné" aria-label="Souligné" onClick={() => entourer("[u]", "[/u]")}>
           <u>S</u>
+        </button>
+        <button
+          type="button"
+          title="Lien vers un objet : sélectionnez son nom exact dans le catalogue"
+          aria-label="Lien vers un objet"
+          onClick={() => entourer("[l]", "[/l]")}
+        >
+          🔗
         </button>
         <span className="richtext-sep" aria-hidden="true" />
         {COULEURS.map(([nom, hex]) => (

@@ -7014,3 +7014,14 @@ a.merc-card:hover {
 .sertissage-panel {
   position: relative;
 }
+
+/* Lien [l]…[/l] d'un texte enrichi : ouvre la fiche de l'objet du catalogue. */
+.richtext-lien {
+  color: #1f5f99;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.richtext-lien:hover,
+.richtext-lien:focus-visible {
+  color: #7b3fa0;
+}
