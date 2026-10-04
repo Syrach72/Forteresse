@@ -560,7 +560,7 @@ export function Characters({
                       <strong className="merc-carac-valeur">{merc[cle] ?? "—"}</strong>
                     )}
                     {cle === "puissance" && merc.bonusPuissance > 0 && (
-                      <span className="merc-carac-bonus" title="Bonus de la compétence Nain des Montagnes (vétérance 3, 6 et 9)">
+                      <span className="merc-carac-bonus" title="Bonus de race (Nain des Montagnes, Semi-Orc : +1 Puissance tous les 3 niveaux de vétérance)">
                         +{merc.bonusPuissance}
                       </span>
                     )}

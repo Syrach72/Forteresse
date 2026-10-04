@@ -1126,16 +1126,20 @@ export function App() {
   // prochain chargement tant que le bonus n'est pas utilisé).
   const [humainReporte, setHumainReporte] = useState([]);
   const [competencesMerc, setCompetencesMerc] = useState(() => new Map());
-  // Nain des Montagnes (compétence passive) : +1 de Puissance aux vétérances 3, 6 et 9. Bonus calculé,
-  // jamais enregistré : `puissance` reste la valeur saisie ; le serveur applique la même règle (_bonus_puissance).
+  // Nain des Montagnes et Semi-Orc (compétences passives) : +1 de Puissance tous les 3 niveaux de vétérance, dès
+  // le niveau 3. Bonus calculé, jamais enregistré : `puissance` reste la valeur saisie ; le serveur applique
+  // la même règle (_bonus_puissance).
   const mercenaires = useMemo(
     () =>
       mercenairesBase.map((m) => {
         const vet = m.veterance ?? 1;
         const possede = (competencesMerc.get(m.id) || []).some(
-          (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "nain des montagnes",
+          (c) =>
+            c.type === "passive" &&
+            c.veterance <= vet &&
+            ["nain des montagnes", "semi-orc"].includes(c.competence?.nom?.trim().toLowerCase()),
         );
-        const bonus = possede ? [3, 6, 9].filter((n) => vet >= n).length : 0;
+        const bonus = possede ? Math.floor(vet / 3) : 0;
         // Nain des Collines : +1 de Santé max par niveau de vétérance, dès le niveau 1 (serveur : _bonus_sante).
         const collines = (competencesMerc.get(m.id) || []).some(
           (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "nain des collines",
