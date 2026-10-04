@@ -336,6 +336,8 @@ img {
   background-size: cover;
   position: relative;
   container-type: inline-size;
+  /* La vidéo de fond est agrandie (scale 1.18) : sans rognage elle déborde à droite sur mobile. */
+  overflow: clip;
 }
 .location {
   position: absolute;
