@@ -1125,6 +1125,8 @@ export function App() {
   // Mercenaires Humains dont le joueur a repoussé le choix du +1 caractéristique (la fenêtre revient au
   // prochain chargement tant que le bonus n'est pas utilisé).
   const [humainReporte, setHumainReporte] = useState([]);
+  // Fenêtre de confirmation d'une action du MJ : { titre, texte, bouton, action }.
+  const [confirmation, setConfirmation] = useState(null);
   const [competencesMerc, setCompetencesMerc] = useState(() => new Map());
   // Nain des Montagnes et Semi-Orc (compétences passives) : +1 de Puissance tous les 3 niveaux de vétérance, dès
   // le niveau 3. Bonus calculé, jamais enregistré : `puissance` reste la valeur saisie ; le serveur applique
@@ -3129,23 +3131,40 @@ export function App() {
     );
   }
   // MJ : détruit un bâtiment (Camp de Mineur, Scierie, Tannerie), sans remboursement ; il pourra être reconstruit.
-  async function actDetruireBatiment(objet) {
-    if (!window.confirm(`Détruire ${objet.nom} ? Il n’y a aucun remboursement : il faudra le reconstruire pour retrouver son bonus.`))
-      return;
-    const data = await operationPartagee(() => supabase.rpc("batiment_detruire", { p_objet: objet.id }));
-    if (!data) return;
-    notify(`${objet.nom} est détruit.`);
+  // La confirmation passe par une fenêtre du site (window.confirm est bloqué par certains navigateurs : le
+  // bouton semblait alors ne rien faire).
+  function actDetruireBatiment(objet) {
+    setConfirmation({
+      titre: `Détruire ${objet.nom} ?`,
+      texte: "Il n’y a aucun remboursement : il faudra le reconstruire pour retrouver son bonus.",
+      bouton: "Détruire",
+      action: async () => {
+        const { error } = await supabase.rpc("batiment_detruire", { p_objet: objet.id });
+        if (error) {
+          notify(error.message);
+          return;
+        }
+        await synchroniserPartage();
+        notify(`${objet.nom} est détruit.`);
+      },
+    });
   }
   // MJ : un mercenaire quitte le cimetière et redevient recrutable (à pleine santé).
-  async function retirerDuCimetiere(m) {
-    if (!window.confirm(`Retirer ${m.nom} du cimetière ? Il redeviendra recrutable, à pleine santé.`)) return;
-    const { error } = await supabase.rpc("cimetiere_retirer", { p_mercenaire: m.id });
-    if (error) {
-      notify(error.message);
-      return;
-    }
-    await synchroniserPartage();
-    notify(`${m.nom} quitte le cimetière : il est de nouveau recrutable.`);
+  function retirerDuCimetiere(m) {
+    setConfirmation({
+      titre: `Retirer ${m.nom} du cimetière ?`,
+      texte: "Il redeviendra recrutable, à pleine santé.",
+      bouton: "Retirer du cimetière",
+      action: async () => {
+        const { error } = await supabase.rpc("cimetiere_retirer", { p_mercenaire: m.id });
+        if (error) {
+          notify(error.message);
+          return;
+        }
+        await synchroniserPartage();
+        notify(`${m.nom} quitte le cimetière : il est de nouveau recrutable.`);
+      },
+    });
   }
   // Congédiement définitif (Collecte des Ressources), sans remboursement.
   async function actCongedier(objetId, outil, quantite, nom) {
@@ -4552,6 +4571,27 @@ export function App() {
       <DebugBadge game={game} route={route} />
       {recompenseQuete && (
         <RecompenseQuete recompense={recompenseQuete} onClose={recupererRecompensesQuete} />
+      )}
+      {confirmation && (
+        <Modal title={confirmation.titre} onClose={() => setConfirmation(null)}>
+          <p>{confirmation.texte}</p>
+          <div className="humain-choix">
+            <button
+              type="button"
+              className="wood-button"
+              onClick={async () => {
+                const { action } = confirmation;
+                setConfirmation(null);
+                await action();
+              }}
+            >
+              {confirmation.bouton}
+            </button>
+            <button type="button" className="text-button" onClick={() => setConfirmation(null)}>
+              Annuler
+            </button>
+          </div>
+        </Modal>
       )}
       {humainEnAttente && (
         <BonusHumain
