@@ -4757,9 +4757,9 @@ export function App() {
               <section className="aide-defense-rubrique">
                 <h3>Se les procurer</h3>
                 <p>
-                  Deux moyens : les acheter par lots au Marché (bouton « Matériaux et Embauche »), ou les faire
-                  produire par des ouvriers embauchés : bûcherons pour le bois, mineurs pour le fer, tanneurs pour le
-                  cuir.
+                  Trois moyens : les acheter par lots au Marché (bouton « Matériaux et Embauche »), les faire produire
+                  par des ouvriers embauchés (bûcherons pour le bois, mineurs pour le fer, tanneurs pour le cuir), ou
+                  les obtenir en récompense de certaines Quêtes.
                 </p>
               </section>
               <section className="aide-defense-rubrique">
