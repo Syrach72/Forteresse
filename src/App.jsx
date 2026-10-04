@@ -1081,7 +1081,7 @@ export function App() {
   // disponibles ailleurs (liste `warriors` ci-dessous).
   // `mesRecrutes` : identifiant du mercenaire -> nom du joueur saisi sur sa
   // fiche au moment du recrutement (persiste jusqu'au renvoi).
-  const [mercenaires, setMercenaires] = useState([]);
+  const [mercenairesBase, setMercenaires] = useState([]);
   const [mesRecrutes, setMesRecrutes] = useState(() => new Map());
   const [recrutesServeur, setRecrutesServeur] = useState(() => new Set());
   // Nom du joueur inscrit sur chaque mercenaire recruté (par n'importe quel
@@ -1122,6 +1122,20 @@ export function App() {
   // Équipement de base des mercenaires non recrutés (visible de tous avant le recrutement).
   const [equipementsBase, setEquipementsBase] = useState(() => new Map());
   const [competencesMerc, setCompetencesMerc] = useState(() => new Map());
+  // Nain des Montagnes (compétence passive) : +1 de Puissance aux vétérances 3, 6 et 9. Bonus calculé,
+  // jamais enregistré : `puissance` reste la valeur saisie ; le serveur applique la même règle (_bonus_puissance).
+  const mercenaires = useMemo(
+    () =>
+      mercenairesBase.map((m) => {
+        const vet = m.veterance ?? 1;
+        const possede = (competencesMerc.get(m.id) || []).some(
+          (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "nain des montagnes",
+        );
+        const bonus = possede ? [3, 6, 9].filter((n) => vet >= n).length : 0;
+        return bonus === (m.bonusPuissance ?? 0) ? m : { ...m, bonusPuissance: bonus };
+      }),
+    [mercenairesBase, competencesMerc],
+  );
   // Effectif embauché (Collecte des Ressources), partagé comme l'arsenal.
   const [employesRoster, setEmployesRoster] = useState([]);
   // Métiers du catalogue (Mineur, Bûcheron, Tanneur…) : la page Collecte les
