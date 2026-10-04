@@ -7161,3 +7161,24 @@ a.merc-card:hover {
   width: 26px !important;
   height: 26px !important;
 }
+
+/* Page Ressources : pavé d'un métier verrouillé par une quête, avec un cadenas dans le coin. */
+.employe-card {
+  position: relative;
+}
+.employe-card-locked > :not(.employe-cadenas) {
+  opacity: 0.7;
+}
+.employe-card-locked .item-art img {
+  filter: grayscale(0.8);
+}
+.employe-cadenas {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px #000a);
+  z-index: 2;
+}

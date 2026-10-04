@@ -3870,8 +3870,23 @@ export function App() {
                         ];
                   }),
                   ...employesRoster.filter((e) => !employesMetiers.some((m) => m.objetId === e.objetId)),
-                ].map((e) => (
-                  <div className="employe-card parchment" key={`${e.objetId}-${e.outil}`}>
+                ].map((e) => {
+                  // Métier de Collecte verrouillé tant que sa quête n'est pas réussie : cadenas sur le pavé.
+                  const verrouMetier = !!e.materiauId && metiersEmbauche.get(e.objetId)?.debloque === false;
+                  const queteMetier = metiersEmbauche.get(e.objetId)?.queteNom;
+                  return (
+                  <div
+                    className={`employe-card parchment${verrouMetier ? " employe-card-locked" : ""}`}
+                    key={`${e.objetId}-${e.outil}`}
+                  >
+                    {verrouMetier && (
+                      <img
+                        className="employe-cadenas"
+                        src="/assets/icons/lock.webp"
+                        alt="Verrouillé"
+                        title={queteMetier ? `Se débloque en réussissant la quête « ${queteMetier} »` : "Se débloque en réussissant une quête"}
+                      />
+                    )}
                     <span className="item-art">{e.icone && <img src={e.icone} alt="" />}</span>
                     <h3>
                       {e.nom}
@@ -3883,6 +3898,13 @@ export function App() {
                       descriptifsBatiments[e.objetId] && (
                         <p className="muted employe-batiment-etat">{descriptifsBatiments[e.objetId]}</p>
                       )
+                    )}
+                    {verrouMetier && (
+                      <p className="muted employe-batiment-etat">
+                        {queteMetier
+                          ? `Verrouillé : se débloque en réussissant la quête « ${queteMetier} ».`
+                          : "Verrouillé : se débloque en réussissant une quête."}
+                      </p>
                     )}
                     {e.materiauNom && (
                       <div className="stat-line">
@@ -3929,7 +3951,8 @@ export function App() {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
