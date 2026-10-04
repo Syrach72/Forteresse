@@ -1143,11 +1143,17 @@ export function App() {
           (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "déplacement sans armure",
         );
         const bonusMouvementSansArmure = sansArmure ? Math.floor(vet / 2) : 0;
+        // Haut-Elfe : +1 Mental tous les 3 niveaux de vétérance, dès le niveau 3 (serveur : _bonus_mental).
+        const hautElfe = (competencesMerc.get(m.id) || []).some(
+          (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "haut-elfe",
+        );
+        const bonusMental = hautElfe ? Math.floor(vet / 3) : 0;
         return bonus === (m.bonusPuissance ?? 0) &&
           bonusSante === (m.bonusSante ?? 0) &&
-          bonusMouvementSansArmure === (m.bonusMouvementSansArmure ?? 0)
+          bonusMouvementSansArmure === (m.bonusMouvementSansArmure ?? 0) &&
+          bonusMental === (m.bonusMental ?? 0)
           ? m
-          : { ...m, bonusPuissance: bonus, bonusSante, bonusMouvementSansArmure };
+          : { ...m, bonusPuissance: bonus, bonusSante, bonusMouvementSansArmure, bonusMental };
       }),
     [mercenairesBase, competencesMerc],
   );
