@@ -3092,6 +3092,8 @@ function QuetesSection() {
   // Avancement propre à la session choisie (vide dans le contexte « base de départ »).
   const etats = useTable("quete_etat", { order: "quete_id", key: "quete_id" });
   const recompenses = useTable("quete_recompense", { order: "position" });
+  // Objet réellement donné par un « ? » (récompense mystère choisie, cachée aux joueurs) : table MJ seul.
+  const choixCaches = useTable("quete_recompense_choix", { order: "position" });
   const scenarios = useTable("quete_scenario", { order: "quete_id", key: "quete_id" });
   const catalogue = useTable("objet_catalogue", { order: "nom" });
   // Créatures « piochées » dans le catalogue pour cette quête (MJ seul) : copiées en jeu au choix de la quête.
@@ -3109,11 +3111,19 @@ function QuetesSection() {
   const [confirmingId, setConfirmingId] = useState(null);
 
   const erreurQuetes =
-    quetes.error || recompenses.error || catalogue.error || etats.error || scenarios.error || creaturesCat.error || queteCreatures.error;
+    quetes.error ||
+    recompenses.error ||
+    choixCaches.error ||
+    catalogue.error ||
+    etats.error ||
+    scenarios.error ||
+    creaturesCat.error ||
+    queteCreatures.error;
   if (erreurQuetes) return <p className="admin-error">{erreurQuetes}</p>;
   if (
     !quetes.rows ||
     !recompenses.rows ||
+    !choixCaches.rows ||
     !catalogue.rows ||
     !etats.rows ||
     !scenarios.rows ||
@@ -3122,6 +3132,8 @@ function QuetesSection() {
   )
     return <p>Chargement…</p>;
   const etatDe = (id) => etats.rows.find((e) => e.quete_id === id);
+  // Objet « Récompense mystère » (le « ? » des joueurs) : à placer dans un emplacement, avec ou sans choix caché.
+  const mystereId = catalogue.rows.find((o) => o.code_unique === "recompense-mystere")?.id || null;
 
   function nomObjet(id) {
     return catalogue.rows.find((o) => o.id === id)?.nom || "?";
@@ -3145,7 +3157,8 @@ function QuetesSection() {
     setIconFile(null);
     const next = [null, null, null, null, null];
     recompensesDe(q.id).forEach((r) => {
-      next[r.position - 1] = { objet_id: r.objet_id, quantite: r.quantite };
+      const choix = choixCaches.rows.find((c) => c.quete_id === q.id && c.position === r.position);
+      next[r.position - 1] = { objet_id: r.objet_id, quantite: r.quantite, choix_id: choix?.objet_id || "" };
     });
     setSlots(next);
     setPioche(
@@ -3243,6 +3256,26 @@ function QuetesSection() {
         return;
       }
     }
+    // Choix cachés : remplacés en bloc, seulement pour les emplacements qui sont un « ? » avec un objet choisi.
+    const { error: delChoix } = await supabase.from("quete_recompense_choix").delete().eq("quete_id", queteId);
+    if (delChoix) {
+      setMsg(delChoix.message);
+      return;
+    }
+    const choix = slots
+      .map((s, i) =>
+        s && s.objet_id && s.objet_id === mystereId && s.choix_id
+          ? { quete_id: queteId, position: i + 1, objet_id: s.choix_id }
+          : null,
+      )
+      .filter(Boolean);
+    if (choix.length) {
+      const { error: insChoix } = await supabase.from("quete_recompense_choix").insert(choix);
+      if (insChoix) {
+        setMsg(insChoix.message);
+        return;
+      }
+    }
     // Créatures de la quête : remplacées en bloc (une ligne par créature, avec sa quantité).
     const { error: delCre } = await supabase.from("quete_creature").delete().eq("quete_id", queteId);
     if (delCre) {
@@ -3265,6 +3298,7 @@ function QuetesSection() {
     }
     await quetes.reload();
     await recompenses.reload();
+    await choixCaches.reload();
     await scenarios.reload();
     await queteCreatures.reload();
     cancel();
@@ -3381,28 +3415,56 @@ function QuetesSection() {
         <p className="eyebrow admin-section-label">
           Récompenses en objets (jusqu’à 5, cliquables par les joueurs en jeu)
         </p>
+        <p className="muted">
+          Un « ? » cache la récompense aux joueurs : bouton « ? » d’un emplacement (ou objet « Récompense mystère »).
+          Sans objet choisi, il est tiré au hasard à la fin de la quête ; avec un objet choisi, c’est lui qui est
+          donné, mais les joueurs ne le voient pas avant.
+        </p>
         {QUETE_SLOTS.map((i) => (
-          <div className="admin-ingredient-form" key={i}>
-            <SearchableSelect
-              value={slots[i]?.objet_id || ""}
-              onChange={(v) => (v ? setSlot(i, { objet_id: v }) : clearSlot(i))}
-              options={catalogue.rows.map((o) => ({ value: o.id, label: o.nom }))}
-              emptyLabel={`— Emplacement ${i + 1} vide —`}
-              ariaLabel={`Objet, emplacement ${i + 1}`}
-            />
-            {slots[i] && (
-              <>
-                <input
-                  type="number"
-                  min="1"
-                  value={slots[i].quantite}
-                  onChange={(e) => setSlot(i, { quantite: e.target.value })}
-                  aria-label={`Quantité, emplacement ${i + 1}`}
-                />
-                <button type="button" className="text-button" onClick={() => clearSlot(i)}>
-                  Vider
+          <div key={i}>
+            <div className="admin-ingredient-form">
+              <SearchableSelect
+                value={slots[i]?.objet_id || ""}
+                onChange={(v) => (v ? setSlot(i, { objet_id: v, choix_id: "" }) : clearSlot(i))}
+                options={catalogue.rows.map((o) => ({ value: o.id, label: o.nom }))}
+                emptyLabel={`— Emplacement ${i + 1} vide —`}
+                ariaLabel={`Objet, emplacement ${i + 1}`}
+              />
+              {slots[i] && (
+                <>
+                  <input
+                    type="number"
+                    min="1"
+                    value={slots[i].quantite}
+                    onChange={(e) => setSlot(i, { quantite: e.target.value })}
+                    aria-label={`Quantité, emplacement ${i + 1}`}
+                  />
+                  <button type="button" className="text-button" onClick={() => clearSlot(i)}>
+                    Vider
+                  </button>
+                </>
+              )}
+              {mystereId && slots[i]?.objet_id !== mystereId && (
+                <button
+                  type="button"
+                  className="text-button"
+                  title="Mettre une récompense mystère (« ? ») dans cet emplacement"
+                  onClick={() => setSlot(i, { objet_id: mystereId, choix_id: "" })}
+                >
+                  ? Mystère
                 </button>
-              </>
+              )}
+            </div>
+            {mystereId && slots[i]?.objet_id === mystereId && (
+              <div className="admin-ingredient-form">
+                <SearchableSelect
+                  value={slots[i].choix_id || ""}
+                  onChange={(v) => setSlot(i, { choix_id: v || "" })}
+                  options={catalogue.rows.filter((o) => o.id !== mystereId).map((o) => ({ value: o.id, label: o.nom }))}
+                  emptyLabel="? Tirage au hasard (aucun objet choisi)"
+                  ariaLabel={`Objet réellement donné (caché aux joueurs), emplacement ${i + 1}`}
+                />
+              </div>
             )}
           </div>
         ))}
