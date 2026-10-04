@@ -1140,10 +1140,13 @@ export function App() {
             ["nain des montagnes", "semi-orc", "halflin robuste"].includes(c.competence?.nom?.trim().toLowerCase()),
         );
         const bonus = possede ? Math.floor(vet / 3) : 0;
-        // Halflin Pied Léger : +1 Vélocité tous les 3 niveaux de vétérance, dès le niveau 3 (serveur : _bonus_velocite).
+        // Halflin Pied Léger et Gnome des Forêts : +1 Vélocité tous les 3 niveaux de vétérance, dès le niveau 3
+        // (serveur : _bonus_velocite).
         const piedLeger = (competencesMerc.get(m.id) || []).some(
           (c) =>
-            c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "halflin pied léger",
+            c.type === "passive" &&
+            c.veterance <= vet &&
+            ["halflin pied léger", "gnome des forêts"].includes(c.competence?.nom?.trim().toLowerCase()),
         );
         const bonusVelocite = piedLeger ? Math.floor(vet / 3) : 0;
         // Nain des Collines : +1 de Santé max par niveau de vétérance, dès le niveau 1 (serveur : _bonus_sante).
