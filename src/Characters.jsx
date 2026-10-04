@@ -135,7 +135,7 @@ export function Characters({
   // Santé Max = 3 + 2 × Puissance ; Énergie Max = 2 × Mental (règle de Bruno, 2026-09-28).
   // Calculés à partir de Puissance/Mental, jamais saisis directement.
   const energieMax = merc ? 2 * (merc.mental ?? 0) : null;
-  const santeMax = merc ? 3 + 2 * ((merc.puissance ?? 0) + (merc.bonusPuissance ?? 0)) : null;
+  const santeMax = merc ? 3 + 2 * ((merc.puissance ?? 0) + (merc.bonusPuissance ?? 0)) + (merc.bonusSante ?? 0) : null;
   const hero = merc ? undefined : warriors.find((w) => w.id === heroId);
   // Fiche d'un mercenaire recruté : réservée à son recruteur et à l'admin.
   const accesFiche = (id) => morts.includes(id) || !tousRecrutes.includes(id) || recrutes.includes(id) || estAdmin;

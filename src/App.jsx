@@ -1132,7 +1132,14 @@ export function App() {
           (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "nain des montagnes",
         );
         const bonus = possede ? [3, 6, 9].filter((n) => vet >= n).length : 0;
-        return bonus === (m.bonusPuissance ?? 0) ? m : { ...m, bonusPuissance: bonus };
+        // Nain des Collines : +1 de Santé max par vétérance au-delà de la première (serveur : _bonus_sante).
+        const collines = (competencesMerc.get(m.id) || []).some(
+          (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "nain des collines",
+        );
+        const bonusSante = collines ? Math.max(0, vet - 1) : 0;
+        return bonus === (m.bonusPuissance ?? 0) && bonusSante === (m.bonusSante ?? 0)
+          ? m
+          : { ...m, bonusPuissance: bonus, bonusSante };
       }),
     [mercenairesBase, competencesMerc],
   );
