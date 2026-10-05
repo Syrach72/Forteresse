@@ -1,6 +1,6 @@
 // Taches de sang sur le portrait de la fiche d'un mercenaire blessé. Niveau 1 : au moins un tiers de la
 // santé perdue (quelques taches) ; niveau 2 : plus des deux tiers perdus (taches denses). Calques semi-
-// transparents posés sur l'image (fondus par multiplication), positions en % du portrait : peau (visage,
+// transparents posés sur l'image (posés tels quels (la multiplication les rend invisibles sur les fonds noirs)), positions en % du portrait : peau (visage,
 // cou) et vêtements (torse, bras). Décoratif : ni cliquable ni lu par les lecteurs d'écran.
 const TACHES = [
   // Niveau 1

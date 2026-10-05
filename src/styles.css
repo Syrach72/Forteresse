@@ -7211,7 +7211,7 @@ a.merc-card:hover {
 
 /* Taches de sang sur le portrait de la fiche (niveau selon la santé perdue). */
 .taches-sang { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
-.taches-sang img { position: absolute; height: auto; mix-blend-mode: multiply; transform-origin: 50% 50%; }
+.taches-sang img { position: absolute; height: auto; transform-origin: 50% 50%; }
 
 /* Tête de mort à 0 PV : à la place du cœur, sans battement ; une fumée mouvante l'entoure. */
 .coeur-mort { animation: none; height: 54px; filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.8)); }
