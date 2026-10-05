@@ -7337,3 +7337,19 @@ a.merc-card:hover {
     margin-top: 2px;
   }
 }
+
+/* +1 Instance : rouge sang ; son bouton Annuler : rouge plus pâle. */
+.instance-controls .header-time:not(.header-time-undo) {
+  background: #7a0f14;
+  border-color: #3d0508;
+  color: #fff4da;
+}
+.instance-controls .header-time:not(.header-time-undo):hover { background: #98161c; }
+.instance-controls .header-time-undo {
+  background: #d98b8b;
+  border-color: #8e3a3a;
+  color: #3d0508;
+  opacity: 1;
+}
+.instance-controls .header-time-undo:hover:not(:disabled) { background: #e6a3a3; }
+.instance-controls .header-time-undo:disabled { background: #e8c4c4; color: #8a6666; border-color: #c49a9a; opacity: 0.85; }
