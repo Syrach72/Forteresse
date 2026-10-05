@@ -1,6 +1,22 @@
 // Cœur pulsant : signale qu'un mercenaire n'a pas récupéré toute sa santé (santé actuelle < santé max).
 // Icône dessinée ici (SVG) ; l'animation « battement » est dans styles.css (.coeur-blesse).
-export function CoeurBlesse({ className = "" }) {
+// À 0 PV (`mort`), le cœur est remplacé par une tête de mort, sans battement, dans une fumée qui bouge
+// doucement (.coeur-mort).
+export function CoeurBlesse({ className = "", mort = false }) {
+  if (mort) {
+    return (
+      <span
+        className={`coeur-blesse coeur-mort${className ? ` ${className}` : ""}`}
+        role="img"
+        aria-label="À 0 point de vie"
+        title="À 0 point de vie"
+      >
+        <span className="crane-fumee crane-fumee-a" aria-hidden="true" />
+        <span className="crane-fumee crane-fumee-b" aria-hidden="true" />
+        <img src="/assets/icons/crane.webp" alt="" />
+      </span>
+    );
+  }
   return (
     <span
       className={`coeur-blesse${className ? ` ${className}` : ""}`}

@@ -107,7 +107,7 @@ export function Dortoir({
                         crop={merc.portrait}
                       />
                       <VetBadge className="bed-veterance" value={merc.veterancy} />
-                      {merc.blesse && <CoeurBlesse className="coeur-lit" />}
+                      {merc.blesse && <CoeurBlesse className="coeur-lit" mort={merc.pvZero} />}
                       <span className="bed-name">{merc.name}</span>
                       {away && <span className="bed-away-label">{away}</span>}
                     </>

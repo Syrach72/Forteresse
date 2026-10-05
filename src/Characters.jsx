@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { CHARACTER_CLASSES, WEAPONS, LEVELS, COUT_RECRUTEMENT_PAR_VETERANCE } from "./characters";
 import { ASSETS } from "./data";
-import { instancesDeSoins, estBlesse } from "./dormitory.js";
+import { instancesDeSoins, estBlesse, estAZero, niveauSang } from "./dormitory.js";
+import { TachesSang } from "./TachesSang.jsx";
 import { CoeurBlesse } from "./CoeurBlesse.jsx";
 import { VetBadge } from "./VetBadge.jsx";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
@@ -327,7 +328,7 @@ export function Characters({
                       ) : (
                         <span className="merc-portrait-vide" aria-hidden="true" />
                       )}
-                      {estBlesse(m) && !mort && <CoeurBlesse className="coeur-carte" />}
+                      {estBlesse(m) && !mort && <CoeurBlesse className="coeur-carte" mort={estAZero(m)} />}
                       {mort && <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="Au cimetière" />}
                     </span>
                     <span className="merc-caption">
@@ -437,7 +438,8 @@ export function Characters({
                   )}
                 </span>
                 {/* Cœur pulsant, en haut à droite : santé actuelle inférieure au maximum. */}
-                {estBlesse(merc) && <CoeurBlesse className="coeur-fiche" />}
+                <TachesSang niveau={niveauSang(merc)} />
+                {estBlesse(merc) && <CoeurBlesse className="coeur-fiche" mort={estAZero(merc)} />}
               </div>
               {/* Déplacement et parade : sous le portrait, même présentation (valeur sous l'icône). */}
               <div className="merc-sous-portrait">

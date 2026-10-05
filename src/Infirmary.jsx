@@ -116,7 +116,7 @@ export function Infirmary({
                     {w && (
                       <ReferenceCrop className="bed-portrait" crop={w.portrait} />
                     )}
-                    {w?.blesse && <CoeurBlesse className="coeur-lit" />}
+                    {w?.blesse && <CoeurBlesse className="coeur-lit" mort={w.pvZero} />}
                     <span className="rest-counter" title="Instances de soin restantes">
                       {bed.remaining}
                     </span>
