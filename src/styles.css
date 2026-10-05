@@ -7316,3 +7316,24 @@ a.merc-card:hover {
 .app-regles, .app-regles main { background: #fff; }
 .regles-page { background: #fff; color: #1f150b; padding: 24px 28px; max-width: 1100px; margin: 0 auto; min-height: 60vh; }
 .regles-page h2 { margin-top: 0; }
+
+/* Mobile, fiche mercenaire : les deux orbes (Énergie, Santé) sont centrés sur le papier et les boutons
+   -1 / Valider / +1 passent dessous, sur toute la largeur, au lieu de déborder à droite. */
+@media (max-width: 680px) {
+  .merc-colonne-droite .orbes {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    justify-content: center;
+    justify-items: center;
+    gap: 6px 14px;
+    max-width: 100%;
+  }
+  .merc-colonne-droite .orbes .orbe-image { width: 120px; }
+  .merc-colonne-droite .orbe-colonne { display: contents; }
+  .merc-colonne-droite .orbe-colonne .creature-sante-boutons {
+    grid-column: 1 / -1;
+    max-width: 100%;
+    flex-wrap: wrap;
+    margin-top: 2px;
+  }
+}
