@@ -3134,6 +3134,8 @@ function QuetesSection() {
   const etatDe = (id) => etats.rows.find((e) => e.quete_id === id);
   // Objet « Récompense mystère » (le « ? » des joueurs) : à placer dans un emplacement, avec ou sans choix caché.
   const mystereId = catalogue.rows.find((o) => o.code_unique === "recompense-mystere")?.id || null;
+  // Objet « Boost de production » : à placer avec le matériau concerné (bois, fer ou cuir).
+  const boostId = catalogue.rows.find((o) => o.code_unique === "boost")?.id || null;
 
   function nomObjet(id) {
     return catalogue.rows.find((o) => o.id === id)?.nom || "?";
@@ -3159,7 +3161,7 @@ function QuetesSection() {
     const next = [null, null, null, null, null];
     recompensesDe(q.id).forEach((r) => {
       const choix = choixCaches.rows.find((c) => c.quete_id === q.id && c.position === r.position);
-      next[r.position - 1] = { objet_id: r.objet_id, quantite: r.quantite, choix_id: choix?.objet_id || "" };
+      next[r.position - 1] = { objet_id: r.objet_id, quantite: r.quantite, choix_id: choix?.objet_id || "", materiau: r.materiau || "" };
     });
     setSlots(next);
     setPioche(
@@ -3247,6 +3249,7 @@ function QuetesSection() {
               position: i + 1,
               objet_id: s.objet_id,
               quantite: Math.max(1, Math.floor(Number(s.quantite) || 1)),
+              materiau: boostId && s.objet_id === boostId ? s.materiau || null : null,
             }
           : null,
       )
@@ -3446,7 +3449,7 @@ function QuetesSection() {
             <div className="admin-ingredient-form">
               <SearchableSelect
                 value={slots[i]?.objet_id || ""}
-                onChange={(v) => (v ? setSlot(i, { objet_id: v, choix_id: "" }) : clearSlot(i))}
+                onChange={(v) => (v ? setSlot(i, { objet_id: v, choix_id: "", materiau: "" }) : clearSlot(i))}
                 options={catalogue.rows.map((o) => ({ value: o.id, label: o.nom }))}
                 emptyLabel={`— Emplacement ${i + 1} vide —`}
                 ariaLabel={`Objet, emplacement ${i + 1}`}
@@ -3476,6 +3479,25 @@ function QuetesSection() {
                 </button>
               )}
             </div>
+            {boostId && slots[i]?.objet_id === boostId && (
+              <div className="admin-ingredient-form" role="group" aria-label={`Matériau du boost, emplacement ${i + 1}`}>
+                <span>Matériau concerné :</span>
+                {[
+                  ["bois", "Bois"],
+                  ["fer", "Fer"],
+                  ["cuir", "Cuir"],
+                ].map(([code, libelle]) => (
+                  <label key={code}>
+                    <input
+                      type="checkbox"
+                      checked={slots[i].materiau === code}
+                      onChange={() => setSlot(i, { materiau: slots[i].materiau === code ? "" : code })}
+                    />{" "}
+                    {libelle}
+                  </label>
+                ))}
+              </div>
+            )}
             {mystereId && slots[i]?.objet_id === mystereId && (
               <div className="admin-ingredient-form">
                 <SearchableSelect

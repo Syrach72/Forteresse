@@ -306,7 +306,7 @@ export function Quests({
                         key={i}
                         className="quest-reward-slot"
                         disabled={!o}
-                        onClick={() => o && setFicheObjet({ ...o, quantite: r.quantite })}
+                        onClick={() => o && setFicheObjet({ ...o, quantite: r.quantite, materiau: r.materiau })}
                         aria-label={o ? `${o.nom}, quantité ${r.quantite} : voir le descriptif` : "Emplacement vide"}
                       >
                         {o?.icone && <img src={o.icone} alt="" />}
@@ -460,6 +460,11 @@ export function Quests({
         <Modal title={ficheObjet.nom} onClose={() => setFicheObjet(null)}>
           {ficheObjet.icone && <img className="db-item-art" src={ficheObjet.icone} alt={ficheObjet.nom} />}
           <p><RichText text={ficheObjet.description || "Description à définir."} /></p>
+          {ficheObjet.materiau && (
+            <p>
+              <strong>Matériau concerné : {{ bois: "Bois", fer: "Fer", cuir: "Cuir" }[ficheObjet.materiau] || ficheObjet.materiau}</strong>
+            </p>
+          )}
           <p className="muted">Récompense de la quête : ×{ficheObjet.quantite}.</p>
         </Modal>
       )}
