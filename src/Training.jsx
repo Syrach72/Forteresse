@@ -1,3 +1,4 @@
+import { AlertePoint } from "./PointsCarac.jsx";
 import { useState } from "react";
 import { ReferenceCrop } from "./Characters.jsx";
 import { VetBadge } from "./VetBadge.jsx";
@@ -87,6 +88,7 @@ export function Training({
         {w ? (
           <>
             <VetBadge className="training-duration" value={w.veterancy} />
+            {w.pointCarac && <AlertePoint />}
             <ReferenceCrop crop={w.portrait} />
             <strong>{w.name}</strong>
           </>

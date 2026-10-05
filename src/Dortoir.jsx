@@ -1,3 +1,4 @@
+import { AlertePoint } from "./PointsCarac.jsx";
 import { useRef, useState } from "react";
 import { ReferenceCrop, classeRoute } from "./Characters.jsx";
 import { VetBadge } from "./VetBadge.jsx";
@@ -111,6 +112,7 @@ export function Dortoir({
                         crop={merc.portrait}
                       />
                       <VetBadge className="bed-veterance" value={merc.veterancy} />
+                      {merc.pointCarac && <AlertePoint />}
                       {merc.blesse && <CoeurBlesse className="coeur-lit" mort={merc.pvZero} />}
                       <span className="bed-name">{merc.name}</span>
                       {away && <span className="bed-away-label">{away}</span>}

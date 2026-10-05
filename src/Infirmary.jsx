@@ -1,3 +1,4 @@
+import { AlertePoint } from "./PointsCarac.jsx";
 import { useRef, useState } from "react";
 import { ReferenceCrop } from "./Characters.jsx";
 import { CoeurBlesse } from "./CoeurBlesse.jsx";
@@ -116,6 +117,7 @@ export function Infirmary({
                     {w && (
                       <ReferenceCrop className="bed-portrait" crop={w.portrait} />
                     )}
+                    {w?.pointCarac && <AlertePoint />}
                     {w?.blesse && <CoeurBlesse className="coeur-lit" mort={w.pvZero} />}
                     <span className="rest-counter" title="Instances de soin restantes">
                       {bed.remaining}

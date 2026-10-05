@@ -1,3 +1,4 @@
+import { AlertePoint } from "./PointsCarac.jsx";
 import { RichText } from "./RichText.jsx";
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
@@ -356,6 +357,7 @@ export function Quests({
                         {e ? (
                           <>
                             <img src={p?.portrait || "/assets/icons/lock.webp"} alt="" />
+                            {p?.pointCarac && <AlertePoint />}
                             <span className="quest-merc-nom">{p?.name || "?"}</span>
                           </>
                         ) : (

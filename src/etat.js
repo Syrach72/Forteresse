@@ -42,7 +42,7 @@ export async function chargerMercenaires(colonnes = "*") {
 export async function chargerActuels() {
   const { data, error } = await supabase
     .from("mercenaire_etat")
-    .select("mercenaire_id, energie_actuelle, sante_actuelle, attaque, defense, esprit, etat, etat_niveau, etat_rounds, inconscient_rounds, mort_champ, humain_bonus_utilise");
+    .select("mercenaire_id, energie_actuelle, sante_actuelle, attaque, defense, esprit, etat, etat_niveau, etat_rounds, inconscient_rounds, mort_champ, humain_bonus_utilise, points_carac");
   if (error) return { error };
   return {
     data: new Map(
@@ -61,6 +61,7 @@ export async function chargerActuels() {
           inconscientRounds: x.inconscient_rounds ?? null,
           mortChamp: !!x.mort_champ,
           humainUtilise: !!x.humain_bonus_utilise,
+          pointsCarac: x.points_carac ?? 0,
         },
       ]),
     ),

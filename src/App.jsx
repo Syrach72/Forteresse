@@ -1241,6 +1241,7 @@ export function App() {
           role: m.classe,
           portrait: m.portrait || "/assets/icons/lock.webp",
           veterancy: m.veterance ?? 1,
+          pointCarac: mesRecrutes.has(m.id) && (m.pointsCarac ?? 0) > 0,
           blesse: estBlesse(m),
           pvZero: estAZero(m),
           player: joueurs.get(m.id) || "",
@@ -1248,7 +1249,7 @@ export function App() {
           etatNiveau: m.etatNiveau ?? 1,
           etatRounds: m.etatRounds ?? 0,
         })),
-    [mercenaires, tousRecrutes, joueurs],
+    [mercenaires, tousRecrutes, joueurs, mesRecrutes],
   );
   // Mercenaire Humain recruté par ce joueur dont le +1 caractéristique n'est pas encore choisi
   // (`humainUtilise === false` : seulement une fois l'état de la session chargé).
@@ -1408,12 +1409,13 @@ export function App() {
           role: m.classe,
           portrait: m.portrait || "/assets/icons/lock.webp",
           veterancy: m.veterance ?? 1,
+          pointCarac: mesRecrutes.has(m.id) && (m.pointsCarac ?? 0) > 0,
           blesse: estBlesse(m),
           pvZero: estAZero(m),
           player: mesMercs.get(m.id) || "",
           notes: "",
         })),
-    [mercenaires, mesMercs],
+    [mercenaires, mesMercs, mesRecrutes],
   );
   // Sessions de jeu (équipes indépendantes) : session choisie, écrans d'attente,
   // lancement par le MJ au premier « +1 Instance ».
@@ -1581,6 +1583,14 @@ export function App() {
   // session ; le serveur vérifie la compétence, le droit sur le mercenaire et le plafond de 9).
   async function choisirBonusHumain(id, carac) {
     const { error } = await supabase.rpc("mercenaire_humain_bonus", { p_mercenaire: id, p_carac: carac });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    return {};
+  }
+  // Point de caractéristique gagné à la montée de vétérance : dépensé définitivement (le serveur vérifie le droit
+  // sur le mercenaire, le solde de points et le plafond de 9).
+  async function depenserPointCarac(id, carac) {
+    const { error } = await supabase.rpc("mercenaire_depenser_point", { p_mercenaire: id, p_carac: carac });
     if (error) return { error: error.message };
     await synchroniserPartage();
     return {};
@@ -2078,8 +2088,9 @@ export function App() {
         role: m.classe,
         portrait: m.portrait || "/assets/icons/lock.webp",
         veterancy: m.veterance ?? 1,
+        pointCarac: mesRecrutes.has(m.id) && (m.pointsCarac ?? 0) > 0,
       })),
-    [mercenaires],
+    [mercenaires, mesRecrutes],
   );
   const peopleRef = useRef(people);
   peopleRef.current = people;
@@ -2550,8 +2561,11 @@ export function App() {
           const mortChamp = a?.mortChamp ?? false;
           // Bonus Humain (+1 caractéristique au recrutement) déjà utilisé ? Défini seulement une fois chargé.
           const humainUtilise = a?.humainUtilise ?? false;
+          // Points de caractéristique gagnés à la montée de vétérance, pas encore dépensés.
+          const pointsCarac = a?.pointsCarac ?? 0;
           return etat === (m.etat ?? null) &&
             humainUtilise === m.humainUtilise &&
+            pointsCarac === (m.pointsCarac ?? 0) &&
             etatNiveau === (m.etatNiveau ?? 1) &&
             etatRounds === (m.etatRounds ?? 0) &&
             inconscientRounds === (m.inconscientRounds ?? null) &&
@@ -2562,7 +2576,7 @@ export function App() {
             velocite === m.velocite &&
             mental === m.mental
             ? m
-            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental, etat, etatNiveau, etatRounds, inconscientRounds, mortChamp, humainUtilise };
+            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental, etat, etatNiveau, etatRounds, inconscientRounds, mortChamp, humainUtilise, pointsCarac };
         }),
       );
     }
@@ -3821,6 +3835,7 @@ export function App() {
           mercsEnQuete={mercsEnQuete}
           onRestaurerEnergie={restaurerEnergie}
           onSetCaracteristiques={setCaracteristiques}
+          onDepenserPoint={depenserPointCarac}
           onOuvrirArsenal={ouvrirArsenalDepuisSac}
           sacARouvrir={sacARouvrir}
           onSacRouvert={() => setSacARouvrir(null)}

@@ -8,6 +8,7 @@ import { VetBadge } from "./VetBadge.jsx";
 import { protectionsMercenaire } from "./protections.js";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
+import { AlertePoint, PointCaracModal } from "./PointsCarac.jsx";
 // Caractéristiques affichées par une icône plutôt que par leur nom (le nom reste en texte alternatif).
 const ICONES_STATS = {
   Puissance: "/assets/icons/puissance.webp",
@@ -126,6 +127,7 @@ export function Characters({
   mercsEnQuete = [],
   onRestaurerEnergie = async () => ({}),
   onSetCaracteristiques = async () => ({}),
+  onDepenserPoint = async () => ({}),
   onClearError = () => {},
   onOuvrirArsenal = () => {},
   sacARouvrir = null,
@@ -199,6 +201,7 @@ export function Characters({
   // Énergie Max ci-dessus.
   const [caracIn, setCaracIn] = useState({ puissance: "", velocite: "", mental: "" });
   const [caracError, setCaracError] = useState("");
+  const [pointOuvert, setPointOuvert] = useState(false);
   useEffect(() => {
     setCaracIn({
       puissance: String(merc?.puissance ?? ""),
@@ -338,6 +341,7 @@ export function Characters({
                       ) : (
                         <span className="merc-portrait-vide" aria-hidden="true" />
                       )}
+                      {recrutes.includes(m.id) && (m.pointsCarac ?? 0) > 0 && !mort && <AlertePoint />}
                       {estBlesse(m) && !mort && !mortChamp && <CoeurBlesse className="coeur-carte" mort={estAZero(m)} />}
                       {mort && <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="Au cimetière" />}
                       {mortChamp && <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="Mort sur le champ de bataille" />}
@@ -448,6 +452,7 @@ export function Characters({
                     <span className="merc-portrait-vide" aria-hidden="true" />
                   )}
                   {merc.mortChamp && <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="Mort sur le champ de bataille" />}
+                  {recrutes.includes(merc.id) && (merc.pointsCarac ?? 0) > 0 && <AlertePoint />}
                   <TachesSang niveau={niveauSang(merc)} seed={merc.id} />
                 </span>
                 {/* Inconscient : compte à rebours avant la mort définitive (1 Rd retiré à chaque clic sur Rd). */}
@@ -576,7 +581,7 @@ export function Characters({
                 ].map(([libelle, cle]) => (
                   <div className="merc-carac" key={libelle}>
                     <img className="merc-carac-icone" src={ICONES_STATS[libelle]} alt={libelle} title={libelle} />
-                    {peutModifier ? (
+                    {estAdmin ? (
                       <input
                         className="merc-carac-valeur merc-carac-saisie"
                         type="number"
@@ -611,7 +616,15 @@ export function Characters({
                   </div>
                 ))}
               </div>
-              {peutModifier && (
+              {recrutes.includes(merc.id) && (merc.pointsCarac ?? 0) > 0 && (
+                <button type="button" className="wood-button point-carac-bouton" onClick={() => setPointOuvert(true)}>
+                  Dépenser {merc.pointsCarac > 1 ? `${merc.pointsCarac} points` : "1 point"} de caractéristique
+                </button>
+              )}
+              {pointOuvert && (merc.pointsCarac ?? 0) > 0 && (
+                <PointCaracModal merc={merc} onDepenser={onDepenserPoint} onClose={() => setPointOuvert(false)} />
+              )}
+              {estAdmin && (
                 <form
                   className="merc-carac-form"
                   noValidate
