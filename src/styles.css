@@ -7293,3 +7293,25 @@ a.merc-card:hover {
 /* Titre de page + « ? » d'aide à sa droite (Quêtes). */
 .room-titre { display: flex; align-items: center; gap: 12px; }
 .room-titre .pave-aide { position: static; flex: none; }
+
+/* Menu : ligne 1 = Déconnect., (Admin.), Règles, Guerrier→Prêtre ; ligne 2 = Druide→Moine + Forteresse.
+   Grille à 420 colonnes : 6 boutons de 70 (joueur) ou 7 de 60 (MJ, avec Admin.) en ligne 1, 5 de 84 en ligne 2. */
+.class-nav.class-nav { grid-template-columns: repeat(420, minmax(0, 1fr)); }
+.class-nav.class-nav > a.nav-logout,
+.class-nav.class-nav > a.nav-admin,
+.class-nav.class-nav > a.nav-regles,
+.class-nav.class-nav > a.character-link:not(.nav-ligne2) { grid-column: span 70; }
+.class-nav.nav-avec-admin.class-nav > a:not(.nav-ligne2) { grid-column: span 60; }
+.class-nav.class-nav > a.nav-ligne2 { grid-column: span 84; }
+.class-nav a.nav-regles { background: rgba(255, 255, 255, 0.8); border-color: #bdaa83; }
+.class-nav a.nav-regles:hover, .class-nav a.nav-regles.active { background: #fff; }
+
+/* Blocs de droite (or, Rd, Catalogue, +1 Instance) raccourcis pour que le menu tienne sur 2 lignes. */
+.header-treasury.header-treasury { min-width: 300px; }
+.round-controls.round-controls { width: 68px; }
+.gold-counter { min-width: 0; }
+
+/* Page Règles : fond blanc. */
+.app-regles, .app-regles main { background: #fff; }
+.regles-page { background: #fff; color: #1f150b; padding: 24px 28px; max-width: 1100px; margin: 0 auto; min-height: 60vh; }
+.regles-page h2 { margin-top: 0; }

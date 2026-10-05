@@ -6,6 +6,7 @@ import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
 import { Journal } from "./Journal.jsx";
+import { Regles } from "./Regles.jsx";
 import { EMPTY_TREASURY, EMPTY_TREASURY_LIVE, buildTreasury, entretienCompagnie } from "./treasury-data.js";
 import { Training } from "./Training.jsx";
 import {
@@ -3577,7 +3578,7 @@ export function App() {
   }
   if (!session) return null; // redirection vers #connexion en cours (effet ci-dessus)
   return (
-    <div className={`app${route === "forteresse" ? " app-fullwidth" : ""}${route.startsWith("personnages/") ? " app-persos" : ""}`}>
+    <div className={`app${route === "forteresse" ? " app-fullwidth" : ""}${route.startsWith("personnages/") ? " app-persos" : ""}${route === "regles" ? " app-regles" : ""}`}>
       <a className="skip" href="#main">
         Aller au contenu
       </a>
@@ -3590,12 +3591,15 @@ export function App() {
           value={
             route === "forteresse"
               ? "forteresse"
+              : route === "regles"
+              ? "regles"
               : CHARACTER_CLASSES.find(([id]) => route.startsWith(`personnages/${id}`))?.[0] || ""
           }
           onChange={(e) => {
             const v = e.target.value;
             if (v === "deconnexion") supabase.auth.signOut();
             else if (v === "admin") location.hash = "admin";
+            else if (v === "regles") location.hash = "regles";
             else if (v === "forteresse") location.hash = "forteresse";
             else if (v) location.hash = `personnages/${v}`;
           }}
@@ -3610,9 +3614,10 @@ export function App() {
             </option>
           ))}
           {session?.user?.email?.toLowerCase() === "btestart@aol.com" && <option value="admin">Admin.</option>}
+          <option value="regles">Règles</option>
           <option value="deconnexion">Déconnect.</option>
         </select>
-        <nav className="class-nav" aria-label="Personnages">
+        <nav className={`class-nav${session?.user?.email?.toLowerCase() === "btestart@aol.com" ? " nav-avec-admin" : ""}`} aria-label="Personnages">
           <a
             className="nav-logout"
             aria-label="Se déconnecter"
@@ -3629,10 +3634,17 @@ export function App() {
               Admin.
             </a>
           )}
-          {CHARACTER_CLASSES.map(([id, label]) => (
+          <a
+            className={`nav-regles${route === "regles" ? " active" : ""}`}
+            href="#regles"
+            aria-current={route === "regles" ? "page" : undefined}
+          >
+            Règles
+          </a>
+          {CHARACTER_CLASSES.map(([id, label], i) => (
             <a
               key={id}
-              className={`character-link ${route.startsWith(`personnages/${id}`) ? "active" : ""}`}
+              className={`character-link${i >= 4 ? " nav-ligne2" : ""} ${route.startsWith(`personnages/${id}`) ? "active" : ""}`}
               href={`#personnages/${id}`}
               aria-current={
                 route.startsWith(`personnages/${id}`) ? "page" : undefined
@@ -3642,7 +3654,7 @@ export function App() {
             </a>
           ))}
           <a
-            className={route === "forteresse" ? "active" : ""}
+            className={`nav-ligne2${route === "forteresse" ? " active" : ""}`}
             href="#forteresse"
             aria-current={route === "forteresse" ? "page" : undefined}
           >
@@ -4169,6 +4181,8 @@ export function App() {
                 recrutable, garde sa vétérance, et sa fiche reste consultable.
               </p>
             </section>
+          ) : route === "regles" ? (
+            <Regles />
           ) : route === "journal" ? (
             <Journal log={game.log} />
           ) : route === "entrainement" ? (
