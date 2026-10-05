@@ -121,7 +121,7 @@ export const DETAIL_ETATS = {
   charme:
     "Charmé : Ne peut ni attaquer, ni cibler la source avec des effets nuisibles. La source est Avantagée à ses jets pour contraindre la victime à obéir. Le Charme est rompu par des dégâts provenant de la source ou ses alliés.",
   concentration:
-    "Concentration : La Concentration doit être testée à chaque fois que la créature subit des dégâts. Elle est perdue si la créature à un jet de Puissance inférieur aux dégâts reçus. La Concentration est automatiquement perdue sous les états Désorienté, Paralysé, Pétrifié, Inconscient, Confus, Etourdi, Effrayé, Enragé.",
+    "Concentration : La Concentration doit être testée à chaque fois que la créature subit des dégâts. Elle est perdue si la créature effectue un jet de Puissance inférieur aux dégâts reçus. La Concentration est automatiquement perdue sous les états Désorienté, Paralysé, Pétrifié, Inconscient, Confus, Etourdi, Effrayé, Enragé.",
   confus:
     "Confus (D10) : 1 : Direction aléatoire à vitesse de base complète. Pas autre Action. 2-6 : ni Déplacement ni Action. 7-8 : prend son action pour faire une attaque au CàC contre une créature aléatoire la plus proche à sa portée, sinon ne fait rien. 9-10 : pas affecté.",
   desoriente:
