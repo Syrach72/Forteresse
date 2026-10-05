@@ -3,7 +3,6 @@ import { supabase } from "./supabaseClient";
 import { RichTextarea } from "./RichText.jsx";
 import {
   CATEGORIES_CAPACITES,
-  EMPLACEMENTS_ICONES,
   ETATS_JEU,
   SENS_CREATURE,
   SOUS_TYPES_CREATURE,
@@ -12,11 +11,13 @@ import {
   TYPES_DEGATS,
   creatureVide,
   entier,
+  statsAuto,
 } from "./creatures-data.js";
 
 // Catalogue des créatures (administration, MJ seul). Une créature = identité, stats, défenses (listes de
 // choix), description, cinq listes extensibles (capacités, actions, actions bonus, réactions, actions
-// légendaires) et 12 emplacements d'icônes cliquables en jeu. Les capacités sont PARTAGÉES par titre :
+// légendaires), chacune avec son emplacement d'icône (icône des compétences des mercenaires, ou image
+// téléversée). Les capacités sont PARTAGÉES par titre :
 // taper un titre déjà connu reprend son texte et son icône ; en corriger le texte met à jour toutes les
 // créatures qui l'utilisent (y compris celles déjà en jeu).
 
@@ -51,29 +52,27 @@ export function CreaturesSection({ kit }) {
   const [creatures, setCreatures] = useState(null);
   const [capacites, setCapacites] = useState([]);
   const [liens, setLiens] = useState([]);
-  const [icones, setIcones] = useState([]);
-  // Compétences des mercenaires (objets du catalogue des rubriques « Compétences ») : source des 12 icônes.
+  // Compétences des mercenaires (objets du catalogue des rubriques « Compétences ») : source des icônes.
   const [competences, setCompetences] = useState([]);
+  // Entrée dont le choix d'icône est ouvert : « catégorie:position ».
   const [slotOuvert, setSlotOuvert] = useState(null);
   const [erreur, setErreur] = useState("");
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(creatureVide());
   const [listes, setListes] = useState(listesVides());
-  const [slots, setSlots] = useState(Array(EMPLACEMENTS_ICONES).fill(""));
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirmingId, setConfirmingId] = useState(null);
 
   async function charger() {
-    const [c, p, l, i, cat, obj] = await Promise.all([
+    const [c, p, l, cat, obj] = await Promise.all([
       supabase.from("creature").select("*").order("nom"),
       supabase.from("capacite_creature").select("*").order("titre"),
       supabase.from("creature_capacite").select("*").order("position"),
-      supabase.from("creature_icone").select("*").order("position"),
       supabase.from("categorie").select("id, nom, parent_id"),
       supabase.from("objet_catalogue").select("id, nom, description, icone, categorie_id").order("nom"),
     ]);
-    const err = c.error || p.error || l.error || i.error || cat.error || obj.error;
+    const err = c.error || p.error || l.error || cat.error || obj.error;
     if (err) {
       setErreur(err.message);
       return;
@@ -82,7 +81,6 @@ export function CreaturesSection({ kit }) {
     setCreatures(c.data);
     setCapacites(p.data);
     setLiens(l.data);
-    setIcones(i.data);
     const racine = (id) => {
       let cur = cat.data.find((x) => x.id === id);
       while (cur?.parent_id) cur = cat.data.find((x) => x.id === cur.parent_id);
@@ -146,13 +144,6 @@ export function CreaturesSection({ kit }) {
           });
       });
     setListes(next);
-    const s = Array(EMPLACEMENTS_ICONES).fill("");
-    icones
-      .filter((i) => i.creature_id === c.id)
-      .forEach((i) => {
-        s[i.position] = i.competence_id;
-      });
-    setSlots(s);
     setSlotOuvert(null);
     setMsg("");
     window.scrollTo?.({ top: 0, behavior: "smooth" });
@@ -161,11 +152,19 @@ export function CreaturesSection({ kit }) {
     setEditing(null);
     setForm(creatureVide());
     setListes(listesVides());
-    setSlots(Array(EMPLACEMENTS_ICONES).fill(""));
     setSlotOuvert(null);
     setMsg("");
   }
   const champ = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  // Puissance, Vélocité et Mental recalculent aussitôt Santé max, Esquive et Énergie max (modifiables ensuite).
+  const champStat = (k) => (e) => {
+    const f = { ...form, [k]: e.target.value };
+    const auto = statsAuto(f);
+    if (k === "puissance") f.sante_max = auto.sante_max;
+    if (k === "velocite") f.esquive = auto.esquive;
+    if (k === "mental") f.energie_max = auto.energie_max;
+    setForm(f);
+  };
 
   function majEntree(cat, i, patch) {
     setListes((prev) => ({ ...prev, [cat]: prev[cat].map((e, k) => (k === i ? { ...e, ...patch } : e)) }));
@@ -272,16 +271,6 @@ export function CreaturesSection({ kit }) {
         const { error } = await supabase.from("creature_capacite").insert(lignes);
         if (error) throw error;
       }
-      // Emplacements d'icônes cliquables : compétences des mercenaires.
-      const { error: delIco } = await supabase.from("creature_icone").delete().eq("creature_id", id);
-      if (delIco) throw delIco;
-      const icoLignes = slots
-        .map((competence_id, position) => (competence_id ? { creature_id: id, position, competence_id } : null))
-        .filter(Boolean);
-      if (icoLignes.length) {
-        const { error } = await supabase.from("creature_icone").insert(icoLignes);
-        if (error) throw error;
-      }
       await charger();
       cancel();
     } catch (err) {
@@ -301,7 +290,7 @@ export function CreaturesSection({ kit }) {
     <div className="field" key={k}>
       <label htmlFor={`cr-${k}`}>{libelle}</label>
       <div className="input-wrap">
-        <input id={`cr-${k}`} type="number" min={min} max={max} value={form[k]} onChange={champ(k)} />
+        <input id={`cr-${k}`} type="number" min={min} max={max} value={form[k]} onChange={["puissance", "velocite", "mental"].includes(k) ? champStat(k) : champ(k)} />
       </div>
     </div>
   );
@@ -363,17 +352,22 @@ export function CreaturesSection({ kit }) {
             </select>
           </div>
         </div>
-        {nombre("sante_max", "Santé (max)", 1, 9999)}
-        {nombre("energie_max", "Énergie (max)", 0, 999)}
+        {nombre("sante_max", "Santé (max, auto)", 1, 9999)}
+        {nombre("energie_max", "Énergie (max, auto)", 0, 999)}
         {nombre("vitesse", "Vitesse (en cases)", 0, 99)}
         {nombre("fp", "FP", 0, 99)}
         {nombre("puissance", "Puissance", 0, 99)}
         {nombre("velocite", "Vélocité", 0, 99)}
         {nombre("mental", "Mental", 0, 99)}
-        {texteCourt("esquive", "Esquive (ex. 1)")}
+        {texteCourt("esquive", "Esquive (auto)")}
         {texteCourt("parade", "Parade (ex. II)")}
         {texteCourt("armure", "Armure (ex. 2/3/3)")}
       </div>
+      <p className="muted">
+        Santé max (3 + 2 × Puissance), Énergie max (2 × Mental) et Esquive (Vélocité ÷ 3, minimum 1) se calculent seules
+        dès que vous saisissez Puissance, Mental et Vélocité, comme pour les mercenaires ; vous pouvez les corriger à la
+        main. Parade et Armure se saisissent toujours à la main.
+      </p>
       <div className="creature-multis">
         <MultiChoix libelle="Vulnérabilités" options={TYPES_DEGATS} valeur={form.vulnerabilites} onChange={(v) => setForm({ ...form, vulnerabilites: v })} />
         <MultiChoix libelle="Résistances" options={TYPES_DEGATS} valeur={form.resistances} onChange={(v) => setForm({ ...form, resistances: v })} />
@@ -381,44 +375,6 @@ export function CreaturesSection({ kit }) {
         <MultiChoix libelle="Immunités aux états" options={ETATS_JEU.map((e) => e.nom)} valeur={form.immunites_etats} onChange={(v) => setForm({ ...form, immunites_etats: v })} />
         <MultiChoix libelle="Sens" options={SENS_CREATURE} valeur={form.sens} onChange={(v) => setForm({ ...form, sens: v })} />
       </div>
-
-      <p className="eyebrow admin-section-label">
-        Icônes cliquables en jeu (12 emplacements : mêmes icônes que les compétences des mercenaires)
-      </p>
-      <div className="creature-slots" role="group" aria-label="Icônes cliquables">
-        {slots.map((id, i) => {
-          const comp = competences.find((x) => x.id === id);
-          return (
-            <button
-              type="button"
-              key={i}
-              className={"creature-slot-cell" + (slotOuvert === i ? " ouvert" : "") + (comp ? "" : " vide")}
-              onClick={() => setSlotOuvert(slotOuvert === i ? null : i)}
-              title={comp ? comp.nom : "Emplacement " + (i + 1) + " : choisir une compétence"}
-              aria-label={comp ? "Emplacement " + (i + 1) + " : " + comp.nom : "Emplacement " + (i + 1) + " vide"}
-            >
-              {comp?.icone ? <img src={comp.icone} alt="" /> : comp ? <small>{comp.nom}</small> : <small>{i + 1}</small>}
-            </button>
-          );
-        })}
-      </div>
-      {slotOuvert !== null && (
-        <div className="creature-slot-choix">
-          <SearchableSelect
-            value={slots[slotOuvert]}
-            onChange={(v) => {
-              setSlots((prev) => prev.map((x, k) => (k === slotOuvert ? v : x)));
-              if (!v) setSlotOuvert(null);
-            }}
-            options={competences.map((c) => ({ value: c.id, label: c.nom, group: c.racine }))}
-            emptyLabel="— Vider cet emplacement —"
-            ariaLabel={"Compétence de l’emplacement " + (slotOuvert + 1)}
-          />
-          <button type="button" className="text-button" onClick={() => setSlotOuvert(null)}>
-            Fermer
-          </button>
-        </div>
-      )}
 
       {CATEGORIES_CAPACITES.map((cat) => (
         <div className="admin-recette-block" key={cat.id}>
@@ -435,20 +391,21 @@ export function CreaturesSection({ kit }) {
                     value={e.titre}
                     onChange={(ev) => changerTitre(cat.id, i, ev.target.value)}
                   />
-                  {(e.fichier || e.icone) && (
-                    <img className="admin-icon" src={e.fichier ? URL.createObjectURL(e.fichier) : e.icone} alt="" />
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
+                  {/* Emplacement d'icône de cette entrée (icône cliquable en jeu) : une compétence des mercenaires
+                      ou une image téléversée. */}
+                  <button
+                    type="button"
+                    className={"creature-slot-cell" + (slotOuvert === cat.id + ":" + i ? " ouvert" : "") + (e.fichier || e.icone ? "" : " vide")}
+                    onClick={() => setSlotOuvert(slotOuvert === cat.id + ":" + i ? null : cat.id + ":" + i)}
+                    title="Icône de cette entrée : cliquez pour choisir"
                     aria-label={`Icône, ${cat.singulier} ${i + 1}`}
-                    onChange={(ev) => majEntree(cat.id, i, { fichier: ev.target.files[0] || null })}
-                  />
-                  {(e.fichier || e.icone) && (
-                    <button type="button" className="text-button" onClick={() => majEntree(cat.id, i, { fichier: null, icone: "" })}>
-                      Retirer l’icône
-                    </button>
-                  )}
+                  >
+                    {e.fichier || e.icone ? (
+                      <img src={e.fichier ? URL.createObjectURL(e.fichier) : e.icone} alt="" />
+                    ) : (
+                      <small>Icône</small>
+                    )}
+                  </button>
                   <button
                     type="button"
                     className="text-button"
@@ -457,6 +414,35 @@ export function CreaturesSection({ kit }) {
                     Supprimer
                   </button>
                 </div>
+                {slotOuvert === cat.id + ":" + i && (
+                  <div className="creature-slot-choix">
+                    <SearchableSelect
+                      value={competences.find((c) => c.icone && c.icone === e.icone)?.id || ""}
+                      onChange={(v) => {
+                        const c = competences.find((x) => x.id === v);
+                        majEntree(cat.id, i, { icone: c?.icone || "", fichier: null });
+                        setSlotOuvert(null);
+                      }}
+                      options={competences.map((c) => ({ value: c.id, label: c.nom, group: c.racine }))}
+                      emptyLabel="— Aucune icône —"
+                      ariaLabel={`Compétence dont reprendre l’icône, ${cat.singulier} ${i + 1}`}
+                    />
+                    <label className="text-button">
+                      ou téléverser une image{" "}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(ev) => {
+                          majEntree(cat.id, i, { fichier: ev.target.files[0] || null });
+                          setSlotOuvert(null);
+                        }}
+                      />
+                    </label>
+                    <button type="button" className="text-button" onClick={() => setSlotOuvert(null)}>
+                      Fermer
+                    </button>
+                  </div>
+                )}
                 <RichTextarea
                   id={`cr-${cat.id}-${i}`}
                   rows={2}

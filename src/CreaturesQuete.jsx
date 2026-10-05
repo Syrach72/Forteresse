@@ -278,13 +278,6 @@ function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, competences, sau
         return cap ? { ...cap, texte: x.texte ?? cap.texte } : null;
       })
       .filter(Boolean);
-  // Icônes : compétences des mercenaires (nom, description, icône du catalogue).
-  const slots = icones
-    .map((i) => {
-      const c = competences.find((x) => x.id === i.competence_id);
-      return { position: i.position, cap: c ? { id: c.id, titre: c.nom, texte: c.description, icone: c.icone } : null };
-    })
-    .filter((s) => s.cap);
   const listeTexte = (libelle, valeurs) =>
     valeurs?.length ? (
       <div className="stat-line">
@@ -403,34 +396,27 @@ function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, competences, sau
         onRounds={(n) => sauver({ etat_rounds: n })}
       />
 
-      {slots.length > 0 && (
-        <>
-          <h4 className="creature-section">Icônes</h4>
-          <div className="creature-icones" role="group" aria-label="Capacités utilisables">
-            {slots.map((s) => (
-              <button
-                type="button"
-                key={s.position}
-                className="creature-icone-bouton"
-                onClick={() => ouvrirIcone(s.cap)}
-                title={s.cap.titre}
-              >
-                {s.cap.icone ? <img src={s.cap.icone} alt={s.cap.titre} /> : <span>{s.cap.titre}</span>}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
       {CATEGORIES_CAPACITES.map((cat) => {
         const entrees = lignesPar(cat.id);
         return entrees.length ? (
           <div key={cat.id}>
             <h4 className="creature-section">{cat.label}</h4>
             {entrees.map((c) => (
-              <p className="creature-entree" key={c.id}>
-                <strong>{c.titre}.</strong> <RichText text={c.texte} />
-              </p>
+              <div className="creature-entree creature-entree-icone" key={c.id}>
+                {c.icone && (
+                  <button
+                    type="button"
+                    className="creature-icone-bouton"
+                    onClick={() => ouvrirIcone({ id: c.id, titre: c.titre, texte: c.texte, icone: c.icone })}
+                    title={c.titre}
+                  >
+                    <img src={c.icone} alt={c.titre} />
+                  </button>
+                )}
+                <p>
+                  <strong>{c.titre}.</strong> <RichText text={c.texte} />
+                </p>
+              </div>
             ))}
           </div>
         ) : null;

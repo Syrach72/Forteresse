@@ -170,7 +170,16 @@ export const CATEGORIES_CAPACITES = [
   { id: "legendaire", label: "Actions légendaires", singulier: "action légendaire" },
 ];
 
-export const EMPLACEMENTS_ICONES = 12;
+// Valeurs calculées comme pour les mercenaires : Santé max = 3 + 2 × Puissance, Énergie max = 2 × Mental,
+// Esquive = Vélocité ÷ 3 arrondi à l'inférieur (minimum 1). Parade et Armure se saisissent à la main.
+export function statsAuto({ puissance, velocite, mental }) {
+  const n = (v) => Math.max(0, Math.floor(Number(v) || 0));
+  return {
+    sante_max: String(3 + 2 * n(puissance)),
+    energie_max: String(2 * n(mental)),
+    esquive: String(Math.max(1, Math.floor(n(velocite) / 3))),
+  };
+}
 
 export function creatureVide() {
   return {

@@ -7265,3 +7265,10 @@ a.merc-card:hover {
   line-height: 1.25;
   color: #1f150b;
 }
+
+/* Fiche créature en jeu : une entrée = icône cliquable (si elle en a une) + titre + texte. */
+.creature-entree-icone { display: flex; align-items: flex-start; gap: 10px; margin: 6px 0; }
+.creature-entree-icone p { margin: 0; flex: 1; min-width: 0; }
+.creature-entree-icone .creature-icone-bouton { flex: none; }
+/* Choix d'icône d'une entrée du formulaire (administration). */
+.creature-capacite-tete .creature-slot-cell { flex: none; }
