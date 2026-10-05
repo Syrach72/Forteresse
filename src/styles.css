@@ -7382,3 +7382,9 @@ a.merc-card:hover {
 @media (prefers-reduced-motion: reduce) {
   .point-carac-bouton, .alerte-point { animation: none; box-shadow: 0 0 8px 3px rgba(255, 200, 60, 0.9); }
 }
+
+/* Page Règles : texte lisible, justifié. */
+.regles-page { font-size: 18px; line-height: 1.55; }
+.regles-page h3 { margin: 22px 0 6px; font-size: 1.15em; border-bottom: 1px solid rgba(60, 40, 20, 0.35); padding-bottom: 2px; }
+.regles-page p { margin: 0 0 6px; text-align: justify; hyphens: auto; }
+.regles-page .regles-intro { font-style: italic; }
