@@ -7296,7 +7296,8 @@ a.merc-card:hover {
 
 /* Menu : ligne 1 = Déconnect., (Admin.), Règles, Guerrier→Prêtre ; ligne 2 = Druide→Moine + Forteresse.
    Grille à 420 colonnes : 6 boutons de 70 (joueur) ou 7 de 60 (MJ, avec Admin.) en ligne 1, 5 de 84 en ligne 2. */
-.class-nav.class-nav { grid-template-columns: repeat(420, minmax(0, 1fr)); }
+.class-nav.class-nav { grid-template-columns: repeat(420, minmax(0, 1fr)); column-gap: 0; }
+.class-nav.class-nav > a { margin: 0 1.5px; }
 .class-nav.class-nav > a.nav-logout,
 .class-nav.class-nav > a.nav-admin,
 .class-nav.class-nav > a.nav-regles,
