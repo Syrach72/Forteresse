@@ -95,6 +95,7 @@ export const ETATS_JEU = [
   { id: "etourdi", nom: "Étourdi" },
   { id: "fascine", nom: "Fasciné" },
   { id: "fatigue", nom: "Fatigué" },
+  { id: "flou", nom: "Flou" },
   { id: "immobilise", nom: "Immobilisé" },
   { id: "inconscient", nom: "Inconscient" },
   { id: "lenteur", nom: "Lenteur" },
@@ -110,6 +111,8 @@ export const DETAIL_ETATS = {
   abri_partiel: "Abri Partiel (1/2 du corps protégé) : Attaquant Désavantagé,",
   abri_total: "Abri Total : ciblage direct impossible, mais certains effets de zone contournent l’abri.",
   affaibli: "Affaibli : Vitesse 1/2, de base, course impossible, Désavantage Sauv. et actions utilisant Puissance.",
+  agrippe:
+    "Agrippé : La vitesse de la créature passe à 0 (elle se déplace automatiquement avec celle qui l'a Agrippée). Elle peut se libérer en dépensant une Action Bonus et en réussissant un jet de Puissance en opposition. Une créature Agrippée se bat normalement contre celle qui la maintient, mais avec Désavantage contre les autres créatures à sa portée.",
   assourdi: "Assourdi : les jets nécessitant l’Ouïe échouent. Lancer des sorts à composante Vocale est Désavantagé.",
   a_terre:
     "A Terre : La créature ne peut que ramper (1c en coûte 2 ; 3 si Terrain difficile) ; se relever coûte la moitié du déplacement de base ou une Action Bonus. Les attaques au CàC contre une créature au sol Avantagées, celles à plus d’une case sont Désavantagées. Attaquer depuis le sol est possible, avec un Désavantage (y compris les sorts nécessitant une composante Somatique).",
@@ -118,7 +121,7 @@ export const DETAIL_ETATS = {
   charme:
     "Charmé : Ne peut ni attaquer, ni cibler la source avec des effets nuisibles. La source est Avantagée à ses jets pour contraindre la victime à obéir. Le Charme est rompu par des dégâts provenant de la source ou ses alliés.",
   concentration:
-    "Concentration : La Concentration doit être testée à chaque fois que la créature subit des dégâts est perdue si la créature à un jet de Puissance inférieur aux dégâts reçus. La Concentration est automatiquement perdue sous les états Désorienté, Paralysé, Pétrifié, Inconscient, Confus, Etourdi, Effrayé, Enragé.",
+    "Concentration : La Concentration doit être testée à chaque fois que la créature subit des dégâts. Elle est perdue si la créature à un jet de Puissance inférieur aux dégâts reçus. La Concentration est automatiquement perdue sous les états Désorienté, Paralysé, Pétrifié, Inconscient, Confus, Etourdi, Effrayé, Enragé.",
   confus:
     "Confus (D10) : 1 : Direction aléatoire à vitesse de base complète. Pas autre Action. 2-6 : ni Déplacement ni Action. 7-8 : prend son action pour faire une attaque au CàC contre une créature aléatoire la plus proche à sa portée, sinon ne fait rien. 9-10 : pas affecté.",
   desoriente:
@@ -126,6 +129,8 @@ export const DETAIL_ETATS = {
   effraye:
     "Effrayé : Désavantage aux jets d’attaque et tests de capacité tant que la source de la Peur est dans le champ de vision de la créature Effrayée. Impossibilité de se déplacer volontairement vers la cible.",
   empoisonne: "Empoisonné (poison générique) : Désavantage jets de Puissance.",
+  endormi:
+    "Endormi : La créature tombe Inconsciente mais ne perd aucun PV. Elle dort jusqu'à ce qu'une créature la bouscule ou lui inflige un ou plusieurs Pts de dégâts.",
   enrage:
     "Enragé : Une créature Enragée Fonce vers la cible des dégâts ou du critique qu’elle a subi (au premier Rd), puis se dirige et attaque la créature la plus proche (ennemi ou allié) au mépris de sa propre sécurité. Les attaques contre elle sont Avantagées, ses Sauvegardes Mental sont Désavantagées. Elle ne peut ni se Concentrer, ni lancer de Sorts. Elle ne peut utiliser que ses attaques de base au CàC et perd toute Action Bonus. Ses attaques effectuées avec la Carac. Puissance obtiennent un Avantage et +1 🎲. A la fin de l’état, la créature est Epuisée niv.1 pendant 1Rd. Mettre fin à l’état Enragé se fait en réussissant au début de chacun de ses tours une Sauvegarde Mental (obligatoire) dont le résultat doit être supérieur à la valeur Carac. Puissance. En tout état de cause, l’Enragement ne peut durer plus de 3 Rds.",
   entrave:
@@ -137,6 +142,7 @@ export const DETAIL_ETATS = {
   fascine:
     "Fasciné : La créature utilise son prochain tour pour se déplacer au maximum de sa vitesse vers la source de sa Fascination, afin de l'adorer et de la protéger, mais elle n'obéit à aucun de ses ordres. L’effet est rompu si la créature subit des dégâts de n’importe quelle source.",
   fatigue: "Fatigué : Désavantage incompressible aux tests Athlétisme et Acrobatie.",
+  flou: "Flou : Les attaques utilisant la vue, contre une créature sous effet Flou, sont Désavantagées.",
   immobilise: "Immobilisé : Vitesse 0 ; seule Action possible : tenter de se Libérer (avec Désavantage).",
   inconscient:
     "Inconscient : La créature tombe A Terre, lâche tout ce qu'il tient, ne peut pas bouger, ne parle pas, et ne perçoit rien. Échecs automatiques des Sauvegardes. Les attaques contre la créature sont résolues comme A Terre, mais si l’attaquant est à 1c ou moins, Critique automatique du premier 🎲 qui touche.",

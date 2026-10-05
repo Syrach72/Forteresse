@@ -1,4 +1,4 @@
--- Nouveaux états « À Terre » et « Concentration » (Bruno, 2026-10-05), mercenaires et créatures : ajouté à la liste acceptée par
+-- Nouveaux états « À Terre », « Concentration » et « Flou » (Bruno, 2026-10-05), mercenaires et créatures : ajouté à la liste acceptée par
 -- mercenaire_definir_etat (reste de la fonction : 20261005130000).
 
 create or replace function mercenaire_definir_etat(
@@ -27,7 +27,7 @@ begin
   end if;
   if p_etat not in ('a_terre', 'abri_partiel', 'abri_total', 'affaibli', 'agrippe', 'assourdi', 'aveugle', 'charme', 'concentration', 'confus',
                     'desoriente', 'effraye', 'empoisonne', 'endormi', 'enrage', 'entrave', 'epuise', 'etourdi',
-                    'fascine', 'fatigue', 'immobilise', 'inconscient', 'lenteur', 'muet', 'nauseeux', 'paralyse',
+                    'fascine', 'fatigue', 'flou', 'immobilise', 'inconscient', 'lenteur', 'muet', 'nauseeux', 'paralyse',
                     'petrifie', 'possede', 'suffocation') then
     raise exception 'État inconnu.';
   end if;
