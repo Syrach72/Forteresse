@@ -3,7 +3,7 @@ import { supabase } from "./supabaseClient";
 import { RichText } from "./RichText.jsx";
 import { Modal } from "./Modal.jsx";
 import { Orbe } from "./MercFiche.jsx";
-import { CATEGORIES_CAPACITES, DETAIL_ETATS, ETATS_JEU, TAILLES_CREATURE, entier, nomEtat } from "./creatures-data.js";
+import { CATEGORIES_CAPACITES, DETAIL_ETATS, ETATS_JEU, TAILLES_CREATURE, TYPES_VOL, entier, nomEtat } from "./creatures-data.js";
 
 // Page MJ des créatures en jeu (route #creatures), visible et modifiable du MJ seul. Une fiche par
 // créature de la quête en cours, avec un onglet renommable. La fiche est lue dans le catalogue (une
@@ -367,6 +367,27 @@ function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, competences, sau
           <span>Vitesse</span>
           <strong>{fiche.vitesse} case(s)</strong>
         </div>
+        {fiche.vitesse_escalade > 0 && (
+          <div className="stat-line">
+            <span>Escalade</span>
+            <strong>{fiche.vitesse_escalade} case(s)</strong>
+          </div>
+        )}
+        {fiche.vitesse_nage > 0 && (
+          <div className="stat-line">
+            <span>Nage</span>
+            <strong>{fiche.vitesse_nage} case(s)</strong>
+          </div>
+        )}
+        {fiche.vitesse_vol > 0 && (
+          <div className="stat-line">
+            <span>Vol</span>
+            <strong>
+              {fiche.vitesse_vol} case(s)
+              {fiche.vol_type ? ` (${TYPES_VOL.find(([c]) => c === fiche.vol_type)?.[1] || fiche.vol_type})` : ""}
+            </strong>
+          </div>
+        )}
         <div className="stat-line">
           <span>Puissance</span>
           <strong>{fiche.puissance}</strong>

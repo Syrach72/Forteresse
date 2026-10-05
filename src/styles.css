@@ -7272,3 +7272,9 @@ a.merc-card:hover {
 .creature-entree-icone .creature-icone-bouton { flex: none; }
 /* Choix d'icône d'une entrée du formulaire (administration). */
 .creature-capacite-tete .creature-slot-cell { flex: none; }
+
+/* Précision du Vol (formulaire créature) : cases à cocher côte à côte. */
+.creature-vol-type { border: 0; padding: 0; margin: 0; min-width: 0; }
+.creature-vol-type legend { padding: 0; font-size: 0.9em; }
+.creature-vol-type label { display: inline-flex; align-items: center; gap: 4px; margin-right: 12px; }
+.creature-vol-type:disabled { opacity: 0.55; }

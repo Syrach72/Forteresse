@@ -64,6 +64,13 @@ export const TYPES_DEGATS = [
   "contondant, perforant et tranchant des armes non magiques non adamantines",
 ];
 
+// Précision du Vol (une seule à la fois, facultative) : valeur enregistrée -> libellé.
+export const TYPES_VOL = [
+  ["levitation", "Lévitation"],
+  ["stationnaire", "Stationnaire"],
+  ["parfait", "Parfait"],
+];
+
 export const SENS_CREATURE = [
   "perception des vibrations",
   "vision aveugle",
@@ -190,6 +197,10 @@ export function creatureVide() {
     sante_max: "1",
     energie_max: "0",
     vitesse: "0",
+    vitesse_escalade: "0",
+    vitesse_nage: "0",
+    vitesse_vol: "0",
+    vol_type: "",
     fp: "0",
     puissance: "0",
     velocite: "0",

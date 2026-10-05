@@ -9,6 +9,7 @@ import {
   TAILLES_CREATURE,
   TYPES_CREATURE,
   TYPES_DEGATS,
+  TYPES_VOL,
   creatureVide,
   entier,
   statsAuto,
@@ -113,6 +114,10 @@ export function CreaturesSection({ kit }) {
       sante_max: String(c.sante_max),
       energie_max: String(c.energie_max),
       vitesse: String(c.vitesse),
+      vitesse_escalade: String(c.vitesse_escalade ?? 0),
+      vitesse_nage: String(c.vitesse_nage ?? 0),
+      vitesse_vol: String(c.vitesse_vol ?? 0),
+      vol_type: c.vol_type || "",
       fp: String(c.fp),
       puissance: String(c.puissance),
       velocite: String(c.velocite),
@@ -200,6 +205,11 @@ export function CreaturesSection({ kit }) {
         sante_max: entier(form.sante_max, 1, 9999),
         energie_max: entier(form.energie_max, 0, 999),
         vitesse: entier(form.vitesse, 0, 99),
+        vitesse_escalade: entier(form.vitesse_escalade, 0, 99),
+        vitesse_nage: entier(form.vitesse_nage, 0, 99),
+        vitesse_vol: entier(form.vitesse_vol, 0, 99),
+        // La précision du vol n'a de sens qu'avec une vitesse de vol.
+        vol_type: entier(form.vitesse_vol, 0, 99) > 0 ? form.vol_type || null : null,
         fp: entier(form.fp, 0, 99),
         puissance: entier(form.puissance, 0, 99),
         velocite: entier(form.velocite, 0, 99),
@@ -355,6 +365,22 @@ export function CreaturesSection({ kit }) {
         {nombre("sante_max", "Santé (max, auto)", 1, 9999)}
         {nombre("energie_max", "Énergie (max, auto)", 0, 999)}
         {nombre("vitesse", "Vitesse (en cases)", 0, 99)}
+        {nombre("vitesse_escalade", "Escalade (en cases)", 0, 99)}
+        {nombre("vitesse_nage", "Nage (en cases)", 0, 99)}
+        {nombre("vitesse_vol", "Vol (en cases)", 0, 99)}
+        <fieldset className="field creature-vol-type" disabled={!(Number(form.vitesse_vol) > 0)}>
+          <legend>Vol : précision</legend>
+          {TYPES_VOL.map(([code, libelle]) => (
+            <label key={code}>
+              <input
+                type="checkbox"
+                checked={form.vol_type === code}
+                onChange={() => setForm({ ...form, vol_type: form.vol_type === code ? "" : code })}
+              />{" "}
+              {libelle}
+            </label>
+          ))}
+        </fieldset>
         {nombre("fp", "FP", 0, 99)}
         {nombre("puissance", "Puissance", 0, 99)}
         {nombre("velocite", "Vélocité", 0, 99)}
