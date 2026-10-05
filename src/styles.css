@@ -6913,7 +6913,13 @@ a.merc-card:hover {
 .creature-etats-boutons, .creature-etat-niveaux { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .creature-etat { padding: 6px 10px; border: 1px solid rgba(60, 40, 20, 0.45); background: rgba(60, 40, 20, 0.14); color: rgba(60, 40, 20, 0.55); font: inherit; cursor: pointer; }
 .creature-etat:hover:not(:disabled) { background: rgba(60, 40, 20, 0.24); }
-.creature-etat.actif { background: #7a3b1d; color: #fff; border-color: #4d2410; font-weight: 700; }
+.creature-etat.actif { background: #b3261e; color: #fff; border-color: #7a1812; font-weight: 700; }
+.creature-etat.actif.positif { background: #2e7d32; border-color: #1b4d1f; }
+.creature-etat-case { position: relative; display: inline-block; }
+/* Badge « ? » au-dessus du bouton d'état actif : ouvre le détail de l'état. */
+.creature-etat-aide { position: absolute; left: 50%; top: -14px; transform: translateX(-50%); z-index: 2; width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 2px solid #f2d479; background: #3a2512; color: #f2d479; font: inherit; font-weight: 700; line-height: 1; cursor: pointer; }
+.creature-etat-aide:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.creature-etats-boutons { padding-top: 14px; row-gap: 12px; }
 .creature-etat:disabled { cursor: not-allowed; opacity: 0.5; }
 .creature-rounds { display: inline-flex; align-items: center; gap: 8px; margin-top: 4px; }
 .creature-rounds select { width: 4.2em; height: 2.4em; text-align: center; }

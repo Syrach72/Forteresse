@@ -3,7 +3,7 @@ import { supabase } from "./supabaseClient";
 import { RichText } from "./RichText.jsx";
 import { Modal } from "./Modal.jsx";
 import { Orbe } from "./MercFiche.jsx";
-import { CATEGORIES_CAPACITES, ETATS_JEU, TAILLES_CREATURE, entier, nomEtat } from "./creatures-data.js";
+import { CATEGORIES_CAPACITES, DETAIL_ETATS, ETATS_JEU, TAILLES_CREATURE, entier, nomEtat } from "./creatures-data.js";
 
 // Page MJ des créatures en jeu (route #creatures), visible et modifiable du MJ seul. Une fiche par
 // créature de la quête en cours, avec un onglet renommable. La fiche est lue dans le catalogue (une
@@ -463,21 +463,35 @@ function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, competences, sau
 // Un seul sélecteur de rounds (— = sans durée, 1 à 9) : chaque clic sur RD en retire 1 ; à 0 l'état
 // disparaît. Utilisé aussi sur la fiche d'un mercenaire en quête.
 export function EtatsBoutons({ etat, niveau, rounds, onEtat, onNiveau, onRounds, desactive = false }) {
+  // État dont la fenêtre de détail (badge « ? ») est ouverte.
+  const [detail, setDetail] = useState(null);
   return (
     <div className="creature-etats">
       <div className="creature-etats-boutons" role="group" aria-label="États">
         {ETATS_JEU.map((e) => (
-          <button
-            type="button"
-            key={e.id}
-            className={`creature-etat${etat === e.id ? " actif" : ""}`}
-            aria-pressed={etat === e.id}
-            disabled={desactive}
-            onClick={() => onEtat(e)}
-          >
-            {e.nom}
-            {e.id === "epuise" && etat === "epuise" ? ` ${niveau}` : ""}
-          </button>
+          <span className="creature-etat-case" key={e.id}>
+            {etat === e.id && (
+              <button
+                type="button"
+                className="creature-etat-aide"
+                aria-label={`Détail de l’état ${e.nom}`}
+                title="Détail de l’état"
+                onClick={() => setDetail(e)}
+              >
+                ?
+              </button>
+            )}
+            <button
+              type="button"
+              className={`creature-etat${etat === e.id ? " actif" : ""}${e.positif ? " positif" : ""}`}
+              aria-pressed={etat === e.id}
+              disabled={desactive}
+              onClick={() => onEtat(e)}
+            >
+              {e.nom}
+              {e.id === "epuise" && etat === "epuise" ? ` ${niveau}` : ""}
+            </button>
+          </span>
         ))}
       </div>
       {etat === "epuise" && (
@@ -512,6 +526,11 @@ export function EtatsBoutons({ etat, niveau, rounds, onEtat, onNiveau, onRounds,
           ))}
         </select>
       </label>
+      {detail && (
+        <Modal title={detail.nom} onClose={() => setDetail(null)}>
+          <p><RichText text={DETAIL_ETATS[detail.id] || "Description à rédiger."} /></p>
+        </Modal>
+      )}
       {etat && (
         <p className="muted creature-etat-resume">
           {nomEtat(etat)}

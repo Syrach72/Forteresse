@@ -73,23 +73,38 @@ export const SENS_CREATURE = [
 
 // États du jeu (ordre alphabétique) : un seul à la fois par créature ou mercenaire. « Épuisé » a trois
 // niveaux. La valeur enregistrée en base est `id`.
+// `positif` : effet favorable (affiché en vert quand il est actif, rouge sinon).
 export const ETATS_JEU = [
+  { id: "abri_partiel", nom: "Abri Partiel", positif: true },
+  { id: "abri_total", nom: "Abri Total", positif: true },
+  { id: "affaibli", nom: "Affaibli" },
   { id: "agrippe", nom: "Agrippé" },
   { id: "assourdi", nom: "Assourdi" },
   { id: "aveugle", nom: "Aveuglé" },
   { id: "charme", nom: "Charmé" },
+  { id: "confus", nom: "Confus" },
   { id: "desoriente", nom: "Désorienté" },
   { id: "effraye", nom: "Effrayé" },
   { id: "empoisonne", nom: "Empoisonné" },
   { id: "endormi", nom: "Endormi" },
+  { id: "enrage", nom: "Enragé" },
   { id: "entrave", nom: "Entravé" },
   { id: "epuise", nom: "Épuisé", niveaux: 3 },
   { id: "etourdi", nom: "Étourdi" },
   { id: "fascine", nom: "Fasciné" },
+  { id: "fatigue", nom: "Fatigué" },
+  { id: "immobilise", nom: "Immobilisé" },
   { id: "inconscient", nom: "Inconscient" },
+  { id: "lenteur", nom: "Lenteur" },
+  { id: "muet", nom: "Muet" },
+  { id: "nauseeux", nom: "Nauséeux" },
   { id: "paralyse", nom: "Paralysé" },
   { id: "petrifie", nom: "Pétrifié" },
+  { id: "possede", nom: "Possédé" },
+  { id: "suffocation", nom: "Suffocation" },
 ];
+// Détail de chaque état, ouvert par le badge « ? » au-dessus du bouton actif (à rédiger : id -> texte).
+export const DETAIL_ETATS = {};
 export const nomEtat = (id) => ETATS_JEU.find((e) => e.id === id)?.nom || id;
 
 // Les cinq listes extensibles d'une fiche, dans l'ordre d'affichage.
