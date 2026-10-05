@@ -1,5 +1,24 @@
 # Forteresse — guide de reprise pour Bruno et Claude
 
+> **MISE À JOUR d'octobre 2026 — à lire avant le reste.** Les sections 3, 8 et 9 ci-dessous décrivent l'état de la
+> passation du 11 septembre (démo locale, « base absente ») : elles sont **dépassées**. Le site est aujourd'hui une
+> application en ligne avec données partagées :
+> - **Vercel** (`forteresse.vercel.app`) sert le site ; **GitHub** (`Syrach72/Forteresse`, public : jamais de secret) en est la source ;
+>   **Supabase** (offre gratuite, projet « Fortress ») porte les comptes, les données de jeu (RLS, Realtime) et les images (Storage).
+> - Comptes sur **invitation**, parties indépendantes = **sessions** (voir `docs/SESSIONS.md` : pseudo de session, radiation
+>   d'un joueur, mercenaires « en attente d'un joueur »). L'état de jeu est en base ; le catalogue est commun à toutes les sessions.
+> - Les règles de jeu vivent dans des **fonctions SQL** (`supabase/migrations/`, une par évolution). Toute fonction qui touche une
+>   table de session doit appartenir à `fortress_fn`. **Appliquer la migration AVANT de pousser le code** qui l'utilise.
+> - Pas de CLI Supabase : on exécute le SQL dans l'éditeur du tableau de bord (Bruno s'y connecte lui-même), puis on le garde à
+>   l'identique dans `supabase/migrations/`.
+> - Le rôle `anon` (visiteur non connecté) ne peut exécuter que `invitation_valide` et `enregistrer_maintien`
+>   (`20261005200000_durcissement_anon.sql`) : ne pas lui rouvrir de droits.
+> - **Maintien actif** de Supabase gratuit : `api/keepalive.js` appelé chaque jour par Vercel (`vercel.json`) et par une action GitHub
+>   (qui se renouvelle seule). Ne jamais rendre le projet payant.
+> - On vérifie **sur le site Vercel**, jamais en localhost (même base de données) : commit + push, attendre le déploiement, puis regarder.
+> - Tests : `npm run test:domain` (règles pures) et `npm run test:sites`. Les migrations SQL se testent dans l'éditeur Supabase,
+>   dans une transaction terminée par `rollback`.
+
 Passation du 11 septembre 2026. Ce document décrit le code livré et le prototype accessible sur localhost. La base de données présentée plus loin est une proposition d’évolution : elle n’est pas implémentée.
 
 ## 1. Mission et ordre de lecture

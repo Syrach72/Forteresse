@@ -84,14 +84,37 @@ test("une ligne hors des places connues est ignorée", () => {
 import {
   INITIAL_DORMITORY,
   INITIAL_INFIRMARY,
-  SOINS_INSTANCES,
+  estAZero,
+  instancesDeSoins,
+  niveauSang,
   buildDorm,
   buildInfirmary,
   prixLitDortoir,
   prixLitInfirmerie,
 } from "../src/dormitory.js";
-test("infirmerie : les soins durent 5 instances", () => {
-  assert.equal(SOINS_INSTANCES, 5);
+// Santé max = 3 + 2 × Puissance : Puissance 3 -> 9 PV, un tiers = 3 PV.
+const merc9 = (santeActuelle) => ({ puissance: 3, santeActuelle });
+test("infirmerie : durée des soins = santé perdue / un tiers de la santé max (arrondi au-dessus, minimum 1)", () => {
+  assert.equal(instancesDeSoins(merc9(9)), 1);
+  assert.equal(instancesDeSoins(merc9(7)), 1);
+  assert.equal(instancesDeSoins(merc9(5)), 2);
+  assert.equal(instancesDeSoins(merc9(0)), 3);
+  assert.equal(instancesDeSoins(null), 1);
+});
+test("effets de sang : aucun jusqu'à un tiers perdu, 1 jusqu'à deux tiers, 2 au-delà, 3 à 1 PV (ou 0)", () => {
+  assert.equal(niveauSang(merc9(9)), 0);
+  assert.equal(niveauSang(merc9(6)), 0); // exactement un tiers perdu : pas encore
+  assert.equal(niveauSang(merc9(5)), 1);
+  assert.equal(niveauSang(merc9(3)), 1); // exactement deux tiers perdus
+  assert.equal(niveauSang(merc9(2)), 2);
+  assert.equal(niveauSang(merc9(1)), 3);
+  assert.equal(niveauSang(merc9(0)), 3);
+  assert.equal(niveauSang({ puissance: 3 }), 0); // santé non renseignée = au maximum
+});
+test("tête de mort : seulement à 0 PV", () => {
+  assert.equal(estAZero(merc9(0)), true);
+  assert.equal(estAZero(merc9(1)), false);
+  assert.equal(estAZero({ puissance: 3 }), false);
 });
 test("infirmerie : état d'affichage construit depuis les lignes de la base", () => {
   const state = buildInfirmary(
