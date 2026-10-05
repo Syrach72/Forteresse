@@ -135,7 +135,7 @@ export const DETAIL_ETATS = {
     "Désorienté : Si elle décide de se déplacer, la créature effectue un mouvement aléatoire (direction et distance). Perte de toute Réaction et Concentration.",
   effraye:
     "Effrayé : Désavantage aux jets d’attaque et tests de capacité tant que la source de la Peur est dans le champ de vision de la créature Effrayée. Impossibilité de se déplacer volontairement vers la cible.",
-  empoisonne: "Empoisonné (poison générique) : Désavantage jets de Puissance.",
+  empoisonne: "1 🎲 est lancé au début de chacun des tours de la créature Empoisonnée, jusqu’à la fin de l’instance ou jusqu’à guérison. Chaque « 5-6 » fait perdre 1PV. Les Potions de Santé sont inefficaces, seul un Antidote peut stopper l'évolution du poison.",
   endormi:
     "Endormi : La créature tombe Inconsciente mais ne perd aucun PV. Elle dort jusqu'à ce qu'une créature la bouscule ou lui inflige un ou plusieurs Pts de dégâts.",
   enrage:
