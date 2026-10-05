@@ -57,7 +57,7 @@ export const AIDES = {
       ...fabrication("Envoyer à la forge", "La forge"),
       [
         "Le sertissage",
-        "Le panneau situé sous la fabrication permet de sertir des gemmes sur une arme. Son « ? » l’explique.",
+        "Le panneau situé sous la fabrication permet de sertir des gemmes sur une arme. Son « ? » l’explique. Un mercenaire ne peut pas porter plus de gemmes serties que son niveau de Mental (une arme avec 2 gemmes en compte 2).",
       ],
     ],
   },
@@ -71,7 +71,7 @@ export const AIDES = {
       ...fabrication("Envoyer à l’armurerie", "L’armurerie"),
       [
         "Le sertissage",
-        "Le panneau situé sous la fabrication permet de sertir des gemmes sur une armure. Son « ? » l’explique.",
+        "Le panneau situé sous la fabrication permet de sertir des gemmes sur une armure. Son « ? » l’explique. Un mercenaire ne peut pas porter plus de gemmes serties que son niveau de Mental (une arme avec 2 gemmes en compte 2).",
       ],
     ],
   },

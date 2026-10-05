@@ -1438,7 +1438,7 @@ export function Characters({
               {[
                 ["Puissance", "Corps-à-Corps, Lancer, lutte, Athlétisme, Intimidation, Saut, Portage, résistance aux Poisons et Maladies, toute utilisation de la force physique et de la constitution physique."],
                 ["Vélocité", "Tir, Lancer, armes légères, Esquive, Acrobatie, Discrétion, Escamotage, Réactivité, ce qui nécessite des réflexes, Kit de Bricolage."],
-                ["Mental", "La grande majorité des Capacités utilisées par les Incantateurs, résistance aux Enchantements et divers sorts, mais aussi Dressage, Persuasion, Tromperie, Histoire, Religion, Nature, toute connaissance, Investigation, Médecine, Survie, Représentation, Perspicacité, utilisation de tous les Kits sauf Bricolage."],
+                ["Mental", "La grande majorité des Capacités utilisées par les Incantateurs, résistance aux Enchantements et divers sorts, mais aussi Dressage, Persuasion, Tromperie, Histoire, Religion, Nature, toute connaissance, Investigation, Médecine, Survie, Représentation, Perspicacité, utilisation de tous les Kits sauf Bricolage. Le Mental limite aussi les gemmes serties : un mercenaire ne peut pas en porter plus que son niveau de Mental (une arme avec 2 gemmes en compte 2)."],
               ].map(([titre, texte]) => (
                 <section className="aide-defense-rubrique" key={titre}>
                   <h3>
