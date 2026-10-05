@@ -16,6 +16,8 @@ import { Modal } from "./Modal.jsx";
 //   null          la partie est jouable
 export function useSessions(userId, estAdmin) {
   const [etat, setEtat] = useState({ pret: false, sessions: [], active: null, membres: [], erreur: "" });
+  // Ouverture de la fenêtre du pseudo de session à la demande (bouton « Modifier », ou reprise d'un mercenaire sans pseudo).
+  const [pseudoDemande, setPseudoDemande] = useState(false);
   const charger = useCallback(async () => {
     const [s, a, mb] = await Promise.all([
       supabase.from("session").select("id, nom, lancee_le").order("nom"),
@@ -80,6 +82,8 @@ export function useSessions(userId, estAdmin) {
     radiation,
     membreCourante,
     monPseudo: membreCourante?.pseudo ?? null,
+    pseudoDemande,
+    setPseudoDemande,
     // Pseudo utilisé pour cette session (2 à 24 caractères, unique dans la session).
     async definirPseudo(pseudo) {
       const { error } = await supabase.rpc("session_pseudo_definir", { p_pseudo: pseudo });
@@ -199,7 +203,6 @@ function FormRejoindre({ onRejoindre }) {
 // Bandeau en haut de la partie : nom de la session en cours et changement de session.
 export function SessionBar({ sess, estAdmin, pseudoCompte = "" }) {
   const [rejoindre, setRejoindre] = useState(false);
-  const [pseudoOuvert, setPseudoOuvert] = useState(false);
   // Un joueur qui entre dans la session sans pseudo doit d'abord en choisir un.
   const pseudoRequis = !estAdmin && !!sess.membreCourante && !sess.monPseudo && !!sess.courante?.lancee_le;
   const [erreur, setErreur] = useState("");
@@ -218,7 +221,7 @@ export function SessionBar({ sess, estAdmin, pseudoCompte = "" }) {
       {sess.membreCourante && sess.monPseudo && (
         <span className="session-bar-pseudo">
           <small>Pseudo utilisé pour cette session :</small> <strong>{sess.monPseudo}</strong>{" "}
-          <button type="button" className="text-button" onClick={() => setPseudoOuvert(true)}>
+          <button type="button" className="text-button" onClick={() => sess.setPseudoDemande(true)}>
             Modifier
           </button>
         </span>
@@ -254,8 +257,8 @@ export function SessionBar({ sess, estAdmin, pseudoCompte = "" }) {
           {erreur}
         </span>
       )}
-      {(pseudoRequis || pseudoOuvert) && (
-        <Modal title="Pseudo utilisé pour cette session" onClose={() => setPseudoOuvert(false)}>
+      {(pseudoRequis || sess.pseudoDemande) && (
+        <Modal title="Pseudo utilisé pour cette session" onClose={() => sess.setPseudoDemande(false)}>
           <p>
             Ce pseudo est le nom inscrit sur les mercenaires que vous recrutez dans cette session. Il est propre à
             cette session et chaque joueur a le sien.
@@ -264,7 +267,7 @@ export function SessionBar({ sess, estAdmin, pseudoCompte = "" }) {
             initial={sess.monPseudo || pseudoCompte}
             onEnregistrer={async (p) => {
               const r = await sess.definirPseudo(p);
-              if (!r.error) setPseudoOuvert(false);
+              if (!r.error) sess.setPseudoDemande(false);
               return r;
             }}
           />

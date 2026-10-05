@@ -1606,6 +1606,12 @@ export function App() {
   // définitive : pour de bon ; radiation de 24 h : jusqu'au retour du propriétaire d'origine).
   async function reprendreMercenaire(id) {
     const m = mercenaires.find((x) => x.id === id);
+    // Le nom inscrit sur le mercenaire est le pseudo de session : il faut en avoir un.
+    if (!sess.monPseudo) {
+      sess.setPseudoDemande(true);
+      notify("Choisissez d’abord votre pseudo pour cette session, puis reprenez le mercenaire.");
+      return;
+    }
     const { error } = await supabase.rpc("mercenaire_reprendre", { p_mercenaire: id });
     if (error) {
       notify(error.message);
@@ -4151,7 +4157,7 @@ export function App() {
               onUnlock={unlockDorm}
               retourQuetes={retourQuetes}
               enAttente={enAttente}
-              peutReprendre={!estAdmin && !!sess.monPseudo}
+              peutReprendre
               onReprendre={reprendreMercenaire}
               onRenvoyerDefinitivement={renvoyerDefinitivement}
               Modal={Modal}
