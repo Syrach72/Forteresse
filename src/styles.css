@@ -7261,6 +7261,7 @@ a.merc-card:hover {
   background: #f3e8cc99;
   box-shadow: inset 0 0 0 1px #fff6;
   font-size: 18px;
+  font-weight: 700;
   line-height: 1.25;
   color: #1f150b;
 }
