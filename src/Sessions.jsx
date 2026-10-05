@@ -201,7 +201,7 @@ export function SessionBar({ sess, estAdmin, pseudoCompte = "" }) {
   const [rejoindre, setRejoindre] = useState(false);
   const [pseudoOuvert, setPseudoOuvert] = useState(false);
   // Un joueur qui entre dans la session sans pseudo doit d'abord en choisir un.
-  const pseudoRequis = !!sess.membreCourante && !sess.monPseudo && !!sess.courante?.lancee_le;
+  const pseudoRequis = !estAdmin && !!sess.membreCourante && !sess.monPseudo && !!sess.courante?.lancee_le;
   const [erreur, setErreur] = useState("");
   const valeur = sess.base ? "__base" : sess.courante?.id || "";
   return (
