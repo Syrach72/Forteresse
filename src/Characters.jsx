@@ -144,8 +144,10 @@ export function Characters({
   const accesFiche = (id) => morts.includes(id) || !tousRecrutes.includes(id) || recrutes.includes(id) || estAdmin;
   // Le joueur qui a recruté ce mercenaire (ou le MJ) peut modifier sa fiche.
   const peutModifier = merc ? recrutes.includes(merc.id) || estAdmin : false;
-  // Équipement affiché : celui du mercenaire recruté, sinon son équipement de base (visible de tous).
-  const equipDe = (id) => (tousRecrutes.includes(id) ? equipements.get(id) : equipementsBase.get(id));
+  // Équipement affiché : celui que le mercenaire a dans la session (même renvoyé, il garde son dernier
+  // équipement), sinon son équipement de base tant qu'il n'est pas recruté (visible de tous).
+  // Une remise à zéro vide l'équipement de la session : on revoit alors l'équipement de base.
+  const equipDe = (id) => equipements.get(id) ?? (tousRecrutes.includes(id) ? undefined : equipementsBase.get(id));
   // Mercenaires de ce joueur engagés dans la quête en cours : onglets de navigation rapide sur la fiche, et
   // choix de l'état du mercenaire (les joueurs agissent eux-mêmes ; le MJ aussi).
   const enQuete = merc ? mercsEnQuete.some((e) => e.mercenaire_id === merc.id) : false;
