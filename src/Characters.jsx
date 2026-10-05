@@ -320,16 +320,20 @@ export function Characters({
                 const pris = tousRecrutes.includes(m.id);
                 // Au cimetière : grisé, mais sa fiche reste consultable.
                 const mort = morts.includes(m.id);
+                // Mort sur le champ de bataille (Inconscient, compte épuisé) : grisé avec la pierre tombale,
+                // mais encore recruté jusqu'à la fin de l'instance.
+                const mortChamp = !mort && !!m.mortChamp && tousRecrutes.includes(m.id);
                 const carte = (
                   <>
-                    <span className="merc-portrait">
+                    <span className={`merc-portrait${mortChamp ? " merc-portrait-grise" : ""}`}>
                       {m.portrait ? (
                         <img src={m.portrait} alt={`Portrait de ${m.nom}`} />
                       ) : (
                         <span className="merc-portrait-vide" aria-hidden="true" />
                       )}
-                      {estBlesse(m) && !mort && <CoeurBlesse className="coeur-carte" mort={estAZero(m)} />}
+                      {estBlesse(m) && !mort && !mortChamp && <CoeurBlesse className="coeur-carte" mort={estAZero(m)} />}
                       {mort && <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="Au cimetière" />}
+                      {mortChamp && <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="Mort sur le champ de bataille" />}
                     </span>
                     <span className="merc-caption">
                       <strong>{m.nom}</strong>
@@ -387,7 +391,7 @@ export function Characters({
         )
       ) : merc ? (
         accesFiche(merc.id) ? (
-          <div className={`merc-fiche${morts.includes(merc.id) ? " merc-fiche-morte" : ""}`} data-onglet={onglet}>
+          <div className={`merc-fiche${morts.includes(merc.id) || merc.mortChamp ? " merc-fiche-morte" : ""}`} data-onglet={onglet}>
           {/* Un joueur qui a engagé plusieurs mercenaires dans la quête passe de l'un à l'autre d'un clic. */}
           {enQuete && mesEngages.length > 1 && (
             <nav className="merc-quete-onglets" aria-label="Mes mercenaires en quête">
@@ -436,9 +440,18 @@ export function Characters({
                   ) : (
                     <span className="merc-portrait-vide" aria-hidden="true" />
                   )}
+                  {merc.mortChamp && <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="Mort sur le champ de bataille" />}
+                  <TachesSang niveau={niveauSang(merc)} />
                 </span>
+                {/* Inconscient : compte à rebours avant la mort définitive (1 Rd retiré à chaque clic sur Rd). */}
+                {merc.etat === "inconscient" && merc.inconscientRounds != null && (
+                  <p className="merc-inconscient" role="status">
+                    {merc.inconscientRounds > 0
+                      ? `Mort définitive après ${merc.inconscientRounds} Rd${merc.inconscientRounds > 1 ? "s" : ""}`
+                      : "Mort définitive à la fin de l’instance"}
+                  </p>
+                )}
                 {/* Cœur pulsant, en haut à droite : santé actuelle inférieure au maximum. */}
-                <TachesSang niveau={niveauSang(merc)} />
                 {estBlesse(merc) && <CoeurBlesse className="coeur-fiche" mort={estAZero(merc)} />}
               </div>
               {/* Déplacement et parade : sous le portrait, même présentation (valeur sous l'icône). */}

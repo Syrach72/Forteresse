@@ -2490,19 +2490,23 @@ export function App() {
           const etat = a?.etat ?? null;
           const etatNiveau = a?.etatNiveau ?? 1;
           const etatRounds = a?.etatRounds ?? 0;
+          const inconscientRounds = a?.inconscientRounds ?? null;
+          const mortChamp = a?.mortChamp ?? false;
           // Bonus Humain (+1 caractéristique au recrutement) déjà utilisé ? Défini seulement une fois chargé.
           const humainUtilise = a?.humainUtilise ?? false;
           return etat === (m.etat ?? null) &&
             humainUtilise === m.humainUtilise &&
             etatNiveau === (m.etatNiveau ?? 1) &&
             etatRounds === (m.etatRounds ?? 0) &&
+            inconscientRounds === (m.inconscientRounds ?? null) &&
+            mortChamp === (m.mortChamp ?? false) &&
             energie === m.energieActuelle &&
             sante === m.santeActuelle &&
             puissance === m.puissance &&
             velocite === m.velocite &&
             mental === m.mental
             ? m
-            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental, etat, etatNiveau, etatRounds, humainUtilise };
+            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental, etat, etatNiveau, etatRounds, inconscientRounds, mortChamp, humainUtilise };
         }),
       );
     }
