@@ -75,6 +75,7 @@ export const SENS_CREATURE = [
 // niveaux. La valeur enregistrée en base est `id`.
 // `positif` : effet favorable (affiché en vert quand il est actif, rouge sinon).
 export const ETATS_JEU = [
+  { id: "a_terre", nom: "A Terre" },
   { id: "abri_partiel", nom: "Abri Partiel", positif: true },
   { id: "abri_total", nom: "Abri Total", positif: true },
   { id: "affaibli", nom: "Affaibli" },
