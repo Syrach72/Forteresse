@@ -145,7 +145,7 @@ export const DETAIL_ETATS = {
   flou: "Flou : Les attaques utilisant la vue, contre une créature sous effet Flou, sont Désavantagées.",
   immobilise: "Immobilisé : Vitesse 0 ; seule Action possible : tenter de se Libérer (avec Désavantage).",
   inconscient:
-    "Inconscient : La créature tombe A Terre, lâche tout ce qu'il tient, ne peut pas bouger, ne parle pas, et ne perçoit rien. Échecs automatiques des Sauvegardes. Les attaques contre la créature sont résolues comme A Terre, mais si l’attaquant est à 1c ou moins, Critique automatique du premier 🎲 qui touche.",
+    "Inconscient : La créature tombe A Terre, lâche tout ce qu'elle tient, ne peut pas bouger, ne parle pas, et ne perçoit rien. Échecs automatiques des Sauvegardes. Les attaques contre la créature sont résolues comme A Terre, mais si l’attaquant est à 1c ou moins, Critique automatique du premier 🎲 qui touche.",
   lenteur:
     "Lenteur : Vitesse 1/2, Adversaire Avantagé à ses attaques utilisant Vélocité, créature Désavantagée à sa propre Vélocité, pas de Réaction, une seule Action ou Action Bonus, une seule attaque par tour. ",
   muet: "Muet : Sorts à composante Vocale impossibles à lancer, communication limitée aux gestes, écriture, ou télépathie.",
