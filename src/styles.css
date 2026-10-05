@@ -7247,3 +7247,20 @@ a.merc-card:hover {
 .session-bar-pseudo small { opacity: 0.8; }
 .bed-attente { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 2px; }
 .bed-attente .text-button { font-size: 0.8rem; }
+
+/* RD / Immunités / Vulnérabilités : encart sous Esquive, Parade et Armure. */
+.merc-protections {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+  max-width: 280px;
+  padding: 10px 16px;
+  border: 2px solid #a89067;
+  border-radius: 8px;
+  background: #f3e8cc99;
+  box-shadow: inset 0 0 0 1px #fff6;
+  font-size: 18px;
+  line-height: 1.25;
+  color: #1f150b;
+}

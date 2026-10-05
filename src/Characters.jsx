@@ -5,6 +5,7 @@ import { instancesDeSoins, estBlesse, estAZero, niveauSang } from "./dormitory.j
 import { TachesSang } from "./TachesSang.jsx";
 import { CoeurBlesse } from "./CoeurBlesse.jsx";
 import { VetBadge } from "./VetBadge.jsx";
+import { protectionsMercenaire } from "./protections.js";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
 // Caractéristiques affichées par une icône plutôt que par leur nom (le nom reste en texte alternatif).
@@ -528,6 +529,18 @@ export function Characters({
                           </div>
                         </>
                       )}
+                    </div>
+                  );
+                })()}
+                {/* RD, Immunités et Vulnérabilités tirées de ses compétences passives (rien d'affiché s'il n'y en a pas). */}
+                {(() => {
+                  const lignes = protectionsMercenaire(competences.get(merc.id) || [], merc.veterance ?? 1);
+                  if (!lignes.length) return null;
+                  return (
+                    <div className="merc-protections" aria-label="Résistances, immunités et vulnérabilités">
+                      {lignes.map((l) => (
+                        <div key={l}>{l}</div>
+                      ))}
                     </div>
                   );
                 })()}
