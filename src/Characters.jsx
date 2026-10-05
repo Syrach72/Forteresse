@@ -679,7 +679,7 @@ export function Characters({
                       −1
                     </button>
                     <button className="wood-button" type="submit" disabled={inchange}>
-                      Valider
+                      Valider Santé
                     </button>
                     <button
                       type="button"
