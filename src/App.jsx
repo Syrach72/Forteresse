@@ -4089,7 +4089,7 @@ export function App() {
             <a href="#forteresse">‹ Forteresse</a>
             <div className="room-titre">
               <h1 ref={titleRef} tabIndex="-1">
-                {place?.name || "Lieu introuvable"}
+                {place?.name || (route === "regles" ? "Règles" : "Lieu introuvable")}
               </h1>
               {/* « ? » de la page Quêtes : juste à droite du titre. */}
               {route === "quetes" && <BoutonAide aide={AIDES.quetes} />}
