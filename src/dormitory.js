@@ -84,13 +84,15 @@ export function estBlesse(merc) {
 export function estAZero(merc) {
   return merc?.santeActuelle != null && merc.santeActuelle <= 0;
 }
-// Taches de sang sur la fiche : 1 dès qu'un tiers de la santé max est perdu, 2 au-delà des deux tiers.
+// Effets de sang sur la fiche : 1 dès que le mercenaire est blessé, 2 à partir d'un tiers de la santé max
+// perdu, 3 au-delà des deux tiers.
 export function niveauSang(merc) {
   const max = santeMaxMerc(merc);
   if (merc?.santeActuelle == null || max <= 0) return 0;
   const perdu = max - Math.max(0, merc.santeActuelle);
-  if (perdu * 3 > 2 * max) return 2;
-  return perdu * 3 >= max ? 1 : 0;
+  if (perdu <= 0) return 0;
+  if (perdu * 3 > 2 * max) return 3;
+  return perdu * 3 >= max ? 2 : 1;
 }
 export function instancesDeSoins(merc) {
   if (!merc) return 1;

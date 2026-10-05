@@ -441,7 +441,7 @@ export function Characters({
                     <span className="merc-portrait-vide" aria-hidden="true" />
                   )}
                   {merc.mortChamp && <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="Mort sur le champ de bataille" />}
-                  <TachesSang niveau={niveauSang(merc)} />
+                  <TachesSang niveau={niveauSang(merc)} seed={merc.id} />
                 </span>
                 {/* Inconscient : compte à rebours avant la mort définitive (1 Rd retiré à chaque clic sur Rd). */}
                 {merc.etat === "inconscient" && merc.inconscientRounds != null && (

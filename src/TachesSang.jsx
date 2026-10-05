@@ -1,32 +1,39 @@
-// Taches de sang sur le portrait de la fiche d'un mercenaire blessé. Niveau 1 : au moins un tiers de la
-// santé perdue (quelques taches) ; niveau 2 : plus des deux tiers perdus (taches denses). Calques semi-
-// transparents posés sur l'image (posés tels quels (la multiplication les rend invisibles sur les fonds noirs)), positions en % du portrait : peau (visage,
-// cou) et vêtements (torse, bras). Décoratif : ni cliquable ni lu par les lecteurs d'écran.
-const TACHES = [
-  // Niveau 1
-  { n: 1, src: "t1", x: 52, y: 62, w: 34, r: -8, o: 0.85 },
-  { n: 1, src: "t3", x: 4, y: 52, w: 36, r: 0, o: 0.8 },
-  { n: 1, src: "t5", x: 58, y: 14, w: 26, r: 6, o: 0.8 },
-  // Niveau 2 (s'ajoutent aux précédentes)
-  { n: 2, src: "t2", x: 14, y: 66, w: 38, r: 12, o: 0.9 },
-  { n: 2, src: "t4", x: 60, y: 34, w: 34, r: 0, o: 0.85 },
-  { n: 2, src: "t6", x: 2, y: 22, w: 24, r: -10, o: 0.85 },
-  { n: 2, src: "t8", x: 30, y: 8, w: 36, r: 20, o: 0.75 },
-  { n: 2, src: "t1", x: 6, y: 80, w: 44, r: 170, o: 0.9 },
-  { n: 2, src: "t3", x: 56, y: 70, w: 40, r: 190, o: 0.85 },
+// Taches de sang sur le portrait de la fiche d'un mercenaire blessé, comme une vitre posée devant tout le
+// portrait. Quatre modèles : deux étirés sur toute la hauteur/largeur (m1, m3), deux gardés tels quels et
+// centrés (m2, m4). Le nombre d'effets suit la santé perdue : 1 dès qu'il est blessé, 2 à partir d'un tiers
+// perdu, 3 au-delà des deux tiers. Le choix est aléatoire mais stable pour un mercenaire (tiré de son
+// identifiant), et les effets s'accumulent au lieu de changer. Décoratif : ni cliquable, ni lu à voix haute.
+const MODELES = [
+  { src: "m1", etire: true },
+  { src: "m2", etire: false },
+  { src: "m3", etire: true },
+  { src: "m4", etire: false },
 ];
 
-export function TachesSang({ niveau = 0 }) {
+// Petit générateur déterministe à partir d'un texte (identifiant du mercenaire).
+function graine(texte) {
+  let h = 2166136261;
+  for (const c of String(texte)) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return h >>> 0;
+}
+function melange(seed) {
+  const liste = [...MODELES];
+  let s = seed || 1;
+  for (let i = liste.length - 1; i > 0; i--) {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    const j = s % (i + 1);
+    [liste[i], liste[j]] = [liste[j], liste[i]];
+  }
+  return liste;
+}
+
+export function TachesSang({ niveau = 0, seed = "" }) {
   if (!niveau) return null;
+  const choix = melange(graine(seed)).slice(0, Math.min(niveau, MODELES.length));
   return (
-    <span className={`taches-sang taches-niveau-${niveau}`} aria-hidden="true">
-      {TACHES.filter((t) => t.n <= niveau).map((t, i) => (
-        <img
-          key={i}
-          src={`/assets/sang/${t.src}.webp`}
-          alt=""
-          style={{ left: `${t.x}%`, top: `${t.y}%`, width: `${t.w}%`, opacity: t.o, transform: `rotate(${t.r}deg)` }}
-        />
+    <span className="taches-sang" aria-hidden="true">
+      {choix.map((m) => (
+        <img key={m.src} className={m.etire ? "etire" : "centre"} src={`/assets/sang/${m.src}.webp`} alt="" />
       ))}
     </span>
   );
