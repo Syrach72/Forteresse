@@ -1,7 +1,7 @@
 // Taches de sang sur le portrait de la fiche d'un mercenaire blessé, comme une vitre posée devant tout le
 // portrait. Quatre modèles : deux étirés sur toute la hauteur/largeur (m1, m3), deux gardés tels quels et
-// centrés (m2, m4). Le nombre d'effets suit la santé perdue : 1 dès qu'il est blessé, 2 à partir d'un tiers
-// perdu, 3 au-delà des deux tiers. Le choix est aléatoire mais stable pour un mercenaire (tiré de son
+// centrés (m2, m4). Le nombre d'effets suit la santé perdue : 1 entre un et deux tiers perdus, 2 au-delà, 3 s'il ne reste qu'un PV
+// (voir niveauSang). Le choix est aléatoire mais stable pour un mercenaire (tiré de son
 // identifiant), et les effets s'accumulent au lieu de changer. Décoratif : ni cliquable, ni lu à voix haute.
 const MODELES = [
   { src: "m1", etire: true },
