@@ -7283,3 +7283,7 @@ a.merc-card:hover {
 .boost-bandeau { margin: 0 0 12px; padding: 8px 14px; border: 2px solid #b8860b; border-radius: 8px; background: #f6e6a8cc; color: #4a3200; }
 .boost-bandeau p { margin: 2px 0; }
 .boost-etiquette { margin: 4px 0; font-weight: 700; color: #7a5200; }
+
+/* Titre de page + « ? » d'aide à sa droite (Quêtes). */
+.room-titre { display: flex; align-items: center; gap: 12px; }
+.room-titre .pave-aide { position: static; flex: none; }

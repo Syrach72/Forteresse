@@ -4075,9 +4075,13 @@ export function App() {
           )}
           <div className="room-top">
             <a href="#forteresse">‹ Forteresse</a>
-            <h1 ref={titleRef} tabIndex="-1">
-              {place?.name || "Lieu introuvable"}
-            </h1>
+            <div className="room-titre">
+              <h1 ref={titleRef} tabIndex="-1">
+                {place?.name || "Lieu introuvable"}
+              </h1>
+              {/* « ? » de la page Quêtes : juste à droite du titre. */}
+              {route === "quetes" && <BoutonAide aide={AIDES.quetes} />}
+            </div>
             <button
               className="wood-button"
               onClick={() => setModal({ type: "inventory" })}
