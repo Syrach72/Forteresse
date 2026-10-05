@@ -37,31 +37,21 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
     const ids = [...new Set(l.data.map((x) => x.creature_id))];
     let creatures = [];
     let liens = [];
-    let icones = [];
     let capacites = [];
-    let competences = [];
     if (ids.length) {
-      const [c, li, ic, cap] = await Promise.all([
+      const [c, li, cap] = await Promise.all([
         supabase.from("creature").select("*").in("id", ids),
         supabase.from("creature_capacite").select("*").in("creature_id", ids).order("position"),
-        supabase.from("creature_icone").select("*").in("creature_id", ids).order("position"),
         supabase.from("capacite_creature").select("*"),
       ]);
-      const err = c.error || li.error || ic.error || cap.error;
+      const err = c.error || li.error || cap.error;
       if (err) return setErreur(err.message);
       creatures = c.data;
       liens = li.data;
-      icones = ic.data;
       capacites = cap.data;
-      const compIds = [...new Set(ic.data.map((x) => x.competence_id))];
-      if (compIds.length) {
-        const comp = await supabase.from("objet_catalogue").select("id, nom, description, icone").in("id", compIds);
-        if (comp.error) return setErreur(comp.error.message);
-        competences = comp.data;
-      }
     }
     setErreur("");
-    setDonnees({ quete: q.data, lignes: l.data, creatures, liens, icones, capacites, competences });
+    setDonnees({ quete: q.data, lignes: l.data, creatures, liens, capacites });
   }
   // Aperçu d'une quête pas encore choisie : une entrée par exemplaire prévu (mêmes noms d'onglet qu'au choix).
   async function chargerApercu(dejaChoisie = false) {
@@ -73,28 +63,18 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
     const ids = [...new Set(qc.data.map((x) => x.creature_id))];
     let creatures = [];
     let liens = [];
-    let icones = [];
     let capacites = [];
-    let competences = [];
     if (ids.length) {
-      const [c, li, ic, cap] = await Promise.all([
+      const [c, li, cap] = await Promise.all([
         supabase.from("creature").select("*").in("id", ids),
         supabase.from("creature_capacite").select("*").in("creature_id", ids).order("position"),
-        supabase.from("creature_icone").select("*").in("creature_id", ids).order("position"),
         supabase.from("capacite_creature").select("*"),
       ]);
-      const err = c.error || li.error || ic.error || cap.error;
+      const err = c.error || li.error || cap.error;
       if (err) return setErreur(err.message);
       creatures = c.data;
       liens = li.data;
-      icones = ic.data;
       capacites = cap.data;
-      const compIds = [...new Set(ic.data.map((x) => x.competence_id))];
-      if (compIds.length) {
-        const comp = await supabase.from("objet_catalogue").select("id, nom, description, icone").in("id", compIds);
-        if (comp.error) return setErreur(comp.error.message);
-        competences = comp.data;
-      }
     }
     const lignes = [];
     for (const x of [...qc.data].sort((a, b) =>
@@ -115,7 +95,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
         });
     }
     setErreur("");
-    setDonnees({ apercu: true, dejaChoisie, quete: q.data, lignes, creatures, liens, icones, capacites, competences });
+    setDonnees({ apercu: true, dejaChoisie, quete: q.data, lignes, creatures, liens, capacites });
   }
   useEffect(() => {
     if (!estAdmin) return undefined;
@@ -146,7 +126,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
         </div>
       </section>
     );
-  const { quete, lignes, creatures, liens, icones, capacites, competences, apercu, dejaChoisie } = donnees;
+  const { quete, lignes, creatures, liens, capacites, apercu, dejaChoisie } = donnees;
   const base = apercu ? "#creatures/quete/" + quete.id + "/" : "#creatures/";
   if (!lignes.length)
     return (
@@ -226,9 +206,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
           ligne={courante}
           fiche={fiche}
           liens={liens.filter((x) => x.creature_id === fiche.id)}
-          icones={icones.filter((x) => x.creature_id === fiche.id)}
           capDe={capDe}
-          competences={competences}
           sauver={(patch) => sauver(courante.id, patch)}
           ouvrirIcone={(capacite) => setFenetre({ ligneId: courante.id, capacite })}
         />
@@ -247,7 +225,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
   );
 }
 
-function FicheCreatureJeu({ ligne, fiche, liens, icones, capDe, competences, sauver, ouvrirIcone, apercu = false }) {
+function FicheCreatureJeu({ ligne, fiche, liens, capDe, sauver, ouvrirIcone, apercu = false }) {
   const santeMax = fiche.sante_max;
   const energieMax = fiche.energie_max;
   const sante = ligne.sante_actuelle ?? santeMax;
