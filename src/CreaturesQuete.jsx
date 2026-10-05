@@ -483,7 +483,7 @@ export function EtatsBoutons({ etat, niveau, rounds, onEtat, onNiveau, onRounds,
             )}
             <button
               type="button"
-              className={`creature-etat${etat === e.id ? " actif" : ""}${e.positif ? " positif" : ""}`}
+              className={`creature-etat${etat === e.id ? " actif" : ""}${e.positif ? " positif" : ""}${e.bleu ? " bleu" : ""}`}
               aria-pressed={etat === e.id}
               disabled={desactive}
               onClick={() => onEtat(e)}

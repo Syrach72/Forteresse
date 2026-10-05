@@ -7239,3 +7239,5 @@ a.merc-card:hover {
 .merc-inconscient { margin: 6px 0 0; padding: 4px 6px; text-align: center; font-weight: 700; font-size: 17px; line-height: 1.2; color: #fff; background: #8b1a1a; border: 1px solid #4d0c0c; }
 .merc-portrait-grise img:not(.merc-tombe) { filter: grayscale(0.9) brightness(0.92); }
 .merc-portrait-grise { position: relative; }
+
+.creature-etat.actif.bleu { background: #1f55a8; border-color: #123468; }

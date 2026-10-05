@@ -73,9 +73,9 @@ export const SENS_CREATURE = [
 
 // États du jeu (ordre alphabétique) : un seul à la fois par créature ou mercenaire. « Épuisé » a trois
 // niveaux. La valeur enregistrée en base est `id`.
-// `positif` : effet favorable (affiché en vert quand il est actif, rouge sinon).
+// `positif` : effet favorable (vert quand actif) ; `bleu` : bleu quand actif ; sinon rouge.
 export const ETATS_JEU = [
-  { id: "a_terre", nom: "A Terre" },
+  { id: "a_terre", nom: "À Terre" },
   { id: "abri_partiel", nom: "Abri Partiel", positif: true },
   { id: "abri_total", nom: "Abri Total", positif: true },
   { id: "affaibli", nom: "Affaibli" },
@@ -83,6 +83,7 @@ export const ETATS_JEU = [
   { id: "assourdi", nom: "Assourdi" },
   { id: "aveugle", nom: "Aveuglé" },
   { id: "charme", nom: "Charmé" },
+  { id: "concentration", nom: "Concentration", bleu: true },
   { id: "confus", nom: "Confus" },
   { id: "desoriente", nom: "Désorienté" },
   { id: "effraye", nom: "Effrayé" },
