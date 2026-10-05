@@ -10,12 +10,13 @@ export function RecompenseQuete({ recompense, onClose }) {
   const [revele, setRevele] = useState(false);
   const [busy, setBusy] = useState(false);
   const items = recompense.items || [];
+  const boosts = recompense.boosts || [];
   const mysteres = items.filter((i) => i.mystere);
   const fixes = items.filter((i) => !i.mystere);
 
   useEffect(() => {
     let vivant = true;
-    const ids = items.map((i) => i.objet_id);
+    const ids = [...items, ...boosts].map((i) => i.objet_id);
     if (ids.length) {
       supabase
         .from("objet_catalogue")
@@ -55,6 +56,18 @@ export function RecompenseQuete({ recompense, onClose }) {
             </div>
           );
         })}
+        {boosts.map((b, n) => {
+          const o = objets[b.objet_id];
+          return (
+            <div className="recompense-case" key={"b" + n}>
+              <span className="recompense-vignette">{o?.icone && <img src={o.icone} alt="" />}</span>
+              <span className="recompense-nom">
+                {o?.nom || "Boost de production"} : {{ bois: "Bois", fer: "Fer", cuir: "Cuir" }[b.materiau] || b.materiau} ×2 pendant{" "}
+                {b.instances || 3} instances
+              </span>
+            </div>
+          );
+        })}
         {recompense.or > 0 && (
           <div className="recompense-case">
             <span className="recompense-vignette recompense-or">{recompense.or} Po</span>
@@ -76,6 +89,9 @@ export function RecompenseQuete({ recompense, onClose }) {
         })}
       </div>
       <p className="muted">Ces récompenses rejoignent l’arsenal de la compagnie dès que vous fermez cette fenêtre.</p>
+      {boosts.length > 0 && (
+        <p className="muted">Le boost de production n’entre pas à l’arsenal : il est déjà actif (voir la page Ressources).</p>
+      )}
       <button type="button" className="wood-button" onClick={fermer} disabled={busy}>
         {busy ? "…" : "Récupérer les récompenses"}
       </button>

@@ -7278,3 +7278,8 @@ a.merc-card:hover {
 .creature-vol-type legend { padding: 0; font-size: 0.9em; }
 .creature-vol-type label { display: inline-flex; align-items: center; gap: 4px; margin-right: 12px; }
 .creature-vol-type:disabled { opacity: 0.55; }
+
+/* Boost de production (page Ressources) : bandeau et étiquette sur les ouvriers concernés. */
+.boost-bandeau { margin: 0 0 12px; padding: 8px 14px; border: 2px solid #b8860b; border-radius: 8px; background: #f6e6a8cc; color: #4a3200; }
+.boost-bandeau p { margin: 2px 0; }
+.boost-etiquette { margin: 4px 0; font-weight: 700; color: #7a5200; }

@@ -44,6 +44,8 @@ import { useGlassWindows } from "./glassWindows.js";
 import { chargerMercenaires, chargerVeterances, chargerActuels, chargerQueteEnCours } from "./etat.js";
 import { useSessions, SessionBar, EcranSession } from "./Sessions.jsx";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
+// Matériaux d'un boost de production (valeurs enregistrées -> noms affichés).
+const MATERIAU_NOM = { bois: "Bois", fer: "Fer", cuir: "Cuir" };
 // Descriptif de ce qu'apporte un bâtiment (Scierie, Camp de Mineur, Tannerie…) : le texte de la fiche du
 // catalogue, puis l'effet déduit des métiers qui l'ont pour outil (production doublée). `objets` = objets
 // du catalogue (avec emploi_outil_id, emploi_materiau_id, emploi_production).
@@ -1099,6 +1101,8 @@ export function App() {
   const [morts, setMorts] = useState([]);
   // Mercenaires « en attente d'un joueur » (leur propriétaire est radié) : identifiant -> { definitif }.
   const [enAttente, setEnAttente] = useState(() => new Map());
+  // Matériaux dont la production est boostée (x2) : identifiant de l'objet -> { materiau, restant } (instances restantes).
+  const [boostsProd, setBoostsProd] = useState(() => new Map());
   // Quête en cours (compteur d’instances) et mercenaires qui y sont engagés :
   // ils sont absents du dortoir (lit grisé), comme à l’entraînement.
   const [queteEnCours, setQueteEnCours] = useState(null);
@@ -1867,7 +1871,7 @@ export function App() {
     const undoId = crypto.randomUUID();
     setInstanceUndo({
       id: undoId,
-      gains: { entrainement: [], infirmerie: [], ateliers: [], employes: [], cimetiere: [], energie: [], budget: 0, quete: null },
+      gains: { entrainement: [], infirmerie: [], ateliers: [], employes: [], boosts: [], cimetiere: [], energie: [], budget: 0, quete: null },
     });
     setInstanceTicks((v) => v + 1);
     // Seul l'administrateur fait avancer l'instance (une fois pour tous les
@@ -1881,7 +1885,7 @@ export function App() {
           return;
         }
         if (gains.quete?.termine && gains.quete.attente) {
-          setRecompenseQuete((c) => c || { nom: gains.quete.nom, or: gains.quete.or || 0, items: gains.quete.items || [], ouvertLe: Date.now() });
+          setRecompenseQuete((c) => c || { nom: gains.quete.nom, or: gains.quete.or || 0, items: gains.quete.items || [], boosts: gains.quete.boosts || [], ouvertLe: Date.now() });
         }
         const nom = (id) =>
           peopleRef.current.find((w) => w.id === id)?.name || "Un mercenaire";
@@ -1919,6 +1923,9 @@ export function App() {
             ),
           ...(gains.queteEchec
             ? [`${gains.queteEchec.nom} : échec de la quête, aucune récompense ; elle redevient disponible.`]
+            : []),
+          ...(gains.quete?.boosts?.length
+            ? [`Boost de production activé : ${gains.quete.boosts.map((b) => MATERIAU_NOM[b.materiau] || b.materiau).join(", ")} ×2 pendant ${gains.quete.boosts[0].instances || 3} instances (celle-ci comprise).`]
             : []),
           ...(gains.quete
             ? gains.quete.termine === false
@@ -2033,6 +2040,11 @@ export function App() {
           const { error } = await supabase.rpc(fn, { p_gains: gains });
           if (error) erreurs.push(error.message);
         }
+        // Les boosts décomptés sont rendus AVANT l'annulation de la quête (qui rétablit le compte d'avant).
+        if (g.boosts?.length) {
+          const { error } = await supabase.rpc("boosts_annuler_instance", { p_gains: g.boosts });
+          if (error) erreurs.push(error.message);
+        }
         if (g.quete) {
           const { error } = await supabase.rpc("quetes_annuler_instance", { p_gains: g.quete });
           if (error) erreurs.push(error.message);
@@ -2134,7 +2146,7 @@ export function App() {
     // dès qu'elles sont récupérées (chez n'importe lequel), elle se ferme chez les autres.
     const enAttente = attente.data?.[0]?.recompenses_attente;
     if (enAttente) {
-      setRecompenseQuete((c) => c || { nom: enAttente.nom, or: enAttente.or || 0, items: enAttente.items || [], ouvertLe: Date.now() });
+      setRecompenseQuete((c) => c || { nom: enAttente.nom, or: enAttente.or || 0, items: enAttente.items || [], boosts: enAttente.boosts || [], ouvertLe: Date.now() });
     } else {
       setRecompenseQuete((c) => (c && Date.now() - (c.ouvertLe || 0) > 4000 ? null : c));
     }
@@ -2472,6 +2484,10 @@ export function App() {
     if (!att.error && Array.isArray(att.data)) {
       setEnAttente(new Map(att.data.map((x) => [x.mercenaire_id, { definitif: !!x.definitif }])));
     }
+    const bp = await supabase.rpc("boosts_production");
+    if (!bp.error && Array.isArray(bp.data)) {
+      setBoostsProd(new Map(bp.data.map((x) => [x.objet_id, { materiau: x.materiau, restant: x.restant }])));
+    }
     await Promise.all([
       synchroniserZonesPartagees(),
       synchroniserEconomie(),
@@ -2655,6 +2671,8 @@ export function App() {
     const a = await supabase.rpc("ateliers_instance");
     const q = await supabase.rpc(echec ? "quetes_echec" : "quetes_instance");
     const emp = await supabase.rpc("employes_instance");
+    // Décompte d'une instance des boosts de production, APRÈS la production des employés (qui en profite).
+    const bo = await supabase.rpc("boosts_instance");
     // En dernier : après les soins de l'infirmerie, tout mercenaire encore à 0 PV rejoint le cimetière.
     const cim = await supabase.rpc("cimetiere_instance");
     await synchroniserPartage();
@@ -2665,6 +2683,7 @@ export function App() {
         infirmerie: liste(i),
         ateliers: liste(a),
         employes: liste(emp),
+        boosts: liste(bo),
         cimetiere: liste(cim),
         energie: liste(en),
         // `budget` reste le net TOTAL (recettes − dépenses + tribut du
@@ -2680,7 +2699,7 @@ export function App() {
         quete: echec ? null : q.data || null,
         queteEchec: echec ? q.data || null : null,
       },
-      erreur: [e.error?.message, en.error?.message, t.error?.message, i.error?.message, a.error?.message, q.error?.message, emp.error?.message, cim.error?.message]
+      erreur: [e.error?.message, en.error?.message, t.error?.message, i.error?.message, a.error?.message, q.error?.message, emp.error?.message, bo.error?.message, cim.error?.message]
         .filter(Boolean)
         .join(" "),
     };
@@ -3897,6 +3916,16 @@ export function App() {
             >
               ?
             </button>
+            {boostsProd.size > 0 && (
+              <div className="boost-bandeau" role="status">
+                {[...boostsProd.values()].map((b) => (
+                  <p key={b.materiau}>
+                    <strong>Production de {MATERIAU_NOM[b.materiau] || b.materiau} boostée ×2</strong> · encore {b.restant}{" "}
+                    instance{b.restant > 1 ? "s" : ""}
+                  </p>
+                ))}
+              </div>
+            )}
             <div className="employes-actions">
               <button type="button" className="market-category parchment employes-materiaux" onClick={ouvrirMateriauxEmbauche}>
                 <span className="sprite asset-sprite">
@@ -3983,6 +4012,12 @@ export function App() {
                             : `+${e.production} ${e.materiauNom}`}
                         </strong>
                       </div>
+                    )}
+                    {e.materiauId && boostsProd.get(e.materiauId) && (
+                      <p className="boost-etiquette">
+                        Production ×2 · encore {boostsProd.get(e.materiauId).restant} instance
+                        {boostsProd.get(e.materiauId).restant > 1 ? "s" : ""}
+                      </p>
                     )}
                     {e.entretienUnitaire ? (
                       <div className="stat-line">

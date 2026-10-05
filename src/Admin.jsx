@@ -3193,6 +3193,11 @@ function QuetesSection() {
       setMsg("Le titre est obligatoire.");
       return;
     }
+    // Le boost de production doit dire de quel matériau il s'agit.
+    if (boostId && slots.some((s) => s && s.objet_id === boostId && !s.materiau)) {
+      setMsg("Choisissez le matériau du boost de production (bois, fer ou cuir).");
+      return;
+    }
     let icone = form.icone || null;
     if (iconFile) {
       setUploading(true);
