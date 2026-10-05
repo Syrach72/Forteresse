@@ -2496,10 +2496,10 @@ function MercenairesSection() {
             <div className="input-wrap">
               <input
                 id="merc-sous-classe"
-                maxLength={20}
+                maxLength={40}
                 value={form.sous_classe}
-                placeholder="20 caractères au plus"
-                onChange={(e) => setForm({ ...form, sous_classe: e.target.value.slice(0, 20) })}
+                placeholder="40 caractères au plus"
+                onChange={(e) => setForm({ ...form, sous_classe: e.target.value.slice(0, 40) })}
               />
             </div>
           </div>

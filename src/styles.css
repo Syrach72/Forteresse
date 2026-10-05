@@ -6077,6 +6077,12 @@ a.merc-card:hover {
   justify-content: flex-end;
   gap: 12px;
 }
+/* Classe + sous-classe longues : le texte passe à la ligne au lieu d'être coupé. */
+.merc-colonne-droite .stat-line strong {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
 /* Puissance, Vélocité, Mental : chiffres au même niveau que ceux des orbes d'énergie et de santé. */
 .merc-trio .merc-carac-valeur {
   font-size: 52px;
