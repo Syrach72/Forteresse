@@ -3850,6 +3850,113 @@ function ContexteAdmin({ sess }) {
 }
 
 // Onglet Sessions : créer, ouvrir, renommer, inviter, remettre à zéro.
+// Joueurs d'une session : pseudo de session, état, radiation temporaire (24 h) ou définitive, réintégration.
+// Un radié ne voit plus la session ; ses mercenaires restent à la Caserne « en attente d'un joueur » (les autres
+// joueurs peuvent les reprendre). Radiation définitive : le joueur peut revenir avec une nouvelle invitation.
+function JoueursSession({ sessionId }) {
+  const [lignes, setLignes] = useState(null);
+  const [msg, setMsg] = useState("");
+  async function charger() {
+    const { data, error } = await supabase.rpc("session_membres_liste", { p_session: sessionId });
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    setLignes(data || []);
+  }
+  useEffect(() => {
+    charger();
+  }, [sessionId]);
+  async function agir(rpc, args, texte) {
+    setMsg("");
+    const { error } = await supabase.rpc(rpc, { p_session: sessionId, ...args });
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    setMsg(texte);
+    await charger();
+  }
+  const etat = (l) =>
+    l.radie_definitive
+      ? "Radié définitivement"
+      : l.radie_jusqua && new Date(l.radie_jusqua).getTime() > Date.now()
+        ? `Radié jusqu’au ${new Date(l.radie_jusqua).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}`
+        : "Actif";
+  const radie = (l) => etat(l) !== "Actif";
+  if (!lignes) return <p>{msg || "Chargement…"}</p>;
+  return (
+    <div>
+      {msg && <p className="admin-error">{msg}</p>}
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Joueur</th>
+            <th>Pseudo de session</th>
+            <th>État</th>
+            <th>Mercenaires</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {lignes.map((l) => (
+            <tr key={l.user_id}>
+              <td>
+                <strong>{l.pseudo_compte || "—"}</strong>
+                <br />
+                <small>{l.email}</small>
+              </td>
+              <td>{l.pseudo_session || <em>pas encore choisi</em>}</td>
+              <td>{etat(l)}</td>
+              <td>{l.mercenaires}</td>
+              <td className="admin-row-actions">
+                {!radie(l) && (
+                  <>
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() =>
+                        confirm(`Radier ${l.pseudo_session || l.pseudo_compte} pour 24 h ? Ses mercenaires attendront un joueur et lui reviendront ensuite.`) &&
+                        agir("session_radier", { p_user: l.user_id, p_definitif: false }, "Joueur radié pour 24 h.")
+                      }
+                    >
+                      Radier 24 h
+                    </button>
+                    <button
+                      type="button"
+                      className="text-button text-button-danger"
+                      onClick={() =>
+                        confirm(`Radier ${l.pseudo_session || l.pseudo_compte} définitivement ? Ses mercenaires pourront être repris par d’autres joueurs.`) &&
+                        agir("session_radier", { p_user: l.user_id, p_definitif: true }, "Joueur radié définitivement.")
+                      }
+                    >
+                      Radier définitivement
+                    </button>
+                  </>
+                )}
+                {radie(l) && (
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => agir("session_reintegrer", { p_user: l.user_id }, "Joueur réintégré.")}
+                  >
+                    Réintégrer
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+          {!lignes.length && (
+            <tr>
+              <td colSpan={5}>Aucun joueur dans cette session.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function SessionsSection({ sess, onInviter }) {
   const [nom, setNom] = useState("");
   const [msg, setMsg] = useState("");
@@ -3857,6 +3964,7 @@ function SessionsSection({ sess, onInviter }) {
   const [renommer, setRenommer] = useState(null); // { id, nom }
   const [zero, setZero] = useState(null); // { id, nom, saisie }
   const [occupe, setOccupe] = useState(false);
+  const [joueursOuverts, setJoueursOuverts] = useState(null); // id de la session dont on gère les joueurs
 
   async function chargerMembres() {
     const { data } = await supabase.from("session_membre").select("session_id");
@@ -3978,6 +4086,13 @@ function SessionsSection({ sess, onInviter }) {
                     </button>
                     <button
                       type="button"
+                      className="text-button"
+                      onClick={() => setJoueursOuverts(joueursOuverts === x.id ? null : x.id)}
+                    >
+                      Joueurs
+                    </button>
+                    <button
+                      type="button"
                       className="text-button text-button-danger"
                       onClick={() => setZero({ id: x.id, nom: x.nom, saisie: "" })}
                     >
@@ -3985,6 +4100,13 @@ function SessionsSection({ sess, onInviter }) {
                     </button>
                   </td>
                 </tr>
+                {joueursOuverts === x.id && (
+                  <tr className="admin-edit-row">
+                    <td colSpan={4}>
+                      <JoueursSession sessionId={x.id} />
+                    </td>
+                  </tr>
+                )}
                 {renommer?.id === x.id && (
                   <tr className="admin-edit-row">
                     <td colSpan={4}>

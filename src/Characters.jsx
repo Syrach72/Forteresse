@@ -88,6 +88,7 @@ export function Characters({
   estAdmin = false,
   onRecruit = () => {},
   gratuitsUtilises = [],
+  pseudoSession = "",
   morts = [],
   onDismiss = () => {},
   onSetVeterance = async () => ({}),
@@ -172,7 +173,10 @@ export function Characters({
   const [errors, setErrors] = useState({});
   // Nom du joueur inscrit sur la fiche avant de recruter (enregistré avec le
   // recrutement, puis affiché sur les pages où apparaît le mercenaire).
-  const [nomJoueur, setNomJoueur] = useState("");
+  const [nomJoueurSaisi, setNomJoueurSaisi] = useState("");
+  // Dans une session, le nom du joueur est son pseudo de session (non modifiable ici) ; le MJ saisit un nom.
+  const nomJoueur = pseudoSession || nomJoueurSaisi;
+  const setNomJoueur = setNomJoueurSaisi;
   // Premier recrutement gratuit du joueur (même nom, sans tenir compte des majuscules) dans la session.
   const gratuitPremier = !!nomJoueur.trim() && !gratuitsUtilises.includes(nomJoueur.trim().toLowerCase());
   const coutRecrutement = gratuitPremier ? 0 : COUT_RECRUTEMENT_PAR_VETERANCE * (merc?.veterance ?? 1);
@@ -854,13 +858,14 @@ export function Characters({
                         ? `C’est le cas pour ${nomJoueur.trim()} : ce recrutement ne coûtera rien.`
                         : `${nomJoueur.trim()} a déjà utilisé son recrutement gratuit : celui-ci sera payant.`}
                   </p>
-                  <label htmlFor="merc-nom-joueur">Nom du joueur</label>
+                  <label htmlFor="merc-nom-joueur">{pseudoSession ? "Pseudo utilisé pour cette session" : "Nom du joueur"}</label>
                   <input
                     id="merc-nom-joueur"
                     type="text"
                     maxLength={24}
                     autoComplete="off"
                     value={nomJoueur}
+                    readOnly={!!pseudoSession}
                     placeholder="Écrivez votre nom"
                     aria-describedby="merc-recruit-help"
                     onChange={(e) => setNomJoueur(e.target.value)}

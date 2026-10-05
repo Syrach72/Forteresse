@@ -7241,3 +7241,9 @@ a.merc-card:hover {
 .merc-portrait-grise { position: relative; }
 
 .creature-etat.actif.bleu { background: #1f55a8; border-color: #123468; }
+
+/* Pseudo de session (bandeau) et mercenaire en attente d un joueur (Caserne). */
+.session-bar-pseudo { margin-left: 12px; }
+.session-bar-pseudo small { opacity: 0.8; }
+.bed-attente { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 2px; }
+.bed-attente .text-button { font-size: 0.8rem; }

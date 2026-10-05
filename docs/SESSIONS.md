@@ -83,3 +83,19 @@ Migration appliquée en production, 40 vérifications OK à blanc (`tests/sessio
 réécrit) et 28 après application. Sauvegarde avant : `2026-09-25_avant_catalogue_partage` (hors
 dépôt). Les anciens tests SQL (quetes_instances, entrainement_regles…) supposent l'ancien modèle : à
 revalider avant réutilisation.
+
+## Pseudo de session et radiation (2026-10-05)
+Migration `20261005150000_pseudo_session_radiation.sql` (appliquée en production).
+- **Pseudo utilisé pour cette session** : `session_membre.pseudo` (2 à 24 caractères, unique dans la session sans tenir
+  compte de la casse), demandé à l'entrée dans la session et affiché dans le bandeau ; c'est le nom inscrit sur les
+  mercenaires recrutés (champ en lecture seule sur la fiche). Le MJ, qui n'est pas membre, saisit un nom à la main.
+- **Radiation** (MJ, Administration > Sessions > Joueurs) : 24 h (`radie_jusqua`) ou définitive (`radie_definitive`).
+  `est_membre()` et `ctx_session()` refusent un radié ; la fin des 24 h est comparée à `now()` (aucune tâche planifiée).
+  Un radié définitif revient avec une nouvelle invitation (`session_rejoindre` efface la radiation).
+- **Mercenaires d'un radié** : ils restent à la Caserne, grisés, « en attente d'un joueur » (équipement et sac gardés).
+  `mercenaire_reprendre` : tout membre actif ayant un pseudo les reprend ; radiation définitive = pour de bon ;
+  radiation 24 h = prêt (`origine_user_id`, `origine_nom`, `retour_le`), rendu au propriétaire d'origine à la fin du délai
+  par `radiations_etat()` (appelée à chaque synchronisation du client), même s'il est en quête.
+- **Renvoi définitif** (MJ) d'un mercenaire laissé par un radié définitif : `mercenaire_renvoi_definitif` (équipement et
+  sac rendus à l'arsenal, vétérance 1, états et compteurs remis à zéro, équipement de base redonné au prochain recrutement).
+- Non vérifié à l'écran avec un vrai second compte : parcours joueur radié, reprise par un autre joueur, retour à 24 h.

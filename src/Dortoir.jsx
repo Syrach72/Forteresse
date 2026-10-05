@@ -22,6 +22,10 @@ export function Dortoir({
   gold,
   onUnlock,
   retourQuetes = false,
+  enAttente = new Map(),
+  peutReprendre = false,
+  onReprendre = () => {},
+  onRenvoyerDefinitivement = () => {},
   Modal,
 }) {
   const [popup, setPopup] = useState(null);
@@ -128,6 +132,26 @@ export function Dortoir({
                     title={merc?.player ? "Joueur" : undefined}
                   >
                     {merc?.player || " "}
+                  </div>
+                )}
+                {/* Propriétaire radié : n'importe quel autre joueur peut reprendre le mercenaire ; le MJ peut le
+                    renvoyer pour de bon si la radiation est définitive. */}
+                {merc && enAttente.has(merc.id) && (
+                  <div className="bed-attente">
+                    {peutReprendre && (
+                      <button type="button" className="text-button" onClick={() => onReprendre(merc.id)}>
+                        Reprendre ce mercenaire
+                      </button>
+                    )}
+                    {estAdmin && enAttente.get(merc.id)?.definitif && (
+                      <button
+                        type="button"
+                        className="text-button text-button-danger"
+                        onClick={() => onRenvoyerDefinitivement(merc.id)}
+                      >
+                        Renvoyer définitivement
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

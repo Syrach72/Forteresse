@@ -11,21 +11,24 @@ import { Modal } from "./Modal.jsx";
 //   "aucune"      aucun accès à une session : saisir un code d'invitation
 //   "choix"       plusieurs sessions et aucune choisie
 //   "base"        le MJ édite la base de départ (pas de partie affichée)
+//   "radie"       le joueur est radié de la session choisie (temporairement ou définitivement)
 //   "attente"     session choisie mais pas encore lancée par le MJ
 //   null          la partie est jouable
 export function useSessions(userId, estAdmin) {
-  const [etat, setEtat] = useState({ pret: false, sessions: [], active: null, erreur: "" });
+  const [etat, setEtat] = useState({ pret: false, sessions: [], active: null, membres: [], erreur: "" });
   const charger = useCallback(async () => {
-    const [s, a] = await Promise.all([
+    const [s, a, mb] = await Promise.all([
       supabase.from("session").select("id, nom, lancee_le").order("nom"),
       supabase.from("session_active").select("session_id, contexte_base").maybeSingle(),
+      // Mon appartenance à chaque session : pseudo de session et radiation éventuelle.
+      supabase.from("session_membre").select("session_id, pseudo, radie_jusqua, radie_definitive").eq("user_id", userId),
     ]);
     if (s.error) {
       setEtat((e) => ({ ...e, pret: true, erreur: s.error.message }));
       return;
     }
-    setEtat({ pret: true, sessions: s.data || [], active: a.data || null, erreur: "" });
-  }, []);
+    setEtat({ pret: true, sessions: s.data || [], active: a.data || null, membres: mb.data || [], erreur: "" });
+  }, [userId]);
   useEffect(() => {
     if (userId) charger();
   }, [userId, charger]);
@@ -38,9 +41,16 @@ export function useSessions(userId, estAdmin) {
         : etat.sessions.find((x) => x.id === etat.active.session_id) || null,
     [base, etat],
   );
+  // Radiation en cours dans la session choisie (la fin d'une radiation de 24 h est comparée à l'heure).
+  const radieEnCours = (m) => !!m && (m.radie_definitive || (!!m.radie_jusqua && new Date(m.radie_jusqua).getTime() > Date.now()));
+  const membreActif = etat.membres.find((m) => m.session_id === etat.active?.session_id);
+  const radiation = !base && radieEnCours(membreActif) ? membreActif : null;
+  // Mon appartenance à la session en cours (absente pour le MJ, qui n'a pas de pseudo de session).
+  const membreCourante = courante ? etat.membres.find((m) => m.session_id === courante.id) || null : null;
   let ecran = null;
   if (!etat.pret) ecran = "chargement";
   else if (base) ecran = "base";
+  else if (radiation) ecran = "radie";
   else if (!etat.sessions.length) ecran = "aucune";
   else if (!courante) ecran = "choix";
   else if (!courante.lancee_le) ecran = "attente";
@@ -57,8 +67,26 @@ export function useSessions(userId, estAdmin) {
     return () => clearInterval(id);
   }, [enAttente, courante?.id]);
 
+  // Radiation temporaire : la page se recharge toute seule à la fin du délai.
+  const finRadiation = radiation && !radiation.radie_definitive ? new Date(radiation.radie_jusqua).getTime() : null;
+  useEffect(() => {
+    if (!finRadiation) return undefined;
+    const t = setTimeout(() => location.reload(), Math.min(Math.max(finRadiation - Date.now(), 0) + 1500, 2147000000));
+    return () => clearTimeout(t);
+  }, [finRadiation]);
+
   return {
     pret: etat.pret,
+    radiation,
+    membreCourante,
+    monPseudo: membreCourante?.pseudo ?? null,
+    // Pseudo utilisé pour cette session (2 à 24 caractères, unique dans la session).
+    async definirPseudo(pseudo) {
+      const { error } = await supabase.rpc("session_pseudo_definir", { p_pseudo: pseudo });
+      if (error) return { error: error.message };
+      await charger();
+      return {};
+    },
     erreur: etat.erreur,
     sessions: etat.sessions,
     courante,
@@ -86,6 +114,45 @@ export function useSessions(userId, estAdmin) {
       return {};
     },
   };
+}
+
+// Pseudo utilisé pour cette session : saisi à l'entrée dans la session, modifiable ensuite.
+function FormPseudo({ initial, onEnregistrer }) {
+  const [pseudo, setPseudo] = useState(initial || "");
+  const [erreur, setErreur] = useState("");
+  const [busy, setBusy] = useState(false);
+  return (
+    <form
+      className="session-rejoindre"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (pseudo.trim().length < 2 || busy) return;
+        setBusy(true);
+        setErreur("");
+        const r = await onEnregistrer(pseudo.trim());
+        setBusy(false);
+        if (r?.error) setErreur(r.error);
+      }}
+    >
+      <label htmlFor="session-pseudo">Pseudo utilisé pour cette session</label>
+      <input
+        id="session-pseudo"
+        value={pseudo}
+        maxLength={24}
+        autoComplete="off"
+        placeholder="Votre nom dans cette partie"
+        onChange={(e) => setPseudo(e.target.value)}
+      />
+      <button className="wood-button" type="submit" disabled={pseudo.trim().length < 2 || busy}>
+        {busy ? "Enregistrement…" : "Enregistrer le pseudo"}
+      </button>
+      {erreur && (
+        <p className="error" role="alert">
+          {erreur}
+        </p>
+      )}
+    </form>
+  );
 }
 
 function FormRejoindre({ onRejoindre }) {
@@ -130,8 +197,11 @@ function FormRejoindre({ onRejoindre }) {
 }
 
 // Bandeau en haut de la partie : nom de la session en cours et changement de session.
-export function SessionBar({ sess, estAdmin }) {
+export function SessionBar({ sess, estAdmin, pseudoCompte = "" }) {
   const [rejoindre, setRejoindre] = useState(false);
+  const [pseudoOuvert, setPseudoOuvert] = useState(false);
+  // Un joueur qui entre dans la session sans pseudo doit d'abord en choisir un.
+  const pseudoRequis = !!sess.membreCourante && !sess.monPseudo && !!sess.courante?.lancee_le;
   const [erreur, setErreur] = useState("");
   const valeur = sess.base ? "__base" : sess.courante?.id || "";
   return (
@@ -145,6 +215,14 @@ export function SessionBar({ sess, estAdmin }) {
           <em className="session-bar-attente"> · en attente du lancement</em>
         )}
       </span>
+      {sess.membreCourante && sess.monPseudo && (
+        <span className="session-bar-pseudo">
+          <small>Pseudo utilisé pour cette session :</small> <strong>{sess.monPseudo}</strong>{" "}
+          <button type="button" className="text-button" onClick={() => setPseudoOuvert(true)}>
+            Modifier
+          </button>
+        </span>
+      )}
       <label className="session-bar-choix">
         <span className="sr-only">Changer de session</span>
         <select
@@ -175,6 +253,22 @@ export function SessionBar({ sess, estAdmin }) {
         <span className="session-bar-erreur" role="alert">
           {erreur}
         </span>
+      )}
+      {(pseudoRequis || pseudoOuvert) && (
+        <Modal title="Pseudo utilisé pour cette session" onClose={() => setPseudoOuvert(false)}>
+          <p>
+            Ce pseudo est le nom inscrit sur les mercenaires que vous recrutez dans cette session. Il est propre à
+            cette session et chaque joueur a le sien.
+          </p>
+          <FormPseudo
+            initial={sess.monPseudo || pseudoCompte}
+            onEnregistrer={async (p) => {
+              const r = await sess.definirPseudo(p);
+              if (!r.error) setPseudoOuvert(false);
+              return r;
+            }}
+          />
+        </Modal>
       )}
       {rejoindre && (
         <Modal title="Rejoindre une session" onClose={() => setRejoindre(false)}>
@@ -222,6 +316,39 @@ export function EcranSession({ sess, estAdmin }) {
               ))}
             </div>
             {!sessions.length && <p className="muted">Aucune session créée pour le moment.</p>}
+          </>
+        )}
+        {ecran === "radie" && sess.radiation && (
+          <>
+            <h1>Vous êtes radié de cette session</h1>
+            {sess.radiation.radie_definitive ? (
+              <>
+                <p>
+                  Le MJ vous a radié définitivement de cette session. Si vous devez y revenir, demandez-lui une
+                  nouvelle invitation et saisissez-la ci-dessous : votre compte n’est pas bloqué.
+                </p>
+                <FormRejoindre onRejoindre={sess.rejoindre} />
+              </>
+            ) : (
+              <p>
+                Le MJ vous a radié de cette session jusqu’au{" "}
+                <strong>{new Date(sess.radiation.radie_jusqua).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" })}</strong>.
+                Vos mercenaires restent à la Caserne : d’autres joueurs peuvent les utiliser en attendant. Cette page
+                se rouvrira toute seule à la fin du délai.
+              </p>
+            )}
+            {sessions.length > 0 && (
+              <>
+                <p className="muted">Vous pouvez jouer dans une autre de vos sessions :</p>
+                <div className="session-liste">
+                  {sessions.map((x) => (
+                    <button key={x.id} className="wood-button" type="button" onClick={() => sess.choisir(x.id)}>
+                      {x.nom}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </>
         )}
         {ecran === "attente" && (

@@ -1097,6 +1097,8 @@ export function App() {
   const [gratuitsUtilises, setGratuitsUtilises] = useState([]);
   // Mercenaires au cimetière dans la session courante (morts à 0 PV en fin d'instance).
   const [morts, setMorts] = useState([]);
+  // Mercenaires « en attente d'un joueur » (leur propriétaire est radié) : identifiant -> { definitif }.
+  const [enAttente, setEnAttente] = useState(() => new Map());
   // Quête en cours (compteur d’instances) et mercenaires qui y sont engagés :
   // ils sont absents du dortoir (lit grisé), comme à l’entraînement.
   const [queteEnCours, setQueteEnCours] = useState(null);
@@ -1277,8 +1279,10 @@ export function App() {
       if (b) m[b.heroId] = `À l’infirmerie${suite(b.remaining)}`;
     for (const e of mercsEnQuete)
       m[e.mercenaire_id] = `En quête${suite(queteEnCours?.instances_restantes ?? 0)}`;
+    // Propriétaire radié : le lit reste grisé, avec la mention (ajoutée à l'autre mention s'il y en a une).
+    for (const id of enAttente.keys()) m[id] = m[id] ? `${m[id]} · en attente d’un joueur` : "En attente d’un joueur";
     return m;
-  }, [training, infirm, mercenaires, mercsEnQuete, queteEnCours]);
+  }, [training, infirm, mercenaires, mercsEnQuete, queteEnCours, enAttente]);
   const [route, setRoute] = useState(location.hash.slice(1) || "forteresse");
   useEffect(() => {
     if (!retourSac) return;
@@ -1597,6 +1601,30 @@ export function App() {
     await synchroniserPartage();
     notify("Puissance, Vélocité et Mental enregistrés.");
     return {};
+  }
+  // Reprendre un mercenaire en attente d'un joueur : son nom devient le pseudo de session du joueur (radiation
+  // définitive : pour de bon ; radiation de 24 h : jusqu'au retour du propriétaire d'origine).
+  async function reprendreMercenaire(id) {
+    const m = mercenaires.find((x) => x.id === id);
+    const { error } = await supabase.rpc("mercenaire_reprendre", { p_mercenaire: id });
+    if (error) {
+      notify(error.message);
+      return;
+    }
+    await synchroniserPartage();
+    notify(`${m?.nom || "Le mercenaire"} est maintenant à vous.`);
+  }
+  // MJ : renvoi définitif d'un mercenaire laissé par un joueur radié définitivement (repart de zéro).
+  async function renvoyerDefinitivement(id) {
+    const m = mercenaires.find((x) => x.id === id);
+    if (!confirm(`Renvoyer définitivement ${m?.nom || "ce mercenaire"} ? Il repart de zéro (vétérance 1, équipement de base) et son équipement actuel retourne à l'arsenal.`)) return;
+    const { error } = await supabase.rpc("mercenaire_renvoi_definitif", { p_mercenaire: id });
+    if (error) {
+      notify(error.message);
+      return;
+    }
+    await synchroniserPartage();
+    notify(`${m?.nom || "Le mercenaire"} est renvoyé définitivement.`);
   }
   // Renvoyer un mercenaire recruté : supprime le recrutement (il redevient
   // recrutable, sa carte est dégrisée sur la page de sa classe) et libère son
@@ -2433,6 +2461,11 @@ export function App() {
     });
   }
   async function synchroniserPartage() {
+    // Retour des mercenaires prêtés à la fin d'une radiation, puis liste de ceux qui attendent un joueur.
+    const att = await supabase.rpc("radiations_etat");
+    if (!att.error && Array.isArray(att.data)) {
+      setEnAttente(new Map(att.data.map((x) => [x.mercenaire_id, { definitif: !!x.definitif }])));
+    }
     await Promise.all([
       synchroniserZonesPartagees(),
       synchroniserEconomie(),
@@ -3523,7 +3556,7 @@ export function App() {
       <a className="skip" href="#main">
         Aller au contenu
       </a>
-      <SessionBar sess={sess} estAdmin={estAdmin} />
+      <SessionBar sess={sess} estAdmin={estAdmin} pseudoCompte={name} />
       <header className="game-header">
         {/* Mobile : le menu (classes, Admin, Déconnect., Forteresse) tient dans une liste à choix. */}
         <select
@@ -3699,6 +3732,7 @@ export function App() {
         </div>
         <Characters
           route={route}
+          pseudoSession={estAdmin ? "" : sess.monPseudo || ""}
           warriors={warriors}
           mercenaires={mercenaires}
           recrutes={[...mesMercs.keys()]}
@@ -4116,6 +4150,10 @@ export function App() {
               gold={game.gold}
               onUnlock={unlockDorm}
               retourQuetes={retourQuetes}
+              enAttente={enAttente}
+              peutReprendre={!estAdmin && !!sess.monPseudo}
+              onReprendre={reprendreMercenaire}
+              onRenvoyerDefinitivement={renvoyerDefinitivement}
               Modal={Modal}
             />
           ) : route === "infirmerie" ? (
