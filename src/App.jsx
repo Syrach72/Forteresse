@@ -35,6 +35,7 @@ import { Modal } from "./Modal.jsx";
 import { BonusHumain } from "./BonusHumain.jsx";
 import { BoutonAide, AIDES } from "./AideLieu.jsx";
 import { RecompenseQuete } from "./RecompenseQuete.jsx";
+import { EchecQuete } from "./EchecQuete.jsx";
 import { Diagnostic, DebugBadge } from "./Diagnostic.jsx";
 import { supabase } from "./supabaseClient";
 import { chargerSon, creerPiste } from "./sons.js";
@@ -1057,6 +1058,8 @@ export function App() {
   const [treasuryLive, setTreasuryLive] = useState(EMPTY_TREASURY_LIVE);
   // Fenêtre de récompenses de fin de quête (MJ) : { nom, or, items } tant qu'elles n'ont pas été récupérées.
   const [recompenseQuete, setRecompenseQuete] = useState(null);
+  // Échec de quête annoncé à tous les joueurs : { id, nom } tant que le joueur ne l'a pas fermé.
+  const [echecQuete, setEchecQuete] = useState(null);
   const syncErreurSignalee = useRef(false);
   const [training, setTraining] = useState(() =>
     structuredClone(INITIAL_TRAINING),
@@ -1803,7 +1806,9 @@ export function App() {
     setGame(next);
   }
   const defaultDurations = { forge: 5, armurerie: 3, alchimie: 2, mage: 0 };
-  function decreaseInstances() {
+  // `issue` : "echec" quand le MJ déclare la quête en cours échouée (même avance d'instance, mais
+  // la quête n'est pas accomplie) ; sinon le +1 Instance habituel (« Réussite » sur la fiche de quête).
+  function decreaseInstances(issue) {
     // Session pas encore lancée : le premier clic du MJ la lance (copie du contenu
     // et état de départ), sans faire avancer aucun compteur ; il ne s'annule pas.
     if (sess.courante && !sess.courante.lancee_le) {
@@ -1832,7 +1837,7 @@ export function App() {
     // joueurs) ; le serveur le revérifie.
     if (estAdmin)
       enqueueTraining(async () => {
-        const { gains, erreur } = await runSharedInstance();
+        const { gains, erreur } = await runSharedInstance(issue === "echec");
         setInstanceUndo((u) => (u?.id === undoId ? { ...u, gains } : u));
         if (erreur) {
           notify(`+1 Instance : ${erreur}`);
@@ -1875,6 +1880,9 @@ export function App() {
                   ? "Le sertissage à l’armurerie est terminé."
                   : `La fabrication de l'atelier ${g.atelier} est terminée.`,
             ),
+          ...(gains.queteEchec
+            ? [`${gains.queteEchec.nom} : échec de la quête, aucune récompense ; elle redevient disponible.`]
+            : []),
           ...(gains.quete
             ? gains.quete.termine === false
               ? [
@@ -2092,6 +2100,17 @@ export function App() {
       setRecompenseQuete((c) => c || { nom: enAttente.nom, or: enAttente.or || 0, items: enAttente.items || [], ouvertLe: Date.now() });
     } else {
       setRecompenseQuete((c) => (c && Date.now() - (c.ouvertLe || 0) > 4000 ? null : c));
+    }
+    // Échec de quête (déclaré par le MJ) : fenêtre chez tous les joueurs, fermée par chacun pour lui-même
+    // (l'identifiant déjà vu est retenu), et seulement si l'échec est récent.
+    const ech = await supabase.from("quete_etat").select("echec_attente").not("echec_attente", "is", null).limit(1);
+    const echec = ech.data?.[0]?.echec_attente;
+    if (echec?.id && Date.now() - new Date(echec.le).getTime() < 10 * 60 * 1000) {
+      let vu = null;
+      try {
+        vu = localStorage.getItem("quete-echec-vu");
+      } catch {}
+      if (vu !== echec.id) setEchecQuete((c) => c || { id: echec.id, nom: echec.nom });
     }
     const arsenal = inv.data.find((i) => i.type === "arsenal");
     const enStock = lignes.data.filter(
@@ -2578,7 +2597,7 @@ export function App() {
   // reste en place) ; à l'infirmerie chaque compteur baisse de 1 et celui qui
   // arrive à 0 retrouve sa place au dortoir ; dans les ateliers chaque durée
   // baisse de 1 (rien n'est livré tout seul : « Envoyer à l'Arsenal »).
-  async function runSharedInstance() {
+  async function runSharedInstance(echec = false) {
     // Début de la nouvelle instance : le solde reçoit (recettes − dépenses), dont
     // l'entretien calculé sur les vétérances d'avant la progression. Un solde
     // négatif ne bloque rien.
@@ -2588,7 +2607,7 @@ export function App() {
     const t = await supabase.rpc("entrainement_instance");
     const i = await supabase.rpc("infirmerie_instance");
     const a = await supabase.rpc("ateliers_instance");
-    const q = await supabase.rpc("quetes_instance");
+    const q = await supabase.rpc(echec ? "quetes_echec" : "quetes_instance");
     const emp = await supabase.rpc("employes_instance");
     // En dernier : après les soins de l'infirmerie, tout mercenaire encore à 0 PV rejoint le cimetière.
     const cim = await supabase.rpc("cimetiere_instance");
@@ -2611,7 +2630,9 @@ export function App() {
         budgetStructure: (e.data?.recettes || 0) - (e.data?.depenses || 0),
         tribut: e.data?.tribut || 0,
         tributPhrase: e.data?.tribut_phrase || "",
-        quete: q.data || null,
+        // Un échec de quête n'est pas annulable avec « Annuler » : la quête reste échouée.
+        quete: echec ? null : q.data || null,
+        queteEchec: echec ? q.data || null : null,
       },
       erreur: [e.error?.message, en.error?.message, t.error?.message, i.error?.message, a.error?.message, q.error?.message, emp.error?.message, cim.error?.message]
         .filter(Boolean)
@@ -3644,7 +3665,7 @@ export function App() {
             l'entraînement de tous les joueurs). Absent pour les joueurs. */}
         {estAdmin && (
           <div className="instance-controls">
-            <button className="header-time" onClick={decreaseInstances}
+            <button className="header-time" onClick={() => decreaseInstances()}
               aria-label="+1 Instance · toutes les Durées d’Instance -1"
               title={`${instanceTicks} instance(s) écoulée(s) · Retire 1 à toutes les Durées d’Instance, minimum 0`}>
               +1<br />Instance
@@ -4006,6 +4027,8 @@ export function App() {
               estAdmin={estAdmin}
               onChanged={synchroniserPartage}
               onDefinirEtat={definirEtat}
+              onIssue={decreaseInstances}
+              issueBloquee={trainingPending > 0}
             />
           ) : route === "tresorerie" ? (
             <Treasury
@@ -4614,6 +4637,17 @@ export function App() {
       )}
       {route === "diagnostic" && <Diagnostic game={game} estAdmin={estAdmin} sess={sess} />}
       <DebugBadge game={game} route={route} />
+      {echecQuete && (
+        <EchecQuete
+          echec={echecQuete}
+          onClose={() => {
+            try {
+              localStorage.setItem("quete-echec-vu", echecQuete.id);
+            } catch {}
+            setEchecQuete(null);
+          }}
+        />
+      )}
       {recompenseQuete && (
         <RecompenseQuete recompense={recompenseQuete} onClose={recupererRecompensesQuete} />
       )}

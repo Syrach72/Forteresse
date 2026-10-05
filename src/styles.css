@@ -7194,3 +7194,11 @@ a.merc-card:hover {
 .modal-market-dual .market-dual-col {
   min-width: 0;
 }
+
+/* Issue de la quête en cours (MJ seul) : Échec (rouge) / Réussite (vert). */
+.quest-issue { display: flex; gap: 10px; margin: 10px 0 4px; }
+.quest-issue-btn { flex: 1; min-height: 44px; border: 2px solid rgba(0, 0, 0, 0.55); border-radius: 6px; color: #fff; font: inherit; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.quest-issue-btn:disabled { opacity: 0.55; cursor: default; }
+.quest-issue-echec { background: linear-gradient(#c0392b, #7d1f15); }
+.quest-issue-reussite { background: linear-gradient(#3f9b4a, #1f5f2a); }
+.quest-issue-btn:focus-visible { outline: 3px solid #f2d479; outline-offset: 2px; }

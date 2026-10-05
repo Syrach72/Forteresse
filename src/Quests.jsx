@@ -121,6 +121,8 @@ export function Quests({
   estAdmin = false,
   onChanged = () => {},
   onDefinirEtat = async () => ({}),
+  onIssue = () => {},
+  issueBloquee = false,
 }) {
   const { quetes, recompenses, objets, engages, scenarios, creaturesJeu, creaturesPrevues, error, reload } = useQuetes(estAdmin);
   const [busy, setBusy] = useState(false);
@@ -372,6 +374,18 @@ export function Quests({
                     fp={q.facteur_puissance}
                     somme={engagesQuete.reduce((t, e) => t + (personne(e.mercenaire_id)?.veterancy ?? 0), 0)}
                   />
+                )}
+                {q.en_cours && estAdmin && (
+                  <div className="quest-issue" role="group" aria-label="Issue de la quête (MJ)">
+                    <button type="button" className="quest-issue-btn quest-issue-echec" onClick={() => onIssue("echec")} disabled={busy || issueBloquee}
+                      title="La quête échoue : l’instance avance de 1, aucune récompense, la quête redevient disponible.">
+                      Échec
+                    </button>
+                    <button type="button" className="quest-issue-btn quest-issue-reussite" onClick={() => onIssue("reussite")} disabled={busy || issueBloquee}
+                      title="+1 Instance : la quête avance, et est accomplie quand le compteur arrive à 0.">
+                      Réussite
+                    </button>
+                  </div>
                 )}
                 {q.en_cours ? (
                   <button type="button" className="wood-button quest-choix" onClick={annuler} disabled={busy}>
