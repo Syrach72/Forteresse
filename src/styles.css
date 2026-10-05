@@ -7388,3 +7388,8 @@ a.merc-card:hover {
 .regles-page h3 { margin: 22px 0 6px; font-size: 1.15em; border-bottom: 1px solid rgba(60, 40, 20, 0.35); padding-bottom: 2px; }
 .regles-page p { margin: 0 0 6px; text-align: justify; hyphens: auto; }
 .regles-page .regles-intro { font-style: italic; }
+
+/* Page Règles : encre noire plus foncée. */
+.regles-page, .regles-page h3, .regles-page p { color: #050505; }
+.regles-page p { font-weight: 500; }
+.regles-page h3 { border-bottom-color: rgba(0, 0, 0, 0.55); }
