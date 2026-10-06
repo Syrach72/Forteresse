@@ -4,6 +4,7 @@ import { RichTextarea } from "./RichText.jsx";
 import {
   CATEGORIES_CAPACITES,
   ETATS_JEU,
+  IMMUNITES_SUPPLEMENTAIRES,
   SENS_CREATURE,
   SOUS_TYPES_CREATURE,
   TAILLES_CREATURE,
@@ -414,7 +415,7 @@ export function CreaturesSection({ kit }) {
         <MultiChoix libelle="Vulnérabilités" options={TYPES_DEGATS} valeur={form.vulnerabilites} onChange={(v) => setForm({ ...form, vulnerabilites: v })} />
         <MultiChoix libelle="Résistances" options={TYPES_DEGATS} valeur={form.resistances} onChange={(v) => setForm({ ...form, resistances: v })} />
         <MultiChoix libelle="Immunités aux dégâts" options={TYPES_DEGATS} valeur={form.immunites_degats} onChange={(v) => setForm({ ...form, immunites_degats: v })} />
-        <MultiChoix libelle="Immunités aux états" options={ETATS_JEU.map((e) => e.nom)} valeur={form.immunites_etats} onChange={(v) => setForm({ ...form, immunites_etats: v })} />
+        <MultiChoix libelle="Immunités aux états" options={[...ETATS_JEU.map((e) => e.nom), ...IMMUNITES_SUPPLEMENTAIRES]} valeur={form.immunites_etats} onChange={(v) => setForm({ ...form, immunites_etats: v })} />
         <MultiChoix libelle="Sens" options={SENS_CREATURE} valeur={form.sens} onChange={(v) => setForm({ ...form, sens: v })} />
       </div>
 

@@ -113,6 +113,8 @@ export const ETATS_JEU = [
   { id: "possede", nom: "Possédé" },
   { id: "suffocation", nom: "Suffocation" },
 ];
+// Immunités d'une créature en plus des états du jeu (liste « Immunités aux états » de sa fiche).
+export const IMMUNITES_SUPPLEMENTAIRES = ["Attaques Sournoises", "Critiques", "Maladresses", "Tenailles"];
 // Détail de chaque état, ouvert par le badge « ? » au-dessus du bouton actif (à rédiger : id -> texte).
 export const DETAIL_ETATS = {
   abri_partiel: "Abri Partiel (1/2 du corps protégé) : Attaquant Désavantagé,",
