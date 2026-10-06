@@ -10,6 +10,7 @@ import {
   TAILLES_CREATURE,
   TYPES_CREATURE,
   TYPES_DEGATS,
+  TYPES_VULNERABILITES,
   TYPES_VOL,
   creatureVide,
   entier,
@@ -412,7 +413,7 @@ export function CreaturesSection({ kit }) {
         main. Parade et Armure se saisissent toujours à la main.
       </p>
       <div className="creature-multis">
-        <MultiChoix libelle="Vulnérabilités" options={TYPES_DEGATS} valeur={form.vulnerabilites} onChange={(v) => setForm({ ...form, vulnerabilites: v })} />
+        <MultiChoix libelle="Vulnérabilités" options={TYPES_VULNERABILITES} valeur={form.vulnerabilites} onChange={(v) => setForm({ ...form, vulnerabilites: v })} />
         <MultiChoix libelle="Résistances" options={TYPES_DEGATS} valeur={form.resistances} onChange={(v) => setForm({ ...form, resistances: v })} />
         <MultiChoix libelle="Immunités aux dégâts" options={TYPES_DEGATS} valeur={form.immunites_degats} onChange={(v) => setForm({ ...form, immunites_degats: v })} />
         <MultiChoix libelle="Immunités aux états" options={[...ETATS_JEU.map((e) => e.nom), ...IMMUNITES_SUPPLEMENTAIRES]} valeur={form.immunites_etats} onChange={(v) => setForm({ ...form, immunites_etats: v })} />

@@ -64,6 +64,9 @@ export const TYPES_DEGATS = [
   "contondant, perforant et tranchant des armes non magiques non adamantines",
 ];
 
+// Vulnérabilités : les types de dégâts, plus l'argent et l'eau (propres à ce champ).
+export const TYPES_VULNERABILITES = [...TYPES_DEGATS, "argent", "eau"];
+
 // Précision du Vol (une seule à la fois, facultative) : valeur enregistrée -> libellé.
 export const TYPES_VOL = [
   ["levitation", "Lévitation"],
