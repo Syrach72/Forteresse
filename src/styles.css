@@ -7276,6 +7276,7 @@ a.merc-card:hover {
 .creature-entree-icone { display: flex; align-items: flex-start; gap: 10px; margin: 6px 0; }
 .creature-entree-icone p { margin: 0; flex: 1; min-width: 0; }
 .creature-entree-icone .creature-icone-bouton { flex: none; }
+.creature-arme-icone { flex: none; width: 64px; height: 64px; object-fit: contain; }
 /* Choix d'icône d'une entrée du formulaire (administration). */
 .creature-capacite-tete .creature-slot-cell { flex: none; }
 

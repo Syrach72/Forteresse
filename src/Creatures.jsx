@@ -55,6 +55,10 @@ export function CreaturesSection({ kit }) {
   const [liens, setLiens] = useState([]);
   // Compétences des mercenaires (objets du catalogue des rubriques « Compétences ») : source des icônes.
   const [competences, setCompetences] = useState([]);
+  // Armes du catalogue (rubrique « Armes ») et armes choisies pour chaque créature (3 au plus).
+  const [armesCatalogue, setArmesCatalogue] = useState([]);
+  const [liensArmes, setLiensArmes] = useState([]);
+  const [armes, setArmes] = useState([]);
   // Entrée dont le choix d'icône est ouvert : « catégorie:position ».
   const [slotOuvert, setSlotOuvert] = useState(null);
   const [erreur, setErreur] = useState("");
@@ -66,14 +70,15 @@ export function CreaturesSection({ kit }) {
   const [confirmingId, setConfirmingId] = useState(null);
 
   async function charger() {
-    const [c, p, l, cat, obj] = await Promise.all([
+    const [c, p, l, cat, obj, ar] = await Promise.all([
       supabase.from("creature").select("*").order("nom"),
       supabase.from("capacite_creature").select("*").order("titre"),
       supabase.from("creature_capacite").select("*").order("position"),
       supabase.from("categorie").select("id, nom, parent_id"),
       supabase.from("objet_catalogue").select("id, nom, description, icone, categorie_id").order("nom"),
+      supabase.from("creature_arme").select("*").order("position"),
     ]);
-    const err = c.error || p.error || l.error || cat.error || obj.error;
+    const err = c.error || p.error || l.error || cat.error || obj.error || ar.error;
     if (err) {
       setErreur(err.message);
       return;
@@ -92,6 +97,8 @@ export function CreaturesSection({ kit }) {
         .map((o) => ({ ...o, racine: racine(o.categorie_id) }))
         .filter((o) => /comp[ée]tences/i.test(o.racine)),
     );
+    setArmesCatalogue(obj.data.filter((o) => cle(racine(o.categorie_id)) === "armes"));
+    setLiensArmes(ar.data);
   }
   useEffect(() => {
     charger();
@@ -149,6 +156,7 @@ export function CreaturesSection({ kit }) {
           });
       });
     setListes(next);
+    setArmes(liensArmes.filter((a) => a.creature_id === c.id).map((a) => a.objet_id));
     setSlotOuvert(null);
     setMsg("");
     window.scrollTo?.({ top: 0, behavior: "smooth" });
@@ -157,6 +165,7 @@ export function CreaturesSection({ kit }) {
     setEditing(null);
     setForm(creatureVide());
     setListes(listesVides());
+    setArmes([]);
     setSlotOuvert(null);
     setMsg("");
   }
@@ -279,6 +288,13 @@ export function CreaturesSection({ kit }) {
       if (delCap) throw delCap;
       if (lignes.length) {
         const { error } = await supabase.from("creature_capacite").insert(lignes);
+        if (error) throw error;
+      }
+      const { error: delArmes } = await supabase.from("creature_arme").delete().eq("creature_id", id);
+      if (delArmes) throw delArmes;
+      const lignesArmes = armes.filter(Boolean).slice(0, 3).map((objet_id, position) => ({ creature_id: id, position, objet_id }));
+      if (lignesArmes.length) {
+        const { error } = await supabase.from("creature_arme").insert(lignesArmes);
         if (error) throw error;
       }
       await charger();
@@ -513,6 +529,28 @@ export function CreaturesSection({ kit }) {
           </button>
         </div>
       ))}
+      <div className="admin-recette-block">
+        <p className="eyebrow admin-section-label">Armes (3 au plus)</p>
+        {armes.map((objetId, i) => (
+          <div className="creature-capacite-tete" key={i}>
+            <SearchableSelect
+              value={objetId}
+              onChange={(v) => setArmes((prev) => prev.map((x, k) => (k === i ? v : x)))}
+              options={armesCatalogue.map((o) => ({ value: o.id, label: o.nom }))}
+              emptyLabel="— Choisir une arme —"
+              ariaLabel={`Arme ${i + 1}`}
+            />
+            <button type="button" className="text-button" onClick={() => setArmes((prev) => prev.filter((_, k) => k !== i))}>
+              Supprimer
+            </button>
+          </div>
+        ))}
+        {armes.length < 3 && (
+          <button type="button" className="text-button" onClick={() => setArmes((prev) => [...prev, ""])}>
+            + Ajouter une arme
+          </button>
+        )}
+      </div>
       <datalist id="cr-titres">
         {titresConnus.map((t) => (
           <option key={t} value={t} />

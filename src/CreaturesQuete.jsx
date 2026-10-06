@@ -13,6 +13,15 @@ const CHIFFRES_ENERGIE = Array.from({ length: 10 }, (_, i) => i + 1);
 
 // Routes : #creatures (quête en cours), #creatures/<id> (une créature), et en APERÇU, avant que la quête soit
 // choisie : #creatures/quete/<idQuête>[/<clé>] (fiches lues dans le catalogue, rien à modifier).
+// Armes des créatures (3 au plus, choisies dans le catalogue), avec les caractéristiques à afficher.
+function chargerArmes(ids) {
+  return supabase
+    .from("creature_arme")
+    .select("creature_id, position, objet:objet_catalogue(nom, description, icone, portee, allonge, type_degats, parade, deux_mains, legere)")
+    .in("creature_id", ids)
+    .order("position");
+}
+
 export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", notify = () => {} }) {
   const parts = route.split("/");
   const apercuQuete = parts[1] === "quete" ? parts[2] : null;
@@ -38,20 +47,23 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
     let creatures = [];
     let liens = [];
     let capacites = [];
+    let armes = [];
     if (ids.length) {
-      const [c, li, cap] = await Promise.all([
+      const [c, li, cap, ar] = await Promise.all([
         supabase.from("creature").select("*").in("id", ids),
         supabase.from("creature_capacite").select("*").in("creature_id", ids).order("position"),
         supabase.from("capacite_creature").select("*"),
+        chargerArmes(ids),
       ]);
-      const err = c.error || li.error || cap.error;
+      const err = c.error || li.error || cap.error || ar.error;
       if (err) return setErreur(err.message);
       creatures = c.data;
       liens = li.data;
       capacites = cap.data;
+      armes = ar.data;
     }
     setErreur("");
-    setDonnees({ quete: q.data, lignes: l.data, creatures, liens, capacites });
+    setDonnees({ quete: q.data, lignes: l.data, creatures, liens, capacites, armes });
   }
   // Aperçu d'une quête pas encore choisie : une entrée par exemplaire prévu (mêmes noms d'onglet qu'au choix).
   async function chargerApercu(dejaChoisie = false) {
@@ -64,17 +76,20 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
     let creatures = [];
     let liens = [];
     let capacites = [];
+    let armes = [];
     if (ids.length) {
-      const [c, li, cap] = await Promise.all([
+      const [c, li, cap, ar] = await Promise.all([
         supabase.from("creature").select("*").in("id", ids),
         supabase.from("creature_capacite").select("*").in("creature_id", ids).order("position"),
         supabase.from("capacite_creature").select("*"),
+        chargerArmes(ids),
       ]);
-      const err = c.error || li.error || cap.error;
+      const err = c.error || li.error || cap.error || ar.error;
       if (err) return setErreur(err.message);
       creatures = c.data;
       liens = li.data;
       capacites = cap.data;
+      armes = ar.data;
     }
     const lignes = [];
     for (const x of [...qc.data].sort((a, b) =>
@@ -95,7 +110,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
         });
     }
     setErreur("");
-    setDonnees({ apercu: true, dejaChoisie, quete: q.data, lignes, creatures, liens, capacites });
+    setDonnees({ apercu: true, dejaChoisie, quete: q.data, lignes, creatures, liens, capacites, armes });
   }
   useEffect(() => {
     if (!estAdmin) return undefined;
@@ -126,7 +141,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
         </div>
       </section>
     );
-  const { quete, lignes, creatures, liens, capacites, apercu, dejaChoisie } = donnees;
+  const { quete, lignes, creatures, liens, capacites, armes = [], apercu, dejaChoisie } = donnees;
   const base = apercu ? "#creatures/quete/" + quete.id + "/" : "#creatures/";
   if (!lignes.length)
     return (
@@ -206,6 +221,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
           ligne={courante}
           fiche={fiche}
           liens={liens.filter((x) => x.creature_id === fiche.id)}
+          armes={armes.filter((x) => x.creature_id === fiche.id && x.objet)}
           capDe={capDe}
           sauver={(patch) => sauver(courante.id, patch)}
           ouvrirIcone={(capacite) => setFenetre({ ligneId: courante.id, capacite })}
@@ -225,7 +241,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
   );
 }
 
-function FicheCreatureJeu({ ligne, fiche, liens, capDe, sauver, ouvrirIcone, apercu = false }) {
+function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false }) {
   const santeMax = fiche.sante_max;
   const energieMax = fiche.energie_max;
   const sante = ligne.sante_actuelle ?? santeMax;
@@ -394,6 +410,36 @@ function FicheCreatureJeu({ ligne, fiche, liens, capDe, sauver, ouvrirIcone, ape
         onNiveau={(n) => sauver({ etat: "epuise", etat_niveau: n })}
         onRounds={(n) => sauver({ etat_rounds: n })}
       />
+
+      {armes.length > 0 && (
+        <div>
+          <h4 className="creature-section">Armes</h4>
+          {armes.map(({ position, objet: o }) => (
+            <div className="creature-entree creature-entree-icone" key={position}>
+              {o.icone && <img className="creature-arme-icone" src={o.icone} alt="" />}
+              <p>
+                <strong>{o.nom}.</strong>{" "}
+                {[
+                  o.type_degats && `Dégâts : ${o.type_degats}`,
+                  o.portee && `Portée : ${o.portee}`,
+                  o.allonge && `Allonge : ${o.allonge}`,
+                  o.parade && `Parade ${o.parade}`,
+                  o.legere && "Arme légère",
+                  o.deux_mains && "Deux mains",
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+                {o.description && (
+                  <>
+                    {" "}
+                    <RichText text={o.description} />
+                  </>
+                )}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {CATEGORIES_CAPACITES.map((cat) => {
         const entrees = lignesPar(cat.id);
