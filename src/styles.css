@@ -7402,10 +7402,10 @@ a.merc-card:hover {
 .employes-page .parchment :is(h1, h2, h3, p, span, strong, small, label) {
   color: #fff;
   font-weight: 700;
-  text-shadow:
-    -1px -1px 0 #000,
-    1px -1px 0 #000,
-    -1px 1px 0 #000,
-    1px 1px 0 #000,
-    0 0 2px #000;
+  /* Contour unique : trait de 2 px dessiné SOUS les lettres (1 px visible à l'extérieur), sans ombre portée
+     (les anciennes ombres décalées formaient un double trait). */
+  text-shadow: none;
+  -webkit-text-stroke: 2px #000;
+  paint-order: stroke fill;
+  stroke-linejoin: round;
 }
