@@ -2312,15 +2312,12 @@ export function App() {
     const inventory = [];
     for (const l of enStock) {
       const o = cache.objets.get(l.objet_id);
-      // Une arme sertie (gemmes non vide), ou tout objet non empilable (armes/armures : chaque
-      // exemplaire garde sa propre ligne côté serveur, cf. _arsenal_ajouter) reste un exemplaire
-      // distinct : identifiant propre à sa ligne d'inventaire, jamais additionné à un autre.
+      // À l'arsenal, les objets absolument identiques (même objet, mêmes gemmes) s'empilent ;
+      // un exemplaire serti reste seul sur sa ligne côté serveur (cf. _arsenal_ajouter).
       const gemmes = l.gemmes && l.gemmes.length ? l.gemmes : [];
       const id = gemmes.length
         ? `catalogue:${l.objet_id}:gemmes:${gemmes.join(",")}`
-        : o?.empilable === false
-          ? `catalogue:${l.objet_id}:ligne:${l.id}`
-          : `catalogue:${l.objet_id}`;
+        : `catalogue:${l.objet_id}`;
       const deja = inventory.find((x) => x.id === id);
       if (deja) {
         deja.quantity += l.quantite;
