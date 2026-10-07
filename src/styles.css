@@ -7439,3 +7439,27 @@ a.merc-card:hover {
 .employes-page .employe-card-locked > :not(.employe-cadenas):not(.item-art) {
   opacity: 1;
 }
+
+/* États en quête (fenêtre d'un mercenaire engagé, fiche) : leur brun fixe devenait illisible sur le verre
+   sombre. Texte blanc à contour unique et fond sombre translucide ; l'état actif garde son rouge/vert. */
+.interior .parchment .creature-section {
+  color: #fff;
+  font-weight: 700;
+  text-shadow: none;
+  -webkit-text-stroke: 2px #000;
+  paint-order: stroke fill;
+  stroke-linejoin: round;
+}
+.interior .parchment .creature-etat:not(.actif) {
+  color: #fff;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.38);
+  border-color: rgba(255, 255, 255, 0.6);
+  text-shadow: none;
+  -webkit-text-stroke: 2px #000;
+  paint-order: stroke fill;
+  stroke-linejoin: round;
+}
+.interior .parchment .creature-etat:hover:not(:disabled):not(.actif) {
+  background: rgba(0, 0, 0, 0.55);
+}
