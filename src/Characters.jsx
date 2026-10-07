@@ -341,6 +341,7 @@ export function Characters({
                       ) : (
                         <span className="merc-portrait-vide" aria-hidden="true" />
                       )}
+                      <VetBadge className="merc-vet-coin" value={m.veterance} />
                       {recrutes.includes(m.id) && (m.pointsCarac ?? 0) > 0 && !mort && <AlertePoint />}
                       {estBlesse(m) && !mort && !mortChamp && <CoeurBlesse className="coeur-carte" mort={estAZero(m)} />}
                       {mort && <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="Au cimetière" />}
@@ -349,9 +350,6 @@ export function Characters({
                     <span className="merc-caption">
                       <strong>{m.nom}</strong>
                       {m.sousClasse && <span className="merc-sous-classe">{m.sousClasse}</span>}
-                      <span className="merc-vet">
-                        Vétérance <VetBadge value={m.veterance} />
-                      </span>
                     </span>
                   </>
                 );

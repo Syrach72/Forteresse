@@ -4650,6 +4650,18 @@ a.merc-card:hover {
   margin-top: 3px;
   font-size: clamp(12px, 1.05vw, 16px);
 }
+/* Pastille de vétérance dans le coin supérieur gauche du portrait (sans libellé). */
+.merc-portrait {
+  position: relative;
+}
+.merc-vet-coin {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  z-index: 5;
+  --vet: 44px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+}
 /* Sous-classe du mercenaire, sous son nom dans la zone de recrutement. */
 .merc-caption .merc-sous-classe {
   font-style: italic;
