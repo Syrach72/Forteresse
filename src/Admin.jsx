@@ -1226,12 +1226,10 @@ function CatalogueSection({ onCraftItem }) {
           </select>
         </div>
       </div>
-      {/* Une compétence (active ou passive) n'est pas un objet possédé en plusieurs exemplaires : pas de case « Empilable ». */}
-      {!/comp[ée]tences/i.test(racineDe(categories.rows, form.categorie_id)?.nom || "") && (
-      <div className="admin-checkbox-row">
-        {/* Armes seulement (sauf armes de moine, réservées aux Moines) : cochée par défaut, le MJ la décoche
-            pour autoriser l'arme aux Druides. */}
-        {categorieFlags(form.categorie_id).arme && !categorieFlags(form.categorie_id).armeMoine && (
+      {/* Armes seulement (sauf armes de moine, réservées aux Moines) : cochée par défaut, le MJ la décoche
+          pour autoriser l'arme aux Druides. */}
+      {categorieFlags(form.categorie_id).arme && !categorieFlags(form.categorie_id).armeMoine && (
+        <div className="admin-checkbox-row">
           <label className="admin-checkbox">
             <input
               type="checkbox"
@@ -1240,16 +1238,7 @@ function CatalogueSection({ onCraftItem }) {
             />
             Interdite aux Druides
           </label>
-        )}
-        <label className="admin-checkbox">
-          <input
-            type="checkbox"
-            checked={form.empilable}
-            onChange={(e) => setForm({ ...form, empilable: e.target.checked })}
-          />
-          Empilable
-        </label>
-      </div>
+        </div>
       )}
       {(() => {
         const { arme, armure, bouclier, alchimique, emploi, craftable, achetable, atelier } = categorieFlags(
@@ -1753,7 +1742,6 @@ function CatalogueSection({ onCraftItem }) {
               <th>Nom</th>
               <th>Code</th>
               <th>Catégorie</th>
-              <th>Empilable</th>
               <th></th>
             </tr>
           </thead>
@@ -1771,7 +1759,6 @@ function CatalogueSection({ onCraftItem }) {
                   <td>{r.nom}</td>
                   <td>{r.code_unique}</td>
                   <td>{nomCategorie(r.categorie_id)}</td>
-                  <td>{r.empilable ? "Oui" : "Non"}</td>
                   <td className="admin-row-actions">
                     <button type="button" className="text-button" onClick={() => startEdit(r)}>
                       Modifier
@@ -1790,7 +1777,7 @@ function CatalogueSection({ onCraftItem }) {
                 </tr>
                 {editing === r.id && (
                   <tr className="admin-edit-row">
-                    <td colSpan={7}>{formEl}</td>
+                    <td colSpan={5}>{formEl}</td>
                   </tr>
                 )}
               </Fragment>
