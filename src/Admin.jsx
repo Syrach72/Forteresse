@@ -162,6 +162,7 @@ function emptyCatalogueItem(categorieId = "") {
     type_degats: "",
     deux_mains: false,
     legere: false,
+    interdit_druide: true,
     emploi_materiau_id: "",
     emploi_production: "",
     emploi_production_outil: "",
@@ -939,7 +940,8 @@ function CatalogueSection({ onCraftItem }) {
       isCategorieParmi(categorieId, ["composants", "objet divers", "collecte"]);
     const racine = racineDe(categories.rows || [], categorieId);
     const atelier = ATELIER_PAR_RACINE[racine?.nom.trim().toLowerCase()] || null;
-    return { arme, armure, bouclier, alchimique, gemme, emploi, craftable, achetable, atelier };
+    const armeMoine = arme && isCategorieParmi(categorieId, ["armes de moine"]);
+    return { arme, armeMoine, armure, bouclier, alchimique, gemme, emploi, craftable, achetable, atelier };
   }
   function startEdit(row) {
     setEditing(row.id);
@@ -964,6 +966,7 @@ function CatalogueSection({ onCraftItem }) {
       type_degats: row.type_degats || "",
       deux_mains: !!row.deux_mains,
       legere: !!row.legere,
+      interdit_druide: row.interdit_druide !== false,
       emploi_materiau_id: row.emploi_materiau_id || "",
       emploi_production: row.emploi_production ?? "",
       emploi_production_outil: row.emploi_production_outil ?? "",
@@ -1113,6 +1116,7 @@ function CatalogueSection({ onCraftItem }) {
       type_degats: arme ? form.type_degats.trim() || null : null,
       deux_mains: arme ? !!form.deux_mains : false,
       legere: arme ? !!form.legere : false,
+      interdit_druide: arme ? !!form.interdit_druide : true,
       emploi_materiau_id: emploi ? form.emploi_materiau_id || null : null,
       emploi_production: emploi ? toIntOrNull(form.emploi_production) : null,
       emploi_production_outil: emploi ? toIntOrNull(form.emploi_production_outil) : null,
@@ -1225,6 +1229,18 @@ function CatalogueSection({ onCraftItem }) {
       {/* Une compétence (active ou passive) n'est pas un objet possédé en plusieurs exemplaires : pas de case « Empilable ». */}
       {!/comp[ée]tences/i.test(racineDe(categories.rows, form.categorie_id)?.nom || "") && (
       <div className="admin-checkbox-row">
+        {/* Armes seulement (sauf armes de moine, réservées aux Moines) : cochée par défaut, le MJ la décoche
+            pour autoriser l'arme aux Druides. */}
+        {categorieFlags(form.categorie_id).arme && !categorieFlags(form.categorie_id).armeMoine && (
+          <label className="admin-checkbox">
+            <input
+              type="checkbox"
+              checked={form.interdit_druide !== false}
+              onChange={(e) => setForm({ ...form, interdit_druide: e.target.checked })}
+            />
+            Interdite aux Druides
+          </label>
+        )}
         <label className="admin-checkbox">
           <input
             type="checkbox"
