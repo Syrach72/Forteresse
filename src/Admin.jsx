@@ -144,7 +144,6 @@ function emptyCatalogueItem(categorieId = "") {
     nom: "",
     categorie_id: categorieId,
     description: "",
-    empilable: true,
     icone: "",
     arme_icone_1: "",
     arme_icone_2: "",
@@ -943,7 +942,8 @@ function CatalogueSection({ onCraftItem }) {
     const armeMoine = arme && isCategorieParmi(categorieId, ["armes de moine"]);
     return { arme, armeMoine, armure, bouclier, alchimique, gemme, emploi, craftable, achetable, atelier };
   }
-  function startEdit(row) {
+  function startEdit(ligne) {
+    const { empilable: _ancienneColonne, ...row } = ligne;
     setEditing(row.id);
     setArmeIconeFiles([null, null]);
     setForm({
