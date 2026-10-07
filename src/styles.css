@@ -7392,3 +7392,20 @@ a.merc-card:hover {
 .regles-page, .regles-page h3, .regles-page p { color: #050505; }
 .regles-page p { font-weight: 500; }
 .regles-page h3 { border-bottom-color: rgba(0, 0, 0, 0.55); }
+
+/* Essai de Bruno (2026-10-07), page Ressources seulement : texte blanc pur, plus gras, contour noir fin (1 px)
+   au lieu du halo flou ; les pavés verrouillés ne ternissent plus le texte (seule l'image reste estompée).
+   Si l'essai est validé, la même règle sera étendue aux autres pages à texte blanc. */
+.employes-page .employe-card-locked > :not(.employe-cadenas):not(.item-art) {
+  opacity: 1;
+}
+.employes-page .parchment :is(h1, h2, h3, p, span, strong, small, label) {
+  color: #fff;
+  font-weight: 700;
+  text-shadow:
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    1px 1px 0 #000,
+    0 0 2px #000;
+}
