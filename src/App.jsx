@@ -1760,6 +1760,34 @@ export function App() {
     });
     setPendingCraftTarget(null);
   }, [pendingCraftTarget, route, catalogueByAtelier]);
+  // Page Ressources : le fond (vidéo 16:9) est recadré pour garder le feu de camp (à 29,3 % de la largeur) au
+  // centre de l'écran, quelle que soit la forme de la fenêtre ; sans recadrage possible (fenêtre au moins
+  // aussi large que la vidéo), le fond reste entier.
+  useEffect(() => {
+    if (route !== "employes") return undefined;
+    const FEU = 0.293;
+    const centrer = () => {
+      document.querySelectorAll(".employes-page video.interior-backdrop").forEach((v) => {
+        const w = v.clientWidth;
+        const h = v.clientHeight;
+        if (!w || !h) return;
+        const larg = Math.max(w, (h * 16) / 9);
+        const p = larg > w ? Math.min(Math.max((FEU * larg - w / 2) / (larg - w), 0), 1) : 0.5;
+        v.style.objectPosition = `${(p * 100).toFixed(2)}% 50%`;
+      });
+    };
+    centrer();
+    const page = document.querySelector(".employes-page");
+    const obs = typeof ResizeObserver === "function" && page ? new ResizeObserver(centrer) : null;
+    if (obs) obs.observe(page);
+    window.addEventListener("resize", centrer);
+    const t = setTimeout(centrer, 300);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("resize", centrer);
+      if (obs) obs.disconnect();
+    };
+  }, [route]);
   useEffect(() => {
     if (route !== "employes") return;
     let annule = false;
@@ -3921,7 +3949,7 @@ export function App() {
         <main id="main" className="interior employes-page">
           <div
             className="interior-backdrop"
-            style={{ backgroundImage: "url(/assets/employes-fond.jpg)" }}
+            style={{ backgroundImage: "url(/assets/employes-fond.jpg)", backgroundPosition: "29% 50%" }}
           />
           <BackdropVideo src="/assets/video/employes-anime.mp4" />
           <div className="room-top">
