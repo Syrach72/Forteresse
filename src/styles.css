@@ -4650,6 +4650,10 @@ a.merc-card:hover {
   margin-top: 3px;
   font-size: clamp(12px, 1.05vw, 16px);
 }
+/* Sous-classe du mercenaire, sous son nom dans la zone de recrutement. */
+.merc-caption .merc-sous-classe {
+  font-style: italic;
+}
 .merc-caption .merc-vet {
   display: flex;
   align-items: center;

@@ -348,6 +348,7 @@ export function Characters({
                     </span>
                     <span className="merc-caption">
                       <strong>{m.nom}</strong>
+                      {m.sousClasse && <span className="merc-sous-classe">{m.sousClasse}</span>}
                       <span className="merc-vet">
                         Vétérance <VetBadge value={m.veterance} />
                       </span>
