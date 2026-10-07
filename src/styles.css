@@ -163,7 +163,11 @@ img {
    donc encore en noir sur le décor sombre ; même texte blanc contouré. */
 .interior .parchment .text-button {
   color: #fff;
-  text-shadow: 0 1px 3px #000;
+  font-weight: 700;
+  text-shadow: none;
+  -webkit-text-stroke: 2px #000;
+  paint-order: stroke fill;
+  stroke-linejoin: round;
 }
 .interior .parchment h1,
 .interior .parchment h2,
@@ -173,9 +177,13 @@ img {
 .interior .parchment strong,
 .interior .parchment small,
 .interior .parchment label {
-  /* Contour net (4 offsets, zero flou) plutot qu'un halo : lisible sur
-     n'importe quel fond de decor, sans effet d'ombrage. */
-  text-shadow: 0 1px 3px #000;
+  /* Blanc pur, gras, contour noir unique (règle de Bruno, 2026-10-07) : trait de 2 px dessiné SOUS les
+     lettres (1 px visible à l'extérieur), sans ombre portée (les ombres décalées doublaient le trait). */
+  font-weight: 700;
+  text-shadow: none;
+  -webkit-text-stroke: 2px #000;
+  paint-order: stroke fill;
+  stroke-linejoin: round;
 }
 .interior .parchment h1,
 .interior .parchment h2,
@@ -206,6 +214,8 @@ img {
 ) :is(h1, h2, h3, p, span, strong, small, label) {
   color: var(--ink);
   text-shadow: none;
+  -webkit-text-stroke: 0;
+  font-weight: revert;
 }
 /* Triptyque Metal/Cuir/Bois : fond propre (carte claire, pas le fond de
    decor), donc texte simplement noir sans contour, comme avant l'effet
@@ -215,6 +225,8 @@ img {
 .interior .parchment .materials small {
   color: var(--ink);
   text-shadow: none;
+  -webkit-text-stroke: 0;
+  font-weight: revert;
 }
 /* Trésorerie : chaque ligne (.treasury-cost) a son propre fond clair et plein
    (pas le décor semi-transparent) : même correctif que .materials ci-dessus,
@@ -226,6 +238,8 @@ img {
 .interior .parchment .treasury-achats-detail span {
   color: var(--ink);
   text-shadow: none;
+  -webkit-text-stroke: 0;
+  font-weight: revert;
 }
 .game-header {
   display: flex;
@@ -404,7 +418,10 @@ img {
   /* Texte blanc à léger bord noir (règle de Bruno) : lisible quel que soit
      le fond derrière la tuile. */
   color: #fff;
-  text-shadow: 0 1px 3px #000;
+  text-shadow: none;
+  -webkit-text-stroke: 0.13em #000;
+  paint-order: stroke fill;
+  stroke-linejoin: round;
 }
 @media (max-width: 1000px) {
   .location {
@@ -441,7 +458,10 @@ img {
   font-size: clamp(13px, 1.6vw, 18px);
   pointer-events: none;
   color: #fff;
-  text-shadow: 0 1px 3px #000;
+  text-shadow: none;
+  -webkit-text-stroke: 0.13em #000;
+  paint-order: stroke fill;
+  stroke-linejoin: round;
 }
 .lock-mark {
   font-family: Chiffres, Georgia, serif;
@@ -2732,6 +2752,7 @@ video.interior-backdrop-boxed {
   color: #f0cf36;
   display: block;
   text-shadow: 0 2px 4px #000;
+  -webkit-text-stroke: 0;
 }
 .free-bed {
   font:
@@ -2820,6 +2841,7 @@ video.interior-backdrop-boxed {
 .interior .parchment .vet-badge {
   color: #f3d27a;
   text-shadow: 0 1px 3px #000;
+  -webkit-text-stroke: 0;
 }
 .bed-veterance {
   position: absolute;
@@ -3330,6 +3352,7 @@ video.interior-backdrop-boxed {
 .infirmary-board .bed-locked > strong {
   color: #f0cf36;
   text-shadow: 0 2px 4px #000;
+  -webkit-text-stroke: 0;
 }
 .infirmerie .available-heroes {
   max-width: 620px;
@@ -3475,6 +3498,7 @@ video.interior-backdrop-boxed {
 .interior .parchment.training-locked strong {
   color: #f0cf36;
   text-shadow: 0 2px 4px #000;
+  -webkit-text-stroke: 0;
   font-size: 31px;
 }
 .training-note {
@@ -5127,6 +5151,8 @@ a.merc-card:hover {
 .interior .parchment .quest-merc-candidat small {
   color: #1c150d;
   text-shadow: none;
+  -webkit-text-stroke: 0;
+  font-weight: revert;
 }
 .interior .parchment .quest-merc-candidat small {
   color: #5b4b33;
@@ -7393,19 +7419,7 @@ a.merc-card:hover {
 .regles-page p { font-weight: 500; }
 .regles-page h3 { border-bottom-color: rgba(0, 0, 0, 0.55); }
 
-/* Essai de Bruno (2026-10-07), page Ressources seulement : texte blanc pur, plus gras, contour noir fin (1 px)
-   au lieu du halo flou ; les pavés verrouillés ne ternissent plus le texte (seule l'image reste estompée).
-   Si l'essai est validé, la même règle sera étendue aux autres pages à texte blanc. */
+/* Page Ressources : les pavés verrouillés ne ternissent plus le texte (seule l'image reste estompée). */
 .employes-page .employe-card-locked > :not(.employe-cadenas):not(.item-art) {
   opacity: 1;
-}
-.employes-page .parchment :is(h1, h2, h3, p, span, strong, small, label) {
-  color: #fff;
-  font-weight: 700;
-  /* Contour unique : trait de 2 px dessiné SOUS les lettres (1 px visible à l'extérieur), sans ombre portée
-     (les anciennes ombres décalées formaient un double trait). */
-  text-shadow: none;
-  -webkit-text-stroke: 2px #000;
-  paint-order: stroke fill;
-  stroke-linejoin: round;
 }
