@@ -7497,3 +7497,7 @@ a.merc-card:hover {
 .mission-carte { background: #d8cbb1; border: 1px solid #9d8b6b; color: #2a1c0a; }
 .mission-carte.accomplie { background: #cdd7ab; border-color: #8a9a63; }
 .mission-carte .mission-statut { font-weight: 700; }
+
+/* Missions : texte des cartes en noir intense, sans contour */
+.mission-carte, .mission-carte * { color: #000 !important; -webkit-text-stroke: 0 !important; text-shadow: none !important; }
+.mission-carte .mission-recompense em { font-style: italic; }
