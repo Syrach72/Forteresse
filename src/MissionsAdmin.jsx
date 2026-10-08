@@ -152,10 +152,12 @@ export function MissionsSection({ kit }) {
             ))}
           </select>
         </label>
-        <label>
-          Note pour le branchement (ce qui doit déclencher la mission)
-          <textarea rows={2} value={f.note} onChange={(e) => set("note", e.target.value)} />
-        </label>
+        {f.evenement === "a_brancher" && (
+          <label>
+            Note pour le branchement (décrivez avec vos mots ce qui doit déclencher la mission)
+            <textarea rows={2} value={f.note} onChange={(e) => set("note", e.target.value)} />
+          </label>
+        )}
         <label>
           Nombre de fois requis (seuil)
           <input type="number" min="1" step="1" value={f.seuil} onChange={(e) => set("seuil", e.target.value)} />
