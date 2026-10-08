@@ -507,13 +507,27 @@ export function Characters({
                   // Pavé de défense : Esquive (Vélocité ÷ 3, arrondi inférieur, minimum 1), Parade, Armure.
                   const equip = equipDe(merc.id);
                   const velocite = Number(merc.velocite) + (merc.bonusVelocite ?? 0) + (tmp.velocite ?? 0);
-                  const esquive = Number.isFinite(velocite) ? Math.max(1, Math.floor(velocite / 3)) : "—";
+                  // Style de combat « Défense » : +1🎲 à l'Esquive (automatisé).
+                  const bonusDefense = merc.styleCombat === "défense" ? 1 : 0;
+                  const esquive = Number.isFinite(velocite) ? Math.max(1, Math.floor(velocite / 3)) + bonusDefense : "—";
                   const armure = equip?.armure?.[0];
                   const v = (x) => (x === null || x === undefined || String(x).trim() === "" ? "—" : x);
                   // Protection de la fiche armure, déjà au format P/T/K (Perforant / Tranchant / Contondant).
                   const valeurArmure = v(armure?.protection);
                   const lignes = [
-                    ["Esquive", esquive],
+                    [
+                      "Esquive",
+                      bonusDefense && esquive !== "—" ? (
+                        <>
+                          {esquive}
+                          <span className="merc-carac-bonus merc-carac-temp" title="Style de combat Défense : +1🎲 à l’Esquive (compris dans la valeur)">
+                            {" "}+1🎲
+                          </span>
+                        </>
+                      ) : (
+                        esquive
+                      ),
+                    ],
                     ["Parade", meilleureParade(equip) || "—"],
                     ["Armure", valeurArmure],
                   ];
