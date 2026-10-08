@@ -7489,3 +7489,11 @@ a.merc-card:hover {
 .mission-carte p { margin: 6px 0 0; }
 .mission-recompense { font-weight: 700; }
 .mission-mercs { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+
+/* Missions : bouton jaune pâle, cartes ocre lisibles (même ocre que la barre verticale des lieux) */
+.header-actions-col .header-missions, .header-missions { background: #fbf1a9; border-color: #c9b24a; color: #3a2a0e; font-weight: 700; }
+.header-missions:hover { background: #fff6bf; }
+.missions-page { color: #2a1c0a; }
+.mission-carte { background: #d8cbb1; border: 1px solid #9d8b6b; color: #2a1c0a; }
+.mission-carte.accomplie { background: #cdd7ab; border-color: #8a9a63; }
+.mission-carte .mission-statut { font-weight: 700; }

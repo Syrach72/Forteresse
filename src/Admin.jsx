@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
+import { MissionsSection } from "./MissionsAdmin.jsx";
 import { supabase } from "./supabaseClient";
 import { ASSETS } from "./data";
 import { useSessions } from "./Sessions.jsx";
@@ -4476,6 +4477,9 @@ export function Admin({ onCraftItem = () => {} }) {
         <button className={tab === "quetes" ? "active" : ""} onClick={() => setTab("quetes")}>
           Quêtes
         </button>
+        <button className={tab === "missions" ? "active" : ""} onClick={() => setTab("missions")}>
+          Missions
+        </button>
         <button className={tab === "creatures" ? "active" : ""} onClick={() => setTab("creatures")}>
           Créatures
         </button>
@@ -4521,6 +4525,7 @@ export function Admin({ onCraftItem = () => {} }) {
         {sess.pret && tab === "mercenaires" && <MercenairesSection />}
         {sess.pret && !arsenalIndisponible && tab === "arsenal" && (sess.base ? <DepartBaseSection /> : <ArsenalSection />)}
         {sess.pret && tab === "quetes" && <QuetesSection />}
+        {sess.pret && tab === "missions" && <MissionsSection kit={{ useTable, DeleteButton, SearchableSelect }} />}
         {sess.pret && tab === "creatures" && <CreaturesSection kit={{ uploadImage, DeleteButton, SearchableSelect }} />}
         {tab === "invitations" && <InvitationsSection sess={sess} sessionInitiale={sessionInvit} />}
       </div>

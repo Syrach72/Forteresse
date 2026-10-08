@@ -31,7 +31,7 @@ export function Missions({ missions, attributions, compteurs, objets, userId, on
         <div className="mission-entete">
           <strong>{m.nom}</strong>
           <span className="mission-statut">
-            {a ? "Accomplie ✓" : `${Math.min(progression(m), m.seuil)} / ${m.seuil}`}
+            {a ? "Accomplie ✓" : m.evenement === "a_brancher" ? "En préparation" : `${Math.min(progression(m), m.seuil)} / ${m.seuil}`}
           </span>
         </div>
         <p>{m.description}</p>
