@@ -705,7 +705,6 @@ function CatalogueItemDetail({
   route,
   onBuy,
   onCraft,
-  onCollect,
   undo,
   onUndo,
 }) {
@@ -716,20 +715,16 @@ function CatalogueItemDetail({
   const showCraft = needs.length > 0 || context === "atelier";
   const soldeInsuffisant = coutDefini && game.gold < cout;
   const lacking = needs.some((ing) => ingredientQuantity(game.inventory, ing.nom) < ing.quantite);
-  // Fabrication en attente dans l'atelier de cet objet : la Durée d'instance
-  // décompte via le bouton +1 Instance. À 0, elle n'est PAS livrée toute
-  // seule : « Envoyer à l'Arsenal » libère l'atelier. Un atelier occupé par
-  // un AUTRE objet bloque la fabrication de celui-ci.
+  // Fabrication en cours dans l'atelier : la Durée d'instance décompte via le bouton +1 Instance et,
+  // à 0, l'objet rejoint TOUT SEUL l'arsenal. Un atelier occupé accepte jusqu'à 2 objets en liste
+  // d'attente, qui prennent le relais automatiquement.
   const queued = route ? game.craftingQueue?.[route] : null;
   const queuedId = queued && typeof queued === "object" ? queued.id : queued;
   const queuedHere = !!queued && queuedId === item.id;
-  const autreEnCours = !!queued && !queuedHere;
-  const autreNom =
-    queued && typeof queued === "object"
-      ? queued.nom
-      : ITEMS.find((i) => i.id === queued)?.name || "un autre objet";
+  const attente = (route && game.fileAttente?.[route]) || [];
+  const filePleine = attente.length >= 2;
+  const enFile = !!queued && (item.duree_fabrication_instances ?? 0) > 0;
   const remaining = game.durations?.[route] ?? item.duree_fabrication_instances ?? 0;
-  const readyHere = queuedHere && remaining === 0;
   return (
     <>
       {item.icone && (
@@ -781,21 +776,19 @@ function CatalogueItemDetail({
             type="button"
             disabled={
               busy ||
-              autreEnCours ||
-              (queuedHere && !readyHere) ||
-              (!queuedHere && (!needs.length || lacking))
+              (enFile && filePleine) ||
+              !needs.length ||
+              lacking
             }
-            onClick={() => (readyHere ? onCollect() : onCraft(item))}
+            onClick={() => onCraft(item)}
           >
             {busy
               ? "Fabrication…"
-              : readyHere
-                ? "Envoyer à l’Arsenal"
-                : queuedHere
-                  ? "Fabrication en cours…"
-                  : autreEnCours
-                    ? "Atelier occupé"
-                    : actionLabel}
+              : enFile
+                ? filePleine
+                  ? "Liste d’attente pleine"
+                  : "Ajouter à la liste d’attente"
+                : actionLabel}
           </button>
         )}
       </div>
@@ -814,7 +807,7 @@ function CatalogueItemDetail({
       {soldeInsuffisant && (
         <p className="error">Solde insuffisant : {game.gold} Po en trésorerie.</p>
       )}
-      {showCraft && lacking && !queuedHere && (
+      {showCraft && lacking && (
         <p className="error">
           Ressources insuffisantes pour cette fabrication (
           {needs
@@ -829,25 +822,17 @@ function CatalogueItemDetail({
         </p>
       )}
       {showCraft &&
-        (readyHere ? (
+        (enFile ? (
           <p className="muted">
-            Fabrication terminée : cliquez sur « Envoyer à l’Arsenal » pour
-            libérer l’atelier.
-          </p>
-        ) : queuedHere ? (
-          <p className="muted">
-            Fabrication en cours : encore {remaining} instance(s) avant de
-            pouvoir l’envoyer à l’arsenal.
-          </p>
-        ) : autreEnCours ? (
-          <p className="muted">
-            L’atelier est occupé par {autreNom}. Récupérez-le à l’atelier
-            avant d’en lancer une autre.
+            L’atelier est occupé
+            {queued && typeof queued === "object" ? ` par ${queued.nom}` : ""} (encore {remaining}{" "}
+            instance(s)). Liste d’attente : {attente.length}/2. Chaque objet
+            prend le relais automatiquement, puis rejoint l’arsenal tout seul.
           </p>
         ) : (
           <p className="muted">
-            L’objet fabriqué rejoint votre inventaire une fois la durée
-            d’instance à 0.
+            L’objet fabriqué rejoint l’arsenal automatiquement une fois la
+            durée d’instance à 0.
           </p>
         ))}
     </>
@@ -1062,6 +1047,8 @@ export function App() {
   const [treasuryLive, setTreasuryLive] = useState(EMPTY_TREASURY_LIVE);
   // Fenêtre de récompenses de fin de quête (MJ) : { nom, or, items } tant qu'elles n'ont pas été récupérées.
   const [recompenseQuete, setRecompenseQuete] = useState(null);
+  // Journal de l'instance (panneau ouvert chez tous après un +1 Instance) : { id, le, phrases }.
+  const [journalInstance, setJournalInstance] = useState(null);
   // Échec de quête annoncé à tous les joueurs : { id, nom } tant que le joueur ne l'a pas fermé.
   const [echecQuete, setEchecQuete] = useState(null);
   const syncErreurSignalee = useRef(false);
@@ -1953,13 +1940,43 @@ export function App() {
             .map((g) => `${nom(g.mercenaire_id)} est soigné et retrouve sa place à la caserne.`),
           ...gains.ateliers
             .filter((g) => g.a === 0)
-            .map((g) =>
-              g.atelier === "sertissage"
-                ? "Le sertissage à la forge est terminé."
-                : g.atelier === "sertissage-armurerie"
-                  ? "Le sertissage à l’armurerie est terminé."
-                  : `La fabrication de l'atelier ${g.atelier} est terminée.`,
-            ),
+            .flatMap((g) => {
+              const lieu =
+                g.atelier === "sertissage"
+                  ? "à la forge (sertissage)"
+                  : g.atelier === "sertissage-armurerie"
+                    ? "à l’armurerie (sertissage)"
+                    : g.atelier === "mage"
+                      ? "à la tour du mage"
+                      : g.atelier === "alchimie"
+                        ? "au laboratoire"
+                        : g.atelier === "armurerie"
+                          ? "à l’armurerie"
+                          : "à la forge";
+              const qte = g.quantite > 1 ? ` ×${g.quantite}` : "";
+              return [
+                g.nom
+                  ? `${g.nom}${qte} est terminé ${lieu} et a rejoint l’arsenal.`
+                  : `Une fabrication est terminée ${lieu}.`,
+                ...(g.promu
+                  ? [`${g.promu.nom} prend le relais (liste d’attente) : ${g.promu.duree} instance${g.promu.duree > 1 ? "s" : ""}.`]
+                  : []),
+              ];
+            }),
+          ...gains.ateliers
+            .filter((g) => g.a > 0)
+            .map((g) => {
+              const lieu =
+                g.atelier === "sertissage"
+                  ? "Sertissage à la forge"
+                  : g.atelier === "sertissage-armurerie"
+                    ? "Sertissage à l’armurerie"
+                    : `Atelier ${g.atelier}`;
+              return `${lieu} : encore ${g.a} instance${g.a > 1 ? "s" : ""}.`;
+            }),
+          ...(typeof gains.solde === "number"
+            ? [`Solde de la compagnie : ${money(gains.solde)} Po.`]
+            : []),
           ...(gains.queteEchec
             ? [`${gains.queteEchec.nom} : échec de la quête, aucune récompense ; elle redevient disponible.`]
             : []),
@@ -1997,11 +2014,19 @@ export function App() {
             ];
           })(),
         ];
-        notify(
-          phrases.length
-            ? `+1 Instance : ${phrases.join(" ")}`
-            : "+1 Instance : toutes les Durées d’Instance diminuent de 1, minimum 0.",
-        );
+        // Journal de l'instance : publié en base (il s'ouvre aussi chez les joueurs) et ouvert ici.
+        const resume = {
+          id: crypto.randomUUID(),
+          le: new Date().toISOString(),
+          phrases: phrases.length
+            ? phrases
+            : ["Toutes les Durées d’Instance diminuent de 1, minimum 0."],
+        };
+        try {
+          localStorage.setItem("instance-resume-vu", resume.id);
+        } catch {}
+        setJournalInstance(resume);
+        await supabase.rpc("instance_resume_publier", { p_resume: resume });
       });
   }
   // Round suivant (MJ) : +1 au compteur et +1 énergie actuelle à chaque mercenaire recruté, dans la
@@ -2096,6 +2121,7 @@ export function App() {
           const { error } = await supabase.rpc("journal_instance_annuler");
           if (error) erreurs.push(error.message);
         }
+        await supabase.rpc("instance_resume_publier", { p_resume: null });
         await synchroniserPartage();
         if (erreurs.length) throw new Error(erreurs.join(" "));
       });
@@ -2140,8 +2166,8 @@ export function App() {
   // Or de la compagnie, arsenal, journal et fabrications en cours : lus en base
   // et reversés dans `game` (même forme qu'avant, pour l'affichage existant).
   async function synchroniserEconomie() {
-    const [etat, inv, lignes, fab, jour, sert, emp, eqp, actives, attente, baseEquip] = await Promise.all([
-      supabase.from("partie_etat").select("or_compagnie, instance_courante, round_courant").maybeSingle(),
+    const [etat, inv, lignes, fab, jour, sert, emp, eqp, actives, attente, baseEquip, fileAt] = await Promise.all([
+      supabase.from("partie_etat").select("or_compagnie, instance_courante, round_courant, derniere_instance").maybeSingle(),
       supabase.from("inventaire").select("id, type, mercenaire_id"),
       supabase.from("ligne_inventaire").select("id, inventaire_id, objet_id, quantite, gemmes"),
       supabase.from("atelier_fabrication").select("atelier, objet_id, quantite, restant"),
@@ -2158,6 +2184,7 @@ export function App() {
       supabase.from("objet_quete_active").select("objet_id"),
       supabase.from("quete_etat").select("recompenses_attente").not("recompenses_attente", "is", null).limit(1),
       supabase.from("mercenaire_equipement_base").select("mercenaire_id, emplacement, position, objet_id"),
+      supabase.from("atelier_file").select("atelier, position, objet_id, duree").order("position"),
     ]);
     // Le solde ne dépend que de partie_etat : on l'affiche même si une autre lecture a échoué
     // (sinon il resterait à 0 dans l'en-tête tant qu'une synchronisation complète n'a pas abouti).
@@ -2182,6 +2209,21 @@ export function App() {
       );
     }
     if (etat.error || inv.error || lignes.error || fab.error || !etat.data) return;
+    // Journal de l'instance publié par le MJ : le panneau s'ouvre chez tous les joueurs, une seule fois
+    // par instance (identifiant retenu), et seulement s'il est récent.
+    const resume = etat.data.derniere_instance;
+    if (resume?.id && Date.now() - new Date(resume.le).getTime() < 10 * 60 * 1000) {
+      let vu = null;
+      try {
+        vu = localStorage.getItem("instance-resume-vu");
+      } catch {}
+      if (vu !== resume.id) {
+        try {
+          localStorage.setItem("instance-resume-vu", resume.id);
+        } catch {}
+        setJournalInstance((c) => c || resume);
+      }
+    }
     // Récompenses de fin de quête en attente : la fenêtre s'ouvre chez tous les joueurs de la session ;
     // dès qu'elles sont récupérées (chez n'importe lequel), elle se ferme chez les autres.
     const enAttente = attente.data?.[0]?.recompenses_attente;
@@ -2222,6 +2264,7 @@ export function App() {
       ...lignesSacs.map((x) => x.objet_id),
       ...lignesSacs.flatMap((x) => x.gemmes || []),
       ...fab.data.map((x) => x.objet_id),
+      ...(fileAt.data || []).map((x) => x.objet_id),
       ...enStock.flatMap((x) => x.gemmes || []),
       ...sertActifs.flatMap((x) => [x.arme_objet_id, x.gemme_objet_id, ...(x.arme_gemmes || [])]),
       ...(emp.data || []).map((x) => x.objet_id),
@@ -2385,6 +2428,16 @@ export function App() {
     }
     const craftingQueue = {};
     const durations = {};
+    const fileAttente = {};
+    for (const x of fileAt.data || []) {
+      const o = cache.objets.get(x.objet_id);
+      (fileAttente[x.atelier] ||= []).push({
+        id: x.objet_id,
+        nom: o?.nom || "Objet",
+        icone: o?.icone || null,
+        duree: x.duree,
+      });
+    }
     for (const x of fab.data) {
       const o = cache.objets.get(x.objet_id);
       craftingQueue[x.atelier] = {
@@ -2474,6 +2527,7 @@ export function App() {
       gold: etat.data.or_compagnie,
       inventory,
       craftingQueue,
+      fileAttente,
       durations,
       sertissage,
       sertissages,
@@ -2668,6 +2722,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "budget_poste" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "partie_journal" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "atelier_fabrication" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "atelier_file" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "employe" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
@@ -2732,6 +2787,7 @@ export function App() {
         // l'affichage, pour ne pas mélanger le budget saisi à la main et le
         // petit revenu aléatoire.
         budget: e.data?.net || 0,
+        solde: typeof e.data?.solde === "number" ? e.data.solde : null,
         budgetStructure: (e.data?.recettes || 0) - (e.data?.depenses || 0),
         tribut: e.data?.tribut || 0,
         tributPhrase: e.data?.tribut_phrase || "",
@@ -3214,17 +3270,14 @@ export function App() {
     if (!data) return;
     notify(`${quantite} ${objet.nom} achetés : −${quantite * objet.cout_achat_or} Po.`);
   }
-  // Récupère une fabrication terminée (durée d'instance à 0) : l'objet rejoint
-  // l'arsenal et l'atelier est libéré. Referme la fiche de l'objet tout juste
-  // livré (il faut retourner au catalogue pour en choisir un autre).
+  // La livraison à l'arsenal est automatique (+1 Instance) : plus de récupération manuelle.
+  // Branche locale héritée (ateliers de démonstration) : l'ancien clic de livraison.
   async function actCollect(route) {
     const data = await operationPartagee(() =>
       supabase.rpc("partie_recuperer", { p_atelier: route }),
     );
     if (!data) return;
     setModal(null);
-    // Vide la case locale de démonstration : elle ne doit pas se remettre
-    // prête à refabriquer toute seule après la livraison.
     setSelection(null);
     notify(data.message);
   }
@@ -3244,15 +3297,6 @@ export function App() {
     if (!data) return;
     setSertStage({ arme: null, gemme: null });
     notify(atelierSert === "armurerie" ? "Sertissage lancé à l’armurerie." : "Sertissage lancé à la forge.");
-  }
-  // Sertissage terminé (durée d'instance à 0) : l'arme sertie rejoint
-  // l'arsenal, la forge est libérée.
-  async function actSertirRecuperer() {
-    const data = await operationPartagee(() =>
-      supabase.rpc("sertissage_recuperer", { p_atelier: atelierSert }),
-    );
-    if (!data) return;
-    notify(data.message);
   }
   // Embauche d'un employé (fenêtre Matériaux et Embauche) : rejoint la
   // Collecte des Ressources, jamais l'arsenal.
@@ -4314,17 +4358,6 @@ export function App() {
                             <span>Durée d’instance restante</span>
                             <strong>{remaining}</strong>
                           </div>
-                          <button
-                            className="primary"
-                            disabled={busy || !ready}
-                            onClick={() => actCollect(route)}
-                          >
-                            {busy
-                              ? "Fabrication…"
-                              : ready
-                                ? "Envoyer à l’Arsenal"
-                                : "Fabrication en cours…"}
-                          </button>
                           {actionError && (
                             <p role="alert" className="error">
                               {actionError}
@@ -4332,9 +4365,28 @@ export function App() {
                           )}
                           <p className="muted">
                             {ready
-                              ? "Fabrication terminée : cliquez sur « Envoyer à l’Arsenal » pour libérer l’atelier."
-                              : `Fabrication en cours : encore ${remaining} instance(s) avant de pouvoir l’envoyer à l’arsenal.`}
+                              ? "Fabrication terminée : l’objet rejoindra l’arsenal au prochain +1 Instance."
+                              : `Fabrication en cours : encore ${remaining} instance(s). L’objet rejoindra l’arsenal automatiquement.`}
                           </p>
+                          {(game.fileAttente?.[route] || []).length > 0 && (
+                            <div className="atelier-file">
+                              <h3>Liste d’attente ({game.fileAttente[route].length}/2)</h3>
+                              <ol>
+                                {game.fileAttente[route].map((f, i) => (
+                                  <li key={f.id || i}>
+                                    {f.icone && <img src={f.icone} alt="" />}
+                                    <span>{f.nom}</span>
+                                    <small>
+                                      {f.duree} instance{f.duree > 1 ? "s" : ""}
+                                    </small>
+                                  </li>
+                                ))}
+                              </ol>
+                              <p className="muted">
+                                Chaque objet prend le relais automatiquement quand le précédent est livré.
+                              </p>
+                            </div>
+                          )}
                         </>
                       );
                     }
@@ -4500,19 +4552,10 @@ export function App() {
                         <span>Durée d’instance restante</span>
                         <strong>{sertEnCours.restant}</strong>
                       </div>
-                      <button
-                        className="primary"
-                        disabled={busy || sertEnCours.restant > 0}
-                        onClick={actSertirRecuperer}
-                      >
-                        {sertEnCours.restant > 0
-                          ? "Sertissage en cours…"
-                          : "Envoyer à l’Arsenal"}
-                      </button>
                       <p className="muted">
                         {sertEnCours.restant > 0
-                          ? `Sertissage en cours : encore ${sertEnCours.restant} instance(s) avant de pouvoir l’envoyer à l’arsenal.`
-                          : `Sertissage terminé : cliquez sur « Envoyer à l’Arsenal » pour libérer ${route === "armurerie" ? "l’armurerie" : "la forge"}.`}
+                          ? `Sertissage en cours : encore ${sertEnCours.restant} instance(s). L’objet rejoindra l’arsenal automatiquement.`
+                          : "Sertissage terminé : l’objet rejoindra l’arsenal au prochain +1 Instance."}
                       </p>
                     </>
                   ) : (
@@ -4794,6 +4837,18 @@ export function App() {
       )}
       {recompenseQuete && (
         <RecompenseQuete recompense={recompenseQuete} onClose={recupererRecompensesQuete} />
+      )}
+      {journalInstance && !recompenseQuete && (
+        <Modal title="Journal de l’instance" onClose={() => setJournalInstance(null)}>
+          <ul className="resume-instance">
+            {journalInstance.phrases.map((ph, i) => (
+              <li key={i}>{ph}</li>
+            ))}
+          </ul>
+          <button type="button" className="wood-button" onClick={() => setJournalInstance(null)}>
+            Fermer
+          </button>
+        </Modal>
       )}
       {confirmation && (
         <Modal title={confirmation.titre} onClose={() => setConfirmation(null)}>
@@ -5312,7 +5367,6 @@ export function App() {
                           }
                           onBuy={actBuyCatalogue}
                           onCraft={(a) => actCatalogue(a, atelierItem)}
-                          onCollect={() => actCollect(routeItem)}
                           undo={undoStack[undoStack.length - 1] || null}
                           onUndo={undoCatalogue}
                         />

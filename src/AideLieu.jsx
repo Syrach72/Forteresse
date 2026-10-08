@@ -38,11 +38,11 @@ export function BoutonAide({ aide }) {
 const fabrication = (verbe, lieu) => [
   [
     "Lancer une fabrication",
-    `Ouvrez un catalogue, choisissez un objet puis cliquez sur « ${verbe} ». Les ressources de sa recette sont prélevées dans l’arsenal dès le lancement : si elles manquent, la fabrication est refusée. ${lieu} ne fabrique qu’un objet à la fois.`,
+    `Ouvrez un catalogue, choisissez un objet puis cliquez sur « ${verbe} ». Les ressources de sa recette sont prélevées dans l’arsenal dès le lancement : si elles manquent, la fabrication est refusée. ${lieu} ne fabrique qu’un objet à la fois, mais vous pouvez en mettre deux autres en liste d’attente : ils prennent le relais tout seuls.`,
   ],
   [
     "La durée",
-    "Chaque « +1 Instance » du maître du jeu fait baisser la durée d’instance restante. À 0, la fabrication est terminée, mais l’objet n’est pas livré tout seul : cliquez sur « Envoyer à l’Arsenal » pour le récupérer et libérer l’atelier.",
+    "Chaque « +1 Instance » du maître du jeu fait baisser la durée d’instance restante. À 0, la fabrication est terminée et l’objet rejoint automatiquement l’arsenal ; le premier objet de la liste d’attente prend alors le relais avec sa durée d’instance.",
   ],
 ];
 

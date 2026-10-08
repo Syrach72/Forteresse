@@ -7463,3 +7463,18 @@ a.merc-card:hover {
 .interior .parchment .creature-etat:hover:not(:disabled):not(.actif) {
   background: rgba(0, 0, 0, 0.55);
 }
+
+/* Journal de l'instance (fenêtre ouverte après un +1 Instance) et liste d'attente des ateliers */
+.resume-instance {
+  margin: 0 0 16px;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+.atelier-file { margin-top: 12px; text-align: left; }
+.atelier-file h3 { margin: 0 0 6px; }
+.atelier-file ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.atelier-file li { display: flex; align-items: center; gap: 8px; }
+.atelier-file li img { width: 32px; height: 32px; object-fit: contain; }
+.atelier-file li span { flex: 1; font-weight: 700; }
