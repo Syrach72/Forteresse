@@ -151,11 +151,11 @@ export function Characters({
   const tmp = merc?.temp || {};
   const pvTemp = tmp.pvTemp ?? 0;
   // Conduit Divin : compétences actives dont le titre porte « CD ». 1 utilisation par instance, 2 dès la vétérance 4,
-  // 3 dès la vétérance 8, partagées entre toutes les compétences CD ; une même compétence ne se reprend pas dans l'instance.
+  // 3 dès la vétérance 8, partagées entre toutes les compétences CD ; la même compétence peut servir plusieurs fois.
   const estCD = (comp) => !!comp?.nom && /(^|[^A-Za-z])CD([^A-Za-z]|$)/.test(comp.nom);
   const cdTotal = merc ? 1 + ((merc.veterance ?? 1) >= 4 ? 1 : 0) + ((merc.veterance ?? 1) >= 8 ? 1 : 0) : 0;
-  const cdUtilisees = new Set(conduitDivin.filter((r) => r.mercenaire_id === merc?.id).map((r) => r.competence_id));
-  const cdEpuise = cdUtilisees.size >= cdTotal;
+  const cdNb = conduitDivin.filter((r) => r.mercenaire_id === merc?.id).length;
+  const cdEpuise = cdNb >= cdTotal;
   const energieMax = merc ? 2 * ((merc.mental ?? 0) + (merc.bonusMental ?? 0) + (tmp.mental ?? 0)) + (tmp.energieMax ?? 0) : null;
   const santeMax = merc ? 3 + 2 * ((merc.puissance ?? 0) + (merc.bonusPuissance ?? 0) + (tmp.puissance ?? 0)) + (merc.bonusSante ?? 0) + (tmp.santeMax ?? 0) : null;
   const hero = merc ? undefined : warriors.find((w) => w.id === heroId);
@@ -1087,7 +1087,7 @@ export function Characters({
             <TableauCompetences
               cellules={competences.get(merc.id) || []}
               veterance={merc.veterance ?? 1}
-              griseCD={(comp) => estCD(comp) && (cdEpuise || cdUtilisees.has(comp.id))}
+              griseCD={(comp) => estCD(comp) && cdEpuise}
               onCell={(c) =>
                 setPopup({
                   type: "competence",
@@ -1542,8 +1542,7 @@ export function Characters({
                 merc && popup.cellule?.type === "active" && estCD(popup.cellule?.competence)
                   ? {
                       total: cdTotal,
-                      utilisees: cdUtilisees.size,
-                      dejaUtilisee: cdUtilisees.has(popup.cellule.competence.id),
+                      utilisees: cdNb,
                       epuise: cdEpuise,
                       onUtiliser: peutModifier ? () => onUtiliserConduitDivin(merc.id, popup.cellule.competence.id) : null,
                     }
