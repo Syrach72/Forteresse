@@ -54,7 +54,11 @@ export function Regles() {
   return (
     <section className="regles-page">
       <p className="regles-intro">
-        Vous pouvez retrouver la plupart des éléments de règle en cliquant sur les « ? » des différentes pages.
+        Vous pouvez retrouver la plupart des éléments de règle en cliquant sur les{" "}
+        <span className="pave-aide pave-aide-inline" aria-label="point d’interrogation">
+          ?
+        </span>{" "}
+        des différentes pages.
       </p>
       {REGLES.map(([titre, texte]) => (
         <div className="regles-bloc" key={titre}>

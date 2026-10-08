@@ -7511,3 +7511,6 @@ a.merc-card:hover {
 
 /* Missions : les boutons des cartes restent en blanc (fond brun), comme les autres boutons de bois */
 .mission-carte button, .mission-carte button * { color: #fff !important; font-weight: 700; -webkit-text-stroke: 2px #000 !important; paint-order: stroke fill; }
+
+/* Réplique du bouton « ? » dans le texte de la page Règles */
+.pave-aide.pave-aide-inline { position: static; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; cursor: default; margin: 0 2px; }
