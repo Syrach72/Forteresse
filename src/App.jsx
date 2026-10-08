@@ -8,7 +8,7 @@ import { Treasury } from "./Treasury.jsx";
 import { Journal } from "./Journal.jsx";
 import { Missions, MissionPopup } from "./Missions.jsx";
 import { effetsTemp } from "./effets.js";
-import { EnnemiJure, VETERANCE_RANG } from "./EnnemiJure.jsx";
+import { ChoixType, CONFIG_ENNEMI_JURE, CONFIG_TERRAIN_FAVORI, VETERANCE_RANG } from "./ChoixType.jsx";
 import { Regles } from "./Regles.jsx";
 import { EMPTY_TREASURY, EMPTY_TREASURY_LIVE, buildTreasury, entretienCompagnie } from "./treasury-data.js";
 import { Training } from "./Training.jsx";
@@ -1060,6 +1060,10 @@ export function App() {
   const [ennemisJures, setEnnemisJures] = useState(() => new Map());
   const [ennemiJureReporte, setEnnemiJureReporte] = useState([]);
   const [ennemiJureForce, setEnnemiJureForce] = useState(null);
+  // Terrains favoris choisis (Explorateur-né du Rôdeur), même fonctionnement que les ennemis jurés.
+  const [terrainsFavoris, setTerrainsFavoris] = useState(() => new Map());
+  const [terrainReporte, setTerrainReporte] = useState([]);
+  const [terrainForce, setTerrainForce] = useState(null);
   const [missionAttrs, setMissionAttrs] = useState([]);
   const [missionCompteurs, setMissionCompteurs] = useState(() => new Map());
   const [missionObjets, setMissionObjets] = useState(() => new Map());
@@ -1229,15 +1233,30 @@ export function App() {
                 aEnnemiJure,
               }
             : null;
-        if (!eff && !champsEj) return base;
+        // Explorateur-né (Rôdeur) : mêmes règles (1 / vétérance 4 / vétérance 8).
+        const aTerrain = (competencesMerc.get(m.id) || []).some(
+          (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "explorateur-né",
+        );
+        const choisisTf = terrainsFavoris.get(m.id) || [];
+        const placesTf = aTerrain ? VETERANCE_RANG.filter((v) => vet >= v).length : 0;
+        const champsTf =
+          aTerrain || choisisTf.length
+            ? {
+                terrainsFavoris: choisisTf.filter((e) => vet >= VETERANCE_RANG[e.rang - 1]),
+                terrainFavoriAChoisir: Math.max(0, placesTf - choisisTf.length),
+                aTerrainFavori: aTerrain,
+              }
+            : null;
+        if (!eff && !champsEj && !champsTf) return base;
         const actif = mercsEnQuete.some((e) => e.mercenaire_id === m.id);
         return {
           ...base,
           ...(eff ? { temp: effetsTemp(eff, actif), effetsReserve: eff, effetsActifs: actif } : {}),
           ...(champsEj || {}),
+          ...(champsTf || {}),
         };
       }),
-    [mercenairesBase, competencesMerc, effetsMerc, mercsEnQuete, ennemisJures],
+    [mercenairesBase, competencesMerc, effetsMerc, mercsEnQuete, ennemisJures, terrainsFavoris],
   );
   // Effectif embauché (Collecte des Ressources), partagé comme l'arsenal.
   const [employesRoster, setEmployesRoster] = useState([]);
@@ -1295,6 +1314,10 @@ export function App() {
   const ennemiJureCible =
     (ennemiJureForce && mercenaires.find((m) => m.id === ennemiJureForce && (m.ennemiJureAChoisir ?? 0) > 0)) ||
     mercenaires.find((m) => mesRecrutes.has(m.id) && (m.ennemiJureAChoisir ?? 0) > 0 && !ennemiJureReporte.includes(m.id)) ||
+    null;
+  const terrainCible =
+    (terrainForce && mercenaires.find((m) => m.id === terrainForce && (m.terrainFavoriAChoisir ?? 0) > 0)) ||
+    mercenaires.find((m) => mesRecrutes.has(m.id) && (m.terrainFavoriAChoisir ?? 0) > 0 && !terrainReporte.includes(m.id)) ||
     null;
   const humainEnAttente = mercenaires.find(
     (m) => mesRecrutes.has(m.id) && m.estHumain && m.humainUtilise === false && !humainReporte.includes(m.id),
@@ -2645,7 +2668,7 @@ export function App() {
   }
   // Missions : définitions communes, attributions de la session visibles par ce joueur, compteurs de progression.
   async function synchroniserMissions() {
-    const [m, a, c, eff, ej] = await Promise.all([
+    const [m, a, c, eff, ej, tf] = await Promise.all([
       supabase
         .from("mission")
         .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, recompense_effet_stat, recompense_effet_valeur, recompense_effet_quetes, ordre")
@@ -2657,7 +2680,13 @@ export function App() {
       supabase.from("mission_compteur").select("evenement, user_id, valeur"),
       supabase.from("mercenaire_effet").select("id, mercenaire_id, stat, valeur, quetes_restantes").order("created_at"),
       supabase.from("mercenaire_ennemi_jure").select("mercenaire_id, rang, type").order("rang"),
+      supabase.from("mercenaire_terrain_favori").select("mercenaire_id, rang, type").order("rang"),
     ]);
+    if (!tf.error) {
+      const parMerc = new Map();
+      for (const e of tf.data || []) parMerc.set(e.mercenaire_id, [...(parMerc.get(e.mercenaire_id) || []), e]);
+      setTerrainsFavoris(parMerc);
+    }
     if (!ej.error) {
       const parMerc = new Map();
       for (const e of ej.data || []) parMerc.set(e.mercenaire_id, [...(parMerc.get(e.mercenaire_id) || []), e]);
@@ -2708,6 +2737,13 @@ export function App() {
   // Ennemi Juré (Rôdeur) : choix d'un type d'ennemi pour un mercenaire (le serveur vérifie compétence, vétérance et doublon).
   async function choisirEnnemiJure(mercenaireId, type) {
     const { error } = await supabase.rpc("ennemi_jure_choisir", { p_mercenaire: mercenaireId, p_type: type });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    return {};
+  }
+  // Explorateur-né (Rôdeur) : choix d'un type de terrain favori pour un mercenaire.
+  async function choisirTerrainFavori(mercenaireId, type) {
+    const { error } = await supabase.rpc("terrain_favori_choisir", { p_mercenaire: mercenaireId, p_type: type });
     if (error) return { error: error.message };
     await synchroniserPartage();
     return {};
@@ -2875,6 +2911,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "mission_attribution" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_effet" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_ennemi_jure" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_terrain_favori" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "employe" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
@@ -4070,6 +4107,7 @@ export function App() {
           onSetCaracteristiques={setCaracteristiques}
           onDepenserPvTemp={depenserPvTemp}
           onChoisirEnnemiJure={(id) => setEnnemiJureForce(id)}
+          onChoisirTerrainFavori={(id) => setTerrainForce(id)}
           onDepenserPoint={depenserPointCarac}
           onOuvrirArsenal={ouvrirArsenalDepuisSac}
           sacARouvrir={sacARouvrir}
@@ -5067,10 +5105,23 @@ export function App() {
           </div>
         </Modal>
       )}
+      {terrainCible && !ennemiJureCible && !humainEnAttente && (
+        <ChoixType
+          key={`${terrainCible.id}-${terrainCible.terrainFavoriAChoisir}`}
+          merc={terrainCible}
+          config={CONFIG_TERRAIN_FAVORI}
+          onChoisir={choisirTerrainFavori}
+          onClose={() => {
+            setTerrainReporte((r) => [...r, terrainCible.id]);
+            setTerrainForce(null);
+          }}
+        />
+      )}
       {ennemiJureCible && !humainEnAttente && (
-        <EnnemiJure
+        <ChoixType
           key={`${ennemiJureCible.id}-${ennemiJureCible.ennemiJureAChoisir}`}
           merc={ennemiJureCible}
+          config={CONFIG_ENNEMI_JURE}
           onChoisir={choisirEnnemiJure}
           onClose={() => {
             setEnnemiJureReporte((r) => [...r, ennemiJureCible.id]);

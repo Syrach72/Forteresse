@@ -131,6 +131,7 @@ export function Characters({
   onDepenserPoint = async () => ({}),
   onDepenserPvTemp = async () => ({}),
   onChoisirEnnemiJure = () => {},
+  onChoisirTerrainFavori = () => {},
   onClearError = () => {},
   onOuvrirArsenal = () => {},
   sacARouvrir = null,
@@ -629,6 +630,21 @@ export function Characters({
                   </div>
                 ))}
               </div>
+              {(merc.terrainsFavoris?.length ?? 0) > 0 && (
+                <div className="merc-effets">
+                  <strong>Terrains favoris</strong>
+                  <ul>
+                    {merc.terrainsFavoris.map((e) => (
+                      <li key={e.rang}>{e.type.charAt(0).toUpperCase() + e.type.slice(1)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {(merc.terrainFavoriAChoisir ?? 0) > 0 && (recrutes.includes(merc.id) || estAdmin) && (
+                <button type="button" className="wood-button" onClick={() => onChoisirTerrainFavori(merc.id)}>
+                  Choisir un terrain favori ({merc.terrainFavoriAChoisir} à choisir)
+                </button>
+              )}
               {(merc.ennemisJures?.length ?? 0) > 0 && (
                 <div className="merc-effets">
                   <strong>Ennemis jurés</strong>
@@ -1471,6 +1487,19 @@ export function Characters({
               energie={merc ? (merc.energieActuelle ?? energieMax) : null}
               onDepenser={merc && peutModifier ? (n) => onDepenserEnergie(merc.id, n) : null}
               onRestaurer={merc && peutModifier ? () => onRestaurerEnergie(merc.id) : null}
+              choix={(() => {
+                const nom = popup.cellule?.competence?.nom?.trim().toLowerCase();
+                if (!merc) return null;
+                const aide = (liste, aChoisir, libelle, onChoisir) => ({
+                  titre: libelle,
+                  valeurs: (liste || []).map((e) => e.type.charAt(0).toUpperCase() + e.type.slice(1)),
+                  aChoisir: aChoisir || 0,
+                  onChoisir: recrutes.includes(merc.id) || estAdmin ? () => { setPopup(null); onChoisir(merc.id); } : null,
+                });
+                if (nom === "ennemi juré") return aide(merc.ennemisJures, merc.ennemiJureAChoisir, "Vos ennemis jurés", onChoisirEnnemiJure);
+                if (nom === "explorateur-né") return aide(merc.terrainsFavoris, merc.terrainFavoriAChoisir, "Vos terrains favoris", onChoisirTerrainFavori);
+                return null;
+              })()}
             />
           ) : popup.type === "fougue" ? (
             <div className="ability-description">

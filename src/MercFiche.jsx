@@ -489,7 +489,7 @@ const PALIERS_RESTAURATION = [
   [7, 4],
   [10, 5],
 ];
-export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null }) {
+export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null }) {
   const { niveau, type, competence } = cellule;
   const atteinte = veterance >= niveau;
   const [choix, setChoix] = useState(null);
@@ -544,6 +544,19 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
           </p>
           <p>Aucune compétence n’a encore été placée dans cette cellule.</p>
         </>
+      )}
+      {choixMerc && atteinte && (
+        <div className="comp-detail-choix">
+          <p>
+            <strong>{choixMerc.titre} :</strong>{" "}
+            {choixMerc.valeurs.length ? choixMerc.valeurs.join(", ") : "aucun choix pour le moment"}
+          </p>
+          {choixMerc.aChoisir > 0 && choixMerc.onChoisir && (
+            <button type="button" className="wood-button" onClick={choixMerc.onChoisir}>
+              Choisir ({choixMerc.aChoisir} à choisir)
+            </button>
+          )}
+        </div>
       )}
       <p className={atteinte ? "comp-detail-ok" : "comp-detail-non"}>
         {atteinte ? "Vétérance atteinte : utilisable." : `Vétérance ${niveau} requise (actuelle : ${veterance}).`}
