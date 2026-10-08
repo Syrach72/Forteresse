@@ -33,6 +33,8 @@ export function MissionsSection({ kit }) {
   const missions = useTable("mission", { order: "ordre" });
   const catalogue = useTable("objet_catalogue", { order: "nom" });
   const [f, setF] = useState(missionVide());
+  // Nom de la mission en cours de modification (titre du formulaire, stable pendant la saisie).
+  const [nomEdite, setNomEdite] = useState("");
   const [msg, setMsg] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
   if (missions.error || catalogue.error) return <p className="admin-error">{missions.error || catalogue.error}</p>;
@@ -41,6 +43,7 @@ export function MissionsSection({ kit }) {
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
   function charger(m) {
     setMsg("");
+    setNomEdite(m.nom);
     setF({
       id: m.id,
       rubrique: m.rubrique,
@@ -110,8 +113,8 @@ export function MissionsSection({ kit }) {
         Choisissez « À brancher » si l’événement n’existe pas encore : décrivez-le dans la note, il sera branché sur
         demande.
       </p>
-      <form className="admin-form" onSubmit={enregistrer}>
-        <h3>{f.id ? "Modifier la mission" : "Nouvelle mission"}</h3>
+      <form className="admin-form admin-form-missions" onSubmit={enregistrer}>
+        <h3>{f.id ? `Modifier la mission : ${nomEdite}` : "Nouvelle mission"}</h3>
         <label>
           Rubrique
           <select value={f.rubrique} onChange={(e) => set("rubrique", e.target.value)}>

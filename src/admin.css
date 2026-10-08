@@ -693,3 +693,7 @@
 .creature-slot-cell small { font-size: 0.65rem; line-height: 1.1; overflow: hidden; }
 .creature-slot-choix { display: flex; align-items: center; gap: 10px; margin: 8px 0 14px; max-width: 520px; }
 .creature-slot-choix .searchable-select { flex: 1; }
+
+/* Formulaire des missions : chaque champ sous son intitulé */
+.admin-form-missions label { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.admin-form-missions label.admin-check { flex-direction: row; align-items: center; gap: 8px; }
