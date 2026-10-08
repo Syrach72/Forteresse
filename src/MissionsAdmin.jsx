@@ -7,6 +7,7 @@ import { STATS_EFFET, libelleEffet } from "./effets.js";
 const EVENEMENTS_MISSION = [
   ["recrutement_paye", "Mercenaire embauché contre de l’or (le premier, gratuit, ne compte pas)"],
   ["quete_reussie", "Quête réussie"],
+  ["quete_reussie_sans_blessure", "Quête réussie sans qu’aucun mercenaire engagé soit blessé"],
   ["a_brancher", "À brancher (décrivez-le dans la note)"],
 ];
 
