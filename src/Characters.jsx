@@ -635,7 +635,7 @@ export function Characters({
                     {merc.effetsReserve.map((e) => (
                       <li key={e.id}>
                         {libelleEffet(e.stat, e.valeur, e.quetes_restantes)} —{" "}
-                        {merc.effetsActifs ? "actif (en quête)" : "en réserve : s’applique au départ en quête"}
+                        {merc.effetsActifs ? "actif (en quête)" : "en réserve : utilisable pendant sa prochaine quête, qu’elle réussisse ou qu’elle échoue"}
                       </li>
                     ))}
                   </ul>

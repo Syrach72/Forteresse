@@ -141,7 +141,7 @@ export function MissionPopup({ mission, attribution, objet, mercenaires, bloques
         <>
           <p>
             {attribution.effet_stat
-              ? `Choisissez le mercenaire qui recevra ${attribution.objet_id ? "l’objet et " : ""}l’effet (il s’applique quand il part en quête ; non transférable) :`
+              ? `Choisissez le mercenaire qui recevra ${attribution.objet_id ? "l’objet et " : ""}l’effet (utilisable uniquement pendant ${attribution.effet_quetes > 1 && attribution.effet_stat !== "pv_temp" ? `ses ${attribution.effet_quetes} prochaines quêtes` : "sa prochaine quête"}, qu’elle réussisse ou qu’elle échoue ; non transférable) :`
               : "Envoyez-le dans le sac à dos de l’un de vos mercenaires :"}
           </p>
           {mercenaires.length ? (

@@ -181,7 +181,7 @@ export function MissionsSection({ kit }) {
         {f.rubrique === "individuelle" && (
           <>
             <label>
-              Récompense : effet temporaire (en réserve jusqu’au départ en quête ; non transférable)
+              Récompense : effet temporaire (utilisable uniquement pendant la prochaine quête du bénéficiaire, qu’elle réussisse ou qu’elle échoue ; non transférable)
               <select value={f.effetStat} onChange={(e) => set("effetStat", e.target.value)}>
                 <option value="">Aucun effet</option>
                 {STATS_EFFET.map(([v, l]) => (
@@ -199,7 +199,7 @@ export function MissionsSection({ kit }) {
                 </label>
                 {f.effetStat !== "pv_temp" && (
                   <label>
-                    Durée (nombre de quêtes, de 1 à 3)
+                    Durée : nombre de quêtes du bénéficiaire pendant lesquelles l’effet est utilisable (de 1 à 3), qu’elles réussissent ou qu’elles échouent
                     <select value={f.effetQuetes} onChange={(e) => set("effetQuetes", e.target.value)}>
                       <option value="1">1 quête</option>
                       <option value="2">2 quêtes</option>
