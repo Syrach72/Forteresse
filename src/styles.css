@@ -7525,3 +7525,20 @@ a.merc-card:hover {
 .equip-de { font-weight: 700; }
 
 .gemmes-portees { margin: 6px 0; font-weight: 700; }
+
+/* Téléphone : la liste des classes au-dessus d'une fiche ou d'une page de personnages repose sur un fond verre dépoli
+   (sinon elle se mélange à l'image animée et devient illisible). */
+.app-persos .mobile-class-nav {
+  background: rgba(33, 27, 22, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 6px;
+  padding: 8px;
+  border: 1px solid rgba(255, 245, 223, 0.25);
+}
+.app-persos .mobile-class-nav a {
+  background: rgba(255, 248, 230, 0.78);
+  color: #2a1c0a;
+  border-radius: 4px;
+}
+.app-persos .mobile-class-nav a[aria-current="page"] { background: #d8bf76; }

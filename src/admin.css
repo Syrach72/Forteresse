@@ -697,3 +697,22 @@
 /* Formulaire des missions : chaque champ sous son intitulé */
 .admin-form-missions label { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
 .admin-form-missions label.admin-check { flex-direction: row; align-items: center; gap: 8px; }
+
+/* Administration sur téléphone : rien ne doit dépasser à droite (champs, tableaux, formulaires et onglets s'adaptent). */
+@media (max-width: 760px) {
+  .admin-page { padding: 12px 8px; }
+  .admin-page-authed { width: 100%; max-width: 100%; box-sizing: border-box; }
+  .admin-header { flex-wrap: wrap; gap: 8px; }
+  .admin-header-actions { flex-wrap: wrap; gap: 8px 12px; }
+  .admin-content { padding: 12px 10px; box-sizing: border-box; max-width: 100%; overflow-x: auto; }
+  .admin-content input,
+  .admin-content select,
+  .admin-content textarea { max-width: 100%; min-width: 0; box-sizing: border-box; }
+  .admin-content table { display: block; max-width: 100%; overflow-x: auto; }
+  .admin-table th, .admin-table td { padding: 6px; }
+  .admin-form-grid { grid-template-columns: 1fr !important; }
+  .admin-catalogue-filter { flex-wrap: wrap; }
+  .admin-catalogue-filter select { min-width: 0; width: 100%; }
+  .admin-row-actions { flex-wrap: wrap; }
+  .admin-tabs button { padding: 8px 10px; font-size: 15px; }
+}

@@ -512,7 +512,10 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
   const [erreur, setErreur] = useState("");
   const [depense, setDepense] = useState(null);
   const restauration = competence?.nom?.trim().toLowerCase() === "restauration arcanique";
-  const compteur = !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd;
+  // La ligne « Dépenser de l’énergie » ne s’affiche que pour une compétence dont la description parle d’énergie
+  // (les autres coûtent une Action en jeu, gérée à la table).
+  const compteur =
+    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && /énerg/i.test(competence.description || "");
   // Conduit Divin (compétence CD) : utilisation sans énergie, après validation, limitée par instance.
   const [confirmerCd, setConfirmerCd] = useState(false);
   const [enCoursCd, setEnCoursCd] = useState(false);
