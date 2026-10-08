@@ -6,6 +6,7 @@ import { Market } from "./Market.jsx";
 import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
 import { Journal } from "./Journal.jsx";
+import { Missions, MissionPopup } from "./Missions.jsx";
 import { Regles } from "./Regles.jsx";
 import { EMPTY_TREASURY, EMPTY_TREASURY_LIVE, buildTreasury, entretienCompagnie } from "./treasury-data.js";
 import { Training } from "./Training.jsx";
@@ -1049,6 +1050,19 @@ export function App() {
   const [recompenseQuete, setRecompenseQuete] = useState(null);
   // Journal de l'instance (panneau ouvert chez tous après un +1 Instance) : { id, le, phrases }.
   const [journalInstance, setJournalInstance] = useState(null);
+  // Missions : définitions, attributions (les miennes + collectives), compteurs et objets de récompense.
+  const [missions, setMissions] = useState([]);
+  const [missionAttrs, setMissionAttrs] = useState([]);
+  const [missionCompteurs, setMissionCompteurs] = useState(() => new Map());
+  const [missionObjets, setMissionObjets] = useState(() => new Map());
+  const [missionsReportees, setMissionsReportees] = useState(() => new Set());
+  const [missionsVues, setMissionsVues] = useState(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem("missions-vues") || "[]"));
+    } catch {
+      return new Set();
+    }
+  });
   // Échec de quête annoncé à tous les joueurs : { id, nom } tant que le joueur ne l'a pas fermé.
   const [echecQuete, setEchecQuete] = useState(null);
   const syncErreurSignalee = useRef(false);
@@ -2584,7 +2598,64 @@ export function App() {
       synchroniserEconomie(),
       synchroniserBudget(),
       synchroniserMetiers(),
+      synchroniserMissions(),
     ]);
+  }
+  // Missions : définitions communes, attributions de la session visibles par ce joueur, compteurs de progression.
+  async function synchroniserMissions() {
+    const [m, a, c] = await Promise.all([
+      supabase
+        .from("mission")
+        .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, ordre")
+        .eq("actif", true)
+        .order("ordre"),
+      supabase
+        .from("mission_attribution")
+        .select("id, mission_id, user_id, accomplie_le, or_verse, objet_id, quantite, reclamee_le"),
+      supabase.from("mission_compteur").select("evenement, user_id, valeur"),
+    ]);
+    if (m.error || a.error) return;
+    const ids = [
+      ...new Set([...m.data.map((x) => x.recompense_objet_id), ...a.data.map((x) => x.objet_id)].filter(Boolean)),
+    ];
+    if (ids.length) {
+      const o = await supabase.from("objet_catalogue").select("id, nom, icone").in("id", ids);
+      if (!o.error) setMissionObjets(new Map(o.data.map((x) => [x.id, x])));
+    }
+    setMissions(m.data);
+    setMissionAttrs(a.data);
+    setMissionCompteurs(
+      new Map(
+        (c.data || []).map((x) => [
+          `${x.evenement}:${x.user_id === "00000000-0000-0000-0000-000000000000" ? "collectif" : x.user_id}`,
+          x.valeur,
+        ]),
+      ),
+    );
+  }
+  function marquerMissionVue(id) {
+    setMissionsVues((v) => {
+      const n = new Set(v).add(id);
+      try {
+        localStorage.setItem("missions-vues", JSON.stringify([...n]));
+      } catch {}
+      return n;
+    });
+  }
+  // Envoie l'objet d'une mission individuelle dans le sac à dos d'un mercenaire du joueur.
+  async function reclamerMission(attribution, mercenaireId) {
+    const { data, error } = await supabase.rpc("mission_reclamer", {
+      p_attribution: attribution.id,
+      p_mercenaire: mercenaireId,
+    });
+    if (error) {
+      notify(error.message);
+      return false;
+    }
+    marquerMissionVue(attribution.id);
+    await synchroniserPartage();
+    notify(data?.message || "Récompense reçue.");
+    return true;
   }
   // Métiers de Collecte débloqués ou non dans la session (le serveur fait foi : employe_embaucher refuse
   // un métier verrouillé).
@@ -2723,6 +2794,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "partie_journal" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "atelier_fabrication" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "atelier_file" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mission_attribution" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "employe" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
@@ -3660,6 +3732,14 @@ export function App() {
     );
   }
   if (!session) return null; // redirection vers #connexion en cours (effet ci-dessus)
+  // Missions : récompense d'objet à remettre (priorité), sinon annonce d'une mission accomplie jamais vue.
+  const missionsPourMoi = missionAttrs.filter((a) => a.user_id == null || a.user_id === session.user.id);
+  const missionAReclamer = (a) => a.user_id === session.user.id && a.objet_id && !a.reclamee_le;
+  const missionsEnAttente = missionsPourMoi.filter(missionAReclamer).length;
+  const missionAffichee =
+    missionsPourMoi.find((a) => missionAReclamer(a) && !missionsReportees.has(a.id)) ||
+    missionsPourMoi.find((a) => !missionAReclamer(a) && !missionsVues.has(a.id)) ||
+    null;
   return (
     <div className={`app${route === "forteresse" ? " app-fullwidth" : ""}${route.startsWith("personnages/") ? " app-persos" : ""}${route === "regles" ? " app-regles" : ""}`}>
       <a className="skip" href="#main">
@@ -3820,6 +3900,10 @@ export function App() {
           }}
         >
           Catalogue
+        </button>
+        <button type="button" className="header-time header-missions" onClick={() => (location.hash = "missions")}>
+          Missions
+          {missionsEnAttente > 0 && <span className="missions-badge" aria-label={`${missionsEnAttente} récompense(s) à recevoir`}>{missionsEnAttente}</span>}
         </button>
         {/* +1 Instance : réservé à l'administrateur (il fait avancer
             l'entraînement de tous les joueurs). Absent pour les joueurs. */}
@@ -4173,7 +4257,7 @@ export function App() {
             <a href="#forteresse">‹ Forteresse</a>
             <div className="room-titre">
               <h1 ref={titleRef} tabIndex="-1">
-                {place?.name || (route === "regles" ? "Règles" : "Lieu introuvable")}
+                {place?.name || (route === "regles" ? "Règles" : route === "missions" ? "Missions" : "Lieu introuvable")}
               </h1>
               {/* « ? » de la page Quêtes : juste à droite du titre. */}
               {route === "quetes" && <BoutonAide aide={AIDES.quetes} />}
@@ -4267,6 +4351,15 @@ export function App() {
             </section>
           ) : route === "regles" ? (
             <Regles />
+          ) : route === "missions" ? (
+            <Missions
+              missions={missions}
+              attributions={missionAttrs}
+              compteurs={missionCompteurs}
+              objets={missionObjets}
+              userId={session.user.id}
+              onReclamer={(a) => setMissionsReportees((r) => { const n = new Set(r); n.delete(a.id); return n; })}
+            />
           ) : route === "journal" ? (
             <Journal log={game.log} />
           ) : route === "entrainement" ? (
@@ -4849,6 +4942,18 @@ export function App() {
             Fermer
           </button>
         </Modal>
+      )}
+      {missionAffichee && (
+        <MissionPopup
+          key={missionAffichee.id}
+          mission={missions.find((x) => x.id === missionAffichee.mission_id) || { nom: "Mission", description: "" }}
+          attribution={missionAffichee}
+          objet={missionAffichee.objet_id ? missionObjets.get(missionAffichee.objet_id) : null}
+          mercenaires={warriors}
+          onClaim={reclamerMission}
+          onLater={() => setMissionsReportees((r) => new Set(r).add(missionAffichee.id))}
+          onClose={() => marquerMissionVue(missionAffichee.id)}
+        />
       )}
       {confirmation && (
         <Modal title={confirmation.titre} onClose={() => setConfirmation(null)}>

@@ -7478,3 +7478,14 @@ a.merc-card:hover {
 .atelier-file li { display: flex; align-items: center; gap: 8px; }
 .atelier-file li img { width: 32px; height: 32px; object-fit: contain; }
 .atelier-file li span { flex: 1; font-weight: 700; }
+
+/* Missions */
+.header-missions { position: relative; }
+.missions-badge { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 5px; border-radius: 9px; background: #b3261e; color: #fff; font-size: 0.8em; line-height: 18px; text-align: center; }
+.mission-liste { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 10px; }
+.mission-carte { padding: 10px 14px; border: 1px solid #bdaa83; border-radius: 8px; background: rgba(255, 255, 255, 0.55); text-align: left; }
+.mission-carte.accomplie { background: rgba(198, 224, 180, 0.6); }
+.mission-entete { display: flex; justify-content: space-between; gap: 12px; }
+.mission-carte p { margin: 6px 0 0; }
+.mission-recompense { font-weight: 700; }
+.mission-mercs { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
