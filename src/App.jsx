@@ -4972,7 +4972,9 @@ export function App() {
           mission={missions.find((x) => x.id === missionAffichee.mission_id) || { nom: "Mission", description: "" }}
           attribution={missionAffichee}
           objet={missionAffichee.objet_id ? missionObjets.get(missionAffichee.objet_id) : null}
-          mercenaires={warriors}
+          // Seulement les mercenaires que CE joueur a recrutés (le MJ agit pour tous ailleurs, pas ici : le serveur
+          // refuse de remettre une récompense à un mercenaire qui n'est pas à son nom).
+          mercenaires={mercenaires.filter((m) => mesRecrutes.has(m.id)).map((m) => ({ id: m.id, name: m.nom }))}
           bloques={new Set([...effetsMerc.entries()].filter(([, v]) => v.length > 0).map(([k]) => k))}
           onClaim={reclamerMission}
           onLater={() => setMissionsReportees((r) => new Set(r).add(missionAffichee.id))}
