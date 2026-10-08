@@ -1070,6 +1070,9 @@ export function App() {
   const [terrainsFavoris, setTerrainsFavoris] = useState(() => new Map());
   const [terrainReporte, setTerrainReporte] = useState([]);
   const [terrainForce, setTerrainForce] = useState(null);
+  // Conduit Divin : utilisations par instance (mercenaire, compétence, numéro d'instance) et instance en cours.
+  const [conduitRows, setConduitRows] = useState([]);
+  const [instanceNo, setInstanceNo] = useState(0);
   // Style de combat (compétence passive, choix à la vétérance 2) : même fonctionnement.
   const [stylesCombat, setStylesCombat] = useState(() => new Map());
   const [styleReporte, setStyleReporte] = useState([]);
@@ -1532,7 +1535,7 @@ export function App() {
           supabase.from("classe").select("id, nom"),
           supabase
             .from("mercenaire_competence")
-            .select("mercenaire_id, veterance, type, position, competence:objet_catalogue!competence_id(nom, description, icone)"),
+            .select("mercenaire_id, veterance, type, position, competence:objet_catalogue!competence_id(id, nom, description, icone)"),
         ]);
       if (annule || e1 || e2) return;
       if (!comp.error) {
@@ -2623,6 +2626,7 @@ export function App() {
       });
     setEmployesRoster(roster);
     // Journal : seules les 3 dernières instances (en cours + 2 précédentes) sont affichées.
+    setInstanceNo(etat.data.instance_courante ?? 0);
     const instanceJournal = etat.data.instance_courante ?? 0;
     const log = (jour.data || [])
       .filter((j) => j.instance_no > instanceJournal - 3)
@@ -2700,7 +2704,7 @@ export function App() {
   }
   // Missions : définitions communes, attributions de la session visibles par ce joueur, compteurs de progression.
   async function synchroniserMissions() {
-    const [m, a, c, eff, ej, tf, sc] = await Promise.all([
+    const [m, a, c, eff, ej, tf, sc, cd] = await Promise.all([
       supabase
         .from("mission")
         .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, recompense_effet_stat, recompense_effet_valeur, recompense_effet_quetes, ordre")
@@ -2714,7 +2718,9 @@ export function App() {
       supabase.from("mercenaire_ennemi_jure").select("mercenaire_id, rang, type").order("rang"),
       supabase.from("mercenaire_terrain_favori").select("mercenaire_id, rang, type").order("rang"),
       supabase.from("mercenaire_style_combat").select("mercenaire_id, rang, type").order("rang"),
+      supabase.from("mercenaire_conduit_divin").select("mercenaire_id, competence_id, instance_no"),
     ]);
+    if (!cd.error) setConduitRows(cd.data || []);
     if (!sc.error) {
       const parMerc = new Map();
       for (const e of sc.data || []) parMerc.set(e.mercenaire_id, [...(parMerc.get(e.mercenaire_id) || []), e]);
@@ -2777,6 +2783,14 @@ export function App() {
     const { error } = await supabase.rpc("ennemi_jure_choisir", { p_mercenaire: mercenaireId, p_type: type });
     if (error) return { error: error.message };
     await synchroniserPartage();
+    return {};
+  }
+  // Conduit Divin : utilise une compétence CD (sans énergie ; 1 / 2 / 3 utilisations par instance, selon la vétérance).
+  async function utiliserConduitDivin(mercenaireId, competenceId) {
+    const { data, error } = await supabase.rpc("conduit_divin_utiliser", { p_mercenaire: mercenaireId, p_competence: competenceId });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    notify(`Conduit Divin utilisé : ${data?.utilisees} / ${data?.total} cette instance.`);
     return {};
   }
   // Style de combat : choix du style d'un mercenaire (le serveur vérifie compétence, vétérance 2 et doublon).
@@ -2958,6 +2972,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_ennemi_jure" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_terrain_favori" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_style_combat" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_conduit_divin" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "employe" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
@@ -4155,6 +4170,8 @@ export function App() {
           onChoisirEnnemiJure={(id) => setEnnemiJureForce(id)}
           onChoisirTerrainFavori={(id) => setTerrainForce(id)}
           onChoisirStyleCombat={(id) => setStyleForce(id)}
+          conduitDivin={conduitRows.filter((r) => r.instance_no === instanceNo)}
+          onUtiliserConduitDivin={utiliserConduitDivin}
           onDepenserPoint={depenserPointCarac}
           onOuvrirArsenal={ouvrirArsenalDepuisSac}
           sacARouvrir={sacARouvrir}

@@ -37,7 +37,7 @@ export function CelluleCompetence({ niveau, type, position, competence, grisee, 
 // null = aucune ligne grisée (éditeur de l'administration).
 // `apresLigne(niveau)` : contenu optionnel inséré sous une ligne (l'éditeur de l'administration y
 // place son choix de compétence, à côté de la cellule cliquée).
-export function TableauCompetences({ cellules = [], veterance = null, onCell, selection = null, apresLigne = null }) {
+export function TableauCompetences({ cellules = [], veterance = null, onCell, selection = null, apresLigne = null, griseCD = null }) {
   const parCle = new Map(cellules.map((c) => [`${c.veterance}:${c.type}:${c.position}`, c]));
   const cellule = (niveau, type, position) => (
     <CelluleCompetence
@@ -46,7 +46,7 @@ export function TableauCompetences({ cellules = [], veterance = null, onCell, se
       type={type}
       position={position}
       competence={parCle.get(`${niveau}:${type}:${position}`)?.competence}
-      grisee={veterance !== null && niveau > veterance}
+      grisee={(veterance !== null && niveau > veterance) || !!griseCD?.(parCle.get(`${niveau}:${type}:${position}`)?.competence)}
       selectionnee={selection?.niveau === niveau && selection?.type === type && selection?.position === position}
       onClick={() => onCell?.({ niveau, type, position, competence: parCle.get(`${niveau}:${type}:${position}`)?.competence || null })}
     />
@@ -504,7 +504,7 @@ const PALIERS_RESTAURATION = [
   [7, 4],
   [10, 5],
 ];
-export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null }) {
+export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null }) {
   const { niveau, type, competence } = cellule;
   const atteinte = veterance >= niveau;
   const [choix, setChoix] = useState(null);
@@ -512,7 +512,18 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
   const [erreur, setErreur] = useState("");
   const [depense, setDepense] = useState(null);
   const restauration = competence?.nom?.trim().toLowerCase() === "restauration arcanique";
-  const compteur = !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration;
+  const compteur = !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd;
+  // Conduit Divin (compétence CD) : utilisation sans énergie, après validation, limitée par instance.
+  const [confirmerCd, setConfirmerCd] = useState(false);
+  const [enCoursCd, setEnCoursCd] = useState(false);
+  const [erreurCd, setErreurCd] = useState("");
+  async function utiliserCd() {
+    setEnCoursCd(true);
+    const res = await cd.onUtiliser();
+    setEnCoursCd(false);
+    setConfirmerCd(false);
+    setErreurCd(res?.error || "");
+  }
   // Restauration Arcanique : un seul palier utilisable, le plus haut atteint, et une fois par ouverture
   // de la fenêtre (le bouton reste grisé jusqu'à sa fermeture).
   const [restaure, setRestaure] = useState(null);
@@ -576,6 +587,38 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
       <p className={atteinte ? "comp-detail-ok" : "comp-detail-non"}>
         {atteinte ? "Vétérance atteinte : utilisable." : `Vétérance ${niveau} requise (actuelle : ${veterance}).`}
       </p>
+      {cd && atteinte && (
+        <div className="energie-compteur">
+          <p className="energie-compteur-titre">
+            Conduit Divin <span className="muted">(utilisations cette instance : {cd.utilisees} / {cd.total})</span>
+          </p>
+          {cd.dejaUtilisee ? (
+            <p className="comp-detail-ok">Déjà utilisée pendant cette instance.</p>
+          ) : cd.epuise ? (
+            <p className="comp-detail-non">Toutes les utilisations de Conduit Divin de cette instance sont dépensées.</p>
+          ) : cd.onUtiliser ? (
+            confirmerCd ? (
+              <p className="energie-compteur-valider">
+                <button type="button" className="wood-button" disabled={enCoursCd} onClick={utiliserCd}>
+                  Valider : utiliser le Conduit Divin
+                </button>{" "}
+                <button type="button" className="text-button" disabled={enCoursCd} onClick={() => setConfirmerCd(false)}>
+                  Annuler
+                </button>
+              </p>
+            ) : (
+              <button type="button" className="wood-button" onClick={() => setConfirmerCd(true)}>
+                Utiliser (sans dépense d’énergie)
+              </button>
+            )
+          ) : null}
+          {erreurCd && (
+            <p className="error" role="alert">
+              {erreurCd}
+            </p>
+          )}
+        </div>
+      )}
       {restauration && !!onRestaurer && (
         <div className="energie-compteur">
           <p className="energie-compteur-titre">
