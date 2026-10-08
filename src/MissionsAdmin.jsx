@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { STATS_EFFET, libelleEffet } from "./effets.js";
 
 // Missions : rédigées ici par l'administrateur. L'événement choisi décide du déclenchement ; « À brancher »
 // signifie que la mission existe mais ne se déclenche pas encore (le déclencheur se branche ensuite, sur demande) :
@@ -20,6 +21,9 @@ function missionVide() {
     or: "0",
     objetId: "",
     quantite: "1",
+    effetStat: "",
+    effetValeur: "1",
+    effetQuetes: "1",
     cachee: false,
     actif: true,
     ordre: "0",
@@ -54,6 +58,9 @@ export function MissionsSection({ kit }) {
       or: String(m.recompense_or),
       objetId: m.recompense_objet_id || "",
       quantite: String(m.recompense_quantite),
+      effetStat: m.recompense_effet_stat || "",
+      effetValeur: String(m.recompense_effet_valeur ?? 1),
+      effetQuetes: String(m.recompense_effet_quetes ?? 1),
       cachee: !!m.recompense_cachee,
       actif: !!m.actif,
       ordre: String(m.ordre),
@@ -75,6 +82,10 @@ export function MissionsSection({ kit }) {
       recompense_or: entier(f.or, 0),
       recompense_objet_id: f.objetId || null,
       recompense_quantite: entier(f.quantite, 1),
+      // Effet temporaire : réservé aux missions individuelles.
+      recompense_effet_stat: f.rubrique === "individuelle" && f.effetStat ? f.effetStat : null,
+      recompense_effet_valeur: f.rubrique === "individuelle" && f.effetStat ? Math.min(99, entier(f.effetValeur, 1)) : null,
+      recompense_effet_quetes: Math.min(3, entier(f.effetQuetes, 1)),
       recompense_cachee: f.cachee,
       actif: f.actif,
       ordre: entier(f.ordre, 0),
@@ -102,6 +113,7 @@ export function MissionsSection({ kit }) {
     [
       m.recompense_or > 0 ? `${m.recompense_or} Po` : "",
       m.recompense_objet_id ? `${nomObjet(m.recompense_objet_id)} ×${m.recompense_quantite}` : "",
+      m.recompense_effet_stat ? libelleEffet(m.recompense_effet_stat, m.recompense_effet_valeur, m.recompense_effet_quetes) : "",
     ]
       .filter(Boolean)
       .join(" + ") || "—";
@@ -166,8 +178,41 @@ export function MissionsSection({ kit }) {
           Quantité de l’objet
           <input type="number" min="1" step="1" value={f.quantite} onChange={(e) => set("quantite", e.target.value)} />
         </label>
+        {f.rubrique === "individuelle" && (
+          <>
+            <label>
+              Récompense : effet temporaire (en réserve jusqu’au départ en quête ; non transférable)
+              <select value={f.effetStat} onChange={(e) => set("effetStat", e.target.value)}>
+                <option value="">Aucun effet</option>
+                {STATS_EFFET.map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {f.effetStat && (
+              <>
+                <label>
+                  Valeur de l’effet (par exemple 2 pour +2)
+                  <input type="number" min="1" max="99" step="1" value={f.effetValeur} onChange={(e) => set("effetValeur", e.target.value)} />
+                </label>
+                {f.effetStat !== "pv_temp" && (
+                  <label>
+                    Durée (nombre de quêtes, de 1 à 3)
+                    <select value={f.effetQuetes} onChange={(e) => set("effetQuetes", e.target.value)}>
+                      <option value="1">1 quête</option>
+                      <option value="2">2 quêtes</option>
+                      <option value="3">3 quêtes</option>
+                    </select>
+                  </label>
+                )}
+              </>
+            )}
+          </>
+        )}
         <label>
-          Ordre d’affichage
+          Position dans la liste (le plus petit nombre s’affiche en premier)
           <input type="number" min="0" step="1" value={f.ordre} onChange={(e) => set("ordre", e.target.value)} />
         </label>
         <label className="admin-check">

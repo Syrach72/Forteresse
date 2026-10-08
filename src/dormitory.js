@@ -75,7 +75,12 @@ export const INITIAL_INFIRMARY = {
 // Santé max d'un mercenaire et blessure : santé actuelle renseignée et inférieure au maximum
 // (vide = maximum).
 export function santeMaxMerc(merc) {
-  return 3 + 2 * ((merc?.puissance ?? 0) + (merc?.bonusPuissance ?? 0)) + (merc?.bonusSante ?? 0);
+  return (
+    3 +
+    2 * ((merc?.puissance ?? 0) + (merc?.bonusPuissance ?? 0) + (merc?.temp?.puissance ?? 0)) +
+    (merc?.bonusSante ?? 0) +
+    (merc?.temp?.santeMax ?? 0)
+  );
 }
 export function estBlesse(merc) {
   return merc?.santeActuelle != null && merc.santeActuelle < santeMaxMerc(merc);

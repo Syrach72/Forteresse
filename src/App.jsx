@@ -7,6 +7,7 @@ import { Quests, CampaignInventory } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
 import { Journal } from "./Journal.jsx";
 import { Missions, MissionPopup } from "./Missions.jsx";
+import { effetsTemp } from "./effets.js";
 import { Regles } from "./Regles.jsx";
 import { EMPTY_TREASURY, EMPTY_TREASURY_LIVE, buildTreasury, entretienCompagnie } from "./treasury-data.js";
 import { Training } from "./Training.jsx";
@@ -1052,6 +1053,8 @@ export function App() {
   const [journalInstance, setJournalInstance] = useState(null);
   // Missions : définitions, attributions (les miennes + collectives), compteurs et objets de récompense.
   const [missions, setMissions] = useState([]);
+  // Effets temporaires des mercenaires : id du mercenaire -> [{id, stat, valeur, quetes_restantes}].
+  const [effetsMerc, setEffetsMerc] = useState(() => new Map());
   const [missionAttrs, setMissionAttrs] = useState([]);
   const [missionCompteurs, setMissionCompteurs] = useState(() => new Map());
   const [missionObjets, setMissionObjets] = useState(() => new Map());
@@ -1192,7 +1195,7 @@ export function App() {
         const estHumain = (competencesMerc.get(m.id) || []).some(
           (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "humain",
         );
-        return bonus === (m.bonusPuissance ?? 0) &&
+        const base = bonus === (m.bonusPuissance ?? 0) &&
           estHumain === (m.estHumain ?? false) &&
           bonusVelocite === (m.bonusVelocite ?? 0) &&
           bonusSante === (m.bonusSante ?? 0) &&
@@ -1200,8 +1203,13 @@ export function App() {
           bonusMental === (m.bonusMental ?? 0)
           ? m
           : { ...m, bonusPuissance: bonus, bonusSante, bonusMouvementSansArmure, bonusMental, estHumain, bonusVelocite };
+        // Effets temporaires des missions : actifs seulement tant que le mercenaire est engagé dans une quête.
+        const eff = effetsMerc.get(m.id);
+        if (!eff) return base;
+        const actif = mercsEnQuete.some((e) => e.mercenaire_id === m.id);
+        return { ...base, temp: effetsTemp(eff, actif), effetsReserve: eff, effetsActifs: actif };
       }),
-    [mercenairesBase, competencesMerc],
+    [mercenairesBase, competencesMerc, effetsMerc, mercsEnQuete],
   );
   // Effectif embauché (Collecte des Ressources), partagé comme l'arsenal.
   const [employesRoster, setEmployesRoster] = useState([]);
@@ -2603,17 +2611,23 @@ export function App() {
   }
   // Missions : définitions communes, attributions de la session visibles par ce joueur, compteurs de progression.
   async function synchroniserMissions() {
-    const [m, a, c] = await Promise.all([
+    const [m, a, c, eff] = await Promise.all([
       supabase
         .from("mission")
-        .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, ordre")
+        .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, recompense_effet_stat, recompense_effet_valeur, recompense_effet_quetes, ordre")
         .eq("actif", true)
         .order("ordre"),
       supabase
         .from("mission_attribution")
-        .select("id, mission_id, user_id, accomplie_le, or_verse, objet_id, quantite, reclamee_le"),
+        .select("id, mission_id, user_id, accomplie_le, or_verse, objet_id, quantite, effet_stat, effet_valeur, effet_quetes, reclamee_le"),
       supabase.from("mission_compteur").select("evenement, user_id, valeur"),
+      supabase.from("mercenaire_effet").select("id, mercenaire_id, stat, valeur, quetes_restantes").order("created_at"),
     ]);
+    if (!eff.error) {
+      const parMerc = new Map();
+      for (const e of eff.data || []) parMerc.set(e.mercenaire_id, [...(parMerc.get(e.mercenaire_id) || []), e]);
+      setEffetsMerc(parMerc);
+    }
     if (m.error || a.error) return;
     const ids = [
       ...new Set([...m.data.map((x) => x.recompense_objet_id), ...a.data.map((x) => x.objet_id)].filter(Boolean)),
@@ -2642,7 +2656,14 @@ export function App() {
       return n;
     });
   }
-  // Envoie l'objet d'une mission individuelle dans le sac à dos d'un mercenaire du joueur.
+  // PV temporaires : le joueur (ou le MJ) en retire quand le mercenaire encaisse des dégâts.
+  async function depenserPvTemp(mercenaireId, montant) {
+    const { error } = await supabase.rpc("effet_pv_temp_depenser", { p_mercenaire: mercenaireId, p_montant: montant });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    return {};
+  }
+  // Envoie l'objet d'une mission individuelle (ou son effet temporaire) à un mercenaire du joueur.
   async function reclamerMission(attribution, mercenaireId) {
     const { data, error } = await supabase.rpc("mission_reclamer", {
       p_attribution: attribution.id,
@@ -2795,6 +2816,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "atelier_fabrication" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "atelier_file" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mission_attribution" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_effet" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "employe" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
@@ -3734,7 +3756,7 @@ export function App() {
   if (!session) return null; // redirection vers #connexion en cours (effet ci-dessus)
   // Missions : récompense d'objet à remettre (priorité), sinon annonce d'une mission accomplie jamais vue.
   const missionsPourMoi = missionAttrs.filter((a) => a.user_id == null || a.user_id === session.user.id);
-  const missionAReclamer = (a) => a.user_id === session.user.id && a.objet_id && !a.reclamee_le;
+  const missionAReclamer = (a) => a.user_id === session.user.id && (a.objet_id || a.effet_stat) && !a.reclamee_le;
   const missionsEnAttente = missionsPourMoi.filter(missionAReclamer).length;
   const missionAffichee =
     missionsPourMoi.find((a) => missionAReclamer(a) && !missionsReportees.has(a.id)) ||
@@ -3988,6 +4010,7 @@ export function App() {
           mercsEnQuete={mercsEnQuete}
           onRestaurerEnergie={restaurerEnergie}
           onSetCaracteristiques={setCaracteristiques}
+          onDepenserPvTemp={depenserPvTemp}
           onDepenserPoint={depenserPointCarac}
           onOuvrirArsenal={ouvrirArsenalDepuisSac}
           sacARouvrir={sacARouvrir}

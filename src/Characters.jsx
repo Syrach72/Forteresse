@@ -6,6 +6,7 @@ import { TachesSang } from "./TachesSang.jsx";
 import { CoeurBlesse } from "./CoeurBlesse.jsx";
 import { VetBadge } from "./VetBadge.jsx";
 import { protectionsMercenaire } from "./protections.js";
+import { libelleEffet } from "./effets.js";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
 import { AlertePoint, PointCaracModal } from "./PointsCarac.jsx";
@@ -128,6 +129,7 @@ export function Characters({
   onRestaurerEnergie = async () => ({}),
   onSetCaracteristiques = async () => ({}),
   onDepenserPoint = async () => ({}),
+  onDepenserPvTemp = async () => ({}),
   onClearError = () => {},
   onOuvrirArsenal = () => {},
   sacARouvrir = null,
@@ -139,8 +141,11 @@ export function Characters({
   const merc = mercenaires.find((m) => m.id === heroId);
   // Santé Max = 3 + 2 × Puissance ; Énergie Max = 2 × Mental (règle de Bruno, 2026-09-28).
   // Calculés à partir de Puissance/Mental, jamais saisis directement.
-  const energieMax = merc ? 2 * ((merc.mental ?? 0) + (merc.bonusMental ?? 0)) : null;
-  const santeMax = merc ? 3 + 2 * ((merc.puissance ?? 0) + (merc.bonusPuissance ?? 0)) + (merc.bonusSante ?? 0) : null;
+  // Effets temporaires des missions (mercenaire en quête) : ajoutés aux caractéristiques et aux maxima.
+  const tmp = merc?.temp || {};
+  const pvTemp = tmp.pvTemp ?? 0;
+  const energieMax = merc ? 2 * ((merc.mental ?? 0) + (merc.bonusMental ?? 0) + (tmp.mental ?? 0)) + (tmp.energieMax ?? 0) : null;
+  const santeMax = merc ? 3 + 2 * ((merc.puissance ?? 0) + (merc.bonusPuissance ?? 0) + (tmp.puissance ?? 0)) + (merc.bonusSante ?? 0) + (tmp.santeMax ?? 0) : null;
   const hero = merc ? undefined : warriors.find((w) => w.id === heroId);
   // Fiche d'un mercenaire recruté : réservée à son recruteur et à l'admin.
   const accesFiche = (id) => morts.includes(id) || !tousRecrutes.includes(id) || recrutes.includes(id) || estAdmin;
@@ -194,9 +199,9 @@ export function Characters({
   const [actuelError, setActuelError] = useState("");
   useEffect(() => {
     setEnergieAct(String(merc?.energieActuelle ?? energieMax ?? ""));
-    setSanteAct(String(merc?.santeActuelle ?? santeMax ?? ""));
+    setSanteAct(String(merc?.santeActuelle ?? (santeMax != null ? santeMax + pvTemp : "")));
     setActuelError("");
-  }, [merc?.id, merc?.energieActuelle, merc?.santeActuelle, energieMax, santeMax]);
+  }, [merc?.id, merc?.energieActuelle, merc?.santeActuelle, energieMax, santeMax, pvTemp]);
   // Puissance, Vélocité, Mental (saisie du joueur, plafonnées à 9) : déterminent Santé Max et
   // Énergie Max ci-dessus.
   const [caracIn, setCaracIn] = useState({ puissance: "", velocite: "", mental: "" });
@@ -473,7 +478,7 @@ export function Characters({
                   // Déplacement Sans Armure : bonus de vétérance seulement si aucune armure n'est portée.
                   const sansArmure = !equipDe(merc.id)?.armure?.[0];
                   const bonusMouvement = sansArmure ? merc.bonusMouvementSansArmure ?? 0 : 0;
-                  const deplacement = Math.max(0, merc.mouvement + malusArmure + bonusMouvement);
+                  const deplacement = Math.max(0, merc.mouvement + malusArmure + bonusMouvement + (tmp.mouvement ?? 0));
                   return (
                     <div className="merc-carac merc-carac-bottes">
                       <img
@@ -489,13 +494,16 @@ export function Characters({
                         }
                       />
                       <strong className="merc-carac-valeur">{deplacement}<span className="merc-carac-unite">c</span></strong>
+                      {tmp.mouvement > 0 && (
+                        <span className="merc-carac-bonus merc-carac-temp" title="Bonus temporaire (mission), actif pendant la quête">+{tmp.mouvement} temp.</span>
+                      )}
                     </div>
                   );
                 })()}
                 {(() => {
                   // Pavé de défense : Esquive (Vélocité ÷ 3, arrondi inférieur, minimum 1), Parade, Armure.
                   const equip = equipDe(merc.id);
-                  const velocite = Number(merc.velocite) + (merc.bonusVelocite ?? 0);
+                  const velocite = Number(merc.velocite) + (merc.bonusVelocite ?? 0) + (tmp.velocite ?? 0);
                   const esquive = Number.isFinite(velocite) ? Math.max(1, Math.floor(velocite / 3)) : "—";
                   const armure = equip?.armure?.[0];
                   const v = (x) => (x === null || x === undefined || String(x).trim() === "" ? "—" : x);
@@ -607,6 +615,11 @@ export function Characters({
                         +{merc.bonusVelocite}
                       </span>
                     )}
+                    {tmp[cle] > 0 && (
+                      <span className="merc-carac-bonus merc-carac-temp" title="Bonus temporaire (mission), actif pendant la quête">
+                        +{tmp[cle]} temp.
+                      </span>
+                    )}
                     {cle === "mental" && merc.bonusMental > 0 && (
                       <span className="merc-carac-bonus" title="Bonus de la compétence de race (Haut-Elfe, Elfe Sylvestre, Drow : +1 Mental tous les 3 niveaux de vétérance)">
                         +{merc.bonusMental}
@@ -615,6 +628,19 @@ export function Characters({
                   </div>
                 ))}
               </div>
+              {(merc.effetsReserve?.length ?? 0) > 0 && (
+                <div className="merc-effets">
+                  <strong>Effets temporaires</strong>
+                  <ul>
+                    {merc.effetsReserve.map((e) => (
+                      <li key={e.id}>
+                        {libelleEffet(e.stat, e.valeur, e.quetes_restantes)} —{" "}
+                        {merc.effetsActifs ? "actif (en quête)" : "en réserve : s’applique au départ en quête"}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {recrutes.includes(merc.id) && (merc.pointsCarac ?? 0) > 0 && (
                 <button type="button" className="wood-button point-carac-bouton" onClick={() => setPointOuvert(true)}>
                   Dépenser {merc.pointsCarac > 1 ? `${merc.pointsCarac} points` : "1 point"} de caractéristique
@@ -670,9 +696,9 @@ export function Characters({
                   return Number.isInteger(n) && n >= 0 && n <= 999 ? { ok: true, n } : { ok: false };
                 };
                 // L'énergie ne se saisit plus ici : elle se dépense depuis les compétences actives.
-                const inchange = santeAct === String(merc.santeActuelle ?? santeMax ?? "");
+                const inchange = santeAct === String(merc.santeActuelle ?? (santeMax != null ? santeMax + pvTemp : ""));
                 // −1 / +1 enregistrent aussitôt (0 à 999, jamais de valeur négative) ; « Valider » enregistre la saisie.
-                const santeCourante = merc.santeActuelle ?? santeMax ?? 0;
+                const santeCourante = merc.santeActuelle ?? (santeMax ?? 0) + pvTemp;
                 const enregistrerSante = async (n) => {
                   const v = Math.max(0, Math.min(999, n));
                   setSanteAct(String(v));
@@ -718,12 +744,23 @@ export function Characters({
                         libelle="Santé"
                         id="merc-sante-actuelle"
                         max={santeMax}
-                        actuelle={merc.santeActuelle ?? santeMax}
+                        supplement={pvTemp}
+                        actuelle={merc.santeActuelle ?? (santeMax != null ? santeMax + pvTemp : null)}
                         editable={peutModifier}
                         valeur={santeAct}
                         onChange={setSanteAct}
                       />
                       {boutonsSante}
+                      {pvTemp > 0 && peutModifier && (
+                        <button
+                          type="button"
+                          className="wood-button"
+                          onClick={() => onDepenserPvTemp(merc.id, 1)}
+                          title="Dégâts encaissés : retire 1 PV temporaire"
+                        >
+                          −1 PV temporaire ({pvTemp})
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

@@ -7501,3 +7501,10 @@ a.merc-card:hover {
 /* Missions : texte des cartes en noir intense, sans contour */
 .mission-carte, .mission-carte * { color: #000 !important; -webkit-text-stroke: 0 !important; text-shadow: none !important; }
 .mission-carte .mission-recompense em { font-style: italic; }
+
+/* Effets temporaires des missions */
+.merc-carac-temp { color: #1565c0; margin-left: 4px; }
+.orbe-supplement { color: #1565c0; font-weight: 700; }
+.merc-effets { margin: 8px 0; padding: 8px 10px; border: 1px solid #9d8b6b; border-radius: 6px; background: #d8cbb1; color: #000; text-align: left; }
+.merc-effets, .merc-effets * { color: #000 !important; -webkit-text-stroke: 0 !important; text-shadow: none !important; }
+.merc-effets ul { margin: 4px 0 0; padding-left: 18px; }

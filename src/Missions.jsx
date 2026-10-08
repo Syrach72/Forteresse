@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Modal } from "./Modal.jsx";
+import { libelleEffet } from "./effets.js";
 
 const fmt = (n) => new Intl.NumberFormat("fr-FR").format(n);
 
 // Texte de récompense d'une mission : « 100 Po », « Potion de vie mineure ×1 », ou les deux.
-export function texteRecompense(or, objetNom, quantite) {
+export function texteRecompense(or, objetNom, quantite, effet = null) {
   const parts = [];
   if (or > 0) parts.push(`${fmt(or)} Po`);
   if (objetNom) parts.push(`${objetNom}${quantite > 1 ? ` ×${quantite}` : ""}`);
+  if (effet) parts.push(effet);
   return parts.join(" et ") || "—";
 }
 
@@ -25,7 +27,7 @@ export function Missions({ missions, attributions, compteurs, objets, userId, on
     const a = attribution(m);
     const objet = m.recompense_objet_id ? objets.get(m.recompense_objet_id) : null;
     const cachee = m.recompense_cachee && !a;
-    const aReclamer = !!a && a.user_id === userId && a.objet_id && !a.reclamee_le;
+    const aReclamer = !!a && a.user_id === userId && (a.objet_id || a.effet_stat) && !a.reclamee_le;
     return (
       <li key={m.id} className={`mission-carte${a ? " accomplie" : ""}`}>
         <div className="mission-entete">
@@ -40,12 +42,19 @@ export function Missions({ missions, attributions, compteurs, objets, userId, on
           {cachee ? (
             <em>? (secrète jusqu’à l’accomplissement)</em>
           ) : (
-            texteRecompense(m.recompense_or, objet?.nom, m.recompense_quantite)
+            texteRecompense(
+              m.recompense_or,
+              objet?.nom,
+              m.recompense_quantite,
+              m.recompense_effet_stat
+                ? libelleEffet(m.recompense_effet_stat, m.recompense_effet_valeur, m.recompense_effet_quetes)
+                : null,
+            )
           )}
         </p>
         {aReclamer && (
           <button type="button" className="wood-button" onClick={() => onReclamer(a)}>
-            Envoyer la récompense à un mercenaire
+            Donner la récompense à un mercenaire
           </button>
         )}
       </li>
@@ -71,7 +80,7 @@ export function Missions({ missions, attributions, compteurs, objets, userId, on
 // Fenêtre « Mission accomplie » : annonce (collective ou or seul) ou remise d'un objet à l'un de SES mercenaires.
 export function MissionPopup({ mission, attribution, objet, mercenaires, onClaim, onLater, onClose }) {
   const [busy, setBusy] = useState(false);
-  const aReclamer = !!attribution.objet_id && !attribution.reclamee_le && attribution.user_id;
+  const aReclamer = !!(attribution.objet_id || attribution.effet_stat) && !attribution.reclamee_le && attribution.user_id;
   async function choisir(id) {
     if (busy) return;
     setBusy(true);
@@ -86,13 +95,26 @@ export function MissionPopup({ mission, attribution, objet, mercenaires, onClaim
       <p className="muted">{mission.description}</p>
       <p>
         {attribution.user_id ? "Vous avez gagné" : "La compagnie a gagné"} :{" "}
-        <strong>{texteRecompense(attribution.or_verse, objet?.nom, attribution.quantite)}</strong>
+        <strong>
+          {texteRecompense(
+            attribution.or_verse,
+            objet?.nom,
+            attribution.quantite,
+            attribution.effet_stat
+              ? libelleEffet(attribution.effet_stat, attribution.effet_valeur, attribution.effet_quetes)
+              : null,
+          )}
+        </strong>
         {attribution.or_verse > 0 ? " (versés à la trésorerie)" : ""}
       </p>
       {objet?.icone && <img className="db-item-art" src={objet.icone} alt={objet.nom} />}
       {aReclamer ? (
         <>
-          <p>Envoyez-le dans le sac à dos de l’un de vos mercenaires :</p>
+          <p>
+            {attribution.effet_stat
+              ? `Choisissez le mercenaire qui recevra ${attribution.objet_id ? "l’objet et " : ""}l’effet (il s’applique quand il part en quête ; non transférable) :`
+              : "Envoyez-le dans le sac à dos de l’un de vos mercenaires :"}
+          </p>
           {mercenaires.length ? (
             <div className="mission-mercs">
               {mercenaires.map((m) => (

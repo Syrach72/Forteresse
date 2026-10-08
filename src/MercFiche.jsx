@@ -89,7 +89,7 @@ const aUneValeur = (v) => v !== null && v !== undefined && String(v).trim() !== 
 // Orbe de santé (rouge) ou d'énergie (bleue) : la valeur actuelle en grand, le maximum dessous.
 // Éditable (le joueur qui a recruté le mercenaire, ou le MJ) : l'actuelle est un champ de saisie.
 // Jamais plus de 3 chiffres ; les tailles suivent la largeur de l'orbe (unités de conteneur).
-export function Orbe({ type, libelle, id, actuelle, max, editable = false, valeur = "", onChange }) {
+export function Orbe({ type, libelle, id, actuelle, max, editable = false, valeur = "", onChange, supplement = 0 }) {
   return (
     <div className={`orbe orbe-${type}`}>
       <div className="orbe-image">
@@ -114,6 +114,7 @@ export function Orbe({ type, libelle, id, actuelle, max, editable = false, valeu
           )}
           <span className="orbe-max" aria-label={`${libelle} maximum`}>
             Max : {max ?? "—"}
+            {supplement > 0 && <span className="orbe-supplement" title="PV temporaires"> (+{supplement})</span>}
           </span>
         </div>
       </div>
