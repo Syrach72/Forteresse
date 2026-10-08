@@ -9,6 +9,7 @@ export const VETERANCE_RANG = [1, 4, 8];
 export const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 export const CONFIG_ENNEMI_JURE = {
+  rangs: VETERANCE_RANG,
   nomCompetence: "ennemi juré",
   titre: (nom) => `${nom} : ennemi juré`,
   consigne: (nom) => `le type d’ennemi juré de ${nom}`,
@@ -33,7 +34,21 @@ export const CONFIG_ENNEMI_JURE = {
   ],
 };
 
+export const CONFIG_STYLE_COMBAT = {
+  // Un seul style, choisi à la vétérance 2 (un style ne peut jamais être pris deux fois).
+  rangs: [2],
+  nomCompetence: "style de combat",
+  titre: (nom) => `${nom} : style de combat`,
+  consigne: (nom) => `le style de combat de ${nom}`,
+  libelleListe: "Style de combat",
+  libelleBouton: "Choisir un style de combat",
+  champChoisis: "stylesCombat",
+  champAChoisir: "styleCombatAChoisir",
+  types: ["archerie", "combat à deux armes", "défense", "duel"],
+};
+
 export const CONFIG_TERRAIN_FAVORI = {
+  rangs: VETERANCE_RANG,
   nomCompetence: "explorateur-né",
   titre: (nom) => `${nom} : terrain favori`,
   consigne: (nom) => `le type de terrain favori de ${nom}`,

@@ -132,6 +132,7 @@ export function Characters({
   onDepenserPvTemp = async () => ({}),
   onChoisirEnnemiJure = () => {},
   onChoisirTerrainFavori = () => {},
+  onChoisirStyleCombat = () => {},
   onClearError = () => {},
   onOuvrirArsenal = () => {},
   sacARouvrir = null,
@@ -630,6 +631,21 @@ export function Characters({
                   </div>
                 ))}
               </div>
+              {(merc.stylesCombat?.length ?? 0) > 0 && (
+                <div className="merc-effets">
+                  <strong>Style de combat</strong>
+                  <ul>
+                    {merc.stylesCombat.map((e) => (
+                      <li key={e.rang}>{e.type.charAt(0).toUpperCase() + e.type.slice(1)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {(merc.styleCombatAChoisir ?? 0) > 0 && (recrutes.includes(merc.id) || estAdmin) && (
+                <button type="button" className="wood-button" onClick={() => onChoisirStyleCombat(merc.id)}>
+                  Choisir un style de combat
+                </button>
+              )}
               {(merc.terrainsFavoris?.length ?? 0) > 0 && (
                 <div className="merc-effets">
                   <strong>Terrains favoris</strong>
@@ -1018,6 +1034,7 @@ export function Characters({
               )}
               <EquipementMercenaire
                 equip={equipDe(merc.id)}
+                styleCombat={merc.styleCombat ?? null}
                 busy={busy}
                 onDesequiper={tousRecrutes.includes(merc.id) ? (emplacement, position) => onDesequiper(merc.id, emplacement, position) : null}
                 onDetruire={tousRecrutes.includes(merc.id) && peutModifier ? (emplacement, position) => onDetruireEquipement(merc.id, emplacement, position) : null}
@@ -1498,6 +1515,7 @@ export function Characters({
                 });
                 if (nom === "ennemi juré") return aide(merc.ennemisJures, merc.ennemiJureAChoisir, "Vos ennemis jurés", onChoisirEnnemiJure);
                 if (nom === "explorateur-né") return aide(merc.terrainsFavoris, merc.terrainFavoriAChoisir, "Vos terrains favoris", onChoisirTerrainFavori);
+                if (nom === "style de combat") return aide(merc.stylesCombat, merc.styleCombatAChoisir, "Votre style de combat", onChoisirStyleCombat);
                 return null;
               })()}
             />

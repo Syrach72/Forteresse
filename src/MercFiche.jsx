@@ -183,8 +183,16 @@ function BadgesParade({ emplacement, position, nom, actif, onDetruire, onBascule
   );
 }
 
-export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, onBasculerF = null, onVoirFiche = null, busy = false }) {
+export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, onBasculerF = null, onVoirFiche = null, busy = false, styleCombat = null }) {
   const e = equip || { arme: [null, null, null], armure: [null], bouclier: [null], objet: [null, null, null] };
+  // Style de combat automatisé : Archerie = +1🎲 avec une arme à portée ; Duel = +1🎲 avec une arme qui n'est pas à deux
+  // mains tant qu'aucun bouclier n'est équipé.
+  const aBouclier = !!e.bouclier?.[0];
+  const bonusDe = (o) => {
+    if (styleCombat === "archerie" && aUneValeur(o.portee)) return "Archerie";
+    if (styleCombat === "duel" && !o.deuxMains && !aBouclier) return "Duel";
+    return null;
+  };
   // Équipement de base d'un mercenaire non recruté : lecture seule, pas de bouton Déséquiper.
   const bouton = (emplacement, position, nom) =>
     !onDesequiper ? null : (
@@ -278,6 +286,13 @@ export function EquipementMercenaire({ equip, onDesequiper, onDetruire = null, o
                   <p className="equip-etiquettes">
                     <span className="equip-oui">Parade {o.parade}</span>
                     <BadgesParade emplacement="arme" position={i} nom={o.nom} actif={o.badgeF} onDetruire={onDetruire} onBasculerF={onBasculerF} busy={busy} />
+                  </p>
+                )}
+                {bonusDe(o) && (
+                  <p className="equip-etiquettes">
+                    <span className="equip-oui equip-de" title={`Style de combat : ${bonusDe(o)}`}>
+                      +1🎲 ({bonusDe(o)})
+                    </span>
                   </p>
                 )}
                 {(o.legere || o.deuxMains) && (
