@@ -7523,3 +7523,5 @@ a.merc-card:hover {
 .comp-detail-choix button { color: #fff !important; -webkit-text-stroke: 2px #000 !important; paint-order: stroke fill; }
 
 .equip-de { font-weight: 700; }
+
+.gemmes-portees { margin: 6px 0; font-weight: 700; }

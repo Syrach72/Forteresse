@@ -8,6 +8,7 @@ import { Treasury } from "./Treasury.jsx";
 import { Journal } from "./Journal.jsx";
 import { Missions, MissionPopup } from "./Missions.jsx";
 import { effetsTemp } from "./effets.js";
+import { gemmesPortees, limiteGemmes } from "./gemmes.js";
 import { ChoixType, CONFIG_ENNEMI_JURE, CONFIG_TERRAIN_FAVORI, CONFIG_STYLE_COMBAT, VETERANCE_RANG } from "./ChoixType.jsx";
 import { Regles } from "./Regles.jsx";
 import { EMPTY_TREASURY, EMPTY_TREASURY_LIVE, buildTreasury, entretienCompagnie } from "./treasury-data.js";
@@ -556,11 +557,16 @@ function ItemActionPanel({
               onChange={(e) => setMercenaireCible(e.target.value)}
             >
               <option value="">Choisir un mercenaire…</option>
-              {mercenairesRecrutes.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label}
-                </option>
-              ))}
+              {mercenairesRecrutes.map((m) => {
+                const plus = own.gemmes?.length || 0;
+                const depasse = plus > 0 && (m.gemmes?.portees ?? 0) + plus > (m.gemmes?.limite ?? 0);
+                return (
+                  <option key={m.id} value={m.id} disabled={depasse}>
+                    {m.label}
+                    {plus > 0 ? ` — gemmes portées : ${m.gemmes?.portees ?? 0} / ${m.gemmes?.limite ?? 0}${depasse ? " (limite atteinte)" : ""}` : ""}
+                  </option>
+                );
+              })}
             </select>
             <button
               className="wood-button"
@@ -1302,8 +1308,10 @@ export function App() {
         .map((m) => ({
           id: m.id,
           label: joueurs.get(m.id) ? `${m.nom} (${joueurs.get(m.id)})` : m.nom,
+          // Gemmes serties déjà portées (équipement + sac) et limite (Mental), pour prévenir avant un envoi.
+          gemmes: { portees: gemmesPortees(equipements.get(m.id), sacsDos.get(m.id)), limite: limiteGemmes(m) },
         })),
-    [mercenaires, recrutesServeur, joueurs],
+    [mercenaires, recrutesServeur, joueurs, equipements, sacsDos],
   );
   // Tous les mercenaires recrutés (par n'importe quel joueur), avec le nom du
   // joueur : ce sont eux qui occupent les lits du Dortoir partagé.

@@ -7,6 +7,7 @@ import { CoeurBlesse } from "./CoeurBlesse.jsx";
 import { VetBadge } from "./VetBadge.jsx";
 import { protectionsMercenaire } from "./protections.js";
 import { libelleEffet } from "./effets.js";
+import { gemmesPortees, limiteGemmes } from "./gemmes.js";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
 import { AlertePoint, PointCaracModal } from "./PointsCarac.jsx";
@@ -1046,6 +1047,16 @@ export function Characters({
                   {erreur}
                 </p>
               )}
+              {(() => {
+                const portees = gemmesPortees(equipDe(merc.id), sacsDos.get(merc.id));
+                const limite = limiteGemmes(merc);
+                return (
+                  <p className="gemmes-portees" title="Armes et armures confondues, équipement et sac à dos : au plus autant de gemmes que le Mental">
+                    Gemmes serties portées : <strong>{portees} / {limite}</strong>{" "}
+                    <span className="muted">(limite = Mental)</span>
+                  </p>
+                );
+              })()}
               <EquipementMercenaire
                 equip={equipDe(merc.id)}
                 styleCombat={merc.styleCombat ?? null}
