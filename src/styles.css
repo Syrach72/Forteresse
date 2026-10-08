@@ -7514,3 +7514,6 @@ a.merc-card:hover {
 
 /* Réplique du bouton « ? » dans le texte de la page Règles */
 .pave-aide.pave-aide-inline { position: static; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; cursor: default; margin: 0 2px; }
+
+/* Ennemi Juré : liste des types sur plusieurs lignes */
+.ennemi-jure-choix { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }

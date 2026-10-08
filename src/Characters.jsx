@@ -130,6 +130,7 @@ export function Characters({
   onSetCaracteristiques = async () => ({}),
   onDepenserPoint = async () => ({}),
   onDepenserPvTemp = async () => ({}),
+  onChoisirEnnemiJure = () => {},
   onClearError = () => {},
   onOuvrirArsenal = () => {},
   sacARouvrir = null,
@@ -628,6 +629,21 @@ export function Characters({
                   </div>
                 ))}
               </div>
+              {(merc.ennemisJures?.length ?? 0) > 0 && (
+                <div className="merc-effets">
+                  <strong>Ennemis jurés</strong>
+                  <ul>
+                    {merc.ennemisJures.map((e) => (
+                      <li key={e.rang}>{e.type.charAt(0).toUpperCase() + e.type.slice(1)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {(merc.ennemiJureAChoisir ?? 0) > 0 && (recrutes.includes(merc.id) || estAdmin) && (
+                <button type="button" className="wood-button" onClick={() => onChoisirEnnemiJure(merc.id)}>
+                  Choisir un ennemi juré ({merc.ennemiJureAChoisir} à choisir)
+                </button>
+              )}
               {(merc.effetsReserve?.length ?? 0) > 0 && (
                 <div className="merc-effets">
                   <strong>Effets temporaires</strong>

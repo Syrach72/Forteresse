@@ -8,6 +8,7 @@ import { Treasury } from "./Treasury.jsx";
 import { Journal } from "./Journal.jsx";
 import { Missions, MissionPopup } from "./Missions.jsx";
 import { effetsTemp } from "./effets.js";
+import { EnnemiJure, VETERANCE_RANG } from "./EnnemiJure.jsx";
 import { Regles } from "./Regles.jsx";
 import { EMPTY_TREASURY, EMPTY_TREASURY_LIVE, buildTreasury, entretienCompagnie } from "./treasury-data.js";
 import { Training } from "./Training.jsx";
@@ -1055,6 +1056,10 @@ export function App() {
   const [missions, setMissions] = useState([]);
   // Effets temporaires des mercenaires : id du mercenaire -> [{id, stat, valeur, quetes_restantes}].
   const [effetsMerc, setEffetsMerc] = useState(() => new Map());
+  // Ennemis jurés choisis (Rôdeur) : id du mercenaire -> [{rang, type}] ; fenêtre de choix (reportée / forcée depuis la fiche).
+  const [ennemisJures, setEnnemisJures] = useState(() => new Map());
+  const [ennemiJureReporte, setEnnemiJureReporte] = useState([]);
+  const [ennemiJureForce, setEnnemiJureForce] = useState(null);
   const [missionAttrs, setMissionAttrs] = useState([]);
   const [missionCompteurs, setMissionCompteurs] = useState(() => new Map());
   const [missionObjets, setMissionObjets] = useState(() => new Map());
@@ -1209,11 +1214,30 @@ export function App() {
           : { ...m, bonusPuissance: bonus, bonusSante, bonusMouvementSansArmure, bonusMental, estHumain, bonusVelocite };
         // Effets temporaires des missions : actifs seulement tant que le mercenaire est engagé dans une quête.
         const eff = effetsMerc.get(m.id);
-        if (!eff) return base;
+        // Ennemi Juré (Rôdeur) : 1 choix au recrutement, un 2e à la vétérance 4, un 3e à la vétérance 8 ; les choix
+        // déjà faits restent valables tant que la vétérance requise est atteinte (même après un renvoi).
+        const aEnnemiJure = (competencesMerc.get(m.id) || []).some(
+          (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "ennemi juré",
+        );
+        const choisisEj = ennemisJures.get(m.id) || [];
+        const placesEj = aEnnemiJure ? VETERANCE_RANG.filter((v) => vet >= v).length : 0;
+        const champsEj =
+          aEnnemiJure || choisisEj.length
+            ? {
+                ennemisJures: choisisEj.filter((e) => vet >= VETERANCE_RANG[e.rang - 1]),
+                ennemiJureAChoisir: Math.max(0, placesEj - choisisEj.length),
+                aEnnemiJure,
+              }
+            : null;
+        if (!eff && !champsEj) return base;
         const actif = mercsEnQuete.some((e) => e.mercenaire_id === m.id);
-        return { ...base, temp: effetsTemp(eff, actif), effetsReserve: eff, effetsActifs: actif };
+        return {
+          ...base,
+          ...(eff ? { temp: effetsTemp(eff, actif), effetsReserve: eff, effetsActifs: actif } : {}),
+          ...(champsEj || {}),
+        };
       }),
-    [mercenairesBase, competencesMerc, effetsMerc, mercsEnQuete],
+    [mercenairesBase, competencesMerc, effetsMerc, mercsEnQuete, ennemisJures],
   );
   // Effectif embauché (Collecte des Ressources), partagé comme l'arsenal.
   const [employesRoster, setEmployesRoster] = useState([]);
@@ -1266,6 +1290,12 @@ export function App() {
   );
   // Mercenaire Humain recruté par ce joueur dont le +1 caractéristique n'est pas encore choisi
   // (`humainUtilise === false` : seulement une fois l'état de la session chargé).
+  // Fenêtre de choix d'un ennemi juré : pour le recruteur tant qu'un choix est disponible (« Plus tard » la masque
+  // jusqu'au prochain chargement), ou ouverte à la demande depuis la fiche (aussi pour le MJ).
+  const ennemiJureCible =
+    (ennemiJureForce && mercenaires.find((m) => m.id === ennemiJureForce && (m.ennemiJureAChoisir ?? 0) > 0)) ||
+    mercenaires.find((m) => mesRecrutes.has(m.id) && (m.ennemiJureAChoisir ?? 0) > 0 && !ennemiJureReporte.includes(m.id)) ||
+    null;
   const humainEnAttente = mercenaires.find(
     (m) => mesRecrutes.has(m.id) && m.estHumain && m.humainUtilise === false && !humainReporte.includes(m.id),
   );
@@ -2615,7 +2645,7 @@ export function App() {
   }
   // Missions : définitions communes, attributions de la session visibles par ce joueur, compteurs de progression.
   async function synchroniserMissions() {
-    const [m, a, c, eff] = await Promise.all([
+    const [m, a, c, eff, ej] = await Promise.all([
       supabase
         .from("mission")
         .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, recompense_effet_stat, recompense_effet_valeur, recompense_effet_quetes, ordre")
@@ -2626,7 +2656,13 @@ export function App() {
         .select("id, mission_id, user_id, accomplie_le, or_verse, objet_id, quantite, effet_stat, effet_valeur, effet_quetes, reclamee_le"),
       supabase.from("mission_compteur").select("evenement, user_id, valeur"),
       supabase.from("mercenaire_effet").select("id, mercenaire_id, stat, valeur, quetes_restantes").order("created_at"),
+      supabase.from("mercenaire_ennemi_jure").select("mercenaire_id, rang, type").order("rang"),
     ]);
+    if (!ej.error) {
+      const parMerc = new Map();
+      for (const e of ej.data || []) parMerc.set(e.mercenaire_id, [...(parMerc.get(e.mercenaire_id) || []), e]);
+      setEnnemisJures(parMerc);
+    }
     if (!eff.error) {
       const parMerc = new Map();
       for (const e of eff.data || []) parMerc.set(e.mercenaire_id, [...(parMerc.get(e.mercenaire_id) || []), e]);
@@ -2668,6 +2704,13 @@ export function App() {
       } catch {}
       return n;
     });
+  }
+  // Ennemi Juré (Rôdeur) : choix d'un type d'ennemi pour un mercenaire (le serveur vérifie compétence, vétérance et doublon).
+  async function choisirEnnemiJure(mercenaireId, type) {
+    const { error } = await supabase.rpc("ennemi_jure_choisir", { p_mercenaire: mercenaireId, p_type: type });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    return {};
   }
   // PV temporaires : le joueur (ou le MJ) en retire quand le mercenaire encaisse des dégâts.
   async function depenserPvTemp(mercenaireId, montant) {
@@ -2831,6 +2874,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "atelier_file" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mission_attribution" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_effet" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_ennemi_jure" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "employe" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
@@ -4025,6 +4069,7 @@ export function App() {
           onRestaurerEnergie={restaurerEnergie}
           onSetCaracteristiques={setCaracteristiques}
           onDepenserPvTemp={depenserPvTemp}
+          onChoisirEnnemiJure={(id) => setEnnemiJureForce(id)}
           onDepenserPoint={depenserPointCarac}
           onOuvrirArsenal={ouvrirArsenalDepuisSac}
           sacARouvrir={sacARouvrir}
@@ -5021,6 +5066,17 @@ export function App() {
             </button>
           </div>
         </Modal>
+      )}
+      {ennemiJureCible && !humainEnAttente && (
+        <EnnemiJure
+          key={`${ennemiJureCible.id}-${ennemiJureCible.ennemiJureAChoisir}`}
+          merc={ennemiJureCible}
+          onChoisir={choisirEnnemiJure}
+          onClose={() => {
+            setEnnemiJureReporte((r) => [...r, ennemiJureCible.id]);
+            setEnnemiJureForce(null);
+          }}
+        />
       )}
       {humainEnAttente && (
         <BonusHumain
