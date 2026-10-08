@@ -33,7 +33,13 @@ export function Missions({ missions, attributions, compteurs, objets, userId, on
         <div className="mission-entete">
           <strong>{m.nom}</strong>
           <span className="mission-statut">
-            {a ? "Accomplie ✓" : m.evenement === "a_brancher" ? "En préparation" : `${Math.min(progression(m), m.seuil)} / ${m.seuil}`}
+            {a
+              ? "Accomplie ✓"
+              : m.evenement === "a_brancher"
+                ? "En préparation"
+                : progression(m) >= m.seuil
+                  ? "En attente : donnez d’abord une récompense"
+                  : `${Math.min(progression(m), m.seuil)} / ${m.seuil}`}
           </span>
         </div>
         <p>{m.description}</p>
@@ -65,7 +71,8 @@ export function Missions({ missions, attributions, compteurs, objets, userId, on
       <h2>Missions</h2>
       <p className="muted">
         Une mission s’accomplit toute seule quand l’événement se produit : la récompense arrive
-        aussitôt et une fenêtre l’annonce.
+        aussitôt et une fenêtre l’annonce. Vous pouvez avoir au plus 6 récompenses individuelles en attente d’être données à
+        un mercenaire : au-delà, les nouvelles missions patientent jusqu’à ce que vous en donniez une.
       </p>
       <h3>Individuelles — un cadeau pour vous</h3>
       <ul className="mission-liste">{parRubrique("individuelle").map(carte)}</ul>
@@ -114,7 +121,8 @@ export function MissionPopup({ mission, attribution, objet, mercenaires, bloques
               : null,
           )}
         </strong>
-        {attribution.or_verse > 0 ? " (versés à la trésorerie)" : ""}
+        {attribution.or_verse > 0 ? " — l’or est versé à la trésorerie" : ""}
+        {!attribution.user_id && attribution.objet_id ? " — l’objet est ajouté à l’arsenal" : ""}
       </p>
       {objet?.icone && <img className="db-item-art" src={objet.icone} alt={objet.nom} />}
       {aReclamer && confirmer ? (
