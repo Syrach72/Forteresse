@@ -7508,3 +7508,6 @@ a.merc-card:hover {
 .merc-effets { margin: 8px 0; padding: 8px 10px; border: 1px solid #9d8b6b; border-radius: 6px; background: #d8cbb1; color: #000; text-align: left; }
 .merc-effets, .merc-effets * { color: #000 !important; -webkit-text-stroke: 0 !important; text-shadow: none !important; }
 .merc-effets ul { margin: 4px 0 0; padding-left: 18px; }
+
+/* Missions : les boutons des cartes restent en blanc (fond brun), comme les autres boutons de bois */
+.mission-carte button, .mission-carte button * { color: #fff !important; font-weight: 700; -webkit-text-stroke: 2px #000 !important; paint-order: stroke fill; }

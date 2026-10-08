@@ -1058,7 +1058,11 @@ export function App() {
   const [missionAttrs, setMissionAttrs] = useState([]);
   const [missionCompteurs, setMissionCompteurs] = useState(() => new Map());
   const [missionObjets, setMissionObjets] = useState(() => new Map());
-  const [missionsReportees, setMissionsReportees] = useState(() => new Set());
+  // La fenêtre d'une mission ne s'ouvre pas au rechargement : seulement quand une mission s'accomplit pendant la
+  // visite (missionsNouvelles) ou quand le joueur clique sur la récompense dans la page Missions (missionForcee).
+  const [missionsNouvelles, setMissionsNouvelles] = useState([]);
+  const [missionForcee, setMissionForcee] = useState(null);
+  const missionsConnues = useRef(null);
   const [missionsVues, setMissionsVues] = useState(() => {
     try {
       return new Set(JSON.parse(localStorage.getItem("missions-vues") || "[]"));
@@ -2638,6 +2642,15 @@ export function App() {
     }
     setMissions(m.data);
     setMissionAttrs(a.data);
+    // Premier chargement : tout ce qui existe déjà est « connu » (aucune fenêtre). Ensuite, une attribution nouvelle
+    // (mission accomplie en direct) ouvre la fenêtre.
+    if (missionsConnues.current === null) {
+      missionsConnues.current = new Set(a.data.map((x) => x.id));
+    } else {
+      const neuves = a.data.filter((x) => !missionsConnues.current.has(x.id) && (x.user_id == null || x.user_id === session?.user?.id));
+      for (const x of a.data) missionsConnues.current.add(x.id);
+      if (neuves.length) setMissionsNouvelles((v) => [...v, ...neuves.map((x) => x.id)]);
+    }
     setMissionCompteurs(
       new Map(
         (c.data || []).map((x) => [
@@ -2674,6 +2687,7 @@ export function App() {
       return false;
     }
     marquerMissionVue(attribution.id);
+    setMissionForcee(null);
     await synchroniserPartage();
     notify(data?.message || "Récompense reçue.");
     return true;
@@ -3759,8 +3773,8 @@ export function App() {
   const missionAReclamer = (a) => a.user_id === session.user.id && (a.objet_id || a.effet_stat) && !a.reclamee_le;
   const missionsEnAttente = missionsPourMoi.filter(missionAReclamer).length;
   const missionAffichee =
-    missionsPourMoi.find((a) => missionAReclamer(a) && !missionsReportees.has(a.id)) ||
-    missionsPourMoi.find((a) => !missionAReclamer(a) && !missionsVues.has(a.id)) ||
+    (missionForcee && missionsPourMoi.find((a) => a.id === missionForcee)) ||
+    missionsPourMoi.find((a) => missionsNouvelles.includes(a.id) && !missionsVues.has(a.id)) ||
     null;
   return (
     <div className={`app${route === "forteresse" ? " app-fullwidth" : ""}${route.startsWith("personnages/") ? " app-persos" : ""}${route === "regles" ? " app-regles" : ""}`}>
@@ -4381,7 +4395,7 @@ export function App() {
               compteurs={missionCompteurs}
               objets={missionObjets}
               userId={session.user.id}
-              onReclamer={(a) => setMissionsReportees((r) => { const n = new Set(r); n.delete(a.id); return n; })}
+              onReclamer={(a) => setMissionForcee(a.id)}
             />
           ) : route === "journal" ? (
             <Journal log={game.log} />
@@ -4977,8 +4991,14 @@ export function App() {
           mercenaires={mercenaires.filter((m) => mesRecrutes.has(m.id)).map((m) => ({ id: m.id, name: m.nom }))}
           bloques={new Set([...effetsMerc.entries()].filter(([, v]) => v.length > 0).map(([k]) => k))}
           onClaim={reclamerMission}
-          onLater={() => setMissionsReportees((r) => new Set(r).add(missionAffichee.id))}
-          onClose={() => marquerMissionVue(missionAffichee.id)}
+          onLater={() => {
+            marquerMissionVue(missionAffichee.id);
+            setMissionForcee(null);
+          }}
+          onClose={() => {
+            marquerMissionVue(missionAffichee.id);
+            setMissionForcee(null);
+          }}
         />
       )}
       {confirmation && (
