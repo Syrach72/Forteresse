@@ -78,14 +78,23 @@ export function Missions({ missions, attributions, compteurs, objets, userId, on
 }
 
 // Fenêtre « Mission accomplie » : annonce (collective ou or seul) ou remise d'un objet à l'un de SES mercenaires.
-export function MissionPopup({ mission, attribution, objet, mercenaires, onClaim, onLater, onClose }) {
+export function MissionPopup({ mission, attribution, objet, mercenaires, bloques = new Set(), onClaim, onLater, onClose }) {
   const [busy, setBusy] = useState(false);
+  // Mercenaire choisi pour recevoir un effet temporaire : le don est définitif, il demande une confirmation.
+  const [confirmer, setConfirmer] = useState(null);
   const aReclamer = !!(attribution.objet_id || attribution.effet_stat) && !attribution.reclamee_le && attribution.user_id;
   async function choisir(id) {
     if (busy) return;
+    if (attribution.effet_stat && confirmer !== id) {
+      setConfirmer(id);
+      return;
+    }
     setBusy(true);
     const ok = await onClaim(attribution, id);
-    if (!ok) setBusy(false);
+    if (!ok) {
+      setBusy(false);
+      setConfirmer(null);
+    }
   }
   return (
     <Modal title="Mission accomplie !" onClose={aReclamer ? onLater : onClose}>
@@ -108,7 +117,27 @@ export function MissionPopup({ mission, attribution, objet, mercenaires, onClaim
         {attribution.or_verse > 0 ? " (versés à la trésorerie)" : ""}
       </p>
       {objet?.icone && <img className="db-item-art" src={objet.icone} alt={objet.nom} />}
-      {aReclamer ? (
+      {aReclamer && confirmer ? (
+        <>
+          <p role="alert">
+            Donner {attribution.effet_stat ? libelleEffet(attribution.effet_stat, attribution.effet_valeur, attribution.effet_quetes) : ""}
+            {attribution.objet_id ? ` et ${objet?.nom || "l’objet"}` : ""} à{" "}
+            <strong>{mercenaires.find((m) => m.id === confirmer)?.name}</strong> ?
+          </p>
+          <p className="muted">
+            Ce choix est définitif : l’effet est lié à ce mercenaire, il ne peut pas être transféré ni repris, et il
+            disparaît si le mercenaire est renvoyé.
+          </p>
+          <div className="mission-mercs">
+            <button type="button" className="wood-button" disabled={busy} onClick={() => choisir(confirmer)}>
+              {busy ? "Envoi…" : "Confirmer"}
+            </button>
+            <button type="button" className="text-button" disabled={busy} onClick={() => setConfirmer(null)}>
+              Choisir un autre mercenaire
+            </button>
+          </div>
+        </>
+      ) : aReclamer ? (
         <>
           <p>
             {attribution.effet_stat
@@ -118,8 +147,16 @@ export function MissionPopup({ mission, attribution, objet, mercenaires, onClaim
           {mercenaires.length ? (
             <div className="mission-mercs">
               {mercenaires.map((m) => (
-                <button key={m.id} type="button" className="wood-button" disabled={busy} onClick={() => choisir(m.id)}>
+                <button
+                  key={m.id}
+                  type="button"
+                  className="wood-button"
+                  disabled={busy || (!!attribution.effet_stat && bloques.has(m.id))}
+                  title={attribution.effet_stat && bloques.has(m.id) ? "Il a déjà un effet temporaire non dépensé" : undefined}
+                  onClick={() => choisir(m.id)}
+                >
                   {m.name}
+                  {attribution.effet_stat && bloques.has(m.id) ? " (effet déjà en cours)" : ""}
                 </button>
               ))}
             </div>

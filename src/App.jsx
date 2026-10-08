@@ -4973,6 +4973,7 @@ export function App() {
           attribution={missionAffichee}
           objet={missionAffichee.objet_id ? missionObjets.get(missionAffichee.objet_id) : null}
           mercenaires={warriors}
+          bloques={new Set([...effetsMerc.entries()].filter(([, v]) => v.length > 0).map(([k]) => k))}
           onClaim={reclamerMission}
           onLater={() => setMissionsReportees((r) => new Set(r).add(missionAffichee.id))}
           onClose={() => marquerMissionVue(missionAffichee.id)}
