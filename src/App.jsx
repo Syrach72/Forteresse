@@ -4573,6 +4573,11 @@ export function App() {
               personnes={dormPeople}
               mesIds={new Set(warriors.map((w) => w.id))}
               estAdmin={estAdmin}
+              initiative={{
+                visible: !!queteEnCours && initEngages.length > 0 && !initTermine && (initMiens.size > 0 || estAdmin),
+                aFaire: initAFaire,
+                onOpen: ouvrirInitiative,
+              }}
               onChanged={synchroniserPartage}
               onDefinirEtat={definirEtat}
               onIssue={decreaseInstances}

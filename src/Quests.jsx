@@ -123,6 +123,7 @@ export function Quests({
   onDefinirEtat = async () => ({}),
   onIssue = () => {},
   issueBloquee = false,
+  initiative = null,
 }) {
   const { quetes, recompenses, objets, engages, scenarios, creaturesJeu, creaturesPrevues, error, reload } = useQuetes(estAdmin);
   const [busy, setBusy] = useState(false);
@@ -369,6 +370,11 @@ export function Quests({
                     );
                   })}
                 </div>
+                {q.en_cours && initiative?.visible && (
+                  <button type="button" className="wood-button quest-initiative" onClick={initiative.onOpen}>
+                    {initiative.aFaire ? "Lancer l’initiative ●" : "Initiative (en attente des autres)"}
+                  </button>
+                )}
                 {q.en_cours && (
                   <JaugeDifficulte
                     fp={q.facteur_puissance}
