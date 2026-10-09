@@ -70,6 +70,8 @@ export function CreaturesSection({ kit }) {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirmingId, setConfirmingId] = useState(null);
+  // Filtre « toutes catégories » : premier mot du type (bête, vase… ; « bête/vermine » -> bête). "" = toutes.
+  const [filtreType, setFiltreType] = useState("");
 
   async function charger() {
     const [c, p, l, cat, obj, ar] = await Promise.all([
@@ -109,6 +111,11 @@ export function CreaturesSection({ kit }) {
   if (erreur) return <p className="admin-error">{erreur}</p>;
   if (!creatures) return <p>Chargement…</p>;
 
+  const motType = (c) => (c.type || "").trim().toLowerCase().split(/[\s/(,]+/)[0] || "sans type";
+  const groupesType = [...new Set(creatures.map(motType))].sort((a, b) => a.localeCompare(b, "fr"));
+  const creaturesAffichees = creatures
+    .filter((c) => !filtreType || motType(c) === filtreType)
+    .sort((a, b) => motType(a).localeCompare(motType(b), "fr") || a.nom.localeCompare(b.nom, "fr"));
   const capParTitre = (t) => capacites.find((c) => cle(c.titre) === cle(t));
   const nbUtilisations = (capId) => new Set(liens.filter((l) => l.capacite_id === capId).map((l) => l.creature_id)).size;
   const titresConnus = capacites.map((c) => c.titre).sort((a, b) => a.localeCompare(b, "fr"));
@@ -601,6 +608,17 @@ export function CreaturesSection({ kit }) {
         Catalogue réservé au MJ. Les capacités, actions, réactions… sont partagées par titre : un même titre reprend
         automatiquement le même texte et la même icône.
       </p>
+      <div className="admin-catalogue-filter field">
+        <label htmlFor="cr-filtre-type">Afficher</label>
+        <select id="cr-filtre-type" value={filtreType} onChange={(e) => setFiltreType(e.target.value)}>
+          <option value="">Toutes les catégories ({creatures.length} créatures)</option>
+          {groupesType.map((g) => (
+            <option key={g} value={g}>
+              {g.charAt(0).toUpperCase() + g.slice(1)} ({creatures.filter((c) => motType(c) === g).length})
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
@@ -615,7 +633,7 @@ export function CreaturesSection({ kit }) {
             </tr>
           </thead>
           <tbody>
-            {creatures.map((c) => (
+            {creaturesAffichees.map((c) => (
               <Fragment key={c.id}>
                 <tr className={editing === c.id ? "editing" : ""}>
                   <td>{c.nom}</td>
