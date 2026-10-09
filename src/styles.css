@@ -7609,7 +7609,6 @@ a.merc-card:hover {
   height: 32px;
   z-index: 2;
 }
-.header-actions-col .header-initiative { min-height: 30px; font-size: 13px; padding: 3px 8px; font-weight: 700; }
 
 /* Bouton d'initiative de la carte de quête : gris clair, texte noir, légère pulsation pour inviter au clic. */
 .quest-initiative {
@@ -7637,5 +7636,4 @@ a.merc-card:hover {
   .quest-initiative.pulse { animation: none; }
 }
 .icone-d20 { width: 38px; height: 38px; object-fit: contain; }
-.icone-d20-petite { width: 18px; height: 18px; margin-left: 4px; vertical-align: middle; }
 .initiative-fermer:disabled { opacity: 0.45; filter: grayscale(1); cursor: not-allowed; }

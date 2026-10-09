@@ -4158,12 +4158,6 @@ export function App() {
           </div>
         )}
         <div className="header-actions-col">
-        {/* Initiative : visible tant que le lancer de la quête en cours n'est pas terminé (joueurs concernés et MJ). */}
-        {queteEnCours && initEngages.length > 0 && !initTermine && (initMiens.size > 0 || estAdmin) && (
-          <button type="button" className="header-time header-initiative" onClick={ouvrirInitiative}>
-            Initiative{initAFaire ? <img className="icone-d20 icone-d20-petite" src="/assets/icons/d20.webp" alt="" /> : null}
-          </button>
-        )}
         <button type="button" className="header-time header-missions" onClick={() => (location.hash = "missions")}>
           Missions
           {missionsEnAttente > 0 && <span className="missions-badge" aria-label={`${missionsEnAttente} récompense(s) à recevoir`}>{missionsEnAttente}</span>}
