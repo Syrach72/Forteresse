@@ -112,7 +112,7 @@ export function FenetreInitiative({ engages, lancables, miens, rows, complete, e
             {erreur}
           </p>
         )}
-        {/* Fermer : grisé tant que tout le monde (mercenaires et créatures) n'a pas lancé. Le MJ garde la main
+        {/* Fermer : grisé tant que tous les mercenaires engagés n’ont pas lancé (les créatures lancent seules dès le premier clic). Le MJ garde la main
             pour débloquer la situation si un joueur est absent. */}
         <p>
           <button
@@ -120,7 +120,7 @@ export function FenetreInitiative({ engages, lancables, miens, rows, complete, e
             className="wood-button initiative-fermer"
             disabled={!fini && !estAdmin}
             onClick={onClose}
-            title={fini || estAdmin ? "Fermer la fenêtre" : "En attente : tout le monde doit avoir lancé son initiative"}
+            title={fini || estAdmin ? "Fermer la fenêtre" : "En attente : tous les mercenaires engagés doivent avoir lancé leur initiative"}
           >
             Fermer
           </button>
