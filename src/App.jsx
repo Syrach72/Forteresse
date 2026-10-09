@@ -4105,22 +4105,6 @@ export function App() {
           </div>
         )}
         <div className="header-actions-col">
-        <button
-          type="button"
-          className="header-time header-catalogue"
-          onClick={() => {
-            setActionError("");
-            loadCatalogue("global", "Tout");
-            setModal({
-              type: "db-catalogue",
-              atelier: "global",
-              racine: "Catalogue",
-              global: true,
-            });
-          }}
-        >
-          Catalogue
-        </button>
         <button type="button" className="header-time header-missions" onClick={() => (location.hash = "missions")}>
           Missions
           {missionsEnAttente > 0 && <span className="missions-badge" aria-label={`${missionsEnAttente} récompense(s) à recevoir`}>{missionsEnAttente}</span>}
@@ -4490,13 +4474,27 @@ export function App() {
               {/* « ? » de la page Quêtes : juste à droite du titre. */}
               {route === "quetes" && <BoutonAide aide={AIDES.quetes} />}
             </div>
-            <button
-              className="wood-button"
-              onClick={() => setModal({ type: "inventory" })}
-            >
-              Inventaire{" "}
-              <span>{game.inventory.reduce((a, b) => a + b.quantity, 0)}</span>
-            </button>
+            {route === "stock" ? (
+              // Arsenal : le Catalogue global (ex-bouton de la barre de menu) remplace le bouton Inventaire.
+              <button
+                className="wood-button"
+                onClick={() => {
+                  setActionError("");
+                  loadCatalogue("global", "Tout");
+                  setModal({ type: "db-catalogue", atelier: "global", racine: "Catalogue", global: true });
+                }}
+              >
+                Catalogue
+              </button>
+            ) : (
+              <button
+                className="wood-button"
+                onClick={() => setModal({ type: "inventory" })}
+              >
+                Inventaire{" "}
+                <span>{game.inventory.reduce((a, b) => a + b.quantity, 0)}</span>
+              </button>
+            )}
           </div>
           {route === "marche" ? (
             <Market

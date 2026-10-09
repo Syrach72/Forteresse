@@ -6391,7 +6391,7 @@ a.merc-card:hover {
 .class-nav > a:last-child:hover { background: rgba(30, 60, 130, 0.92); }
 /* Bloc Rd / Catalogue / +1 Instance : plus étroit et décalé vers la gauche. */
 .header-treasury { min-width: 400px; }
-.header-actions { min-height: 120px; }
+.header-actions { min-height: 0; }
 .header-actions-col .header-catalogue { min-height: 36px; font-size: 13px; padding: 4px 8px; }
 .instance-controls .header-time { line-height: 1.1; text-align: center; padding: 4px 6px; }
 @media (max-width: 680px) {
