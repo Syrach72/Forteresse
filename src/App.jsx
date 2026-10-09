@@ -1543,6 +1543,10 @@ export function App() {
     }
     if (!initiativeLancee) initiativeDejaOuverte.current = false;
   }, [initiativeLancee, initTermine, initAFaire, initMiens.size]);
+  // Quête annulée / accomplie : la fenêtre du lancer ne doit pas rester en attente pour la prochaine.
+  useEffect(() => {
+    if (!queteEnCours) setInitiativeOuverte(false);
+  }, [queteEnCours?.id]);
   async function lancerInitiative(mercenaireId) {
     const { data, error } = await supabase.rpc("initiative_lancer", { p_mercenaire: mercenaireId });
     if (error) return { error: error.message };
@@ -4157,7 +4161,7 @@ export function App() {
         {/* Initiative : visible tant que le lancer de la quête en cours n'est pas terminé (joueurs concernés et MJ). */}
         {queteEnCours && initEngages.length > 0 && !initTermine && (initMiens.size > 0 || estAdmin) && (
           <button type="button" className="header-time header-initiative" onClick={ouvrirInitiative}>
-            Initiative{initAFaire ? " ●" : ""}
+            Initiative{initAFaire ? <img className="icone-d20 icone-d20-petite" src="/assets/icons/d20.webp" alt="" /> : null}
           </button>
         )}
         <button type="button" className="header-time header-missions" onClick={() => (location.hash = "missions")}>

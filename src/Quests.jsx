@@ -371,8 +371,14 @@ export function Quests({
                   })}
                 </div>
                 {q.en_cours && initiative?.visible && (
-                  <button type="button" className="wood-button quest-initiative" onClick={initiative.onOpen}>
-                    {initiative.aFaire ? "Lancer l’initiative ●" : "Initiative (en attente des autres)"}
+                  <button type="button" className={`quest-initiative${initiative.aFaire ? " pulse" : ""}`} onClick={initiative.onOpen}>
+                    {initiative.aFaire ? (
+                      <>
+                        Lancer l’initiative <img className="icone-d20" src="/assets/icons/d20.webp" alt="" />
+                      </>
+                    ) : (
+                      "Initiative (en attente des autres)"
+                    )}
                   </button>
                 )}
                 {q.en_cours && (
