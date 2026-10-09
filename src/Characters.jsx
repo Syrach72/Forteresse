@@ -10,6 +10,7 @@ import { libelleEffet } from "./effets.js";
 import { gemmesPortees, limiteGemmes } from "./gemmes.js";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
+import { ChoixCompagnon, OngletCompagnon, LIBELLE_ROLE } from "./Compagnon.jsx";
 import { AlertePoint, PointCaracModal } from "./PointsCarac.jsx";
 // Caractéristiques affichées par une icône plutôt que par leur nom (le nom reste en texte alternatif).
 const ICONES_STATS = {
@@ -134,6 +135,8 @@ export function Characters({
   onChoisirEnnemiJure = () => {},
   onChoisirTerrainFavori = () => {},
   onChoisirStyleCombat = () => {},
+  onChoisirCompagnon = async () => ({}),
+  onMajCompagnon = async () => {},
   conduitDivin = [],
   onUtiliserConduitDivin = async () => ({}),
   onClearError = () => {},
@@ -234,6 +237,8 @@ export function Characters({
   const title = useRef();
   // Rubrique affichée de la fiche d'un mercenaire : general, equipement ou competences.
   const [onglet, setOnglet] = useState("general");
+  // Fenêtre de choix du compagnon animal / familier.
+  const [choixCompagnon, setChoixCompagnon] = useState(false);
   // Nom du mercenaire (avec le nom du joueur), répété en haut de chaque rubrique de la fiche : le
   // laurier de vétérance est incrusté dans l'anneau (médaillon rond, centré par flexbox) à gauche
   // du nom ; sous le nom, une fine lame s'étire automatiquement pour dépasser un peu le texte.
@@ -441,6 +446,8 @@ export function Characters({
               ["general", "Général"],
               ["equipement", "Équipement"],
               ["competences", "Compétences"],
+              // Compagnon animal / familier validé : un onglet de plus, à la suite des rubriques.
+              ...(merc.compagnon ? [[merc.compagnon.role, LIBELLE_ROLE[merc.compagnon.role]]] : []),
             ].map(([id, libelle]) => (
               <button
                 key={id}
@@ -682,6 +689,13 @@ export function Characters({
               {(merc.terrainFavoriAChoisir ?? 0) > 0 && (recrutes.includes(merc.id) || estAdmin) && (
                 <button type="button" className="wood-button" onClick={() => onChoisirTerrainFavori(merc.id)}>
                   Choisir un terrain favori ({merc.terrainFavoriAChoisir} à choisir)
+                </button>
+              )}
+              {/* Compagnon animal (Rôdeur Maître des Bêtes) ou familier (Incantateur) : dès la vétérance 3, tant
+                  qu'il n'est pas choisi. */}
+              {merc.compagnonPossible && !merc.compagnon && (recrutes.includes(merc.id) || estAdmin) && (
+                <button type="button" className="wood-button" onClick={() => setChoixCompagnon(true)}>
+                  {merc.compagnonRole === "familier" ? "Choisir un familier" : "Choisir un compagnon animal"}
                 </button>
               )}
               {(merc.ennemisJures?.length ?? 0) > 0 && (
@@ -1025,6 +1039,12 @@ export function Characters({
               )}
             </div>
           </section>
+          )}
+          {merc.compagnon && onglet === merc.compagnon.role && (
+            <OngletCompagnon merc={merc} titreMerc={titreMerc} peutModifier={peutModifier} onMaj={onMajCompagnon} />
+          )}
+          {choixCompagnon && merc.compagnonPossible && !merc.compagnon && (
+            <ChoixCompagnon merc={merc} onChoisir={onChoisirCompagnon} onClose={() => setChoixCompagnon(false)} />
           )}
           {onglet === "equipement" && (
             <section className="merc-bloc parchment" id="merc-rubrique-equipement" role="tabpanel" aria-labelledby="merc-onglet-equipement">

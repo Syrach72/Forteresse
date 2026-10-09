@@ -120,6 +120,7 @@ export function CreaturesSection({ kit }) {
       type: c.type || "",
       sous_type: c.sous_type || "",
       taille: c.taille || "",
+      compagnon: c.compagnon || "",
       sante_max: String(c.sante_max),
       energie_max: String(c.energie_max),
       vitesse: String(c.vitesse),
@@ -213,6 +214,7 @@ export function CreaturesSection({ kit }) {
         type: form.type || null,
         sous_type: form.sous_type.trim() || null,
         taille: form.taille || null,
+        compagnon: form.compagnon || null,
         sante_max: entier(form.sante_max, 1, 9999),
         energie_max: entier(form.energie_max, 0, 999),
         vitesse: entier(form.vitesse, 0, 99),
@@ -379,6 +381,22 @@ export function CreaturesSection({ kit }) {
               ))}
             </select>
           </div>
+        </div>
+        <div className="field">
+          <label htmlFor="cr-compagnon">Compagnon des joueurs</label>
+          <div className="input-wrap">
+            <select id="cr-compagnon" value={form.compagnon} onChange={champ("compagnon")}>
+              <option value="">Non (créature du MJ seul)</option>
+              <option value="faucon">Compagnon animal : faucon</option>
+              <option value="chien">Compagnon animal : chien</option>
+              <option value="panthere">Compagnon animal : panthère</option>
+              <option value="familier">Familier (Incantateur)</option>
+            </select>
+          </div>
+          <p className="muted">
+            Rend cette fiche lisible par les joueurs : Rôdeurs Maîtres des Bêtes (faucon, chien, panthère) et Incantateurs
+            (familier) pourront la choisir à la vétérance 3.
+          </p>
         </div>
         {nombre("sante_max", "Santé (max, auto)", 1, 9999)}
         {nombre("energie_max", "Énergie (max, auto)", 0, 999)}

@@ -14,7 +14,7 @@ const CHIFFRES_ENERGIE = Array.from({ length: 10 }, (_, i) => i + 1);
 // Routes : #creatures (quête en cours), #creatures/<id> (une créature), et en APERÇU, avant que la quête soit
 // choisie : #creatures/quete/<idQuête>[/<clé>] (fiches lues dans le catalogue, rien à modifier).
 // Armes des créatures (3 au plus, choisies dans le catalogue), avec les caractéristiques à afficher.
-function chargerArmes(ids) {
+export function chargerArmes(ids) {
   return supabase
     .from("creature_arme")
     .select("creature_id, position, objet:objet_catalogue(nom, description, icone, portee, allonge, type_degats, parade, deux_mains, legere)")
@@ -241,7 +241,8 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
   );
 }
 
-function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false }) {
+// `sansNomOnglet` : fiche d'un compagnon/familier (l'onglet porte un nom fixe, pas de champ de renommage).
+export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false, sansNomOnglet = false }) {
   const santeMax = fiche.sante_max;
   const energieMax = fiche.energie_max;
   const sante = ligne.sante_actuelle ?? santeMax;
@@ -291,19 +292,21 @@ function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvr
               .join(" · ") || "—"}
           </p>
         </div>
-        <label className="creature-nom-onglet">
-          Nom de l’onglet
-          <input
-            value={nomOnglet}
-            onChange={(e) => setNomOnglet(e.target.value)}
-            onBlur={() =>
-              nomOnglet.trim()
-                ? nomOnglet.trim() !== ligne.nom_onglet && sauver({ nom_onglet: nomOnglet.trim() })
-                : setNomOnglet(ligne.nom_onglet)
-            }
-            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-          />
-        </label>
+        {!sansNomOnglet && (
+          <label className="creature-nom-onglet">
+            Nom de l’onglet
+            <input
+              value={nomOnglet}
+              onChange={(e) => setNomOnglet(e.target.value)}
+              onBlur={() =>
+                nomOnglet.trim()
+                  ? nomOnglet.trim() !== ligne.nom_onglet && sauver({ nom_onglet: nomOnglet.trim() })
+                  : setNomOnglet(ligne.nom_onglet)
+              }
+              onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+            />
+          </label>
+        )}
       </header>
 
       <div className="creature-jauges">

@@ -1070,6 +1070,8 @@ export function App() {
   const [terrainsFavoris, setTerrainsFavoris] = useState(() => new Map());
   const [terrainReporte, setTerrainReporte] = useState([]);
   const [terrainForce, setTerrainForce] = useState(null);
+  // Compagnon animal (Rôdeur Maître des Bêtes) / familier (Incantateur) : id du mercenaire -> ligne mercenaire_compagnon.
+  const [compagnons, setCompagnons] = useState(() => new Map());
   // Conduit Divin : utilisations par instance (mercenaire, compétence, numéro d'instance) et instance en cours.
   const [conduitRows, setConduitRows] = useState([]);
   const [instanceNo, setInstanceNo] = useState(0);
@@ -1275,17 +1277,31 @@ export function App() {
                 styleCombat: visiblesSc[0]?.type ?? null,
               }
             : null;
-        if (!eff && !champsEj && !champsTf && !champsSc) return base;
+        // Compagnon animal (Rôdeur Maître des Bêtes) ou familier (Incantateur) : choix possible dès la vétérance 3.
+        const sansAccent = (t) => (t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        const classeN = sansAccent(m.classe);
+        const roleCp =
+          vet < 3
+            ? null
+            : classeN === "rodeur" && sansAccent(m.sousClasse) === "maitre des betes"
+              ? "compagnon"
+              : classeN === "incantateur"
+                ? "familier"
+                : null;
+        const ligneCp = compagnons.get(m.id) || null;
+        const champsCp = roleCp || ligneCp ? { compagnonRole: ligneCp?.role ?? roleCp, compagnon: ligneCp, compagnonPossible: !!roleCp } : null;
+        if (!eff && !champsEj && !champsTf && !champsSc && !champsCp) return base;
         const actif = mercsEnQuete.some((e) => e.mercenaire_id === m.id);
         return {
           ...base,
+          ...(champsCp || {}),
           ...(eff ? { temp: effetsTemp(eff, actif), effetsReserve: eff, effetsActifs: actif } : {}),
           ...(champsEj || {}),
           ...(champsTf || {}),
           ...(champsSc || {}),
         };
       }),
-    [mercenairesBase, competencesMerc, effetsMerc, mercsEnQuete, ennemisJures, terrainsFavoris, stylesCombat],
+    [mercenairesBase, competencesMerc, effetsMerc, mercsEnQuete, ennemisJures, terrainsFavoris, stylesCombat, compagnons],
   );
   // Effectif embauché (Collecte des Ressources), partagé comme l'arsenal.
   const [employesRoster, setEmployesRoster] = useState([]);
@@ -2704,7 +2720,7 @@ export function App() {
   }
   // Missions : définitions communes, attributions de la session visibles par ce joueur, compteurs de progression.
   async function synchroniserMissions() {
-    const [m, a, c, eff, ej, tf, sc, cd] = await Promise.all([
+    const [m, a, c, eff, ej, tf, sc, cd, cp] = await Promise.all([
       supabase
         .from("mission")
         .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, recompense_effet_stat, recompense_effet_valeur, recompense_effet_quetes, ordre")
@@ -2719,7 +2735,9 @@ export function App() {
       supabase.from("mercenaire_terrain_favori").select("mercenaire_id, rang, type").order("rang"),
       supabase.from("mercenaire_style_combat").select("mercenaire_id, rang, type").order("rang"),
       supabase.from("mercenaire_conduit_divin").select("mercenaire_id, competence_id, instance_no"),
+      supabase.from("mercenaire_compagnon").select("*"),
     ]);
+    if (!cp.error) setCompagnons(new Map((cp.data || []).map((x) => [x.mercenaire_id, x])));
     if (!cd.error) setConduitRows(cd.data || []);
     if (!sc.error) {
       const parMerc = new Map();
@@ -2806,6 +2824,24 @@ export function App() {
     if (error) return { error: error.message };
     await synchroniserPartage();
     return {};
+  }
+  // Compagnon animal / familier : choix définitif d'une fiche du catalogue, puis mise à jour de son état de jeu.
+  async function choisirCompagnon(mercenaireId, creatureId) {
+    const { error } = await supabase.rpc("compagnon_choisir", { p_mercenaire: mercenaireId, p_creature: creatureId });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    return {};
+  }
+  async function majCompagnon(mercenaireId, patch) {
+    setCompagnons((prev) => {
+      const l = prev.get(mercenaireId);
+      return l ? new Map(prev).set(mercenaireId, { ...l, ...patch }) : prev;
+    });
+    const { error } = await supabase.rpc("compagnon_etat_maj", { p_mercenaire: mercenaireId, p_patch: patch });
+    if (error) {
+      notify(error.message);
+      await synchroniserPartage();
+    }
   }
   // PV temporaires : le joueur (ou le MJ) en retire quand le mercenaire encaisse des dégâts.
   async function depenserPvTemp(mercenaireId, montant) {
@@ -2973,6 +3009,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_terrain_favori" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_style_combat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_conduit_divin" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_compagnon" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "employe" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
@@ -4170,6 +4207,8 @@ export function App() {
           onChoisirEnnemiJure={(id) => setEnnemiJureForce(id)}
           onChoisirTerrainFavori={(id) => setTerrainForce(id)}
           onChoisirStyleCombat={(id) => setStyleForce(id)}
+          onChoisirCompagnon={choisirCompagnon}
+          onMajCompagnon={majCompagnon}
           conduitDivin={conduitRows.filter((r) => r.instance_no === instanceNo)}
           onUtiliserConduitDivin={utiliserConduitDivin}
           onDepenserPoint={depenserPointCarac}

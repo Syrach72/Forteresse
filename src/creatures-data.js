@@ -199,6 +199,7 @@ export function creatureVide() {
     type: "",
     sous_type: "",
     taille: "",
+    compagnon: "",
     sante_max: "1",
     energie_max: "0",
     vitesse: "0",
