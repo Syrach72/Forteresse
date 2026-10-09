@@ -19,7 +19,7 @@
     background: radial-gradient(circle at 50% 35%, #4a3622, #1d140b); box-shadow: 0 10px 40px #000;
   }
   .fenetre h2 { margin: 0 0 4px; font-size: 24px; }
-  canvas { width: 100%; height: 340px; display: block; touch-action: none; }
+  canvas { width: 100%; height: 380px; display: block; touch-action: none; }
   .resultat { min-height: 46px; margin: 4px 0 10px; font-size: 20px; }
   .resultat strong { font-size: 34px; color: #f0c85a; }
   .fermer { position: absolute; margin: -10px 0 0 min(210px, 44vw); background: none; border: 0; color: #f3e6c8; font-size: 26px; cursor: pointer; }
@@ -31,7 +31,7 @@
 <div class="voile" id="voile" role="dialog" aria-modal="true" aria-label="Lancer d’initiative">
   <div class="fenetre">
     <h2>Initiative</h2>
-    <canvas id="scene" width="460" height="340"></canvas>
+    <canvas id="scene" width="460" height="380"></canvas>
     <div class="resultat" id="resultat">Appuyez sur « Lancer ».</div>
     <button class="lancer" id="lancer">Lancer le dé</button>
     <button class="lancer" id="fermer" style="margin-left:8px">Fermer</button>
@@ -121,10 +121,10 @@
   scene.add(groupe, new THREE.AmbientLight(0xffe7c2, 0.75));
   const lampe = new THREE.DirectionalLight(0xfff0d0, 1.1); lampe.position.set(2, 3, 4); scene.add(lampe);
   const camera = new THREE.PerspectiveCamera(32, canvas.width / canvas.height, 0.1, 20);
-  camera.position.set(0, 0, 4.4);
+  camera.position.set(0, 0, 5.2);
   const rendu = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   rendu.setPixelRatio(Math.min(devicePixelRatio, 2));
-  rendu.setSize(canvas.clientWidth || 460, canvas.clientHeight || 340, false);
+  rendu.setSize(canvas.clientWidth || 460, canvas.clientHeight || 380, false);
 
   // Orientation finale : la face tirée regarde la caméra, son chiffre à l'endroit.
   function orientationFace(f) {
@@ -137,6 +137,16 @@
     return tour.multiply(q1);
   }
 
+  // Zone de jeu (unités de la scène) : moitié visible moins le rayon du dé qui roule.
+  const ECHELLE_ROULE = 0.78, ECHELLE_FINALE = 1.1;
+  const demiH = camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const LY = demiH - ECHELLE_ROULE * 1.0, LX = demiH * camera.aspect - ECHELLE_ROULE * 1.0;
+  // Rebond sur les bordures : replie une abscisse du plan déplié dans [-L, L] (triangle de période 4L).
+  function replier(u, L) {
+    let w = (((u + L) % (4 * L)) + 4 * L) % (4 * L);
+    if (w > 2 * L) w = 4 * L - w;
+    return w - L;
+  }
   let enCours = false;
   function tirer() { return 1 + Math.floor(Math.random() * 20); } // aléatoire uniforme, 1 à 20
   function lancer() {
@@ -148,18 +158,23 @@
     const axe = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize();
     const tours = Math.PI * (7 + Math.random() * 3);
     const duree = 2300, debut = performance.now();
+    // Trajectoire « billard » : une droite dans le plan déplié, repliée par les bordures de la fenêtre. Le point
+    // d'arrivée est choisi pour que, une fois replié, le dé s'arrête exactement au centre.
+    const signe = () => (Math.random() < 0.5 ? -1 : 1);
+    const depart = { x: signe() * LX * (0.6 + Math.random() * 0.4), y: signe() * LY * (0.6 + Math.random() * 0.4) };
+    const arrivee = { x: signe() * 2 * LX * (2 + Math.floor(Math.random() * 2)), y: signe() * 2 * LY * (2 + Math.floor(Math.random() * 2)) };
     (function image(t) {
       const p = Math.min(1, (t - debut) / duree);
       const ease = 1 - Math.pow(1 - p, 3);            // le dé ralentit
       const reste = new THREE.Quaternion().setFromAxisAngle(axe, tours * (1 - ease));
       groupe.quaternion.copy(reste).multiply(final);
-      // rebond : le dé retombe et rebondit deux fois
-      groupe.position.y = Math.abs(Math.sin(p * Math.PI * 3)) * (1 - p) * 0.9;
-      groupe.position.x = Math.sin(p * 4) * (1 - p) * 0.25;
-      const echelle = 1 + 0.12 * Math.sin(p * Math.PI); groupe.scale.setScalar(echelle);
+      groupe.position.x = replier(depart.x + (arrivee.x - depart.x) * ease, LX);
+      groupe.position.y = replier(depart.y + (arrivee.y - depart.y) * ease, LY);
+      // petit à petit, le dé se pose et paraît plus gros
+      groupe.scale.setScalar(ECHELLE_ROULE + (ECHELLE_FINALE - ECHELLE_ROULE) * Math.pow(p, 4));
       rendu.render(scene, camera);
       if (p < 1) return requestAnimationFrame(image);
-      groupe.position.set(0, 0, 0); groupe.scale.setScalar(1.05); rendu.render(scene, camera);
+      groupe.position.set(0, 0, 0); groupe.scale.setScalar(ECHELLE_FINALE); rendu.render(scene, camera);
       resultat.innerHTML = "Résultat : <strong>" + valeur + "</strong>";
       enCours = false; bouton.disabled = false; bouton.textContent = "Relancer";
     })(debut);
