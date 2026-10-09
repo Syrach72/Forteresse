@@ -111,7 +111,11 @@ export function CreaturesSection({ kit }) {
   if (erreur) return <p className="admin-error">{erreur}</p>;
   if (!creatures) return <p>Chargement…</p>;
 
-  const motType = (c) => (c.type || "").trim().toLowerCase().split(/[\s/(,]+/)[0] || "sans type";
+  // « créature artificielle » est classée sous « artificiel » (choix de Bruno).
+  const motType = (c) => {
+    const t = (c.type || "").trim().toLowerCase();
+    return t.startsWith("créature artificielle") ? "artificiel" : t.split(/[\s/(,]+/)[0] || "sans type";
+  };
   const groupesType = [...new Set(creatures.map(motType))].sort((a, b) => a.localeCompare(b, "fr"));
   const creaturesAffichees = creatures
     .filter((c) => !filtreType || motType(c) === filtreType)
@@ -608,17 +612,16 @@ export function CreaturesSection({ kit }) {
         Catalogue réservé au MJ. Les capacités, actions, réactions… sont partagées par titre : un même titre reprend
         automatiquement le même texte et la même icône.
       </p>
-      <div className="admin-catalogue-filter field">
-        <label htmlFor="cr-filtre-type">Afficher</label>
-        <select id="cr-filtre-type" value={filtreType} onChange={(e) => setFiltreType(e.target.value)}>
-          <option value="">Toutes les catégories ({creatures.length} créatures)</option>
-          {groupesType.map((g) => (
-            <option key={g} value={g}>
-              {g.charAt(0).toUpperCase() + g.slice(1)} ({creatures.filter((c) => motType(c) === g).length})
-            </option>
-          ))}
-        </select>
-      </div>
+      <nav className="admin-subtabs" aria-label="Types de créatures">
+        <button type="button" className={filtreType === "" ? "active" : ""} onClick={() => setFiltreType("")}>
+          Toutes les catégories ({creatures.length})
+        </button>
+        {groupesType.map((g) => (
+          <button key={g} type="button" className={filtreType === g ? "active" : ""} onClick={() => setFiltreType(g)}>
+            {g.charAt(0).toUpperCase() + g.slice(1)} ({creatures.filter((c) => motType(c) === g).length})
+          </button>
+        ))}
+      </nav>
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>

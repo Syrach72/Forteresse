@@ -2319,6 +2319,8 @@ function MercenairesSection() {
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
   const [confirmingId, setConfirmingId] = useState(null);
+  // Filtre par classe (id de la classe) ; "" = toutes les catégories.
+  const [filtreClasse, setFiltreClasse] = useState("");
   // Brouillons du formulaire « Ajouter » : compétences et équipement de base, enregistrés avec le mercenaire.
   const [draftComp, setDraftComp] = useState([]);
   const [draftEquip, setDraftEquip] = useState([]);
@@ -2600,8 +2602,26 @@ function MercenairesSection() {
       </form>
   );
 
+  // Liste classée par classe puis par nom ; un bouton par classe qui a au moins un mercenaire.
+  const mercenairesAffiches = mercenaires.rows
+    .filter((m) => !filtreClasse || m.classe_id === filtreClasse)
+    .sort((a, b) => nomClasse(a.classe_id).localeCompare(nomClasse(b.classe_id), "fr") || a.nom.localeCompare(b.nom, "fr"));
+  const classesUtilisees = classes.rows
+    .filter((c) => mercenaires.rows.some((m) => m.classe_id === c.id))
+    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+
   return (
     <div>
+      <nav className="admin-subtabs" aria-label="Classes de mercenaires">
+        <button type="button" className={filtreClasse === "" ? "active" : ""} onClick={() => setFiltreClasse("")}>
+          Toutes les catégories ({mercenaires.rows.length})
+        </button>
+        {classesUtilisees.map((c) => (
+          <button key={c.id} type="button" className={filtreClasse === c.id ? "active" : ""} onClick={() => setFiltreClasse(c.id)}>
+            {c.nom} ({mercenaires.rows.filter((m) => m.classe_id === c.id).length})
+          </button>
+        ))}
+      </nav>
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
@@ -2614,7 +2634,7 @@ function MercenairesSection() {
             </tr>
           </thead>
           <tbody>
-            {mercenaires.rows.map((m) => (
+            {mercenairesAffiches.map((m) => (
               <Fragment key={m.id}>
                 <tr className={editing === m.id ? "editing" : ""}>
                   <td>
