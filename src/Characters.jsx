@@ -595,6 +595,10 @@ export function Characters({
             </div>
             <div className="merc-colonne-droite">
               <div className="stat-line">
+                <span>Race :</span>
+                <strong>{merc.race || "—"}</strong>
+              </div>
+              <div className="stat-line">
                 <span>Classe :</span>
                 <strong>
                   {merc.classe || "—"}

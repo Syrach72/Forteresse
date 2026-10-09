@@ -1177,7 +1177,12 @@ export function App() {
   // la même règle (_bonus_puissance).
   const mercenaires = useMemo(
     () =>
-      mercenairesBase.map((m) => {
+      mercenairesBase.map((mBase) => {
+        // Race : nom de la première compétence passive de la fiche (premier bouton passif, par vétérance puis position).
+        const premierePassive = (competencesMerc.get(mBase.id) || [])
+          .filter((c) => c.type === "passive" && c.competence?.nom)
+          .sort((a, b) => a.veterance - b.veterance || a.position - b.position)[0];
+        const m = { ...mBase, race: premierePassive?.competence.nom.trim() || "" };
         const vet = m.veterance ?? 1;
         const possede = (competencesMerc.get(m.id) || []).some(
           (c) =>
