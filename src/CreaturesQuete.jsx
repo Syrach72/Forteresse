@@ -36,9 +36,10 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
     // Aperçu : la quête demandée n'est pas (ou plus) la quête en cours -> créatures prévues, lues au catalogue.
     if (apercuQuete && qe.data?.quete_id !== apercuQuete) return chargerApercu();
     if (!qe.data) return setDonnees({ quete: null, lignes: [] });
-    const [q, l] = await Promise.all([
+    const [q, l, ini] = await Promise.all([
       supabase.from("quete").select("id, nom").eq("id", qe.data.quete_id).single(),
       supabase.from("creature_quete").select("*").eq("quete_id", qe.data.quete_id).order("ordre"),
+      supabase.from("initiative").select("creature_quete_id, rang").eq("kind", "creature"),
     ]);
     if (q.error || l.error) return setErreur((q.error || l.error).message);
     // Quête déjà choisie mais sans créature en jeu (créatures ajoutées après le choix) : on montre l'aperçu.
@@ -63,7 +64,9 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
       armes = ar.data;
     }
     setErreur("");
-    setDonnees({ quete: q.data, lignes: l.data, creatures, liens, capacites, armes });
+    // Ordre de jeu (initiative) de chaque créature : connu quand tout le monde a lancé.
+    const rangs = new Map((ini.data || []).filter((x) => x.rang != null).map((x) => [x.creature_quete_id, x.rang]));
+    setDonnees({ quete: q.data, lignes: l.data, creatures, liens, capacites, armes, rangs });
   }
   // Aperçu d'une quête pas encore choisie : une entrée par exemplaire prévu (mêmes noms d'onglet qu'au choix).
   async function chargerApercu(dejaChoisie = false) {
@@ -120,6 +123,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
       .channel("creatures-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "creature_quete" }, charger)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_etat" }, charger)
+      .on("postgres_changes", { event: "*", schema: "public", table: "initiative" }, charger)
       .subscribe();
     return () => supabase.removeChannel(canal);
   }, [estAdmin, apercuQuete]);
@@ -141,7 +145,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
         </div>
       </section>
     );
-  const { quete, lignes, creatures, liens, capacites, armes = [], apercu, dejaChoisie } = donnees;
+  const { quete, lignes, creatures, liens, capacites, armes = [], apercu, dejaChoisie, rangs } = donnees;
   const base = apercu ? "#creatures/quete/" + quete.id + "/" : "#creatures/";
   if (!lignes.length)
     return (
@@ -204,6 +208,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
               className={`creature-onglet${l.id === courante.id ? " actif" : ""}${sante === 0 ? " detruite" : ""}`}
               href={base + l.id}
             >
+              {rangs?.get(l.id) && <span className="initiative-rang" title="Ordre de jeu (initiative)">{rangs.get(l.id)}</span>}
               {l.nom_onglet} <small className="creature-onglet-pv">{sante ?? "?"}/{f?.sante_max ?? "?"}</small>
             </a>
           );
@@ -219,6 +224,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
           apercu={!!apercu}
           key={courante.id}
           ligne={courante}
+          rang={rangs?.get(courante.id)}
           fiche={fiche}
           liens={liens.filter((x) => x.creature_id === fiche.id)}
           armes={armes.filter((x) => x.creature_id === fiche.id && x.objet)}
@@ -242,7 +248,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
 }
 
 // `sansNomOnglet` : fiche d'un compagnon/familier (l'onglet porte un nom fixe, pas de champ de renommage).
-export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false, sansNomOnglet = false }) {
+export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false, sansNomOnglet = false, rang = null }) {
   const santeMax = fiche.sante_max;
   const energieMax = fiche.energie_max;
   const sante = ligne.sante_actuelle ?? santeMax;
@@ -285,7 +291,10 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
     <article className={`creature-fiche parchment${sante === 0 ? " creature-detruite" : ""}${apercu ? " creature-apercu" : ""}`}>
       <header className="creature-fiche-tete">
         <div>
-          <h3>{fiche.nom}</h3>
+          <h3>
+            {rang ? <span className="initiative-rang" title="Ordre de jeu (initiative)">{rang}</span> : null}
+            {fiche.nom}
+          </h3>
           <p className="muted">
             {[fiche.type, fiche.sous_type, TAILLES_CREATURE.find(([c]) => c === fiche.taille)?.[1]]
               .filter(Boolean)

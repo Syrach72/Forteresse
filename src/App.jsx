@@ -46,6 +46,7 @@ import { Diagnostic, DebugBadge } from "./Diagnostic.jsx";
 import { supabase } from "./supabaseClient";
 import { chargerSon, creerPiste } from "./sons.js";
 import { useGlassWindows } from "./glassWindows.js";
+import { FenetreInitiative } from "./Initiative.jsx";
 import { chargerMercenaires, chargerVeterances, chargerActuels, chargerQueteEnCours } from "./etat.js";
 import { useSessions, SessionBar, EcranSession } from "./Sessions.jsx";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
@@ -1070,6 +1071,12 @@ export function App() {
   const [terrainsFavoris, setTerrainsFavoris] = useState(() => new Map());
   const [terrainReporte, setTerrainReporte] = useState([]);
   const [terrainForce, setTerrainForce] = useState(null);
+  // Initiative de la quête en cours : lignes des mercenaires (id -> {de, velocite, total, departage, rang}), lancer
+  // ouvert par quelqu'un, fenêtre affichée.
+  const [initiatives, setInitiatives] = useState(() => new Map());
+  const [initiativeLancee, setInitiativeLancee] = useState(false);
+  const [initiativeOuverte, setInitiativeOuverte] = useState(false);
+  const initiativeDejaOuverte = useRef(false);
   // Compagnon animal (Rôdeur Maître des Bêtes) / familier (Incantateur) : id du mercenaire -> ligne mercenaire_compagnon.
   const [compagnons, setCompagnons] = useState(() => new Map());
   // Conduit Divin : utilisations par instance (mercenaire, compétence, numéro d'instance) et instance en cours.
@@ -1512,6 +1519,42 @@ export function App() {
   // Compte administrateur (affichage uniquement ; les droits réels sont
   // portés par la base, cf. is_admin()).
   const estAdmin = session?.user?.email?.toLowerCase() === "btestart@aol.com";
+  // Initiative : mercenaires engagés dans la quête en cours, ceux que ce joueur peut lancer (tous pour le MJ), et
+  // état du lancer (ouvert = quelqu'un a cliqué ; terminé = tous ont lancé, le serveur a calculé les rangs).
+  const initEngages = queteEnCours
+    ? mercsEnQuete
+        .filter((e) => e.quete_id === queteEnCours.id)
+        .map((e) => mercenaires.find((m) => m.id === e.mercenaire_id))
+        .filter(Boolean)
+    : [];
+  const initMiens = new Set(initEngages.filter((m) => mesRecrutes.has(m.id)).map((m) => m.id));
+  const initLancables = estAdmin ? new Set(initEngages.map((m) => m.id)) : initMiens;
+  const initTermine = initEngages.length > 0 && initEngages.every((m) => initiatives.get(m.id)?.rang != null);
+  const initAFaire = initEngages.some((m) => initLancables.has(m.id) && !initiatives.has(m.id));
+  const initRangs = useMemo(
+    () => new Map([...initiatives].filter(([, r]) => r.rang != null).map(([id, r]) => [id, r.rang])),
+    [initiatives],
+  );
+  // Le lancer s'ouvre tout seul chez chaque joueur concerné dès que quelqu'un l'a lancé.
+  useEffect(() => {
+    if (initiativeLancee && !initTermine && initMiens.size > 0 && initAFaire && !initiativeDejaOuverte.current) {
+      initiativeDejaOuverte.current = true;
+      setInitiativeOuverte(true);
+    }
+    if (!initiativeLancee) initiativeDejaOuverte.current = false;
+  }, [initiativeLancee, initTermine, initAFaire, initMiens.size]);
+  async function lancerInitiative(mercenaireId) {
+    const { data, error } = await supabase.rpc("initiative_lancer", { p_mercenaire: mercenaireId });
+    if (error) return { error: error.message };
+    return data;
+  }
+  async function ouvrirInitiative() {
+    if (estAdmin && !initiativeLancee) {
+      const { error } = await supabase.rpc("initiative_demarrer");
+      if (error) return notify(error.message);
+    }
+    setInitiativeOuverte(true);
+  }
   // Mercenaires « à moi » : ceux que j'ai recrutés ; pour le MJ, TOUS les mercenaires recrutés : il agit pour
   // n'importe quel joueur comme s'il était le propriétaire (fiche, renvoi, instructeur, soins, quête, équipement).
   const mesMercs = useMemo(
@@ -2725,7 +2768,7 @@ export function App() {
   }
   // Missions : définitions communes, attributions de la session visibles par ce joueur, compteurs de progression.
   async function synchroniserMissions() {
-    const [m, a, c, eff, ej, tf, sc, cd, cp] = await Promise.all([
+    const [m, a, c, eff, ej, tf, sc, cd, cp, ini, iniEtat] = await Promise.all([
       supabase
         .from("mission")
         .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, recompense_effet_stat, recompense_effet_valeur, recompense_effet_quetes, ordre")
@@ -2741,7 +2784,11 @@ export function App() {
       supabase.from("mercenaire_style_combat").select("mercenaire_id, rang, type").order("rang"),
       supabase.from("mercenaire_conduit_divin").select("mercenaire_id, competence_id, instance_no"),
       supabase.from("mercenaire_compagnon").select("*"),
+      supabase.from("initiative").select("mercenaire_id, de, velocite, total, departage, rang").eq("kind", "mercenaire"),
+      supabase.from("initiative_etat").select("quete_id").limit(1),
     ]);
+    if (!ini.error) setInitiatives(new Map((ini.data || []).map((x) => [x.mercenaire_id, x])));
+    if (!iniEtat.error) setInitiativeLancee((iniEtat.data || []).length > 0);
     if (!cp.error) setCompagnons(new Map((cp.data || []).map((x) => [x.mercenaire_id, x])));
     if (!cd.error) setConduitRows(cd.data || []);
     if (!sc.error) {
@@ -3015,6 +3062,8 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_style_combat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_conduit_divin" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_compagnon" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "initiative" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "initiative_etat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "employe" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
@@ -4105,6 +4154,12 @@ export function App() {
           </div>
         )}
         <div className="header-actions-col">
+        {/* Initiative : visible tant que le lancer de la quête en cours n'est pas terminé (joueurs concernés et MJ). */}
+        {queteEnCours && initEngages.length > 0 && !initTermine && (initMiens.size > 0 || estAdmin) && (
+          <button type="button" className="header-time header-initiative" onClick={ouvrirInitiative}>
+            Initiative{initAFaire ? " ●" : ""}
+          </button>
+        )}
         <button type="button" className="header-time header-missions" onClick={() => (location.hash = "missions")}>
           Missions
           {missionsEnAttente > 0 && <span className="missions-badge" aria-label={`${missionsEnAttente} récompense(s) à recevoir`}>{missionsEnAttente}</span>}
@@ -4196,6 +4251,7 @@ export function App() {
           onChoisirEnnemiJure={(id) => setEnnemiJureForce(id)}
           onChoisirTerrainFavori={(id) => setTerrainForce(id)}
           onChoisirStyleCombat={(id) => setStyleForce(id)}
+          initiativeRangs={initRangs}
           onChoisirCompagnon={choisirCompagnon}
           onMajCompagnon={majCompagnon}
           conduitDivin={conduitRows.filter((r) => r.instance_no === instanceNo)}
@@ -5210,6 +5266,18 @@ export function App() {
             </button>
           </div>
         </Modal>
+      )}
+      {initiativeOuverte && queteEnCours && initEngages.length > 0 && (
+        <FenetreInitiative
+          engages={initEngages.map((m) => ({ id: m.id, nom: m.nom }))}
+          lancables={initLancables}
+          miens={initMiens}
+          rows={initiatives}
+          complete={initTermine}
+          estAdmin={estAdmin}
+          onLancer={lancerInitiative}
+          onClose={() => setInitiativeOuverte(false)}
+        />
       )}
       {styleCible && !terrainCible && !ennemiJureCible && !humainEnAttente && (
         <ChoixType
