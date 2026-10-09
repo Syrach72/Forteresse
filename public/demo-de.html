@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Démo du dé d’initiative</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #2a1f14 url("/assets/castle.webp") center / cover; font-family: Georgia, serif; color: #f3e6c8; }
+  .centre { display: grid; place-items: center; height: 100%; }
+  button.ouvrir, button.lancer {
+    font: 700 20px Georgia, serif; padding: 12px 26px; color: #f3e6c8; cursor: pointer;
+    background: linear-gradient(#6b4a2b, #3e2a17); border: 2px solid #d8b25a; border-radius: 8px;
+  }
+  button:disabled { opacity: .55; cursor: default; }
+  .voile { position: fixed; inset: 0; background: rgba(10, 6, 2, .72); display: none; place-items: center; z-index: 10; }
+  .voile.ouvert { display: grid; }
+  .fenetre {
+    width: min(460px, 94vw); padding: 18px 18px 22px; text-align: center; border: 3px solid #d8b25a; border-radius: 12px;
+    background: radial-gradient(circle at 50% 35%, #4a3622, #1d140b); box-shadow: 0 10px 40px #000;
+  }
+  .fenetre h2 { margin: 0 0 4px; font-size: 24px; }
+  canvas { width: 100%; height: 340px; display: block; touch-action: none; }
+  .resultat { min-height: 46px; margin: 4px 0 10px; font-size: 20px; }
+  .resultat strong { font-size: 34px; color: #f0c85a; }
+  .fermer { position: absolute; margin: -10px 0 0 min(210px, 44vw); background: none; border: 0; color: #f3e6c8; font-size: 26px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="centre"><button class="ouvrir" id="ouvrir">Initiative</button></div>
+
+<div class="voile" id="voile" role="dialog" aria-modal="true" aria-label="Lancer d’initiative">
+  <div class="fenetre">
+    <h2>Initiative</h2>
+    <canvas id="scene" width="460" height="340"></canvas>
+    <div class="resultat" id="resultat">Appuyez sur « Lancer ».</div>
+    <button class="lancer" id="lancer">Lancer le dé</button>
+    <button class="lancer" id="fermer" style="margin-left:8px">Fermer</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  const canvas = document.getElementById("scene");
+  const voile = document.getElementById("voile");
+  const bouton = document.getElementById("lancer");
+  const resultat = document.getElementById("resultat");
+
+  // --- Texture : 20 cases (5 x 4) de pierre rouillée, un triangle par case avec son chiffre doré. ---
+  const CASE = 256, COLS = 5, LIGNES = 4;
+  const atlas = document.createElement("canvas");
+  atlas.width = CASE * COLS; atlas.height = CASE * LIGNES;
+  const g = atlas.getContext("2d");
+  function bruit(x, y, w, h, n, couleur, taille) {
+    g.fillStyle = couleur;
+    for (let i = 0; i < n; i++) {
+      g.globalAlpha = 0.05 + Math.random() * 0.2;
+      g.beginPath(); g.arc(x + Math.random() * w, y + Math.random() * h, Math.random() * taille + 1, 0, 7); g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+  // Sommets du triangle dans une case : haut, bas-gauche, bas-droite.
+  const TRI = [[0.5, 0.04], [0.04, 0.94], [0.96, 0.94]];
+  function dessinerCase(i, nombre) {
+    const x = (i % COLS) * CASE, y = Math.floor(i / COLS) * CASE;
+    g.save();
+    g.beginPath(); g.rect(x, y, CASE, CASE); g.clip();
+    g.fillStyle = "#3b2d22"; g.fillRect(x, y, CASE, CASE);
+    bruit(x, y, CASE, CASE, 500, "#14100c", 14);
+    bruit(x, y, CASE, CASE, 260, "#8a4a22", 9);   // rouille
+    bruit(x, y, CASE, CASE, 120, "#b5683a", 5);
+    // Relief sculpté très simplifié : volutes autour du chiffre.
+    g.strokeStyle = "rgba(190,150,110,.35)"; g.lineWidth = 5;
+    for (let k = 0; k < 3; k++) {
+      g.beginPath(); g.arc(x + CASE * (0.3 + 0.2 * k), y + CASE * 0.78, 22 + k * 8, Math.PI, Math.PI * 2.1); g.stroke();
+    }
+    // Chiffre doré, centré sur le barycentre du triangle.
+    const cx = x + CASE * 0.5, cy = y + CASE * 0.6;
+    g.font = "bold 104px Georgia, serif"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.lineWidth = 6; g.strokeStyle = "#3a2509"; g.strokeText(String(nombre), cx, cy);
+    g.fillStyle = "#e0b04a"; g.fillText(String(nombre), cx, cy);
+    if (nombre === 6 || nombre === 9) { g.fillRect(cx - 28, cy + 52, 56, 7); } // repère 6 / 9
+    g.restore();
+  }
+
+  // --- Géométrie : icosaèdre, UV propres à chaque face, chiffres 1..20 (faces opposées : total 21). ---
+  const geo = new THREE.IcosahedronGeometry(1, 0).toNonIndexed();
+  const pos = geo.attributes.position;
+  const normales = [], nombres = new Array(20).fill(0);
+  for (let f = 0; f < 20; f++) {
+    const a = new THREE.Vector3().fromBufferAttribute(pos, f * 3);
+    const b = new THREE.Vector3().fromBufferAttribute(pos, f * 3 + 1);
+    const c = new THREE.Vector3().fromBufferAttribute(pos, f * 3 + 2);
+    normales.push(new THREE.Vector3().subVectors(c, b).cross(new THREE.Vector3().subVectors(a, b)).normalize());
+  }
+  let suivant = 1;
+  for (let f = 0; f < 20; f++) {
+    if (nombres[f]) continue;
+    const opp = normales.findIndex((n, k) => k !== f && n.dot(normales[f]) < -0.99);
+    nombres[f] = suivant; nombres[opp] = 21 - suivant; suivant++;
+  }
+  const uv = new Float32Array(20 * 3 * 2);
+  for (let f = 0; f < 20; f++) {
+    dessinerCase(f, nombres[f]);
+    const cx = f % COLS, cy = Math.floor(f / COLS);
+    for (let v = 0; v < 3; v++) {
+      uv[(f * 3 + v) * 2] = (cx + TRI[v][0]) / COLS;
+      uv[(f * 3 + v) * 2 + 1] = 1 - (cy + TRI[v][1]) / LIGNES;
+    }
+  }
+  geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+  geo.computeVertexNormals();
+
+  const texture = new THREE.CanvasTexture(atlas);
+  texture.anisotropy = 4;
+  const de = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: texture, bumpMap: texture, bumpScale: 2.2, roughness: 0.85, metalness: 0.25 }));
+  const aretes = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0x7b5233 }));
+  const groupe = new THREE.Group(); groupe.add(de, aretes);
+
+  const scene = new THREE.Scene();
+  scene.add(groupe, new THREE.AmbientLight(0xffe7c2, 0.75));
+  const lampe = new THREE.DirectionalLight(0xfff0d0, 1.1); lampe.position.set(2, 3, 4); scene.add(lampe);
+  const camera = new THREE.PerspectiveCamera(32, canvas.width / canvas.height, 0.1, 20);
+  camera.position.set(0, 0, 4.4);
+  const rendu = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  rendu.setPixelRatio(Math.min(devicePixelRatio, 2));
+  rendu.setSize(canvas.clientWidth || 460, canvas.clientHeight || 340, false);
+
+  // Orientation finale : la face tirée regarde la caméra, son chiffre à l'endroit.
+  function orientationFace(f) {
+    const q1 = new THREE.Quaternion().setFromUnitVectors(normales[f], new THREE.Vector3(0, 0, 1));
+    const a = new THREE.Vector3().fromBufferAttribute(pos, f * 3).applyQuaternion(q1); // sommet « haut »
+    const centre = new THREE.Vector3(); for (let v = 0; v < 3; v++) centre.add(new THREE.Vector3().fromBufferAttribute(pos, f * 3 + v));
+    centre.divideScalar(3).applyQuaternion(q1);
+    const d = a.sub(centre);
+    const tour = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2 - Math.atan2(d.y, d.x));
+    return tour.multiply(q1);
+  }
+
+  let enCours = false;
+  function tirer() { return 1 + Math.floor(Math.random() * 20); } // aléatoire uniforme, 1 à 20
+  function lancer() {
+    if (enCours) return;
+    enCours = true; bouton.disabled = true; resultat.textContent = "Le dé roule…";
+    const valeur = tirer();
+    const face = nombres.indexOf(valeur);
+    const final = orientationFace(face);
+    const axe = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize();
+    const tours = Math.PI * (7 + Math.random() * 3);
+    const duree = 2300, debut = performance.now();
+    (function image(t) {
+      const p = Math.min(1, (t - debut) / duree);
+      const ease = 1 - Math.pow(1 - p, 3);            // le dé ralentit
+      const reste = new THREE.Quaternion().setFromAxisAngle(axe, tours * (1 - ease));
+      groupe.quaternion.copy(reste).multiply(final);
+      // rebond : le dé retombe et rebondit deux fois
+      groupe.position.y = Math.abs(Math.sin(p * Math.PI * 3)) * (1 - p) * 0.9;
+      groupe.position.x = Math.sin(p * 4) * (1 - p) * 0.25;
+      const echelle = 1 + 0.12 * Math.sin(p * Math.PI); groupe.scale.setScalar(echelle);
+      rendu.render(scene, camera);
+      if (p < 1) return requestAnimationFrame(image);
+      groupe.position.set(0, 0, 0); groupe.scale.setScalar(1.05); rendu.render(scene, camera);
+      resultat.innerHTML = "Résultat : <strong>" + valeur + "</strong>";
+      enCours = false; bouton.disabled = false; bouton.textContent = "Relancer";
+    })(debut);
+  }
+
+  groupe.quaternion.copy(orientationFace(nombres.indexOf(20)));
+  rendu.render(scene, camera);
+  bouton.addEventListener("click", lancer);
+  document.getElementById("ouvrir").addEventListener("click", () => {
+    voile.classList.add("ouvert");
+    rendu.setSize(canvas.clientWidth, canvas.clientHeight, false);
+    rendu.render(scene, camera);
+  });
+  document.getElementById("fermer").addEventListener("click", () => voile.classList.remove("ouvert"));
+})();
+</script>
+</body>
+</html>
