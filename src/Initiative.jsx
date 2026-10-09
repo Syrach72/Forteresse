@@ -16,6 +16,7 @@ export function FenetreInitiative({ engages, lancables, miens, rows, complete, e
   const [erreur, setErreur] = useState("");
   const departageLance = useRef(false);
   const monte = useRef(true);
+  const jouees = useRef(new Set()); // relances de départage déjà animées
   const [fini, setFini] = useState(false); // tout le monde a lancé et mes relances de départage sont terminées
 
   async function lancer(m) {
@@ -36,7 +37,15 @@ export function FenetreInitiative({ engages, lancables, miens, rows, complete, e
     setOccupe(false);
   }
 
-  // Quand tout le monde a lancé : relances de départage de mes mercenaires (décidées par le serveur), puis fermeture.
+  // L'équipe a changé (un mercenaire arrive) : l'ordre est suspendu, le bouton Fermer se grise de nouveau.
+  useEffect(() => {
+    if (!complete) {
+      departageLance.current = false;
+      setFini(false);
+    }
+  }, [complete]);
+  // Quand tout le monde a lancé : relances de départage de mes mercenaires (décidées par le serveur), une seule fois
+  // chacune, puis le bouton Fermer se dégrise.
   useEffect(() => {
     if (!complete || occupe || departageLance.current) return;
     departageLance.current = true;
@@ -45,7 +54,11 @@ export function FenetreInitiative({ engages, lancables, miens, rows, complete, e
       for (const m of engages) {
         const dep = rows.get(m.id)?.departage || [];
         if (!miens.has(m.id) || !dep.length) continue;
-        for (const v of dep) {
+        for (let k = 0; k < dep.length; k++) {
+          const v = dep[k];
+          const cle = m.id + ":" + k + ":" + v;
+          if (jouees.current.has(cle)) continue; // déjà montrée à ce joueur
+          jouees.current.add(cle);
           if (!monte.current) return;
           setMessage(`Égalité ! ${m.nom} relance le dé pour se départager…`);
           await de.current?.lancer(v);

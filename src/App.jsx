@@ -1076,7 +1076,7 @@ export function App() {
   const [initiatives, setInitiatives] = useState(() => new Map());
   const [initiativeLancee, setInitiativeLancee] = useState(false);
   const [initiativeOuverte, setInitiativeOuverte] = useState(false);
-  const initiativeDejaOuverte = useRef(false);
+  const initiativeDejaOuverte = useRef(new Set());
   // Compagnon animal (Rôdeur Maître des Bêtes) / familier (Incantateur) : id du mercenaire -> ligne mercenaire_compagnon.
   const [compagnons, setCompagnons] = useState(() => new Map());
   // Conduit Divin : utilisations par instance (mercenaire, compétence, numéro d'instance) et instance en cours.
@@ -1536,13 +1536,19 @@ export function App() {
     [initiatives],
   );
   // Le lancer s'ouvre tout seul chez chaque joueur concerné dès que quelqu'un l'a lancé.
+  // Un mercenaire ajouté en cours de route (ou à la place d'un parti) ouvre aussi la fenêtre pour son joueur.
+  const initAttendusMiens = [...initMiens].filter((id) => !initiatives.has(id));
   useEffect(() => {
-    if (initiativeLancee && !initTermine && initMiens.size > 0 && initAFaire && !initiativeDejaOuverte.current) {
-      initiativeDejaOuverte.current = true;
+    if (!initiativeLancee) {
+      initiativeDejaOuverte.current = new Set();
+      return;
+    }
+    const nouveaux = initAttendusMiens.filter((id) => !initiativeDejaOuverte.current.has(id));
+    if (!initTermine && nouveaux.length > 0) {
+      nouveaux.forEach((id) => initiativeDejaOuverte.current.add(id));
       setInitiativeOuverte(true);
     }
-    if (!initiativeLancee) initiativeDejaOuverte.current = false;
-  }, [initiativeLancee, initTermine, initAFaire, initMiens.size]);
+  }, [initiativeLancee, initTermine, initAttendusMiens.join(",")]);
   // Quête annulée / accomplie : la fenêtre du lancer ne doit pas rester en attente pour la prochaine.
   useEffect(() => {
     if (!queteEnCours) setInitiativeOuverte(false);
