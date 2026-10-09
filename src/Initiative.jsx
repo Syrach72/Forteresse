@@ -16,6 +16,7 @@ export function FenetreInitiative({ engages, lancables, miens, rows, complete, e
   const [erreur, setErreur] = useState("");
   const departageLance = useRef(false);
   const monte = useRef(true);
+  const [fini, setFini] = useState(false); // tout le monde a lancé et mes relances de départage sont terminées
 
   async function lancer(m) {
     if (occupe) return;
@@ -52,8 +53,10 @@ export function FenetreInitiative({ engages, lancables, miens, rows, complete, e
           await pause(900);
         }
       }
-      await pause(900);
-      if (monte.current) onClose();
+      if (!monte.current) return;
+      setOccupe(false);
+      setMessage("Tout le monde a lancé : vous pouvez fermer la fenêtre.");
+      setFini(true);
     })();
   }, [complete, occupe]);
   useEffect(() => {
@@ -109,13 +112,19 @@ export function FenetreInitiative({ engages, lancables, miens, rows, complete, e
             {erreur}
           </p>
         )}
-        {estAdmin && (
-          <p>
-            <button type="button" className="text-button" onClick={onClose}>
-              Fermer (MJ)
-            </button>
-          </p>
-        )}
+        {/* Fermer : grisé tant que tout le monde (mercenaires et créatures) n'a pas lancé. Le MJ garde la main
+            pour débloquer la situation si un joueur est absent. */}
+        <p>
+          <button
+            type="button"
+            className="wood-button initiative-fermer"
+            disabled={!fini && !estAdmin}
+            onClick={onClose}
+            title={fini || estAdmin ? "Fermer la fenêtre" : "En attente : tout le monde doit avoir lancé son initiative"}
+          >
+            Fermer
+          </button>
+        </p>
       </div>
     </div>
   );

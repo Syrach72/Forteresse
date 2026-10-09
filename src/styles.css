@@ -7638,3 +7638,4 @@ a.merc-card:hover {
 }
 .icone-d20 { width: 38px; height: 38px; object-fit: contain; }
 .icone-d20-petite { width: 18px; height: 18px; margin-left: 4px; vertical-align: middle; }
+.initiative-fermer:disabled { opacity: 0.45; filter: grayscale(1); cursor: not-allowed; }
