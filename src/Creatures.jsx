@@ -394,20 +394,21 @@ export function CreaturesSection({ kit }) {
           </div>
         </div>
         <div className="field">
-          <label htmlFor="cr-compagnon">Compagnon des joueurs</label>
+          <label
+            htmlFor="cr-compagnon"
+            title="Rend cette fiche lisible par les joueurs : Rôdeurs Maîtres des Bêtes (faucon, chien, panthère) et Incantateurs (familier) pourront la choisir à la vétérance 3."
+          >
+            Compagnon des joueurs
+          </label>
           <div className="input-wrap">
             <select id="cr-compagnon" value={form.compagnon} onChange={champ("compagnon")}>
-              <option value="">Non (créature du MJ seul)</option>
-              <option value="faucon">Compagnon animal : faucon</option>
-              <option value="chien">Compagnon animal : chien</option>
-              <option value="panthere">Compagnon animal : panthère</option>
-              <option value="familier">Familier (Incantateur)</option>
+              <option value="">Non (MJ seul)</option>
+              <option value="faucon">Faucon</option>
+              <option value="chien">Chien</option>
+              <option value="panthere">Panthère</option>
+              <option value="familier">Familier</option>
             </select>
           </div>
-          <p className="muted">
-            Rend cette fiche lisible par les joueurs : Rôdeurs Maîtres des Bêtes (faucon, chien, panthère) et Incantateurs
-            (familier) pourront la choisir à la vétérance 3.
-          </p>
         </div>
         {nombre("sante_max", "Santé (max, auto)", 1, 9999)}
         {nombre("energie_max", "Énergie (max, auto)", 0, 999)}
