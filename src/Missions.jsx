@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Modal } from "./Modal.jsx";
 import { libelleEffet } from "./effets.js";
+import { BoutonAide, AIDES } from "./AideLieu.jsx";
 
 const fmt = (n) => new Intl.NumberFormat("fr-FR").format(n);
 
@@ -68,12 +69,8 @@ export function Missions({ missions, attributions, compteurs, objets, userId, on
   };
   return (
     <section className="journal-page parchment missions-page">
+      <BoutonAide aide={AIDES.missions} />
       <h2>Missions</h2>
-      <p className="muted">
-        Une mission s’accomplit toute seule quand l’événement se produit : la récompense arrive
-        aussitôt et une fenêtre l’annonce. Vous pouvez avoir au plus 6 récompenses individuelles en attente d’être données à
-        un mercenaire : au-delà, les nouvelles missions patientent jusqu’à ce que vous en donniez une.
-      </p>
       <h3>Individuelles — un cadeau pour vous</h3>
       <ul className="mission-liste">{parRubrique("individuelle").map(carte)}</ul>
       {!parRubrique("individuelle").length && <p className="muted">Aucune mission pour le moment.</p>}

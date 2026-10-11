@@ -170,4 +170,21 @@ export const AIDES = {
       ],
     ],
   },
+  missions: {
+    titre: "Les Missions : mode d’emploi",
+    rubriques: [
+      [
+        "Comment ça marche",
+        "Une mission s’accomplit toute seule quand l’événement qu’elle attend se produit (une quête réussie, une embauche, un niveau gagné…). La récompense arrive aussitôt et une fenêtre l’annonce.",
+      ],
+      [
+        "Individuelles et collectives",
+        "Une mission individuelle est un cadeau pour vous : elle se compte séparément pour chaque joueur et sa récompense, si c’est un objet, se donne à l’un de vos mercenaires. Une mission collective est un cadeau pour la compagnie : l’or rejoint la trésorerie et l’objet l’arsenal.",
+      ],
+      [
+        "Récompenses en attente",
+        "Vous pouvez avoir au plus 6 récompenses individuelles en attente d’être données à un mercenaire. Au-delà, les nouvelles missions patientent jusqu’à ce que vous en donniez une.",
+      ],
+    ],
+  },
 };
