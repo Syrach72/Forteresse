@@ -7756,14 +7756,15 @@ a.merc-card:hover {
 }
 .bouton-reaction.bouton-reaction-serti {
   position: absolute;
-  /* Ouverture de l'anneau (84→404 × 62→382) agrandie de 32 px de chaque côté : le vert passe sous la bande de
+  /* Ouverture de l'anneau (84→404 × 62→382) agrandie de 36 px de chaque côté (jusqu'au bord extérieur de l'anneau, sans le dépasser) : le vert passe sous la bande de
      bronze, dessinée par-dessus, et ne laisse plus voir le fond dans les coins du bas. */
-  left: 10.7%;
-  top: 5.9%;
-  width: 79.1%;
-  height: 75.2%;
+  left: 9.5%;
+  top: 5%;
+  width: 81%;
+  height: 77.05%;
   margin: 0;
   border-width: 0;
+  box-shadow: none;
 }
 .bouton-reaction-serti.bouton-reaction-grand span {
   font-size: 19px;
