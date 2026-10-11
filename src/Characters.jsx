@@ -563,6 +563,12 @@ export function Characters({
                     ["Parade", meilleureParade(equip) || "—"],
                     ["Armure", valeurArmure],
                   ];
+                  // Moine : esquive à mains nues = règle de base + bonus de vétérance (+1 dès le niveau 1, +2 au niveau 5,
+                  // +3 au niveau 10), calculé automatiquement.
+                  const estMoine = (merc.classe || "").trim().toLowerCase() === "moine";
+                  const vetMoine = Number(merc.veterance) || 1;
+                  const bonusMainsNues = vetMoine >= 10 ? 3 : vetMoine >= 5 ? 2 : 1;
+                  const esquiveMainsNues = typeof esquive === "number" ? esquive + bonusMainsNues : null;
                   return (
                     <div className="merc-defense">
                       <button
@@ -575,9 +581,21 @@ export function Characters({
                         ?
                       </button>
                       {lignes.map(([libelle, valeurLigne]) => (
-                        <div className="merc-defense-ligne" key={libelle}>
+                        <div
+                          className={`merc-defense-ligne${estMoine && libelle === "Esquive" ? " merc-defense-ligne-moine" : ""}`}
+                          key={libelle}
+                        >
                           <img className="merc-defense-icone" src={ICONES_STATS[libelle]} alt={libelle} title={libelle} />
                           <strong className="merc-defense-valeur">{valeurLigne}</strong>
+                          {estMoine && libelle === "Esquive" && esquiveMainsNues !== null && (
+                            <div
+                              className="merc-mains-nues"
+                              title={`Esquive à mains nues : ${esquive} (règle de base) + ${bonusMainsNues} (vétérance ${vetMoine}, +1 dès le niveau 1, +2 au niveau 5, +3 au niveau 10)`}
+                            >
+                              <span className="merc-mains-nues-titre">Mains nues</span>
+                              <strong className="merc-mains-nues-valeur">{esquiveMainsNues}</strong>
+                            </div>
+                          )}
                         </div>
                       ))}
                       {armure && (
