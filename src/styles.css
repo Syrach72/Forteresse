@@ -7710,8 +7710,8 @@ a.merc-card:hover {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 4px solid #0a3d2a;
-  background: radial-gradient(circle at 35% 30%, #2f8a62, #006a4e 55%, #04402f);
+  border: 4px solid #052a1c;
+  background: radial-gradient(circle at 35% 30%, #1d6a4a, #0b4a33 55%, #032a1c);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45), inset 0 2px 4px rgba(255, 255, 255, 0.25);
   cursor: pointer;
   padding: 0;
@@ -7754,10 +7754,12 @@ a.merc-card:hover {
 }
 .bouton-reaction.bouton-reaction-serti {
   position: absolute;
-  left: 17.25%;
-  top: 12.1%;
-  width: 65.9%;
-  height: 62.7%;
+  /* Ouverture de l'anneau (84→404 × 62→382) agrandie de 32 px de chaque côté : le vert passe sous la bande de
+     bronze, dessinée par-dessus, et ne laisse plus voir le fond dans les coins du bas. */
+  left: 10.7%;
+  top: 5.9%;
+  width: 79.1%;
+  height: 75.2%;
   margin: 0;
   border-width: 0;
 }
