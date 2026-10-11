@@ -151,6 +151,9 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
   if (!lignes.length)
     return (
       <section className="creature-page">
+        <a className="wood-button creature-retour" href="#quetes">
+          ‹ Retour sur la quête
+        </a>
         <div className="parchment creature-vide">
           <h2>Créatures — {quete.nom}</h2>
           <p>
@@ -184,6 +187,9 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
 
   return (
     <section className="creature-page">
+      <a className="wood-button creature-retour" href="#quetes">
+        ‹ Retour sur la quête
+      </a>
       <h2 className="creature-titre-page">Créatures — {quete.nom}</h2>
       {apercu && (
         <p className="creature-apercu-bandeau" role="note">

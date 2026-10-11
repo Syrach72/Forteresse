@@ -6938,6 +6938,8 @@ a.merc-card:hover {
 
 /* Créatures (page MJ) */
 .creature-page { max-width: 980px; margin: 0 auto; padding: 12px 12px 40px; }
+/* Retour à la page de la quête depuis les créatures. */
+.creature-retour { display: inline-block; margin: 0 0 10px; text-decoration: none; }
 .creature-vide { padding: 20px; }
 .creature-titre-page { margin: 0 0 10px; color: var(--paper-light, #f3e7cb); }
 .creature-onglets { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: -1px; position: relative; z-index: 1; }
