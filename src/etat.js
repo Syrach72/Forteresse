@@ -43,7 +43,7 @@ export async function chargerMercenaires(colonnes = "*") {
 export async function chargerActuels() {
   const { data, error } = await supabase
     .from("mercenaire_etat")
-    .select("mercenaire_id, energie_actuelle, sante_actuelle, attaque, defense, esprit, etat, etat_niveau, etat_rounds, inconscient_rounds, mort_champ, humain_bonus_utilise, points_carac, xp");
+    .select("mercenaire_id, energie_actuelle, sante_actuelle, attaque, defense, esprit, etat, etat_niveau, etat_rounds, inconscient_rounds, mort_champ, humain_bonus_utilise, points_carac, xp, reaction_utilisee");
   if (error) return { error };
   return {
     data: new Map(
@@ -65,6 +65,8 @@ export async function chargerActuels() {
           pointsCarac: x.points_carac ?? 0,
           // Expérience acquise dans le niveau de vétérance actuel (palier : xp.js).
           xp: x.xp ?? 0,
+          // Réaction du round dépensée (rendue par le Rd du MJ).
+          reaction: !!x.reaction_utilisee,
         },
       ]),
     ),

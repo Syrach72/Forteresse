@@ -12,6 +12,7 @@ import { gemmesPortees, limiteGemmes } from "./gemmes.js";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
 import { ChoixCompagnon, OngletCompagnon, LIBELLE_ROLE } from "./Compagnon.jsx";
+import { BoutonReaction } from "./BoutonReaction.jsx";
 import { AlertePoint, PointCaracModal } from "./PointsCarac.jsx";
 // Caractéristiques affichées par une icône plutôt que par leur nom (le nom reste en texte alternatif).
 const ICONES_STATS = {
@@ -128,6 +129,7 @@ export function Characters({
   onSetActuel = async () => ({}),
   onDepenserEnergie = async () => ({}),
   onDefinirEtat = async () => ({}),
+  onReaction = async () => ({}),
   mercsEnQuete = [],
   onRestaurerEnergie = async () => ({}),
   onSetCaracteristiques = async () => ({}),
@@ -601,6 +603,15 @@ export function Characters({
                     </div>
                   );
                 })()}
+                {/* Réaction du round (mercenaire engagé dans une quête) : vert tant qu'elle est disponible, grisée
+                    une fois dépensée ; le MJ la rend en cliquant sur Rd. */}
+                {enQuete && (
+                  <BoutonReaction
+                    utilisee={!!merc.reactionUtilisee}
+                    disabled={!peutModifier || (!!merc.reactionUtilisee && !estAdmin)}
+                    onClick={() => onReaction(merc.id, !merc.reactionUtilisee)}
+                  />
+                )}
               </div>
             </div>
             <div className="merc-colonne-droite">
@@ -1055,7 +1066,7 @@ export function Characters({
           </section>
           )}
           {merc.compagnon && onglet === merc.compagnon.role && (
-            <OngletCompagnon merc={merc} titreMerc={titreMerc} peutModifier={peutModifier} onMaj={onMajCompagnon} />
+            <OngletCompagnon merc={merc} titreMerc={titreMerc} peutModifier={peutModifier} onMaj={onMajCompagnon} enQuete={enQuete} estAdmin={estAdmin} />
           )}
           {choixCompagnon && merc.compagnonPossible && !merc.compagnon && (
             <ChoixCompagnon merc={merc} onChoisir={onChoisirCompagnon} onClose={() => setChoixCompagnon(false)} />

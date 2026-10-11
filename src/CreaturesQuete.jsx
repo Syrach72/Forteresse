@@ -3,6 +3,7 @@ import { supabase } from "./supabaseClient";
 import { RichText } from "./RichText.jsx";
 import { Modal } from "./Modal.jsx";
 import { Orbe } from "./MercFiche.jsx";
+import { BoutonReaction } from "./BoutonReaction.jsx";
 import { CATEGORIES_CAPACITES, DETAIL_ETATS, ETATS_JEU, TAILLES_CREATURE, TYPES_VOL, entier, nomEtat } from "./creatures-data.js";
 
 // Page MJ des créatures en jeu (route #creatures), visible et modifiable du MJ seul. Une fiche par
@@ -231,6 +232,8 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
           capDe={capDe}
           sauver={(patch) => sauver(courante.id, patch)}
           ouvrirIcone={(capacite) => setFenetre({ ligneId: courante.id, capacite })}
+          reactionActive
+          reactionPeutRendre={estAdmin}
         />
       )}
       {fenetre && (
@@ -248,7 +251,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
 }
 
 // `sansNomOnglet` : fiche d'un compagnon/familier (l'onglet porte un nom fixe, pas de champ de renommage).
-export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false, sansNomOnglet = false, rang = null }) {
+export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false, sansNomOnglet = false, rang = null, reactionActive = false, reactionPeutRendre = false }) {
   const santeMax = fiche.sante_max;
   const energieMax = fiche.energie_max;
   const sante = ligne.sante_actuelle ?? santeMax;
@@ -412,6 +415,18 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
         {listeTexte("Immunités aux états", fiche.immunites_etats)}
         {listeTexte("Sens", fiche.sens)}
       </div>
+
+      {reactionActive && !apercu && (
+        <>
+          <h4 className="creature-section">Réaction</h4>
+          <BoutonReaction
+            taille="petit"
+            utilisee={!!ligne.reaction_utilisee}
+            disabled={!!ligne.reaction_utilisee && !reactionPeutRendre}
+            onClick={() => sauver({ reaction_utilisee: !ligne.reaction_utilisee })}
+          />
+        </>
+      )}
 
       <h4 className="creature-section">État</h4>
       <EtatsBoutons

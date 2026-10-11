@@ -1752,6 +1752,17 @@ export function App() {
   }
   // État d'un mercenaire engagé dans une quête (agrippé, étourdi…) : choisi par son joueur ou le MJ ; le
   // serveur le refuse hors quête. Les rounds se décomptent au clic du MJ sur RD.
+  // Réaction du round : le joueur (ou le MJ) la dépense ; elle revient au Rd du MJ (règle serveur).
+  async function definirReaction(id, utilisee = true) {
+    setMercenaires((old) => old.map((m) => (m.id === id ? { ...m, reactionUtilisee: utilisee } : m)));
+    const { error } = await supabase.rpc("reaction_definir", { p_mercenaire: id, p_utilisee: utilisee });
+    if (error) {
+      notify(error.message);
+      await synchroniserPartage();
+      return { error: error.message };
+    }
+    return {};
+  }
   async function definirEtat(id, etat, niveau = 1, rounds = 0) {
     const { error } = await supabase.rpc("mercenaire_definir_etat", {
       p_mercenaire: id,
@@ -2998,10 +3009,12 @@ export function App() {
           const pointsCarac = a?.pointsCarac ?? 0;
           // Expérience dans le niveau de vétérance actuel.
           const xp = a?.xp ?? 0;
+          const reactionUtilisee = a?.reaction ?? false;
           return etat === (m.etat ?? null) &&
             humainUtilise === m.humainUtilise &&
             pointsCarac === (m.pointsCarac ?? 0) &&
             xp === (m.xp ?? 0) &&
+            reactionUtilisee === (m.reactionUtilisee ?? false) &&
             etatNiveau === (m.etatNiveau ?? 1) &&
             etatRounds === (m.etatRounds ?? 0) &&
             inconscientRounds === (m.inconscientRounds ?? null) &&
@@ -3012,7 +3025,7 @@ export function App() {
             velocite === m.velocite &&
             mental === m.mental
             ? m
-            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental, etat, etatNiveau, etatRounds, inconscientRounds, mortChamp, humainUtilise, pointsCarac, xp };
+            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental, etat, etatNiveau, etatRounds, inconscientRounds, mortChamp, humainUtilise, pointsCarac, xp, reactionUtilisee };
         }),
       );
     }
@@ -4263,6 +4276,7 @@ export function App() {
           onSetActuel={setActuel}
           onDepenserEnergie={depenserEnergie}
           onDefinirEtat={definirEtat}
+          onReaction={definirReaction}
           mercsEnQuete={mercsEnQuete}
           onRestaurerEnergie={restaurerEnergie}
           onSetCaracteristiques={setCaracteristiques}
