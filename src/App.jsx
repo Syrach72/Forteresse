@@ -49,6 +49,7 @@ import { useGlassWindows } from "./glassWindows.js";
 import { FenetreInitiative } from "./Initiative.jsx";
 import { chargerMercenaires, chargerVeterances, chargerActuels, chargerQueteEnCours } from "./etat.js";
 import { instancesRestantesFormation } from "./xp.js";
+import { decouper } from "./etats.js";
 import { useSessions, SessionBar, EcranSession } from "./Sessions.jsx";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
 // Matériaux d'un boost de production (valeurs enregistrées -> noms affichés).
@@ -1080,6 +1081,8 @@ export function App() {
   const initiativeDejaOuverte = useRef(new Set());
   // Compagnon animal (Rôdeur Maître des Bêtes) / familier (Incantateur) : id du mercenaire -> ligne mercenaire_compagnon.
   const [compagnons, setCompagnons] = useState(() => new Map());
+  // États supplémentaires (2e et 3e) des mercenaires et compagnons : Map « mercenaire:<id> » / « compagnon:<id> » -> liste.
+  const [etatsSup, setEtatsSup] = useState(() => new Map());
   // Conduit Divin : utilisations par instance (mercenaire, compétence, numéro d'instance) et instance en cours.
   const [conduitRows, setConduitRows] = useState([]);
   const [instanceNo, setInstanceNo] = useState(0);
@@ -1752,6 +1755,26 @@ export function App() {
   }
   // État d'un mercenaire engagé dans une quête (agrippé, étourdi…) : choisi par son joueur ou le MJ ; le
   // serveur le refuse hors quête. Les rounds se décomptent au clic du MJ sur RD.
+  // États cumulables (trois au plus) : le premier passe par la logique historique du mercenaire, les suivants
+  // par etats_sup_definir. `liste` : [{ etat, niveau, rounds }].
+  async function definirEtats(id, liste) {
+    const { principal, supplementaires } = decouper(liste);
+    const r = await definirEtat(id, principal ? principal.etat : null, principal?.niveau ?? 1, principal?.rounds ?? 0);
+    if (r.error) return r;
+    const { error } = await supabase.rpc("etats_sup_definir", { p_cible: "mercenaire", p_id: id, p_liste: supplementaires });
+    if (error) {
+      await synchroniserPartage();
+      return { error: error.message };
+    }
+    await synchroniserPartage();
+    return {};
+  }
+  // États supplémentaires d'un compagnon ou d'un familier (le premier passe par compagnon_etat_maj).
+  async function majEtatsSupCompagnon(mercenaireId, liste) {
+    const { error } = await supabase.rpc("etats_sup_definir", { p_cible: "compagnon", p_id: mercenaireId, p_liste: liste });
+    if (error) notify(error.message);
+    await synchroniserPartage();
+  }
   // Réaction du round : le joueur (ou le MJ) la dépense ; elle revient au Rd du MJ (règle serveur).
   async function definirReaction(id, utilisee = true) {
     setMercenaires((old) => old.map((m) => (m.id === id ? { ...m, reactionUtilisee: utilisee } : m)));
@@ -2968,7 +2991,7 @@ export function App() {
     setTreasury(next);
   }
   async function synchroniserZonesPartagees() {
-    const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage, quete, queteMercs, actuels, gratuits, cimetiere] = await Promise.all([
+    const [places, reglage, vet, lits, litsReglage, rec, dortoirReglage, quete, queteMercs, actuels, gratuits, cimetiere, supEtats] = await Promise.all([
       supabase.from("entrainement_place").select("groupe, role, position, mercenaire_id"),
       supabase
         .from("entrainement_reglage")
@@ -2984,7 +3007,16 @@ export function App() {
       chargerActuels(),
       supabase.from("recrutement_gratuit").select("nom_cle"),
       supabase.from("cimetiere").select("mercenaire_id"),
+      supabase.from("etat_supplementaire").select("cible, cible_id, position, etat, niveau, rounds").in("cible", ["mercenaire", "compagnon"]),
     ]);
+    if (!supEtats?.error) {
+      const m = new Map();
+      for (const x of supEtats?.data || []) {
+        const k = x.cible + ":" + x.cible_id;
+        m.set(k, [...(m.get(k) || []), x]);
+      }
+      setEtatsSup(m);
+    }
     if (!cimetiere?.error) setMorts((cimetiere?.data || []).map((x) => x.mercenaire_id));
     if (!actuels.error) {
       setMercenaires((old) =>
@@ -3107,6 +3139,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_etat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_etat" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "etat_supplementaire" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "objet_quete_active" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "recrutement_gratuit" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_mercenaire" }, rafraichir)
@@ -4276,6 +4309,9 @@ export function App() {
           onSetActuel={setActuel}
           onDepenserEnergie={depenserEnergie}
           onDefinirEtat={definirEtat}
+          onDefinirEtats={definirEtats}
+          etatsSup={etatsSup}
+          onMajEtatsSup={majEtatsSupCompagnon}
           onReaction={definirReaction}
           mercsEnQuete={mercsEnQuete}
           onRestaurerEnergie={restaurerEnergie}
@@ -4613,6 +4649,8 @@ export function App() {
               }}
               onChanged={synchroniserPartage}
               onDefinirEtat={definirEtat}
+              onDefinirEtats={definirEtats}
+              etatsSup={etatsSup}
               onIssue={decreaseInstances}
               issueBloquee={trainingPending > 0}
             />

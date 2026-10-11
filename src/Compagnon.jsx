@@ -45,7 +45,7 @@ function useFicheCreature(creatureId) {
   return donnees;
 }
 
-function FicheLue({ creatureId, ligne, sauver, apercu = false, reactionActive = false, reactionPeutRendre = false, reactionDesactivee = false }) {
+function FicheLue({ creatureId, ligne, sauver, apercu = false, reactionActive = false, reactionPeutRendre = false, reactionDesactivee = false, etatsSup = [], sauverSup = null }) {
   const d = useFicheCreature(creatureId);
   const [fenetre, setFenetre] = useState(null);
   if (d === undefined) return <p>Chargement de la fiche…</p>;
@@ -66,6 +66,8 @@ function FicheLue({ creatureId, ligne, sauver, apercu = false, reactionActive = 
         reactionPeutRendre={reactionPeutRendre}
         reactionAnneau
         reactionDesactivee={reactionDesactivee}
+        etatsSup={etatsSup}
+        sauverSup={sauverSup}
       />
       {fenetre && (
         <Modal title={fenetre.titre} onClose={() => setFenetre(null)}>
@@ -182,7 +184,7 @@ export function ChoixCompagnon({ merc, onChoisir, onClose }) {
 }
 
 // Contenu de l'onglet « Compagnon » / « Familier » de la fiche du mercenaire.
-export function OngletCompagnon({ merc, titreMerc, peutModifier, onMaj, enQuete = false, estAdmin = false }) {
+export function OngletCompagnon({ merc, titreMerc, peutModifier, onMaj, enQuete = false, estAdmin = false, etatsSup = [], onMajEtatsSup = null }) {
   const ligne = merc.compagnon;
   return (
     <section
@@ -200,6 +202,8 @@ export function OngletCompagnon({ merc, titreMerc, peutModifier, onMaj, enQuete 
         reactionActive={peutModifier}
         reactionDesactivee={!enQuete}
         reactionPeutRendre={estAdmin}
+        etatsSup={etatsSup}
+        sauverSup={(liste) => peutModifier && onMajEtatsSup?.(merc.id, liste)}
       />
     </section>
   );

@@ -7803,3 +7803,112 @@ a.merc-card:hover {
     transition: none;
   }
 }
+
+/* États cumulables : une ligne lisible par état actif, avec ses propres rounds restants. */
+.creature-etat-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-left: 4px solid #b3261e;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 0 6px 6px 0;
+}
+.creature-etat-ligne-nom {
+  font-size: 1.05rem;
+  min-width: 120px;
+}
+.creature-etat-ligne .creature-rounds {
+  font-weight: 700;
+}
+.creature-etats .creature-etat-resume {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  opacity: 1;
+}
+
+/* Fiche de créature compacte : jauges et Réaction à gauche, défense et caractéristiques à droite, pour limiter
+   le défilement. Sur écran étroit, tout se replie en une colonne. */
+.creature-haut {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 22px;
+  align-items: start;
+}
+.creature-haut-gauche {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.creature-fiche .orbe-image {
+  width: 118px;
+}
+.creature-fiche .creature-jauges {
+  gap: 14px;
+  margin: 6px 0 4px;
+  flex-wrap: nowrap;
+}
+.creature-fiche .creature-sante-boutons {
+  margin-top: 4px;
+}
+.creature-fiche .creature-sante-boutons .wood-button {
+  padding: 4px 8px;
+  min-height: 0;
+}
+.creature-reaction .bouton-reaction-petit {
+  margin: 0;
+}
+.creature-reaction .muted {
+  margin: 2px 0 0;
+  max-width: 260px;
+  font-size: 0.85rem;
+}
+/* Défense : une seule rangée de trois valeurs. */
+.creature-fiche .creature-defense {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  min-width: 0;
+  padding: 8px 14px;
+  margin: 6px 0 4px;
+}
+.creature-fiche .creature-defense .merc-defense-icone {
+  width: 34px;
+  height: 34px;
+}
+.creature-fiche .creature-defense .merc-defense-valeur {
+  margin-left: 0;
+  font-size: 22px;
+}
+/* Caractéristiques : grille serrée, les listes (immunités, sens…) prennent toute la largeur. */
+.creature-fiche .creature-stats {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0 18px;
+}
+.creature-fiche .creature-stats .stat-line {
+  margin: 0;
+  padding: 5px 0;
+  font-size: 17px;
+}
+.creature-fiche .creature-stats .stat-line-liste {
+  grid-column: 1 / -1;
+  align-items: flex-start;
+}
+.creature-fiche .creature-stats .stat-line-liste strong {
+  text-align: right;
+  font-size: 0.95em;
+}
+.creature-fiche .creature-section {
+  margin: 10px 0 4px;
+}
+.creature-fiche .creature-fiche-tete {
+  margin-bottom: 2px;
+}
+@media (max-width: 760px) {
+  .creature-haut {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

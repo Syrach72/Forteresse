@@ -6,6 +6,7 @@ import { Modal } from "./Modal.jsx";
 import { ITEMS } from "./data.js";
 import { chargerQuetes } from "./etat.js";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
+import { listeEtats } from "./etats.js";
 
 const REWARD_SLOTS = [0, 1, 2, 3, 4];
 // Jusqu’à 6 mercenaires engagés par quête (positions 0 à 5).
@@ -121,6 +122,8 @@ export function Quests({
   estAdmin = false,
   onChanged = () => {},
   onDefinirEtat = async () => ({}),
+  onDefinirEtats = async () => ({}),
+  etatsSup = new Map(),
   onIssue = () => {},
   issueBloquee = false,
   initiative = null,
@@ -430,21 +433,20 @@ export function Quests({
           {(() => {
             const p = personne(choixMerc.mercId);
             const peutModifier = mesIds.has(choixMerc.mercId) || estAdmin;
-            const appliquer = async (...args) => {
-              const r = await onDefinirEtat(choixMerc.mercId, ...args);
+            const appliquer = async (liste) => {
+              const r = await onDefinirEtats(choixMerc.mercId, liste);
               setEtatErreur(r?.error || "");
             };
             return (
               <div className="merc-etats">
                 <h4 className="creature-section">État en quête</h4>
                 <EtatsBoutons
-                  etat={p?.etat ?? null}
-                  niveau={p?.etatNiveau ?? 1}
-                  rounds={p?.etatRounds ?? 0}
+                  etats={listeEtats(
+                    { etat: p?.etat ?? null, niveau: p?.etatNiveau ?? 1, rounds: p?.etatRounds ?? 0 },
+                    etatsSup.get("mercenaire:" + choixMerc.mercId) || [],
+                  )}
                   desactive={!peutModifier}
-                  onEtat={(e) => (p?.etat === e.id ? appliquer(null) : appliquer(e.id, 1, 0))}
-                  onNiveau={(n) => appliquer("epuise", n, p?.etatRounds ?? 0)}
-                  onRounds={(n) => appliquer(p?.etat, p?.etat === "epuise" ? p?.etatNiveau ?? 1 : 1, n)}
+                  onChange={appliquer}
                 />
                 {etatErreur && (
                   <p className="error" role="alert">

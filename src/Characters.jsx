@@ -11,6 +11,7 @@ import { libelleEffet } from "./effets.js";
 import { gemmesPortees, limiteGemmes } from "./gemmes.js";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
+import { listeEtats } from "./etats.js";
 import { ChoixCompagnon, OngletCompagnon, LIBELLE_ROLE } from "./Compagnon.jsx";
 import { BoutonReaction } from "./BoutonReaction.jsx";
 import { AlertePoint, PointCaracModal } from "./PointsCarac.jsx";
@@ -129,6 +130,9 @@ export function Characters({
   onSetActuel = async () => ({}),
   onDepenserEnergie = async () => ({}),
   onDefinirEtat = async () => ({}),
+  onDefinirEtats = async () => ({}),
+  etatsSup = new Map(),
+  onMajEtatsSup = null,
   onReaction = async () => ({}),
   mercsEnQuete = [],
   onRestaurerEnergie = async () => ({}),
@@ -908,20 +912,13 @@ export function Characters({
                 <div className="merc-etats">
                   <h4 className="creature-section">État en quête</h4>
                   <EtatsBoutons
-                    etat={merc.etat ?? null}
-                    niveau={merc.etatNiveau ?? 1}
-                    rounds={merc.etatRounds ?? 0}
+                    etats={listeEtats(
+                      { etat: merc.etat ?? null, niveau: merc.etatNiveau ?? 1, rounds: merc.etatRounds ?? 0 },
+                      etatsSup.get("mercenaire:" + merc.id) || [],
+                    )}
                     desactive={!peutModifier}
-                    onEtat={async (e) => {
-                      const r = merc.etat === e.id ? await onDefinirEtat(merc.id, null) : await onDefinirEtat(merc.id, e.id, 1, 0);
-                      setEtatErreur(r?.error || "");
-                    }}
-                    onNiveau={async (n) => {
-                      const r = await onDefinirEtat(merc.id, "epuise", n, merc.etatRounds ?? 0);
-                      setEtatErreur(r?.error || "");
-                    }}
-                    onRounds={async (n) => {
-                      const r = await onDefinirEtat(merc.id, merc.etat, merc.etat === "epuise" ? merc.etatNiveau ?? 1 : 1, n);
+                    onChange={async (liste) => {
+                      const r = await onDefinirEtats(merc.id, liste);
                       setEtatErreur(r?.error || "");
                     }}
                   />
@@ -1067,7 +1064,7 @@ export function Characters({
           </section>
           )}
           {merc.compagnon && onglet === merc.compagnon.role && (
-            <OngletCompagnon merc={merc} titreMerc={titreMerc} peutModifier={peutModifier} onMaj={onMajCompagnon} enQuete={enQuete} estAdmin={estAdmin} />
+            <OngletCompagnon merc={merc} titreMerc={titreMerc} peutModifier={peutModifier} onMaj={onMajCompagnon} enQuete={enQuete} estAdmin={estAdmin} etatsSup={etatsSup.get("compagnon:" + merc.id) || []} onMajEtatsSup={onMajEtatsSup} />
           )}
           {choixCompagnon && merc.compagnonPossible && !merc.compagnon && (
             <ChoixCompagnon merc={merc} onChoisir={onChoisirCompagnon} onClose={() => setChoixCompagnon(false)} />

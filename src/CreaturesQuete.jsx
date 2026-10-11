@@ -4,6 +4,7 @@ import { RichText } from "./RichText.jsx";
 import { Modal } from "./Modal.jsx";
 import { Orbe } from "./MercFiche.jsx";
 import { BoutonReaction } from "./BoutonReaction.jsx";
+import { basculerEtat, decouper, definirNiveau, definirRounds, listeEtats } from "./etats.js";
 import { CATEGORIES_CAPACITES, DETAIL_ETATS, ETATS_JEU, TAILLES_CREATURE, TYPES_VOL, entier, nomEtat } from "./creatures-data.js";
 
 // Page MJ des créatures en jeu (route #creatures), visible et modifiable du MJ seul. Une fiche par
@@ -37,10 +38,11 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
     // Aperçu : la quête demandée n'est pas (ou plus) la quête en cours -> créatures prévues, lues au catalogue.
     if (apercuQuete && qe.data?.quete_id !== apercuQuete) return chargerApercu();
     if (!qe.data) return setDonnees({ quete: null, lignes: [] });
-    const [q, l, ini] = await Promise.all([
+    const [q, l, ini, sup] = await Promise.all([
       supabase.from("quete").select("id, nom").eq("id", qe.data.quete_id).single(),
       supabase.from("creature_quete").select("*").eq("quete_id", qe.data.quete_id).order("ordre"),
       supabase.from("initiative").select("creature_quete_id, rang").eq("kind", "creature"),
+      supabase.from("etat_supplementaire").select("cible_id, position, etat, niveau, rounds").eq("cible", "creature"),
     ]);
     if (q.error || l.error) return setErreur((q.error || l.error).message);
     // Quête déjà choisie mais sans créature en jeu (créatures ajoutées après le choix) : on montre l'aperçu.
@@ -67,7 +69,10 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
     setErreur("");
     // Ordre de jeu (initiative) de chaque créature : connu quand tout le monde a lancé.
     const rangs = new Map((ini.data || []).filter((x) => x.rang != null).map((x) => [x.creature_quete_id, x.rang]));
-    setDonnees({ quete: q.data, lignes: l.data, creatures, liens, capacites, armes, rangs });
+    // États supplémentaires (le 2e et le 3e) de chaque créature : Map creature_quete.id -> liste.
+    const etatsSupParId = new Map();
+    for (const x of sup.data || []) etatsSupParId.set(x.cible_id, [...(etatsSupParId.get(x.cible_id) || []), x]);
+    setDonnees({ quete: q.data, lignes: l.data, creatures, liens, capacites, armes, rangs, etatsSupParId });
   }
   // Aperçu d'une quête pas encore choisie : une entrée par exemplaire prévu (mêmes noms d'onglet qu'au choix).
   async function chargerApercu(dejaChoisie = false) {
@@ -125,6 +130,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
       .on("postgres_changes", { event: "*", schema: "public", table: "creature_quete" }, charger)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete_etat" }, charger)
       .on("postgres_changes", { event: "*", schema: "public", table: "initiative" }, charger)
+      .on("postgres_changes", { event: "*", schema: "public", table: "etat_supplementaire" }, charger)
       .subscribe();
     return () => supabase.removeChannel(canal);
   }, [estAdmin, apercuQuete]);
@@ -146,7 +152,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
         </div>
       </section>
     );
-  const { quete, lignes, creatures, liens, capacites, armes = [], apercu, dejaChoisie, rangs } = donnees;
+  const { quete, lignes, creatures, liens, capacites, armes = [], apercu, dejaChoisie, rangs, etatsSupParId } = donnees;
   const base = apercu ? "#creatures/quete/" + quete.id + "/" : "#creatures/";
   if (!lignes.length)
     return (
@@ -177,6 +183,12 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
       notify(error.message);
       charger();
     }
+  }
+  // États supplémentaires d'une créature (2e et 3e) : enregistrés par le serveur, puis relus.
+  async function sauverEtatsSup(id, liste) {
+    const { error } = await supabase.rpc("etats_sup_definir", { p_cible: "creature", p_id: id, p_liste: liste });
+    if (error) notify(error.message);
+    charger();
   }
   const capDe = (id) => capacites.find((c) => c.id === id);
   // Navigation d'une créature à l'autre (flèches, en boucle) en plus des onglets.
@@ -240,6 +252,8 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
           ouvrirIcone={(capacite) => setFenetre({ ligneId: courante.id, capacite })}
           reactionActive
           reactionPeutRendre={estAdmin}
+          etatsSup={etatsSupParId?.get(courante.id) || []}
+          sauverSup={(liste) => sauverEtatsSup(courante.id, liste)}
         />
       )}
       {fenetre && (
@@ -257,7 +271,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
 }
 
 // `sansNomOnglet` : fiche d'un compagnon/familier (l'onglet porte un nom fixe, pas de champ de renommage).
-export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false, sansNomOnglet = false, rang = null, reactionActive = false, reactionPeutRendre = false, reactionAnneau = false, reactionDesactivee = false }) {
+export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false, sansNomOnglet = false, rang = null, reactionActive = false, reactionPeutRendre = false, reactionAnneau = false, reactionDesactivee = false, etatsSup = [], sauverSup = null }) {
   const santeMax = fiche.sante_max;
   const energieMax = fiche.energie_max;
   const sante = ligne.sante_actuelle ?? santeMax;
@@ -274,10 +288,21 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
     setSanteSaisie(String(n));
     if (n !== sante) sauver({ sante_actuelle: n });
   };
-  const choisirEtat = (e) =>
-    ligne.etat === e.id
-      ? sauver({ etat: null, etat_niveau: 1, etat_rounds: 0, etat_efface: null })
-      : sauver({ etat: e.id, etat_niveau: 1 });
+  // États cumulables (trois au plus) : le premier dans les colonnes de la fiche, les suivants dans
+  // etat_supplementaire (`etatsSup`, enregistrés par `sauverSup`).
+  const listeCourante = listeEtats(
+    { etat: ligne.etat, niveau: ligne.etat_niveau, rounds: ligne.etat_rounds },
+    etatsSup,
+  );
+  const changerEtats = (liste) => {
+    const { principal, supplementaires } = decouper(liste);
+    sauver(
+      principal
+        ? { etat: principal.etat, etat_niveau: principal.niveau, etat_rounds: principal.rounds, etat_efface: null }
+        : { etat: null, etat_niveau: 1, etat_rounds: 0, etat_efface: null },
+    );
+    sauverSup?.(supplementaires);
+  };
   const lignesPar = (cat) =>
     liens
       .filter((x) => x.categorie === cat)
@@ -290,7 +315,7 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
       .filter(Boolean);
   const listeTexte = (libelle, valeurs) =>
     valeurs?.length ? (
-      <div className="stat-line">
+      <div className="stat-line stat-line-liste">
         <span>{libelle}</span>
         <strong>{valeurs.join(", ")}</strong>
       </div>
@@ -327,6 +352,8 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
         )}
       </header>
 
+      <div className="creature-haut">
+      <div className="creature-haut-gauche">
       <div className="creature-jauges">
         <div className="creature-sante">
           <Orbe
@@ -360,6 +387,23 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
         <Orbe type="energie" libelle="Énergie" id="creature-energie" max={energieMax} actuelle={energie} />
       </div>
 
+      {reactionActive && !apercu && (
+        <div className="creature-reaction">
+          <BoutonReaction
+            taille="petit"
+            anneau={reactionAnneau}
+            utilisee={!!ligne.reaction_utilisee}
+            disabled={reactionDesactivee || (!!ligne.reaction_utilisee && !reactionPeutRendre)}
+            onClick={() => sauver({ reaction_utilisee: !ligne.reaction_utilisee })}
+          />
+          {reactionDesactivee && (
+            <p className="muted">Disponible quand le mercenaire est engagé dans une quête.</p>
+          )}
+        </div>
+      )}
+      </div>
+
+      <div className="creature-haut-droite">
       <div className="merc-defense creature-defense">
         {[
           ["Esquive", "/assets/icons/esquive.webp", fiche.esquive],
@@ -421,32 +465,11 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
         {listeTexte("Immunités aux états", fiche.immunites_etats)}
         {listeTexte("Sens", fiche.sens)}
       </div>
-
-      {reactionActive && !apercu && (
-        <>
-          <h4 className="creature-section">Réaction</h4>
-          <BoutonReaction
-            taille="petit"
-            anneau={reactionAnneau}
-            utilisee={!!ligne.reaction_utilisee}
-            disabled={reactionDesactivee || (!!ligne.reaction_utilisee && !reactionPeutRendre)}
-            onClick={() => sauver({ reaction_utilisee: !ligne.reaction_utilisee })}
-          />
-          {reactionDesactivee && (
-            <p className="muted">Disponible quand le mercenaire est engagé dans une quête.</p>
-          )}
-        </>
-      )}
+      </div>
+      </div>
 
       <h4 className="creature-section">État</h4>
-      <EtatsBoutons
-        etat={ligne.etat}
-        niveau={ligne.etat_niveau}
-        rounds={ligne.etat_rounds}
-        onEtat={choisirEtat}
-        onNiveau={(n) => sauver({ etat: "epuise", etat_niveau: n })}
-        onRounds={(n) => sauver({ etat_rounds: n })}
-      />
+      <EtatsBoutons etats={listeCourante} onChange={changerEtats} />
 
       {armes.length > 0 && (
         <div>
@@ -527,84 +550,106 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
   );
 }
 
-// Les quinze états du jeu : un seul actif à la fois, les autres grisés. « Épuisé » a trois niveaux.
-// Un seul sélecteur de rounds (— = sans durée, 1 à 9) : chaque clic sur RD en retire 1 ; à 0 l'état
-// disparaît. Utilisé aussi sur la fiche d'un mercenaire en quête.
-export function EtatsBoutons({ etat, niveau, rounds, onEtat, onNiveau, onRounds, desactive = false }) {
+// Les états du jeu : jusqu'à trois en même temps (cliquer ajoute, recliquer retire). Chaque état actif a sa
+// propre ligne « Rounds restants » (— = sans durée, 1 à 9) : chaque clic sur RD en retire 1 ; à 0 l'état
+// disparaît. « Épuisé » a trois niveaux. Utilisé aussi sur la fiche d'un mercenaire en quête.
+// `etats` : [{ etat, niveau, rounds }] ; `onChange(nouvelleListe)` à chaque modification.
+export function EtatsBoutons({ etats = [], onChange, desactive = false }) {
   // État dont la fenêtre de détail (badge « ? ») est ouverte.
   const [detail, setDetail] = useState(null);
+  const [limite, setLimite] = useState("");
+  const actif = (id) => etats.some((x) => x.etat === id);
+  function cliquer(e) {
+    const r = basculerEtat(etats, e.id);
+    if (r.erreur) return setLimite(r.erreur);
+    setLimite("");
+    onChange(r.liste);
+  }
   return (
     <div className="creature-etats">
       <div className="creature-etats-boutons" role="group" aria-label="États">
-        {ETATS_JEU.map((e) => (
-          <span className="creature-etat-case" key={e.id}>
-            {etat === e.id && (
+        {ETATS_JEU.map((e) => {
+          const on = actif(e.id);
+          const courant = etats.find((x) => x.etat === e.id);
+          return (
+            <span className="creature-etat-case" key={e.id}>
+              {on && (
+                <button
+                  type="button"
+                  className="creature-etat-aide"
+                  aria-label={`Détail de l’état ${e.nom}`}
+                  title="Détail de l’état"
+                  onClick={() => setDetail(e)}
+                >
+                  ?
+                </button>
+              )}
               <button
                 type="button"
-                className="creature-etat-aide"
-                aria-label={`Détail de l’état ${e.nom}`}
-                title="Détail de l’état"
-                onClick={() => setDetail(e)}
+                className={`creature-etat${on ? " actif" : ""}${e.positif ? " positif" : ""}${e.bleu ? " bleu" : ""}`}
+                aria-pressed={on}
+                disabled={desactive}
+                onClick={() => cliquer(e)}
               >
-                ?
+                {e.nom}
+                {e.id === "epuise" && on ? ` ${courant.niveau}` : ""}
               </button>
-            )}
-            <button
-              type="button"
-              className={`creature-etat${etat === e.id ? " actif" : ""}${e.positif ? " positif" : ""}${e.bleu ? " bleu" : ""}`}
-              aria-pressed={etat === e.id}
-              disabled={desactive}
-              onClick={() => onEtat(e)}
-            >
-              {e.nom}
-              {e.id === "epuise" && etat === "epuise" ? ` ${niveau}` : ""}
-            </button>
-          </span>
-        ))}
+            </span>
+          );
+        })}
       </div>
-      {etat === "epuise" && (
-        <div className="creature-etat-niveaux" role="group" aria-label="Niveau d’épuisement">
-          {[1, 2, 3].map((n) => (
-            <button
-              type="button"
-              key={n}
-              className={`creature-etat${niveau === n ? " actif" : ""}`}
-              aria-pressed={niveau === n}
-              disabled={desactive}
-              onClick={() => onNiveau(n)}
-            >
-              Niveau {n}
-            </button>
-          ))}
-        </div>
+      {limite && (
+        <p className="error" role="alert">
+          {limite}
+        </p>
       )}
-      <label className="creature-rounds">
-        Rounds restants
-        <select
-          value={rounds}
-          disabled={desactive || !etat}
-          onChange={(e) => onRounds(Number(e.target.value))}
-          aria-label="Rounds restants pour l’état"
-        >
-          <option value={0}>—</option>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
-      </label>
+      {etats.map((x) => (
+        <div className="creature-etat-ligne" key={x.etat}>
+          <strong className="creature-etat-ligne-nom">
+            {nomEtat(x.etat)}
+            {x.etat === "epuise" ? ` — niveau ${x.niveau}` : ""}
+          </strong>
+          {x.etat === "epuise" && (
+            <div className="creature-etat-niveaux" role="group" aria-label="Niveau d’épuisement">
+              {[1, 2, 3].map((n) => (
+                <button
+                  type="button"
+                  key={n}
+                  className={`creature-etat${x.niveau === n ? " actif" : ""}`}
+                  aria-pressed={x.niveau === n}
+                  disabled={desactive}
+                  onClick={() => onChange(definirNiveau(etats, x.etat, n))}
+                >
+                  Niveau {n}
+                </button>
+              ))}
+            </div>
+          )}
+          <label className="creature-rounds">
+            Rounds restants — {nomEtat(x.etat)}
+            <select
+              value={x.rounds}
+              disabled={desactive}
+              onChange={(e) => onChange(definirRounds(etats, x.etat, Number(e.target.value)))}
+              aria-label={`Rounds restants pour l’état ${nomEtat(x.etat)}`}
+            >
+              <option value={0}>—</option>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="creature-etat-resume">
+            {x.rounds ? `encore ${x.rounds} round${x.rounds > 1 ? "s" : ""}` : "sans durée"}
+          </span>
+        </div>
+      ))}
       {detail && (
         <Modal title={detail.nom} onClose={() => setDetail(null)}>
           <p><RichText text={DETAIL_ETATS[detail.id] || "Description à rédiger."} /></p>
         </Modal>
-      )}
-      {etat && (
-        <p className="muted creature-etat-resume">
-          {nomEtat(etat)}
-          {etat === "epuise" ? ` (niveau ${niveau})` : ""}
-          {rounds ? ` — encore ${rounds} round${rounds > 1 ? "s" : ""}` : " — sans durée"}
-        </p>
       )}
     </div>
   );
