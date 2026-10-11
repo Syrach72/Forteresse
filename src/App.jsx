@@ -635,6 +635,13 @@ function CombatStats({ item }) {
               <strong>{item.malus_vitesse}</strong>
             </div>
           )}
+          {/* Armure lourde : réservée à certaines classes (règle appliquée à l'équipement par le serveur). */}
+          {item.estArmureLourde && (
+            <div className="stat-line">
+              <span>Réservée</span>
+              <strong>Guerrier / Paladin / Prêtres des domaines de la Guerre et de la Forge</strong>
+            </div>
+          )}
         </>
       ) : item.estBouclier ? (
         // Bouclier : pas de portée, mais une parade et des malus (ceux-ci
@@ -3940,6 +3947,16 @@ export function App() {
       }
       return dansArmures;
     };
+    // Armure lourde : la catégorie de l'objet ou l'un de ses ancêtres s'appelle « Armure lourde » (règle de
+    // port : Guerriers, Paladins et Prêtres des domaines de la Guerre et de la Forge, vérifiée par le serveur).
+    const estArmureLourde = (categorieId) => {
+      let current = categories.find((c) => c.id === categorieId);
+      while (current) {
+        if (current.nom.trim().toLowerCase() === "armure lourde") return true;
+        current = categories.find((c) => c.id === current.parent_id);
+      }
+      return false;
+    };
     // Arme : la catégorie de l'objet ou l'un de ses ancêtres commence par
     // « Arme » (même règle que isCategorieArme de l'admin). Sert à réserver
     // la vétérance requise aux armes et aux armures.
@@ -4014,6 +4031,7 @@ export function App() {
         estArme: estArme(o.categorie_id),
         estAlchimique: estAlchimique(o.categorie_id),
         estArmure: estArmure(o.categorie_id),
+        estArmureLourde: estArmureLourde(o.categorie_id),
         estBouclier: estBouclier(o.categorie_id),
         groupe: global
           ? groupeSousRacine(o.categorie_id, root)
