@@ -698,6 +698,16 @@
 .admin-form-missions label { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
 .admin-form-missions label.admin-check { flex-direction: row; align-items: center; gap: 8px; }
 
+/* Formulaire des missions en étapes numérotées */
+.mission-etape { border: 1px solid var(--edge); border-radius: 8px; padding: 10px 14px 4px; margin: 0 0 14px; }
+.mission-etape legend { padding: 0 8px; font-weight: 700; font-size: 1.05rem; }
+.admin-form-missions label.mission-choix { flex-direction: row; align-items: flex-start; gap: 10px; padding: 8px 10px;
+  border: 1px solid var(--edge); border-radius: 8px; cursor: pointer; }
+.admin-form-missions label.mission-choix.choisi { border-color: var(--gold); background: rgba(212, 175, 55, 0.18); }
+.mission-choix span { display: flex; flex-direction: column; gap: 2px; }
+.mission-choix small, .mission-aide { opacity: 0.8; font-size: 0.9rem; margin: 0 0 10px; }
+.mission-resume { margin: 4px 0 14px; padding: 10px 14px; border-left: 4px solid var(--gold); background: rgba(212, 175, 55, 0.15); }
+
 /* Administration sur téléphone : rien ne doit dépasser à droite (champs, tableaux, formulaires et onglets s'adaptent). */
 @media (max-width: 760px) {
   .admin-page { padding: 12px 8px; }
