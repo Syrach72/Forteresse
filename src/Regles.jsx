@@ -34,7 +34,7 @@ const REGLES = [
   ],
   [
     "Vétérance",
-    "Au moment de son recrutement, un Mercenaire possède 5 Pts répartis entre ses trois Carac. Aucune Carac. ne peut être à zéro. Par la suite, certaines compétences passives augmentent automatiquement des Carac., et, à chaque augmentation de vétérance, le joueur peut dépenser 1 Pt pour augmenter la Carac. de son choix (donc 9 fois sur une carrière complète). Chaque Carac. est cependant plafonnée à 9 Pts.",
+    "La Vétérance évolue avec l’XP gagné par chaque Mercenaire, soit en accomplissant des Quêtes, soit en suivant un Instructeur à l’Entraînement. Au moment de son recrutement, un Mercenaire possède 5 Pts répartis entre ses trois Carac. Aucune Carac. ne peut être à zéro. Par la suite, certaines compétences passives augmentent automatiquement des Carac., et, à chaque augmentation de vétérance, le joueur peut dépenser 1 Pt pour augmenter la Carac. de son choix (donc 9 fois sur une carrière complète). Chaque Carac. est cependant plafonnée à 9 Pts.",
   ],
   [
     "Règles spéciales",
