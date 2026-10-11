@@ -257,7 +257,7 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
 }
 
 // `sansNomOnglet` : fiche d'un compagnon/familier (l'onglet porte un nom fixe, pas de champ de renommage).
-export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false, sansNomOnglet = false, rang = null, reactionActive = false, reactionPeutRendre = false, reactionAnneau = false }) {
+export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false, sansNomOnglet = false, rang = null, reactionActive = false, reactionPeutRendre = false, reactionAnneau = false, reactionDesactivee = false }) {
   const santeMax = fiche.sante_max;
   const energieMax = fiche.energie_max;
   const sante = ligne.sante_actuelle ?? santeMax;
@@ -429,9 +429,12 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
             taille="petit"
             anneau={reactionAnneau}
             utilisee={!!ligne.reaction_utilisee}
-            disabled={!!ligne.reaction_utilisee && !reactionPeutRendre}
+            disabled={reactionDesactivee || (!!ligne.reaction_utilisee && !reactionPeutRendre)}
             onClick={() => sauver({ reaction_utilisee: !ligne.reaction_utilisee })}
           />
+          {reactionDesactivee && (
+            <p className="muted">Disponible quand le mercenaire est engagé dans une quête.</p>
+          )}
         </>
       )}
 
