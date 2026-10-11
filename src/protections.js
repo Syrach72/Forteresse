@@ -4,7 +4,8 @@
 // « [b]Vétérance N[/b] » (écoles arcaniques…), chaque palier ne compte qu'à partir de sa vétérance N.
 // Formes reconnues : « RD Poison », « RD Foudre, Tonnerre », « Résistance au Feu », « Immunité aux sorts de
 // Sommeil », « est Immunisé aux Maladies », « Vulnérabilité au Feu », « Vulnérable au Froid ».
-// Une immunité conditionnelle (« les créatures qui seront Immunisées à l'effet… ») n'est pas reprise.
+// Une immunité conditionnelle (« les créatures qui seront Immunisées à l'effet… ») n'est pas reprise, ni une
+// mention de RD ou d'Immunité qui concerne les cibles d'une attaque (« des RD ou Immunité aux attaques non magiques »).
 const TYPES = [
   "Acide", "Contondant", "Feu", "Foudre", "Force", "Froid", "Nécrotique", "Perforant", "Poison",
   "Psychique", "Radiant", "Tonnerre", "Tranchant",
@@ -31,13 +32,18 @@ function ajouter(liste, valeur) {
 
 // Cherche dans un fragment de texte (sans balises) ; les résultats s'ajoutent aux listes.
 function lire(texte, rd, immunites, vulnerabilites) {
-  for (const m of texte.matchAll(new RegExp(`\\bRD\\s+(${LISTE})`, "g")))
+  // « RD Poison », « une RD au Feu », « RD aux Poisons » : l'article éventuel est ignoré.
+  for (const m of texte.matchAll(new RegExp(`\\bRD\\s+(?:aux?\\s+|à\\s+(?:la\\s+)?|de\\s+|d['’])?(${LISTE})`, "g")))
     for (const nom of m[1].split(/,\s*|\s+et\s+|\s+ou\s+/)) ajouter(rd, typeCanonique(nom));
   for (const m of texte.matchAll(
     new RegExp(`\\bR[ée]sistances?\\s+(?:aux?\\s+|à\\s+la\\s+)?(?:d[ée]g[âa]ts\\s+)?(?:de\\s+|d['’])?(${LISTE})`, "g"),
   ))
     for (const nom of m[1].split(/,\s*|\s+et\s+|\s+ou\s+/)) ajouter(rd, typeCanonique(nom));
-  for (const m of texte.matchAll(new RegExp(`\\bImmunit[ée]s?\\s+([^\\n.;]*?)${FIN}`, "g"))) ajouter(immunites, m[1]);
+  for (const m of texte.matchAll(new RegExp(`\\bImmunit[ée]s?\\s+([^\\n.;]*?)${FIN}`, "g"))) {
+    // « …pour ce qui est des RD ou Immunité aux attaques… » parle des cibles de l'attaque, pas du mercenaire.
+    if (/\bRD\s+(?:ou|et)\s+$/i.test(texte.slice(Math.max(0, m.index - 12), m.index))) continue;
+    ajouter(immunites, m[1]);
+  }
   for (const m of texte.matchAll(new RegExp(`\\best\\s+Immunis[ée]e?s?\\s+((?:aux?|à)\\s+[^\\n.;]*?)${FIN}`, "g")))
     ajouter(immunites, m[1]);
   for (const m of texte.matchAll(new RegExp(`\\bVuln[ée]rabilit[ée]s?\\s+([^\\n.;]*?)${FIN}`, "g"))) ajouter(vulnerabilites, m[1]);

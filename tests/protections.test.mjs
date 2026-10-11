@@ -66,3 +66,30 @@ test("une compétence dont la vétérance n'est pas atteinte, ou active, ne comp
   assert.deepEqual(protectionsMercenaire([{ ...NAIN, veterance: 4 }], 2), []);
   assert.deepEqual(protectionsMercenaire([{ ...NAIN, type: "active" }], 2), []);
 });
+
+// Relevés du 2026-10-12.
+const DISCIPLINE_FEU = passive(
+  "Discipline Elémentaire (Feu)",
+  "Vous avez appris à maîtriser l'Elément Feu. De nouvelles compétences actives vont s'ouvrir à vous avec vos progrès de Vétérance. Vous obtenez une RD au [c=#7b3fa0][b]Feu[/b][/c].",
+  3,
+);
+const MAITRE_BETES = passive(
+  "Maître des Bêtes",
+  "[b]Entraînement exceptionnel[/b]\nÀ partir du niveau 5, l'attaque du compagnon compte dorénavant comme étant magique pour ce qui est des RD ou Immunité aux attaques et aux dégâts non magiques.\n\n[b]Fureur bestiale[/b]\nÀ partir du niveau 8, ...",
+  3,
+);
+const SANTE_DIVINE = passive("Santé Divine", "Le Paladin est Immunisé aux Maladies.", 2);
+
+test("« une RD au Feu » est reconnue (article ignoré)", () => {
+  assert.deepEqual(protectionsMercenaire([DISCIPLINE_FEU], 3), ["RD Feu"]);
+  assert.deepEqual(protectionsMercenaire([DISCIPLINE_FEU], 2), []);
+});
+
+test("« des RD ou Immunité aux attaques non magiques » (cibles du compagnon) n'est pas une immunité du mercenaire", () => {
+  assert.deepEqual(protectionsMercenaire([MAITRE_BETES], 10), []);
+});
+
+test("Santé Divine : immunité aux Maladies seulement à partir de la vétérance 2", () => {
+  assert.deepEqual(protectionsMercenaire([SANTE_DIVINE], 1), []);
+  assert.deepEqual(protectionsMercenaire([SANTE_DIVINE], 2), ["Immunité aux Maladies"]);
+});
