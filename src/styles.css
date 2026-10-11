@@ -4807,7 +4807,8 @@ a.merc-card:hover {
   line-height: 1.1;
 }
 .merc-mains-nues-titre {
-  font: 600 12px Georgia, serif;
+  white-space: nowrap;
+  font: 600 11px Georgia, serif;
   color: #3a2814;
   text-transform: uppercase;
   letter-spacing: 0.04em;
