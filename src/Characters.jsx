@@ -5,6 +5,7 @@ import { instancesDeSoins, estBlesse, estAZero, niveauSang } from "./dormitory.j
 import { TachesSang } from "./TachesSang.jsx";
 import { CoeurBlesse } from "./CoeurBlesse.jsx";
 import { VetBadge } from "./VetBadge.jsx";
+import { BarreXp } from "./BarreXp.jsx";
 import { protectionsMercenaire } from "./protections.js";
 import { libelleEffet } from "./effets.js";
 import { gemmesPortees, limiteGemmes } from "./gemmes.js";
@@ -496,6 +497,8 @@ export function Characters({
                 {/* Cœur pulsant, en haut à droite : santé actuelle inférieure au maximum. */}
                 {estBlesse(merc) && <CoeurBlesse className="coeur-fiche" mort={estAZero(merc)} />}
               </div>
+              {/* Expérience du niveau de vétérance actuel / palier du niveau suivant. */}
+              {(recrutes.includes(merc.id) || estAdmin) && <BarreXp xp={merc.xp} veterance={merc.veterance ?? 1} />}
               {/* Déplacement et parade : sous le portrait, même présentation (valeur sous l'icône). */}
               <div className="merc-sous-portrait">
                 {merc.mouvement !== null && merc.mouvement !== undefined && (() => {

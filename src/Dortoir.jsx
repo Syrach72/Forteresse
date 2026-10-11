@@ -2,6 +2,7 @@ import { AlertePoint } from "./PointsCarac.jsx";
 import { useRef, useState } from "react";
 import { ReferenceCrop, classeRoute } from "./Characters.jsx";
 import { VetBadge } from "./VetBadge.jsx";
+import { BarreXp } from "./BarreXp.jsx";
 import { BoutonAide, AIDES } from "./AideLieu.jsx";
 import { CoeurBlesse } from "./CoeurBlesse.jsx";
 import { useGlassWindows } from "./glassWindows.js";
@@ -128,6 +129,8 @@ export function Dortoir({
                     <span className="free-bed">Place disponible</span>
                   )}
                 </button>
+                {/* Compteur d'expérience sous le portrait : XP du niveau actuel / XP du palier suivant. */}
+                {merc && <BarreXp xp={merc.xp} veterance={merc.veterancy} />}
                 {!locked && (
                   <div
                     className={`bed-player${away ? " bed-player-away" : ""}`}

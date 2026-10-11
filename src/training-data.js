@@ -4,14 +4,16 @@
 // 20260921100000_entrainement.sql) ; ce fichier ne sert qu'à afficher l'état et
 // à ne proposer que des choix valides :
 // - pas d'élève sans instructeur ;
-// - l'élève est de la même classe que l'instructeur, qui a au moins 3 points de
+// - l'élève est de la même classe que l'instructeur, qui a au moins 1 point de
 //   vétérance de plus que lui ;
-// - à chaque +1 Instance (administrateur), l'élève gagne 1 point de vétérance ;
-//   arrivé à celle de l'instructeur, il retourne au dortoir ;
+// - à chaque +1 Instance (administrateur), l'élève gagne une part du palier
+//   d'expérience de son niveau (voir xp.js : 1 instance par niveau à 3 niveaux
+//   d'écart ou plus, 2 à 2 niveaux, 3 à 1 niveau) ; arrivé à la vétérance de
+//   l'instructeur, il retourne au dortoir ;
 // - un joueur peut renvoyer son élève avant (il garde son niveau) ;
 // - l'instructeur reste en place jusqu'à ce qu'on le renvoie.
 // Un participant est { heroId } : la vétérance vit sur le mercenaire (base).
-export const VETERANCE_ECART = 3;
+export const VETERANCE_ECART = 1;
 // Deux groupes d'instruction. Le premier est à la racine de l'état ; le second
 // (`second`) est bloqué au départ : son instructeur se débloque pour 1000 Po,
 // ses places d'élèves 2 et 3 pour 300 Po chacune (administrateur seul, comme
@@ -82,7 +84,7 @@ export function studentBlocker(instructeur, candidat) {
   if (!classe(candidat) || classe(candidat) !== classe(instructeur))
     return "L’élève doit être de la même classe que l’instructeur.";
   if (instructeur.veterancy - candidat.veterancy < VETERANCE_ECART)
-    return `L’instructeur doit avoir au moins ${VETERANCE_ECART} points de vétérance de plus que l’élève.`;
+    return `L’instructeur doit avoir au moins ${VETERANCE_ECART} point de vétérance de plus que l’élève.`;
   return null;
 }
 // Parmi `candidats` (les mercenaires du joueur), ceux qui peuvent être élèves

@@ -22,28 +22,29 @@ const mine = [
   W("autre", "Guerrier", 0),
 ];
 const vide = () => structuredClone(INITIAL_TRAINING);
-test("l'écart minimal de vétérance entre instructeur et élève est de 3", () => {
-  assert.equal(VETERANCE_ECART, 3);
+test("l'écart minimal de vétérance entre instructeur et élève est de 1", () => {
+  assert.equal(VETERANCE_ECART, 1);
 });
 test("aucun élève sans instructeur", () => {
   assert.match(studentBlocker(null, mine[0]), /instructeur/);
   assert.deepEqual(eligibleStudents(mine, null, vide()), []);
 });
-test("élève : même classe et au moins 3 points de vétérance de moins", () => {
+test("élève : même classe et au moins 1 point de vétérance de moins", () => {
   assert.equal(studentBlocker(maitre, mine[0]), null); // 6 - 2 = 4
-  assert.equal(studentBlocker(maitre, mine[2]), null); // 6 - 3 = 3, limite
-  assert.match(studentBlocker(maitre, mine[1]), /3 points/); // 6 - 4 = 2
+  assert.equal(studentBlocker(maitre, mine[1]), null); // 6 - 4 = 2
+  assert.equal(studentBlocker(maitre, W("presque6", "Guerrier", 5)), null); // 6 - 5 = 1, limite
+  assert.match(studentBlocker(maitre, W("egal6", "Guerrier", 6)), /1 point/); // même niveau
   assert.match(studentBlocker(maitre, mine[3]), /même classe/);
   assert.match(studentBlocker(maitre, maitre), /propre élève/);
   assert.deepEqual(
     eligibleStudents(mine, maitre, vide()).map((w) => w.id),
-    ["novice", "egal", "autre"],
+    ["novice", "presque", "egal", "autre"],
   );
 });
 test("un mercenaire déjà occupé ailleurs ou à l'entraînement n'est pas proposé", () => {
   assert.deepEqual(
     eligibleStudents(mine, maitre, vide(), ["novice"]).map((w) => w.id),
-    ["egal", "autre"],
+    ["presque", "egal", "autre"],
   );
   const state = buildTraining(
     [{ role: "eleve", position: 0, mercenaire_id: "egal" }],
@@ -51,7 +52,7 @@ test("un mercenaire déjà occupé ailleurs ou à l'entraînement n'est pas prop
   );
   assert.deepEqual(
     eligibleStudents(mine, maitre, state).map((w) => w.id),
-    ["novice", "autre"],
+    ["novice", "presque", "autre"],
   );
 });
 test("état d'affichage construit depuis les lignes de la base", () => {
@@ -223,7 +224,7 @@ test("terrain : un élève du second groupe n'est proposé nulle part ailleurs",
   });
   assert.deepEqual(
     eligibleStudents(mine, maitre, state).map((w) => w.id),
-    ["egal", "autre"],
+    ["presque", "egal", "autre"],
   );
 });
 test("terrain : un nouvel instructeur va dans le premier groupe libre", () => {

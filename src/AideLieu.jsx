@@ -108,11 +108,11 @@ export const AIDES = {
       ],
       [
         "Les élèves",
-        "Il faut d’abord un instructeur. Un élève est de la même classe que lui, a au moins 3 points de vétérance de moins et est disponible à la Caserne. Cliquez sur « Choisir un élève » pour en placer un.",
+        "Il faut d’abord un instructeur. Un élève est de la même classe que lui, a au moins 1 point de vétérance de moins et est disponible à la Caserne. Cliquez sur « Choisir un élève » pour en placer un.",
       ],
       [
         "La progression",
-        "À chaque « +1 Instance » du maître du jeu, l’élève gagne 1 niveau de vétérance. Dès qu’il atteint celle de son instructeur, il retourne à la Caserne. S’il est renvoyé avant, il garde le niveau déjà acquis.",
+        "À chaque « +1 Instance » du maître du jeu, l’élève gagne de l’expérience (la barre sous son portrait) : plus l’écart avec son instructeur est grand, plus il apprend vite. À 3 niveaux d’écart ou plus, 1 instance suffit pour gagner un niveau ; à 2 niveaux d’écart il en faut 2 ; à 1 niveau d’écart, 3. Dès qu’il atteint la vétérance de son instructeur, il retourne à la Caserne. S’il est renvoyé avant, il garde le niveau et l’expérience déjà acquis.",
       ],
       [
         "Bon à savoir",
@@ -166,7 +166,7 @@ export const AIDES = {
       ],
       [
         "Les mercenaires",
-        "Chaque mercenaire engagé gagne 1 niveau de vétérance, sauf si sa vétérance dépasse la puissance de la quête. Son énergie revient au maximum et il retrouve sa place à la Caserne.",
+        "Chaque mercenaire engagé gagne de l’expérience : 15 XP si la puissance de la quête dépasse sa vétérance de 2 ou plus, 12 XP de 1, 10 XP si elle est égale, puis 6, 3 et 0 XP quand la quête devient trop facile. Une quête échouée rapporte le quart de ce gain. Son énergie revient au maximum et il retrouve sa place à la Caserne.",
       ],
     ],
   },

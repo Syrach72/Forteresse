@@ -2,6 +2,8 @@ import { AlertePoint } from "./PointsCarac.jsx";
 import { useState } from "react";
 import { ReferenceCrop } from "./Characters.jsx";
 import { VetBadge } from "./VetBadge.jsx";
+import { BarreXp } from "./BarreXp.jsx";
+import { instancesRestantesFormation } from "./xp.js";
 import { BoutonAide, AIDES } from "./AideLieu.jsx";
 import {
   PRIX_INSTRUCTEUR_GROUPE_2,
@@ -91,6 +93,7 @@ export function Training({
             {w.pointCarac && <AlertePoint />}
             <ReferenceCrop crop={w.portrait} />
             <strong>{w.name}</strong>
+            <BarreXp xp={w.xp} veterance={w.veterancy} />
           </>
         ) : (
           <span>
@@ -227,11 +230,22 @@ export function Training({
         <>
           <p>
             {w.name} · vétérance {w.veterancy}
-            {instructor ? ` sur ${instructor.veterancy}` : ""}. Il gagne 1
-            niveau à chaque instance et retourne à la caserne dès qu’il atteint la
-            vétérance de son instructeur.
+            {instructor ? ` sur ${instructor.veterancy}` : ""}. Il gagne de
+            l’expérience à chaque instance : 1 instance par niveau à 3 niveaux
+            d’écart ou plus, 2 instances à 2 niveaux, 3 instances à 1 niveau. Il
+            retourne à la caserne dès qu’il atteint la vétérance de son
+            instructeur.
           </p>
-          <p>Il peut être renvoyé avant : il garde le niveau déjà acquis.</p>
+          {instructor && (
+            <p>
+              Encore{" "}
+              {instancesRestantesFormation(w.veterancy, w.xp ?? 0, instructor.veterancy)}{" "}
+              instance
+              {instancesRestantesFormation(w.veterancy, w.xp ?? 0, instructor.veterancy) > 1 ? "s" : ""}{" "}
+              avant d’atteindre son instructeur.
+            </p>
+          )}
+          <p>Il peut être renvoyé avant : il garde le niveau et l’expérience déjà acquis.</p>
           {renvoi(w, "student", popup.index, g)}
         </>
       );
@@ -241,7 +255,7 @@ export function Training({
         <p>
           Aucun de vos mercenaires ne peut être l’élève de {instructor?.name}.
           Il doit être de la classe {instructor?.role || "de l’instructeur"},
-          avoir au moins {VETERANCE_ECART} points de vétérance de moins que lui
+          avoir au moins {VETERANCE_ECART} point de vétérance de moins que lui
           (l’instructeur en a {instructor?.veterancy}) et être disponible à la
           caserne.
         </p>

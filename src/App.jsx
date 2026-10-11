@@ -48,6 +48,7 @@ import { chargerSon, creerPiste } from "./sons.js";
 import { useGlassWindows } from "./glassWindows.js";
 import { FenetreInitiative } from "./Initiative.jsx";
 import { chargerMercenaires, chargerVeterances, chargerActuels, chargerQueteEnCours } from "./etat.js";
+import { instancesRestantesFormation } from "./xp.js";
 import { useSessions, SessionBar, EcranSession } from "./Sessions.jsx";
 const money = (n) => new Intl.NumberFormat("fr-FR").format(n);
 // Matériaux d'un boost de production (valeurs enregistrées -> noms affichés).
@@ -1356,6 +1357,7 @@ export function App() {
           role: m.classe,
           portrait: m.portrait || "/assets/icons/lock.webp",
           veterancy: m.veterance ?? 1,
+          xp: m.xp ?? 0,
           pointCarac: mesRecrutes.has(m.id) && (m.pointsCarac ?? 0) > 0,
           blesse: estBlesse(m),
           pvZero: estAZero(m),
@@ -1402,10 +1404,15 @@ export function App() {
       if (g.instructor) m[g.instructor.heroId] = "Instructeur";
       for (const s of g.students) {
         if (!s) continue;
-        // Un élève gagne 1 point de vétérance par instance jusqu'à rejoindre
-        // celle de son instructeur : l'écart restant = instances restantes.
+        // Un élève gagne de l'expérience à chaque instance (une part du palier selon
+        // l'écart avec l'instructeur) jusqu'à rejoindre son niveau : on simule les
+        // instances restantes, comme le serveur.
         const restant = g.instructor
-          ? Math.max(0, veterance(g.instructor.heroId) - veterance(s.heroId))
+          ? instancesRestantesFormation(
+              veterance(s.heroId),
+              mercenaires.find((x) => x.id === s.heroId)?.xp ?? 0,
+              veterance(g.instructor.heroId),
+            )
           : 0;
         m[s.heroId] = `À la Formation${suite(restant)}`;
       }
@@ -1584,6 +1591,7 @@ export function App() {
           role: m.classe,
           portrait: m.portrait || "/assets/icons/lock.webp",
           veterancy: m.veterance ?? 1,
+          xp: m.xp ?? 0,
           pointCarac: mesRecrutes.has(m.id) && (m.pointsCarac ?? 0) > 0,
           blesse: estBlesse(m),
           pvZero: estAZero(m),
@@ -1634,6 +1642,7 @@ export function App() {
           sousClasse: m.sous_classe || "",
           portrait: m.portrait || null,
           veterance: m.veterance ?? 1,
+          xp: m.xp ?? 0,
           // Caractéristiques de la fiche (colonnes du catalogue, renommées à l'écran).
           puissance: m.attaque ?? null,
           velocite: m.defense ?? null,
@@ -2118,7 +2127,9 @@ export function App() {
           ...gains.entrainement.map((g) =>
             g.gradue
               ? `${nom(g.mercenaire_id)} a rejoint son instructeur (vétérance ${g.a}) et retourne à la caserne.`
-              : `${nom(g.mercenaire_id)} passe à la vétérance ${g.a}.`,
+              : g.a > g.de
+                ? `${nom(g.mercenaire_id)} passe à la vétérance ${g.a}.`
+                : `${nom(g.mercenaire_id)} progresse à l’entraînement (+${g.xp_gain ?? 0} XP).`,
           ),
           ...(gains.cimetiere || []).map(
             (g) => `${nom(g.mercenaire_id)} est tombé à 0 PV : il repose au cimetière et son équipement retourne à l’arsenal.`,
@@ -2166,7 +2177,7 @@ export function App() {
             ? [`Solde de la compagnie : ${money(gains.solde)} Po.`]
             : []),
           ...(gains.queteEchec
-            ? [`${gains.queteEchec.nom} : échec de la quête, aucune récompense ; elle redevient disponible.`]
+            ? [`${gains.queteEchec.nom} : échec de la quête, aucune récompense ; elle redevient disponible${gains.queteEchec.mercenaires?.some((m) => m.xp_gain > 0) ? " ; les mercenaires engagés gagnent tout de même le quart de l’expérience." : "."}`]
             : []),
           ...(gains.quete?.boosts?.length
             ? [`Boost de production activé : ${gains.quete.boosts.map((b) => MATERIAU_NOM[b.materiau] || b.materiau).join(", ")} ×2 pendant ${gains.quete.boosts[0].instances || 3} instances (celle-ci comprise).`]
@@ -2177,7 +2188,7 @@ export function App() {
                   `${gains.quete.nom} : encore ${gains.quete.apres} instance${gains.quete.apres > 1 ? "s" : ""} requise${gains.quete.apres > 1 ? "s" : ""}.`,
                 ]
               : [
-                  `${gains.quete.nom} accomplie : les récompenses vous attendent dans la fenêtre qui s'ouvre${gains.quete.mercenaires?.length ? `, ${gains.quete.mercenaires.length} mercenaire(s) retournent à la caserne (+1 de vétérance pour ${gains.quete.mercenaires.filter((m) => m.veterance_apres > m.veterance_avant).length})` : ""}.`,
+                  `${gains.quete.nom} accomplie : les récompenses vous attendent dans la fenêtre qui s'ouvre${gains.quete.mercenaires?.length ? `, ${gains.quete.mercenaires.length} mercenaire(s) retournent à la caserne (+${gains.quete.mercenaires.reduce((t, m) => t + (m.xp_gain ?? 0), 0)} XP au total${gains.quete.mercenaires.some((m) => m.veterance_apres > m.veterance_avant) ? `, ${gains.quete.mercenaires.filter((m) => m.veterance_apres > m.veterance_avant).length} gagne(nt) un niveau de vétérance` : ""})` : ""}.`,
                 ]
             : []),
           ...(() => {
@@ -2330,6 +2341,7 @@ export function App() {
         role: m.classe,
         portrait: m.portrait || "/assets/icons/lock.webp",
         veterancy: m.veterance ?? 1,
+        xp: m.xp ?? 0,
         pointCarac: mesRecrutes.has(m.id) && (m.pointsCarac ?? 0) > 0,
       })),
     [mercenaires, mesRecrutes],
@@ -2984,9 +2996,12 @@ export function App() {
           const humainUtilise = a?.humainUtilise ?? false;
           // Points de caractéristique gagnés à la montée de vétérance, pas encore dépensés.
           const pointsCarac = a?.pointsCarac ?? 0;
+          // Expérience dans le niveau de vétérance actuel.
+          const xp = a?.xp ?? 0;
           return etat === (m.etat ?? null) &&
             humainUtilise === m.humainUtilise &&
             pointsCarac === (m.pointsCarac ?? 0) &&
+            xp === (m.xp ?? 0) &&
             etatNiveau === (m.etatNiveau ?? 1) &&
             etatRounds === (m.etatRounds ?? 0) &&
             inconscientRounds === (m.inconscientRounds ?? null) &&
@@ -2997,7 +3012,7 @@ export function App() {
             velocite === m.velocite &&
             mental === m.mental
             ? m
-            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental, etat, etatNiveau, etatRounds, inconscientRounds, mortChamp, humainUtilise, pointsCarac };
+            : { ...m, energieActuelle: energie, santeActuelle: sante, puissance, velocite, mental, etat, etatNiveau, etatRounds, inconscientRounds, mortChamp, humainUtilise, pointsCarac, xp };
         }),
       );
     }

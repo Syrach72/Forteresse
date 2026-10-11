@@ -7637,3 +7637,68 @@ a.merc-card:hover {
 }
 .icone-d20 { width: 38px; height: 38px; object-fit: contain; }
 .initiative-fermer:disabled { opacity: 0.45; filter: grayscale(1); cursor: not-allowed; }
+
+/* Compteur d'expérience (composant BarreXp) : jauge dorée et « XP acquise / XP du palier », sous le portrait
+   dans la Caserne, sur la fiche du mercenaire et sur le terrain d'entraînement. Texte blanc, contour unique. */
+.barre-xp {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px ridge #987a45;
+  background: #2a1d10;
+}
+.barre-xp-jauge {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.barre-xp-rempli {
+  display: block;
+  height: 100%;
+  background: linear-gradient(180deg, #e0b648, #a67c1e);
+  transition: width 0.4s ease;
+}
+.barre-xp-texte {
+  position: relative;
+  z-index: 1;
+  font: 700 14px/1.2 Chiffres, Georgia, serif;
+  color: #fff;
+  text-shadow: none;
+  -webkit-text-stroke: 2px #000;
+  paint-order: stroke fill;
+  padding: 1px 4px;
+  white-space: nowrap;
+}
+.barre-xp-max .barre-xp-texte {
+  font-size: 13px;
+}
+.dorm-named .bed-cell > .barre-xp {
+  border-width: 0;
+  border-top: 2px solid #987a45;
+  min-height: 24px;
+}
+.training-place .barre-xp {
+  max-width: 150px;
+}
+.merc-portrait-cadre + .barre-xp {
+  width: 240px;
+  margin-top: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .barre-xp-rempli {
+    transition: none;
+  }
+}
+@media (max-width: 700px) {
+  .barre-xp-texte {
+    font-size: 11px;
+  }
+  .merc-portrait-cadre + .barre-xp {
+    width: 100%;
+    max-width: 240px;
+  }
+}

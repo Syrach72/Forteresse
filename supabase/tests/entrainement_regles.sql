@@ -1,4 +1,7 @@
 -- Test des regles du terrain d'entrainement (migration 20260921100000).
+-- ATTENTION (2026-10-11) : la regle d'ecart (3 niveaux) et la progression (+1 niveau par instance) ont ete
+-- remplacees par l'experience (migration 20261011100000) ; voir xp_regles.sql pour ces deux points. Les autres
+-- verifications (classe, places, renvoi, droits) restent valables.
 -- A coller dans l'editeur SQL de Supabase. Il cree de faux mercenaires, teste
 -- chaque regle, puis S'ANNULE TOUT SEUL (il se termine volontairement par une
 -- erreur : aucune donnee reelle n'est touchee ni conservee). Le compte de test

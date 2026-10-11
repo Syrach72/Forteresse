@@ -13,7 +13,7 @@ export async function chargerMercenaires(colonnes = "*") {
     supabase.from("mercenaire").select(colonnes).order("nom"),
     supabase
       .from("mercenaire_etat")
-      .select("mercenaire_id, veterance, energie_actuelle, sante_actuelle, attaque, defense, esprit"),
+      .select("mercenaire_id, veterance, xp, energie_actuelle, sante_actuelle, attaque, defense, esprit"),
   ]);
   if (m.error) return { error: m.error };
   const parId = new Map((e.data || []).map((x) => [x.mercenaire_id, x]));
@@ -24,6 +24,7 @@ export async function chargerMercenaires(colonnes = "*") {
         ? {
             ...x,
             veterance: etat.veterance,
+            xp: etat.xp ?? 0,
             energie_actuelle: etat.energie_actuelle,
             sante_actuelle: etat.sante_actuelle,
             attaque: etat.attaque ?? x.attaque,
@@ -42,7 +43,7 @@ export async function chargerMercenaires(colonnes = "*") {
 export async function chargerActuels() {
   const { data, error } = await supabase
     .from("mercenaire_etat")
-    .select("mercenaire_id, energie_actuelle, sante_actuelle, attaque, defense, esprit, etat, etat_niveau, etat_rounds, inconscient_rounds, mort_champ, humain_bonus_utilise, points_carac");
+    .select("mercenaire_id, energie_actuelle, sante_actuelle, attaque, defense, esprit, etat, etat_niveau, etat_rounds, inconscient_rounds, mort_champ, humain_bonus_utilise, points_carac, xp");
   if (error) return { error };
   return {
     data: new Map(
@@ -62,6 +63,8 @@ export async function chargerActuels() {
           mortChamp: !!x.mort_champ,
           humainUtilise: !!x.humain_bonus_utilise,
           pointsCarac: x.points_carac ?? 0,
+          // Expérience acquise dans le niveau de vétérance actuel (palier : xp.js).
+          xp: x.xp ?? 0,
         },
       ]),
     ),
