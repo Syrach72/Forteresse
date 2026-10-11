@@ -607,6 +607,7 @@ export function Characters({
                     une fois dépensée ; le MJ la rend en cliquant sur Rd. */}
                 {enQuete && (
                   <BoutonReaction
+                    anneau
                     utilisee={!!merc.reactionUtilisee}
                     disabled={!peutModifier || (!!merc.reactionUtilisee && !estAdmin)}
                     onClick={() => onReaction(merc.id, !merc.reactionUtilisee)}

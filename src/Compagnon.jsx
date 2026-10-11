@@ -64,6 +64,7 @@ function FicheLue({ creatureId, ligne, sauver, apercu = false, reactionActive = 
         sansNomOnglet
         reactionActive={reactionActive}
         reactionPeutRendre={reactionPeutRendre}
+        reactionAnneau
       />
       {fenetre && (
         <Modal title={fenetre.titre} onClose={() => setFenetre(null)}>

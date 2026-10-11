@@ -7730,6 +7730,40 @@ a.merc-card:hover {
   height: 118px;
   margin: 14px auto 4px;
 }
+/* Serti dans l'anneau de bronze (487 × 512, ouverture de 321 px centrée en (244, 222)) : l'anneau est
+   dessiné par-dessus le bouton pour que le bord de l'ouverture le recouvre proprement. */
+.reaction-anneau {
+  position: relative;
+  aspect-ratio: 487 / 512;
+}
+.reaction-anneau-grand {
+  width: 180px;
+  margin: 8px auto 0;
+}
+.reaction-anneau-petit {
+  width: 130px;
+  margin: 6px 0 8px;
+}
+.reaction-anneau > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+.bouton-reaction.bouton-reaction-serti {
+  position: absolute;
+  left: 17.25%;
+  top: 12.1%;
+  width: 65.9%;
+  height: 62.7%;
+  margin: 0;
+  border-width: 0;
+}
+.bouton-reaction-serti.bouton-reaction-grand span {
+  font-size: 19px;
+}
 .bouton-reaction-petit {
   width: 84px;
   height: 84px;
