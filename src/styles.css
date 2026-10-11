@@ -7942,3 +7942,6 @@ a.merc-card:hover {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.creature-haut-droite .creature-reaction {
+  margin-top: 6px;
+}

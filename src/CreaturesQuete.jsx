@@ -294,6 +294,10 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
     { etat: ligne.etat, niveau: ligne.etat_niveau, rounds: ligne.etat_rounds },
     etatsSup,
   );
+  // « Immunités aux états » de la fiche : ces états n'ont pas de bouton (inutile de les proposer).
+  const etatsImmunises = new Set(
+    ETATS_JEU.filter((e) => (fiche.immunites_etats || []).includes(e.nom)).map((e) => e.id),
+  );
   const changerEtats = (liste) => {
     const { principal, supplementaires } = decouper(liste);
     sauver(
@@ -387,20 +391,6 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
         <Orbe type="energie" libelle="Énergie" id="creature-energie" max={energieMax} actuelle={energie} />
       </div>
 
-      {reactionActive && !apercu && (
-        <div className="creature-reaction">
-          <BoutonReaction
-            taille="petit"
-            anneau={reactionAnneau}
-            utilisee={!!ligne.reaction_utilisee}
-            disabled={reactionDesactivee || (!!ligne.reaction_utilisee && !reactionPeutRendre)}
-            onClick={() => sauver({ reaction_utilisee: !ligne.reaction_utilisee })}
-          />
-          {reactionDesactivee && (
-            <p className="muted">Disponible quand le mercenaire est engagé dans une quête.</p>
-          )}
-        </div>
-      )}
       </div>
 
       <div className="creature-haut-droite">
@@ -465,11 +455,25 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
         {listeTexte("Immunités aux états", fiche.immunites_etats)}
         {listeTexte("Sens", fiche.sens)}
       </div>
+      {reactionActive && !apercu && (
+        <div className="creature-reaction">
+          <BoutonReaction
+            taille="petit"
+            anneau={reactionAnneau}
+            utilisee={!!ligne.reaction_utilisee}
+            disabled={reactionDesactivee || (!!ligne.reaction_utilisee && !reactionPeutRendre)}
+            onClick={() => sauver({ reaction_utilisee: !ligne.reaction_utilisee })}
+          />
+          {reactionDesactivee && (
+            <p className="muted">Disponible quand le mercenaire est engagé dans une quête.</p>
+          )}
+        </div>
+      )}
       </div>
       </div>
 
       <h4 className="creature-section">État</h4>
-      <EtatsBoutons etats={listeCourante} onChange={changerEtats} />
+      <EtatsBoutons etats={listeCourante} onChange={changerEtats} masques={etatsImmunises} />
 
       {armes.length > 0 && (
         <div>
@@ -554,7 +558,7 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
 // propre ligne « Rounds restants » (— = sans durée, 1 à 9) : chaque clic sur RD en retire 1 ; à 0 l'état
 // disparaît. « Épuisé » a trois niveaux. Utilisé aussi sur la fiche d'un mercenaire en quête.
 // `etats` : [{ etat, niveau, rounds }] ; `onChange(nouvelleListe)` à chaque modification.
-export function EtatsBoutons({ etats = [], onChange, desactive = false }) {
+export function EtatsBoutons({ etats = [], onChange, desactive = false, masques = null }) {
   // État dont la fenêtre de détail (badge « ? ») est ouverte.
   const [detail, setDetail] = useState(null);
   const [limite, setLimite] = useState("");
@@ -568,7 +572,7 @@ export function EtatsBoutons({ etats = [], onChange, desactive = false }) {
   return (
     <div className="creature-etats">
       <div className="creature-etats-boutons" role="group" aria-label="États">
-        {ETATS_JEU.map((e) => {
+        {ETATS_JEU.filter((e) => !masques?.has(e.id) || actif(e.id)).map((e) => {
           const on = actif(e.id);
           const courant = etats.find((x) => x.etat === e.id);
           return (
