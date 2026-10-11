@@ -7945,3 +7945,23 @@ a.merc-card:hover {
 .creature-haut-droite .creature-reaction {
   margin-top: 6px;
 }
+
+/* Réaction au début de la rubrique État : le bouton prend la hauteur de deux rangées de boutons d'état. */
+.creature-etat-zone {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 16px;
+}
+.creature-etat-zone-etats {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.creature-etat-zone .creature-reaction {
+  flex: none;
+  margin-top: 14px;
+}
+.creature-etat-zone .reaction-anneau-petit {
+  width: 112px;
+  margin: 0;
+}

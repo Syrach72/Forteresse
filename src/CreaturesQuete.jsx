@@ -455,25 +455,29 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
         {listeTexte("Immunités aux états", fiche.immunites_etats)}
         {listeTexte("Sens", fiche.sens)}
       </div>
-      {reactionActive && !apercu && (
-        <div className="creature-reaction">
-          <BoutonReaction
-            taille="petit"
-            anneau={reactionAnneau}
-            utilisee={!!ligne.reaction_utilisee}
-            disabled={reactionDesactivee || (!!ligne.reaction_utilisee && !reactionPeutRendre)}
-            onClick={() => sauver({ reaction_utilisee: !ligne.reaction_utilisee })}
-          />
-          {reactionDesactivee && (
-            <p className="muted">Disponible quand le mercenaire est engagé dans une quête.</p>
-          )}
-        </div>
-      )}
       </div>
       </div>
 
       <h4 className="creature-section">État</h4>
-      <EtatsBoutons etats={listeCourante} onChange={changerEtats} masques={etatsImmunises} />
+      <div className="creature-etat-zone">
+        {reactionActive && !apercu && (
+          <div className="creature-reaction">
+            <BoutonReaction
+              taille="petit"
+              anneau={reactionAnneau}
+              utilisee={!!ligne.reaction_utilisee}
+              disabled={reactionDesactivee || (!!ligne.reaction_utilisee && !reactionPeutRendre)}
+              onClick={() => sauver({ reaction_utilisee: !ligne.reaction_utilisee })}
+            />
+            {reactionDesactivee && (
+              <p className="muted">Disponible quand le mercenaire est engagé dans une quête.</p>
+            )}
+          </div>
+        )}
+        <div className="creature-etat-zone-etats">
+          <EtatsBoutons etats={listeCourante} onChange={changerEtats} masques={etatsImmunises} />
+        </div>
+      </div>
 
       {armes.length > 0 && (
         <div>
