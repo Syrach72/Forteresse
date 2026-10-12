@@ -183,6 +183,24 @@ export const IMMUNITES_PAR_TYPE = {
     ],
     vulnerabilites: ["dégâts de zone"],
   },
+  élémentaire: {
+    degats: ["poison", "acide"],
+    etats: [
+      "Paralysé",
+      "Empoisonné",
+      "Putréfié",
+      "Pétrifié",
+      "Saignement",
+      "Endormi",
+      "Étourdi",
+      "Inconscient",
+      "Critiques",
+      "Maladresses",
+      "Tenailles",
+      "Attaques Sournoises",
+      "Épuisé",
+    ],
+  },
   divinité: {
     degats: [],
     etats: [
