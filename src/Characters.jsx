@@ -646,7 +646,14 @@ export function Characters({
                 <span>Classe :</span>
                 <strong>
                   {merc.classe || "—"}
-                  {merc.sousClasse ? ` (${merc.sousClasse})` : ""}
+                  {merc.sousClasse ? (
+                    <>
+                      {" "}
+                      <span className="merc-sous-classe-inline">({merc.sousClasse})</span>
+                    </>
+                  ) : (
+                    ""
+                  )}
                 </strong>
               </div>
               {/* Puissance, Vélocité, Mental : icônes côte à côte, valeur dessous. Modifiables par

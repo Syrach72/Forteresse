@@ -6167,6 +6167,18 @@ a.merc-card:hover {
   text-align: right;
   overflow-wrap: anywhere;
 }
+/* Le libellé (« Classe : ») ne se coupe jamais et reste calé sur la première ligne de la valeur ; la
+   sous-classe passe à la ligne d'un bloc, sans casser « (Vengeur) » ni détacher les deux-points. */
+.merc-colonne-droite .stat-line {
+  align-items: baseline;
+}
+.merc-colonne-droite .stat-line > span {
+  flex: none;
+  white-space: nowrap;
+}
+.merc-sous-classe-inline {
+  display: inline-block;
+}
 /* Puissance, Vélocité, Mental : chiffres au même niveau que ceux des orbes d'énergie et de santé. */
 .merc-trio .merc-carac-valeur {
   font-size: 52px;
