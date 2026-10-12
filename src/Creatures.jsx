@@ -198,6 +198,7 @@ export function CreaturesSection({ kit }) {
       type,
       immunites_degats: degats,
       immunites_etats: completerImmunites(degats, ajout(form.immunites_etats, defauts?.etats)),
+      vulnerabilites: ajout(form.vulnerabilites, defauts?.vulnerabilites),
     });
   };
   // Un sous-type « intangible » (mot entier) ajoute ses immunités à celles du type de base, une seule fois :

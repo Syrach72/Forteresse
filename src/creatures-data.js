@@ -68,7 +68,7 @@ export const TYPES_DEGATS = [
 ];
 
 // Vulnérabilités : les types de dégâts, plus l'argent et l'eau (propres à ce champ).
-export const TYPES_VULNERABILITES = [...TYPES_DEGATS, "argent", "eau"];
+export const TYPES_VULNERABILITES = [...TYPES_DEGATS, "argent", "eau", "dégâts de zone"];
 
 // Précision du Vol (une seule à la fois, facultative) : valeur enregistrée -> libellé.
 export const TYPES_VOL = [
@@ -152,6 +152,28 @@ export const IMMUNITES_PAR_TYPE = {
       "Étourdi",
       "Saignement",
     ],
+  },
+  nuée: {
+    degats: ["psychique", "contondant, perforant et tranchant des armes non magiques"],
+    etats: [
+      "Effets et sorts mentaux",
+      "À Terre",
+      "Aveuglé",
+      "Assourdi",
+      "Étourdi",
+      "Paralysé",
+      "Inconscient",
+      "Pétrifié",
+      "Agrippé",
+      "Entravé",
+      "Critiques",
+      "Tenailles",
+      "Attaques Sournoises",
+      "Saignement",
+      "Maladresses",
+      "Endormi",
+    ],
+    vulnerabilites: ["dégâts de zone"],
   },
   plante: {
     degats: ["poison", "psychique"],
