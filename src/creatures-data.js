@@ -150,7 +150,16 @@ export const IMMUNITES_PAR_TYPE = {
       "Saignement",
     ],
   },
+  plante: {
+    degats: ["poison", "psychique"],
+    etats: ["Empoisonné", "Endormi", "Étourdi", "Aveuglé", "Assourdi", "Effets et sorts mentaux"],
+  },
 };
+
+// Règle : l'immunité aux dégâts de poison entraîne l'immunité à l'état Empoisonné.
+export function completerImmunites(degats, etats) {
+  return degats.includes("poison") && !etats.includes("Empoisonné") ? [...etats, "Empoisonné"] : etats;
+}
 // Détail de chaque état, ouvert par le badge « ? » au-dessus du bouton actif (à rédiger : id -> texte).
 export const DETAIL_ETATS = {
   abri_partiel: "Abri Partiel (1/2 du corps protégé) : Attaquant Désavantagé,",
