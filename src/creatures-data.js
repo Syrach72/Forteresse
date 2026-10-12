@@ -5,6 +5,7 @@
 export const TYPES_CREATURE = [
   "aberration",
   "bête",
+  "bête magique",
   "céleste",
   "créature artificielle",
   "divinité",
