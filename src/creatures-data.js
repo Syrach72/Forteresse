@@ -125,10 +125,12 @@ export const ETATS_JEU = [
 // Immunités d'une créature en plus des états du jeu (liste « Immunités aux états » de sa fiche).
 export const IMMUNITES_SUPPLEMENTAIRES = [
   "Attaques Sournoises",
+  "Banni",
   "Ciblage corporel",
   "Critiques",
   "Diminution de caractéristiques",
   "Effets et sorts mentaux",
+  "Incapable d'agir",
   "Maladie",
   "Maladresses",
   "Métamorphose",
@@ -180,6 +182,21 @@ export const IMMUNITES_PAR_TYPE = {
       "Endormi",
     ],
     vulnerabilites: ["dégâts de zone"],
+  },
+  divinité: {
+    degats: [],
+    etats: [
+      "Critiques",
+      "Maladresses",
+      "Charmé",
+      "Empoisonné",
+      "Étourdi",
+      "Incapable d'agir",
+      "Inconscient",
+      "Paralysé",
+      "Pétrifié",
+      "Banni",
+    ],
   },
   artificiel: {
     degats: ["poison", "psychique", "non létaux"],
