@@ -4,6 +4,7 @@ import { RichTextarea } from "./RichText.jsx";
 import {
   CATEGORIES_CAPACITES,
   ETATS_JEU,
+  IMMUNITES_PAR_SOUS_TYPE,
   IMMUNITES_PAR_TYPE,
   IMMUNITES_SUPPLEMENTAIRES,
   SENS_CREATURE,
@@ -199,6 +200,22 @@ export function CreaturesSection({ kit }) {
       immunites_etats: completerImmunites(degats, ajout(form.immunites_etats, defauts?.etats)),
     });
   };
+  // Un sous-type « intangible » (mot entier) ajoute ses immunités à celles du type de base, une seule fois :
+  // au moment où le mot apparaît dans la saisie.
+  const changerSousType = (e) => {
+    const sous_type = e.target.value;
+    const mots = (t) => t.toLowerCase().split(/[^a-zà-ÿ-]+/);
+    const avant = mots(form.sous_type);
+    const nouveaux = Object.keys(IMMUNITES_PAR_SOUS_TYPE).filter((m) => mots(sous_type).includes(m) && !avant.includes(m));
+    const ajout = (actuel, cle) => [...actuel, ...nouveaux.flatMap((m) => IMMUNITES_PAR_SOUS_TYPE[m][cle]).filter((x, i, a) => !actuel.includes(x) && a.indexOf(x) === i)];
+    const degats = ajout(form.immunites_degats, "degats");
+    setForm({
+      ...form,
+      sous_type,
+      immunites_degats: degats,
+      immunites_etats: completerImmunites(degats, ajout(form.immunites_etats, "etats")),
+    });
+  };
   // Puissance, Vélocité et Mental recalculent aussitôt Santé max, Esquive et Énergie max (modifiables ensuite).
   const champStat = (k) => (e) => {
     const f = { ...form, [k]: e.target.value };
@@ -387,7 +404,7 @@ export function CreaturesSection({ kit }) {
         <div className="field">
           <label htmlFor="cr-soustype">Sous-type</label>
           <div className="input-wrap">
-            <input id="cr-soustype" list="cr-soustypes" value={form.sous_type} onChange={champ("sous_type")} />
+            <input id="cr-soustype" list="cr-soustypes" value={form.sous_type} onChange={changerSousType} />
             <datalist id="cr-soustypes">
               {SOUS_TYPES_CREATURE.map((t) => (
                 <option key={t} value={t} />

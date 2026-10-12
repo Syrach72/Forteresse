@@ -7,6 +7,7 @@ export const TYPES_CREATURE = [
   "bête",
   "céleste",
   "créature artificielle",
+  "divinité",
   "dragon",
   "élémentaire",
   "fée",
@@ -15,6 +16,7 @@ export const TYPES_CREATURE = [
   "humanoïde",
   "monstruosité",
   "mort-vivant",
+  "nuée",
   "plante",
   "vase",
 ];
@@ -29,6 +31,7 @@ export const SOUS_TYPES_CREATURE = [
   "gnome",
   "gobelinoïde",
   "humain",
+  "intangible",
   "kobold",
   "nain",
   "orc",
@@ -153,6 +156,28 @@ export const IMMUNITES_PAR_TYPE = {
   plante: {
     degats: ["poison", "psychique"],
     etats: ["Empoisonné", "Endormi", "Étourdi", "Aveuglé", "Assourdi", "Effets et sorts mentaux"],
+  },
+};
+
+// Immunités ajoutées d'office quand le sous-type contient ce mot (par exemple « intangible »).
+export const IMMUNITES_PAR_SOUS_TYPE = {
+  intangible: {
+    degats: ["acide", "poison", "contondant, perforant et tranchant des armes non magiques"],
+    etats: [
+      "À Terre",
+      "Épuisé",
+      "Inconscient",
+      "Putréfié",
+      "Agrippé",
+      "Immobilisé",
+      "Pétrifié",
+      "Paralysé",
+      "Entravé",
+      "Saignement",
+      "Maladie",
+      "Tenailles",
+      "Attaques Sournoises",
+    ],
   },
 };
 
