@@ -552,12 +552,10 @@ video.interior-backdrop {
 .journal video.interior-backdrop {
   object-position: 38% 50%;
 }
-/* Missions : le logo du générateur est en haut à droite de la vidéo (de 77 % à 98 % de sa largeur). On
-   agrandit l'image à partir de la gauche : la partie droite sort du cadre, il ne reste que les ~70 % de gauche. */
+/* Missions : le filigrane du générateur a été retiré du fichier vidéo (bande du haut rognée, image agrandie
+   en 1104 px de large pour rester nette). Cadrage décalé vers la gauche (escalier et bibliothèques). */
 .missions video.interior-backdrop {
-  object-position: 0% 50%;
-  transform: scale(1.4);
-  transform-origin: 0% 50%;
+  object-position: 30% 50%;
 }
 .marche video.interior-backdrop,
 .castle-map video.interior-backdrop {
