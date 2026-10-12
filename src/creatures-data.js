@@ -202,6 +202,9 @@ export const IMMUNITES_PAR_TYPE = {
       "Épuisé",
     ],
   },
+  // Les six états mentaux (Charmé, Confus…) suivent par la règle des effets et sorts mentaux.
+  fée: { degats: [], etats: ["Effets et sorts mentaux"] },
+  "bête magique": { degats: [], etats: ["Effets et sorts mentaux"] },
   divinité: {
     degats: [],
     etats: [
@@ -266,7 +269,9 @@ export const IMMUNITES_PAR_TYPE = {
 // « créature artificielle » est rangée sous « artificiel ».
 export function cleType(type) {
   const t = (type || "").trim().toLowerCase();
-  return t.startsWith("créature artificielle") ? "artificiel" : t.split(/[\s/(,]+/)[0];
+  if (t.startsWith("créature artificielle")) return "artificiel";
+  if (t.startsWith("bête magique")) return "bête magique";
+  return t.split(/[\s/(,]+/)[0];
 }
 
 // Immunités ajoutées d'office quand le sous-type contient ce mot (par exemple « intangible »).
