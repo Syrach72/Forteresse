@@ -2969,6 +2969,15 @@ video.interior-backdrop-boxed {
 .merc-actions .wood-button:disabled {
   opacity: 0.5;
 }
+/* « Renvoyer » seul : cuir rouge sang (mêmes clous, filet et relief que les autres plaques). */
+.merc-actions .wood-button.merc-renvoyer {
+  border-color: #a8453a;
+  background: linear-gradient(180deg, #a01c1c 0%, #7a1010 55%, #5a0a0a 100%);
+}
+.merc-actions .wood-button.merc-renvoyer:hover:not(:disabled) {
+  background: linear-gradient(180deg, #b52424 0%, #8c1515 55%, #690d0d 100%);
+  border-color: var(--gold);
+}
 /* Enregistrer l'énergie/la santé et Enregistrer les Caractéristiques : cuir clouté plutôt que le
    bois plat ou les plaques essayées précédemment — dégradé profond, filet doré, clous aux coins,
    lueur ambrée au survol (même modèle que « Soigner »). Largeur commune (calée sur le texte le

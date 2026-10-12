@@ -987,7 +987,7 @@ export function Characters({
                         Quête
                       </button>
                       <button
-                        className="wood-button merc-recruit"
+                        className="wood-button merc-recruit merc-renvoyer"
                         type="button"
                         onClick={() => setPopup({ type: "renvoi" })}
                       >
