@@ -2920,6 +2920,18 @@ export function App() {
     notify(`Conduit Divin utilisé : ${data?.utilisees} / ${data?.total} cette instance.`);
     return {};
   }
+  // Compétence active limitée par quête (Prêtre de Guerre : autant d'utilisations que la Puissance) : le serveur
+  // compte l'utilisation et dépense l'énergie en une seule opération.
+  async function utiliserCompetenceLimitee(mercenaireId, competenceId, montant) {
+    const { data, error } = await supabase.rpc("competence_quete_utiliser", {
+      p_mercenaire: mercenaireId,
+      p_competence: competenceId,
+      p_montant: montant,
+    });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    return { utilisees: data?.utilisees, total: data?.total };
+  }
   // Style de combat : choix du style d'un mercenaire (le serveur vérifie compétence, vétérance 2 et doublon).
   async function choisirStyleCombat(mercenaireId, type) {
     const { error } = await supabase.rpc("style_combat_choisir", { p_mercenaire: mercenaireId, p_type: type });
@@ -3004,7 +3016,7 @@ export function App() {
       supabase.from("recrutement").select("mercenaire_id, user_id, nom_joueur, lit"),
       supabase.from("dortoir_reglage").select("places").maybeSingle(),
       chargerQueteEnCours(),
-      supabase.from("quete_mercenaire").select("quete_id, position, mercenaire_id"),
+      supabase.from("quete_mercenaire").select("quete_id, position, mercenaire_id, usages_competence"),
       chargerActuels(),
       supabase.from("recrutement_gratuit").select("nom_cle"),
       supabase.from("cimetiere").select("mercenaire_id"),
@@ -4326,6 +4338,7 @@ export function App() {
           onMajCompagnon={majCompagnon}
           conduitDivin={conduitRows.filter((r) => r.instance_no === instanceNo)}
           onUtiliserConduitDivin={utiliserConduitDivin}
+          onUtiliserCompetenceLimitee={utiliserCompetenceLimitee}
           onDepenserPoint={depenserPointCarac}
           onOuvrirArsenal={ouvrirArsenalDepuisSac}
           sacARouvrir={sacARouvrir}

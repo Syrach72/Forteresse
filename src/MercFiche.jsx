@@ -504,7 +504,7 @@ const PALIERS_RESTAURATION = [
   [7, 4],
   [10, 5],
 ];
-export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null }) {
+export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null, limiteQuete = null }) {
   const { niveau, type, competence } = cellule;
   const atteinte = veterance >= niveau;
   const [choix, setChoix] = useState(null);
@@ -652,7 +652,18 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
           )}
         </div>
       )}
-      {compteur && (
+      {compteur && limiteQuete && (
+        <p className="energie-compteur-titre">
+          Utilisations pendant cette quête{" "}
+          <span className="muted">
+            ({limiteQuete.utilisees} / {limiteQuete.total})
+          </span>
+        </p>
+      )}
+      {compteur && limiteQuete?.epuise && (
+        <p className="comp-detail-non">Toutes les utilisations de cette quête sont dépensées.</p>
+      )}
+      {compteur && !limiteQuete?.epuise && (
         <div className="energie-compteur">
           <p className="energie-compteur-titre">
             Dépenser de l’énergie <span className="muted">(disponible : {energie ?? "—"})</span>

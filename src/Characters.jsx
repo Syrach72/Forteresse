@@ -147,6 +147,7 @@ export function Characters({
   onMajCompagnon = async () => {},
   conduitDivin = [],
   onUtiliserConduitDivin = async () => ({}),
+  onUtiliserCompetenceLimitee = async () => ({}),
   onClearError = () => {},
   onOuvrirArsenal = () => {},
   sacARouvrir = null,
@@ -167,6 +168,16 @@ export function Characters({
   const cdTotal = merc ? 1 + ((merc.veterance ?? 1) >= 4 ? 1 : 0) + ((merc.veterance ?? 1) >= 8 ? 1 : 0) : 0;
   const cdNb = conduitDivin.filter((r) => r.mercenaire_id === merc?.id).length;
   const cdEpuise = cdNb >= cdTotal;
+  // Prêtre de Guerre (compétence active) : autant d'utilisations par quête et par mercenaire que sa Puissance.
+  // Le décompte vit sur la ligne d'engagement dans la quête (il disparaît quand le mercenaire la quitte).
+  const estPG = (comp) => !!comp?.nom && /pr[êe]tre de guerre/i.test(comp.nom);
+  const ligneQuete = merc ? mercsEnQuete.find((e) => e.mercenaire_id === merc.id) : null;
+  const puissanceEff = merc ? (merc.puissance ?? 0) + (merc.bonusPuissance ?? 0) + (tmp.puissance ?? 0) : 0;
+  const limitePGPour = (comp) => {
+    if (!merc || !ligneQuete || !estPG(comp)) return null;
+    const utilisees = Number(ligneQuete.usages_competence?.[comp.id] ?? 0);
+    return { utilisees, total: puissanceEff, epuise: utilisees >= puissanceEff };
+  };
   const energieMax = merc ? 2 * ((merc.mental ?? 0) + (merc.bonusMental ?? 0) + (tmp.mental ?? 0)) + (tmp.energieMax ?? 0) : null;
   const santeMax = merc ? 3 + 2 * ((merc.puissance ?? 0) + (merc.bonusPuissance ?? 0) + (tmp.puissance ?? 0)) + (merc.bonusSante ?? 0) + (tmp.santeMax ?? 0) : null;
   const hero = merc ? undefined : warriors.find((w) => w.id === heroId);
@@ -186,6 +197,7 @@ export function Characters({
   );
   const [etatErreur, setEtatErreur] = useState("");
   const [popup, setPopup] = useState(null);
+  const limitePG = popup?.type === "competence" && popup.cellule?.type === "active" ? limitePGPour(popup.cellule.competence) : null;
   // Retour depuis l'Arsenal (ouvert depuis ce sac à dos) : la fenêtre du sac se rouvre toute seule.
   useEffect(() => {
     if (sacARouvrir && merc && sacARouvrir === merc.id) {
@@ -1604,7 +1616,14 @@ export function Characters({
               cellule={popup.cellule}
               veterance={popup.veterance}
               energie={merc ? (merc.energieActuelle ?? energieMax) : null}
-              onDepenser={merc && peutModifier ? (n) => onDepenserEnergie(merc.id, n) : null}
+              onDepenser={
+                merc && peutModifier
+                  ? limitePG
+                    ? (n) => onUtiliserCompetenceLimitee(merc.id, popup.cellule.competence.id, n)
+                    : (n) => onDepenserEnergie(merc.id, n)
+                  : null
+              }
+              limiteQuete={limitePG}
               onRestaurer={merc && peutModifier ? () => onRestaurerEnergie(merc.id) : null}
               cd={
                 merc && popup.cellule?.type === "active" && estCD(popup.cellule?.competence)
