@@ -4,6 +4,7 @@ import { RichTextarea } from "./RichText.jsx";
 import {
   CATEGORIES_CAPACITES,
   ETATS_JEU,
+  IMMUNITES_PAR_TYPE,
   IMMUNITES_SUPPLEMENTAIRES,
   SENS_CREATURE,
   SOUS_TYPES_CREATURE,
@@ -184,6 +185,18 @@ export function CreaturesSection({ kit }) {
     setMsg("");
   }
   const champ = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  // Choisir un type coche d'office les immunités propres à ce type (ajoutées à celles déjà cochées).
+  const changerType = (e) => {
+    const type = e.target.value;
+    const defauts = IMMUNITES_PAR_TYPE[type];
+    const ajout = (actuel, plus) => [...actuel, ...(plus || []).filter((x) => !actuel.includes(x))];
+    setForm({
+      ...form,
+      type,
+      immunites_degats: ajout(form.immunites_degats, defauts?.degats),
+      immunites_etats: ajout(form.immunites_etats, defauts?.etats),
+    });
+  };
   // Puissance, Vélocité et Mental recalculent aussitôt Santé max, Esquive et Énergie max (modifiables ensuite).
   const champStat = (k) => (e) => {
     const f = { ...form, [k]: e.target.value };
@@ -359,7 +372,7 @@ export function CreaturesSection({ kit }) {
         <div className="field">
           <label htmlFor="cr-type">Type</label>
           <div className="input-wrap">
-            <select id="cr-type" value={form.type} onChange={champ("type")}>
+            <select id="cr-type" value={form.type} onChange={changerType}>
               <option value="">—</option>
               {TYPES_CREATURE.map((t) => (
                 <option key={t} value={t}>

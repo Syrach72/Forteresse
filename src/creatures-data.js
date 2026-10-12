@@ -117,7 +117,40 @@ export const ETATS_JEU = [
   { id: "suffocation", nom: "Suffocation" },
 ];
 // Immunités d'une créature en plus des états du jeu (liste « Immunités aux états » de sa fiche).
-export const IMMUNITES_SUPPLEMENTAIRES = ["Attaques Sournoises", "Critiques", "Maladresses", "Tenailles"];
+export const IMMUNITES_SUPPLEMENTAIRES = [
+  "Attaques Sournoises",
+  "Critiques",
+  "Diminution de caractéristiques",
+  "Effets et sorts mentaux",
+  "Maladie",
+  "Maladresses",
+  "Mort immédiate",
+  "Putréfié",
+  "Saignement",
+  "Tenailles",
+];
+
+// Immunités cochées d'office quand on choisit un type de créature (le MJ peut ensuite les décocher ou en
+// ajouter). Les noms doivent exister dans TYPES_DEGATS, ETATS_JEU ou IMMUNITES_SUPPLEMENTAIRES.
+export const IMMUNITES_PAR_TYPE = {
+  "mort-vivant": {
+    degats: ["poison", "psychique"],
+    etats: [
+      "Mort immédiate",
+      "Maladie",
+      "Empoisonné",
+      "Effets et sorts mentaux",
+      "Paralysé",
+      "Épuisé",
+      "Diminution de caractéristiques",
+      "Inconscient",
+      "Putréfié",
+      "Endormi",
+      "Étourdi",
+      "Saignement",
+    ],
+  },
+};
 // Détail de chaque état, ouvert par le badge « ? » au-dessus du bouton actif (à rédiger : id -> texte).
 export const DETAIL_ETATS = {
   abri_partiel: "Abri Partiel (1/2 du corps protégé) : Attaquant Désavantagé,",
