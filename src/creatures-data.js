@@ -290,9 +290,19 @@ export const IMMUNITES_PAR_SOUS_TYPE = {
   },
 };
 
-// Règle : l'immunité aux dégâts de poison entraîne l'immunité à l'état Empoisonné.
-export function completerImmunites(degats, etats) {
-  return degats.includes("poison") && !etats.includes("Empoisonné") ? [...etats, "Empoisonné"] : etats;
+// Règles en chaîne, appliquées quand la cause vient d'être cochée (pas si elle l'était déjà dans `avant`) :
+// - immunité aux dégâts de poison -> immunité à l'état Empoisonné ;
+// - immunité aux effets et sorts mentaux -> Charmé, Confus, Désorienté, Effrayé, Fasciné, Possédé.
+export const EFFETS_MENTAUX = "Effets et sorts mentaux";
+export const ETATS_MENTAUX = ["Charmé", "Confus", "Désorienté", "Effrayé", "Fasciné", "Possédé"];
+export function completerImmunites(degats, etats, avant = { degats: [], etats: [] }) {
+  const sortie = [...etats];
+  const ajouter = (x) => {
+    if (!sortie.includes(x)) sortie.push(x);
+  };
+  if (degats.includes("poison") && !avant.degats.includes("poison")) ajouter("Empoisonné");
+  if (etats.includes(EFFETS_MENTAUX) && !avant.etats.includes(EFFETS_MENTAUX)) ETATS_MENTAUX.forEach(ajouter);
+  return sortie;
 }
 // Détail de chaque état, ouvert par le badge « ? » au-dessus du bouton actif (à rédiger : id -> texte).
 export const DETAIL_ETATS = {

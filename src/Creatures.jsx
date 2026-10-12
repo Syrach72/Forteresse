@@ -199,7 +199,7 @@ export function CreaturesSection({ kit }) {
       ...form,
       type,
       immunites_degats: degats,
-      immunites_etats: completerImmunites(degats, ajout(form.immunites_etats, defauts?.etats)),
+      immunites_etats: completerImmunites(degats, ajout(form.immunites_etats, defauts?.etats), { degats: form.immunites_degats, etats: form.immunites_etats }),
       vulnerabilites: ajout(form.vulnerabilites, defauts?.vulnerabilites),
     });
   };
@@ -216,7 +216,7 @@ export function CreaturesSection({ kit }) {
       ...form,
       sous_type,
       immunites_degats: degats,
-      immunites_etats: completerImmunites(degats, ajout(form.immunites_etats, "etats")),
+      immunites_etats: completerImmunites(degats, ajout(form.immunites_etats, "etats"), { degats: form.immunites_degats, etats: form.immunites_etats }),
     });
   };
   // Puissance, Vélocité et Mental recalculent aussitôt Santé max, Esquive et Énergie max (modifiables ensuite).
@@ -480,8 +480,8 @@ export function CreaturesSection({ kit }) {
       <div className="creature-multis">
         <MultiChoix libelle="Vulnérabilités" options={TYPES_VULNERABILITES} valeur={form.vulnerabilites} onChange={(v) => setForm({ ...form, vulnerabilites: v })} />
         <MultiChoix libelle="Résistances" options={TYPES_DEGATS} valeur={form.resistances} onChange={(v) => setForm({ ...form, resistances: v })} />
-        <MultiChoix libelle="Immunités aux dégâts" options={TYPES_IMMUNITES_DEGATS} valeur={form.immunites_degats} onChange={(v) => setForm({ ...form, immunites_degats: v, immunites_etats: completerImmunites(v, form.immunites_etats) })} />
-        <MultiChoix libelle="Immunités aux états" options={[...ETATS_JEU.map((e) => e.nom), ...IMMUNITES_SUPPLEMENTAIRES]} valeur={form.immunites_etats} onChange={(v) => setForm({ ...form, immunites_etats: v })} />
+        <MultiChoix libelle="Immunités aux dégâts" options={TYPES_IMMUNITES_DEGATS} valeur={form.immunites_degats} onChange={(v) => setForm({ ...form, immunites_degats: v, immunites_etats: completerImmunites(v, form.immunites_etats, { degats: form.immunites_degats, etats: form.immunites_etats }) })} />
+        <MultiChoix libelle="Immunités aux états" options={[...ETATS_JEU.map((e) => e.nom), ...IMMUNITES_SUPPLEMENTAIRES]} valeur={form.immunites_etats} onChange={(v) => setForm({ ...form, immunites_etats: completerImmunites(form.immunites_degats, v, { degats: form.immunites_degats, etats: form.immunites_etats }) })} />
         <MultiChoix libelle="Sens" options={SENS_CREATURE} valeur={form.sens} onChange={(v) => setForm({ ...form, sens: v })} />
       </div>
 
