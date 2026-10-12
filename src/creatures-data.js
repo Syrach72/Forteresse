@@ -68,7 +68,10 @@ export const TYPES_DEGATS = [
 ];
 
 // Vulnérabilités : les types de dégâts, plus l'argent et l'eau (propres à ce champ).
-export const TYPES_VULNERABILITES = [...TYPES_DEGATS, "argent", "eau", "dégâts de zone"];
+// Immunités aux dégâts : les types de dégâts, plus les dégâts non létaux.
+export const TYPES_IMMUNITES_DEGATS = [...TYPES_DEGATS, "non létaux"];
+
+export const TYPES_VULNERABILITES =[...TYPES_DEGATS, "argent", "eau", "dégâts de zone"];
 
 // Précision du Vol (une seule à la fois, facultative) : valeur enregistrée -> libellé.
 export const TYPES_VOL = [
@@ -131,6 +134,7 @@ export const IMMUNITES_SUPPLEMENTAIRES = [
   "Métamorphose",
   "Mort immédiate",
   "Putréfié",
+  "Rappel à la vie",
   "Saignement",
   "Tenailles",
 ];
@@ -177,6 +181,24 @@ export const IMMUNITES_PAR_TYPE = {
     ],
     vulnerabilites: ["dégâts de zone"],
   },
+  artificiel: {
+    degats: ["poison", "psychique", "non létaux"],
+    etats: [
+      "Mort immédiate",
+      "Rappel à la vie",
+      "Maladie",
+      "Effets et sorts mentaux",
+      "Épuisé",
+      "Diminution de caractéristiques",
+      "Saignement",
+      "Inconscient",
+      "Pétrifié",
+      "Putréfié",
+      "Endormi",
+      "Métamorphose",
+      "Étourdi",
+    ],
+  },
   vase: {
     degats: ["poison", "psychique"],
     etats: [
@@ -203,6 +225,13 @@ export const IMMUNITES_PAR_TYPE = {
     etats: ["Empoisonné", "Endormi", "Étourdi", "Aveuglé", "Assourdi", "Effets et sorts mentaux"],
   },
 };
+
+// Clé d'IMMUNITES_PAR_TYPE pour un type de créature : premier mot (« bête/vermine » -> bête) ;
+// « créature artificielle » est rangée sous « artificiel ».
+export function cleType(type) {
+  const t = (type || "").trim().toLowerCase();
+  return t.startsWith("créature artificielle") ? "artificiel" : t.split(/[\s/(,]+/)[0];
+}
 
 // Immunités ajoutées d'office quand le sous-type contient ce mot (par exemple « intangible »).
 export const IMMUNITES_PAR_SOUS_TYPE = {

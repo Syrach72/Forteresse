@@ -12,8 +12,10 @@ import {
   TAILLES_CREATURE,
   TYPES_CREATURE,
   TYPES_DEGATS,
+  TYPES_IMMUNITES_DEGATS,
   TYPES_VULNERABILITES,
   TYPES_VOL,
+  cleType,
   completerImmunites,
   creatureVide,
   entier,
@@ -190,7 +192,7 @@ export function CreaturesSection({ kit }) {
   // Choisir un type coche d'office les immunités propres à ce type (ajoutées à celles déjà cochées).
   const changerType = (e) => {
     const type = e.target.value;
-    const defauts = IMMUNITES_PAR_TYPE[type.trim().toLowerCase().split(/[\s/(,]+/)[0]];
+    const defauts = IMMUNITES_PAR_TYPE[cleType(type)];
     const ajout = (actuel, plus) => [...actuel, ...(plus || []).filter((x) => !actuel.includes(x))];
     const degats = ajout(form.immunites_degats, defauts?.degats);
     setForm({
@@ -478,7 +480,7 @@ export function CreaturesSection({ kit }) {
       <div className="creature-multis">
         <MultiChoix libelle="Vulnérabilités" options={TYPES_VULNERABILITES} valeur={form.vulnerabilites} onChange={(v) => setForm({ ...form, vulnerabilites: v })} />
         <MultiChoix libelle="Résistances" options={TYPES_DEGATS} valeur={form.resistances} onChange={(v) => setForm({ ...form, resistances: v })} />
-        <MultiChoix libelle="Immunités aux dégâts" options={TYPES_DEGATS} valeur={form.immunites_degats} onChange={(v) => setForm({ ...form, immunites_degats: v, immunites_etats: completerImmunites(v, form.immunites_etats) })} />
+        <MultiChoix libelle="Immunités aux dégâts" options={TYPES_IMMUNITES_DEGATS} valeur={form.immunites_degats} onChange={(v) => setForm({ ...form, immunites_degats: v, immunites_etats: completerImmunites(v, form.immunites_etats) })} />
         <MultiChoix libelle="Immunités aux états" options={[...ETATS_JEU.map((e) => e.nom), ...IMMUNITES_SUPPLEMENTAIRES]} valeur={form.immunites_etats} onChange={(v) => setForm({ ...form, immunites_etats: v })} />
         <MultiChoix libelle="Sens" options={SENS_CREATURE} valeur={form.sens} onChange={(v) => setForm({ ...form, sens: v })} />
       </div>
