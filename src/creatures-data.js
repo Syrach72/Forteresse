@@ -217,7 +217,7 @@ export const IMMUNITES_PAR_TYPE = {
     ],
   },
   artificiel: {
-    degats: ["poison", "psychique", "non létaux"],
+    degats: ["poison", "nécrotique", "radiant", "psychique", "non létaux"],
     etats: [
       "Mort immédiate",
       "Rappel à la vie",
