@@ -87,6 +87,7 @@ const BACKDROP_VIDEO = {
   quetes: "/assets/video/quetes-anime.mp4",
   stock: "/assets/video/arsenal-anime.mp4",
   cimetiere: "/assets/video/cimetiere-anime.mp4",
+  missions: "/assets/video/missions-anime.mp4",
 };
 // Fond animé des pages Connexion / Inscription (herse figée ouverte) ; l'image
 // coastal-castle.jpg reste affichée derrière tant que la vidéo n'est pas chargée.

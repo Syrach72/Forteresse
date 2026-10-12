@@ -552,6 +552,13 @@ video.interior-backdrop {
 .journal video.interior-backdrop {
   object-position: 38% 50%;
 }
+/* Missions : le logo du générateur est en haut à droite de la vidéo (de 77 % à 98 % de sa largeur). On
+   agrandit l'image à partir de la gauche : la partie droite sort du cadre, il ne reste que les ~70 % de gauche. */
+.missions video.interior-backdrop {
+  object-position: 0% 50%;
+  transform: scale(1.4);
+  transform-origin: 0% 50%;
+}
 .marche video.interior-backdrop,
 .castle-map video.interior-backdrop {
   transform: scale(1.18, 1.07);
@@ -6549,6 +6556,8 @@ a.merc-card:hover {
 /* Mobile, Journal : la zone visible du décor est centrée sur la main qui écrit (à environ 58 % de la largeur de la vidéo). */
 @media (max-width: 680px) {
   main.interior.journal > video.interior-backdrop { object-position: 61% center !important; }
+  /* Missions : bande de gauche/centre de la vidéo (l'escalier), le logo est à droite. */
+  main.interior.missions > video.interior-backdrop { object-position: 40% center !important; }
 }
 
 /* Badges F / D à côté de « Parade » sur les armes et boucliers équipés */
