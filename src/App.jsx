@@ -1090,6 +1090,8 @@ export function App() {
   const [conduitRows, setConduitRows] = useState([]);
   // Ressourcement (Druide du Cercle de la Terre) : utilisations par instance (mercenaire, numéro d'instance).
   const [ressourcementRows, setRessourcementRows] = useState([]);
+  // Usages limités par instance ou par round (Fougue, Second Souffle, Attaque Sournoise).
+  const [usagesLimites, setUsagesLimites] = useState([]);
   const [instanceNo, setInstanceNo] = useState(0);
   // Style de combat (compétence passive, choix à la vétérance 2) : même fonctionnement.
   const [stylesCombat, setStylesCombat] = useState(() => new Map());
@@ -2845,7 +2847,7 @@ export function App() {
   }
   // Missions : définitions communes, attributions de la session visibles par ce joueur, compteurs de progression.
   async function synchroniserMissions() {
-    const [m, a, c, eff, ej, tf, sc, cd, cp, ini, iniEtat, fsv, rsc] = await Promise.all([
+    const [m, a, c, eff, ej, tf, sc, cd, cp, ini, iniEtat, fsv, rsc, ul] = await Promise.all([
       supabase
         .from("mission")
         .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, recompense_effet_stat, recompense_effet_valeur, recompense_effet_quetes, ordre")
@@ -2865,8 +2867,10 @@ export function App() {
       supabase.from("initiative_etat").select("quete_id").limit(1),
       supabase.from("mercenaire_forme_sauvage").select("*"),
       supabase.from("mercenaire_ressourcement").select("mercenaire_id, instance_no"),
+      supabase.from("mercenaire_competence_limitee").select("mercenaire_id, competence_id, periode, numero"),
     ]);
     if (!rsc.error) setRessourcementRows(rsc.data || []);
+    if (!ul.error) setUsagesLimites(ul.data || []);
     if (!fsv.error) setFormesSauvages(new Map((fsv.data || []).map((x) => [x.mercenaire_id, x])));
     if (!ini.error) setInitiatives(new Map((ini.data || []).map((x) => [x.mercenaire_id, x])));
     if (!iniEtat.error) setInitiativeLancee((iniEtat.data || []).length > 0);
@@ -2942,6 +2946,19 @@ export function App() {
     if (error) return { error: error.message };
     await synchroniserPartage();
     notify(`Conduit Divin utilisé : ${data?.utilisees} / ${data?.total} cette instance.`);
+    return {};
+  }
+  // Fougue, Second Souffle (une fois par instance) et Attaque Sournoise (une fois par round) : le serveur dépense
+  // l'énergie, compte l'usage et, pour Second Souffle, rend les PV.
+  async function utiliserUsageLimite(mercenaireId, competenceId, montant) {
+    const { data, error } = await supabase.rpc("competence_limitee_utiliser", {
+      p_mercenaire: mercenaireId,
+      p_competence: competenceId,
+      p_montant: montant,
+    });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    if (data?.soin > 0) notify(`Second Souffle : +${data.soin} PV.`);
     return {};
   }
   // Ressourcement (Druide du Cercle de la Terre) : une utilisation par instance et par terrain favori possédé.
@@ -3210,6 +3227,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_compagnon" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_forme_sauvage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_ressourcement" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_competence_limitee" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "initiative" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "initiative_etat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
@@ -4408,6 +4426,8 @@ export function App() {
           onUtiliserConduitDivin={utiliserConduitDivin}
           ressourcement={ressourcementRows.filter((r) => r.instance_no === instanceNo)}
           onUtiliserRessourcement={utiliserRessourcement}
+          usagesLimites={usagesLimites.filter((r) => r.numero === (r.periode === "instance" ? instanceNo : roundCourant))}
+          onUtiliserUsageLimite={utiliserUsageLimite}
           onUtiliserCompetenceLimitee={utiliserCompetenceLimitee}
           onDepenserPoint={depenserPointCarac}
           onOuvrirArsenal={ouvrirArsenalDepuisSac}

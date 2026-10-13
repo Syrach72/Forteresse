@@ -153,6 +153,8 @@ export function Characters({
   onUtiliserConduitDivin = async () => ({}),
   ressourcement = [],
   onUtiliserRessourcement = async () => ({}),
+  usagesLimites = [],
+  onUtiliserUsageLimite = async () => ({}),
   onUtiliserCompetenceLimitee = async () => ({}),
   onClearError = () => {},
   onOuvrirArsenal = () => {},
@@ -179,6 +181,17 @@ export function Characters({
   const ressTotal = merc?.terrainsFavoris?.length ?? 0;
   const ressNb = ressourcement.filter((r) => r.mercenaire_id === merc?.id).length;
   const ressEpuise = ressNb >= ressTotal;
+  // Fougue (3 énergies) et Second Souffle (0 à 10 énergies, rend des PV) : une fois par instance ; Attaque Sournoise
+  // (1 énergie) : une fois par round. Le serveur compte les usages ; ici on grise et on explique.
+  const usageLimiteDe = (comp) => {
+    const n = comp?.nom?.trim().toLowerCase();
+    if (n === "fougue") return { periode: "instance", cout: 3 };
+    if (n === "second souffle") return { periode: "instance", cout: null };
+    if (n === "attaque sournoise") return { periode: "round", cout: 1 };
+    return null;
+  };
+  const usageLimiteFait = (comp) =>
+    !!merc && usagesLimites.some((r) => r.mercenaire_id === merc.id && r.competence_id === comp?.id);
   // Prêtre de Guerre (compétence active) : autant d'utilisations par quête et par mercenaire que sa Puissance.
   // Le décompte vit sur la ligne d'engagement dans la quête (il disparaît quand le mercenaire la quitte).
   const estPG = (comp) => !!comp?.nom && /pr[êe]tre de guerre/i.test(comp.nom);
@@ -1211,7 +1224,10 @@ export function Characters({
             <TableauCompetences
               cellules={competences.get(merc.id) || []}
               veterance={merc.veterance ?? 1}
-              griseCD={(comp) => (estCD(comp) && cdEpuise) || (estRessourcement(comp) && ressEpuise)}
+              griseCD={(comp) =>
+                (estCD(comp) && cdEpuise) ||
+                (estRessourcement(comp) && ressEpuise) ||
+                (!!usageLimiteDe(comp) && usageLimiteFait(comp))}
               onCell={(c) =>
                 setPopup({
                   type: "competence",
@@ -1670,6 +1686,17 @@ export function Characters({
                   : null
               }
               limiteQuete={limitePG}
+              usageLimite={
+                merc && popup.cellule?.type === "active" && usageLimiteDe(popup.cellule?.competence)
+                  ? {
+                      ...usageLimiteDe(popup.cellule.competence),
+                      fait: usageLimiteFait(popup.cellule.competence),
+                      onUtiliser: peutModifier
+                        ? (n) => onUtiliserUsageLimite(merc.id, popup.cellule.competence.id, n)
+                        : null,
+                    }
+                  : null
+              }
               ressourcement={
                 merc && popup.cellule?.type === "active" && estRessourcement(popup.cellule?.competence)
                   ? {

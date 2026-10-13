@@ -510,7 +510,7 @@ function coutEnergie(description) {
   const d = description || "";
   return /[eé]nerg/i.test(d) && !/co[uû]ts*:s*0s*[eé]nerg/i.test(d.replace(/[/?[a-z][^]]*]/gi, ""));
 }
-export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null, limiteQuete = null, formeSauvage = null, ressourcement = null }) {
+export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null, limiteQuete = null, formeSauvage = null, ressourcement = null, usageLimite = null }) {
   const { niveau, type, competence } = cellule;
   const atteinte = veterance >= niveau;
   const [choix, setChoix] = useState(null);
@@ -521,7 +521,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
   // La ligne « Dépenser de l’énergie » ne s’affiche que pour une compétence dont la description parle d’énergie
   // (les autres coûtent une Action en jeu, gérée à la table).
   const compteur =
-    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && (!!ressourcement || coutEnergie(competence.description));
+    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && !usageLimite && (!!ressourcement || coutEnergie(competence.description));
   // Conduit Divin (compétence CD) : utilisation sans énergie, après validation, limitée par instance.
   const [confirmerCd, setConfirmerCd] = useState(false);
   const [enCoursCd, setEnCoursCd] = useState(false);
@@ -532,6 +532,23 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
     setEnCoursCd(false);
     setConfirmerCd(false);
     setErreurCd(res?.error || "");
+  }
+  // Fougue / Second Souffle / Attaque Sournoise : usage limité par instance ou par round, avec valider / annuler.
+  const [choixUl, setChoixUl] = useState(null);
+  const [enCoursUl, setEnCoursUl] = useState(false);
+  const [erreurUl, setErreurUl] = useState("");
+  const [faitUl, setFaitUl] = useState(false);
+  async function utiliserUl() {
+    setEnCoursUl(true);
+    const res = await usageLimite.onUtiliser(usageLimite.cout ?? choixUl);
+    setEnCoursUl(false);
+    if (res?.error) {
+      setErreurUl(res.error);
+      return;
+    }
+    setErreurUl("");
+    setChoixUl(null);
+    setFaitUl(true);
   }
   // Restauration Arcanique : un seul palier utilisable, le plus haut atteint, et une fois par ouverture
   // de la fenêtre (le bouton reste grisé jusqu'à sa fermeture).
@@ -624,6 +641,71 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
           {erreurCd && (
             <p className="error" role="alert">
               {erreurCd}
+            </p>
+          )}
+        </div>
+      )}
+      {usageLimite && atteinte && (
+        <div className="energie-compteur">
+          <p className="energie-compteur-titre">
+            Usage limité{" "}
+            <span className="muted">
+              ({usageLimite.periode === "instance" ? "une fois par instance" : "une fois par round"}
+              {usageLimite.cout != null
+                ? ` · coût ${usageLimite.cout} énergie${usageLimite.cout > 1 ? "s" : ""}`
+                : " · énergie au choix"}
+              )
+            </span>
+          </p>
+          {usageLimite.fait || faitUl ? (
+            <p className="comp-detail-non">
+              {usageLimite.periode === "instance"
+                ? "Déjà utilisée pendant cette instance."
+                : "Déjà utilisée pendant ce round : elle redevient disponible au prochain Rd."}
+            </p>
+          ) : usageLimite.onUtiliser ? (
+            <>
+              {usageLimite.cout == null && (
+                <>
+                  <p className="muted">3 PV rendus, +1 PV par tranche de 2 énergies dépensées.</p>
+                  <div className="energie-compteur-chiffres" role="group" aria-label="Énergie à dépenser">
+                    {Array.from({ length: 11 }, (_, i) => i).map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        className="energie-chiffre"
+                        aria-pressed={choixUl === n}
+                        disabled={enCoursUl || (energie !== null && n > energie)}
+                        onClick={() => {
+                          setChoixUl(n);
+                          setErreurUl("");
+                        }}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {usageLimite.cout != null || choixUl !== null ? (
+                <p className="energie-compteur-valider">
+                  <button type="button" className="wood-button" disabled={enCoursUl} onClick={utiliserUl}>
+                    {usageLimite.cout != null
+                      ? `Valider : dépenser ${usageLimite.cout} énergie${usageLimite.cout > 1 ? "s" : ""}`
+                      : `Valider : dépenser ${choixUl} énergie${choixUl > 1 ? "s" : ""} → +${3 + Math.floor(choixUl / 2)} PV`}
+                  </button>{" "}
+                  {usageLimite.cout == null && (
+                    <button type="button" className="text-button" disabled={enCoursUl} onClick={() => setChoixUl(null)}>
+                      Annuler
+                    </button>
+                  )}
+                </p>
+              ) : null}
+            </>
+          ) : null}
+          {erreurUl && (
+            <p className="error" role="alert">
+              {erreurUl}
             </p>
           )}
         </div>
