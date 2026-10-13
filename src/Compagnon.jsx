@@ -196,6 +196,20 @@ export function OngletCompagnon({ merc, titreMerc, peutModifier, onMaj, enQuete 
     >
       {titreMerc}
       <h2>{LIBELLE_ROLE[ligne.role]}</h2>
+      {(ligne.pv_temp ?? 0) > 0 && (
+        <p>
+          <strong>PV temporaires : {ligne.pv_temp}</strong>{" "}
+          <span className="muted">(Ressourcement, jusqu’à la fin de la quête)</span>
+          {peutModifier && (
+            <>
+              {" "}
+              <button type="button" className="text-button" onClick={() => onMaj(merc.id, { pv_temp: ligne.pv_temp - 1 })}>
+                −1 PV temporaire
+              </button>
+            </>
+          )}
+        </p>
+      )}
       <FicheLue
         creatureId={ligne.creature_id}
         ligne={{ ...ligne, nom_onglet: LIBELLE_ROLE[ligne.role] }}

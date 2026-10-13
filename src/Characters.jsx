@@ -223,41 +223,31 @@ export function Characters({
   const [etatErreur, setEtatErreur] = useState("");
   const [popup, setPopup] = useState(null);
   const limitePG = popup?.type === "competence" && popup.cellule?.type === "active" ? limitePGPour(popup.cellule.competence) : null;
-  // Bénéficiaire des PV temporaires : le Druide lui-même ou un autre mercenaire engagé dans la même quête.
-  const [cibleRess, setCibleRess] = useState(null);
-  const ciblesRess = merc && ligneQuete
+  // Bénéficiaires de Soins et du Ressourcement : le lanceur lui-même, un mercenaire allié de la même quête, ou le
+  // compagnon / familier d'un de ces mercenaires (le sien compris).
+  const estSoins = (comp) => comp?.nom?.trim().toLowerCase() === "soins";
+  const [cleSoins, setCleSoins] = useState(null);
+  const autresEngages = merc && ligneQuete
     ? mercsEnQuete
         .filter((e) => e.quete_id === ligneQuete.quete_id && e.mercenaire_id !== merc.id)
         .map((e) => mercenaires.find((m) => m.id === e.mercenaire_id))
         .filter(Boolean)
-        .map((m) => ({ id: m.id, nom: m.nom }))
     : [];
-  const cibleRessEff = ciblesRess.some((c) => c.id === cibleRess) ? cibleRess : null;
-  useEffect(() => setCibleRess(null), [merc?.id, popup?.cellule?.competence?.id]);
-  // Soins : bénéficiaire = un mercenaire allié de la même quête (lanceur exclu), ou le compagnon / familier d'un
-  // mercenaire de cette quête (le sien compris).
-  const estSoins = (comp) => comp?.nom?.trim().toLowerCase() === "soins";
-  const [cleSoins, setCleSoins] = useState(null);
-  const engagesSoins = merc && ligneQuete
-    ? mercsEnQuete
-        .filter((e) => e.quete_id === ligneQuete.quete_id)
-        .map((e) => mercenaires.find((m) => m.id === e.mercenaire_id))
-        .filter(Boolean)
+  const ciblesSoins = merc
+    ? [
+        { cle: "m:" + merc.id, type: "mercenaire", id: merc.id, nom: `${merc.nom} (moi-même)` },
+        ...autresEngages.map((m) => ({ cle: "m:" + m.id, type: "mercenaire", id: m.id, nom: m.nom })),
+        ...[merc, ...autresEngages]
+          .filter((m) => m.compagnon)
+          .map((m) => ({
+            cle: "c:" + m.id,
+            type: "compagnon",
+            id: m.id,
+            nom: `${LIBELLE_ROLE[m.compagnon.role] || "Compagnon"} de ${m.id === merc.id ? "moi" : m.nom}`,
+          })),
+      ]
     : [];
-  const ciblesSoins = [
-    ...engagesSoins
-      .filter((m) => m.id !== merc?.id)
-      .map((m) => ({ cle: "m:" + m.id, type: "mercenaire", id: m.id, nom: m.nom })),
-    ...engagesSoins
-      .filter((m) => m.compagnon)
-      .map((m) => ({
-        cle: "c:" + m.id,
-        type: "compagnon",
-        id: m.id,
-        nom: `${LIBELLE_ROLE[m.compagnon.role] || "Compagnon"} de ${m.nom}`,
-      })),
-  ];
-  const cibleSoins = ciblesSoins.find((c) => c.cle === cleSoins) || null;
+  const cibleSoins = ciblesSoins.find((c) => c.cle === cleSoins) || ciblesSoins[0] || null;
   const multSoins = (merc?.veterance ?? 1) >= 10 ? 4 : (merc?.veterance ?? 1) >= 6 ? 3 : (merc?.veterance ?? 1) >= 3 ? 2 : 1;
   useEffect(() => setCleSoins(null), [merc?.id, popup?.cellule?.competence?.id]);
   // Retour depuis l'Arsenal (ouvert depuis ce sac à dos) : la fenêtre du sac se rouvre toute seule.
@@ -1721,7 +1711,7 @@ export function Characters({
                     : estSoins(popup.cellule?.competence) && popup.cellule?.type === "active"
                       ? (n) => onLancerSoins(merc.id, popup.cellule.competence.id, n, cibleSoins)
                     : estRessourcement(popup.cellule?.competence) && popup.cellule?.type === "active"
-                      ? (n) => onUtiliserRessourcement(merc.id, popup.cellule.competence.id, n, cibleRessEff)
+                      ? (n) => onUtiliserRessourcement(merc.id, popup.cellule.competence.id, n, cibleSoins)
                       : (n) => onDepenserEnergie(merc.id, n)
                   : null
               }
@@ -1741,7 +1731,7 @@ export function Characters({
                 merc && popup.cellule?.type === "active" && estSoins(popup.cellule?.competence)
                   ? {
                       cibles: ciblesSoins,
-                      cle: cleSoins,
+                      cle: cibleSoins?.cle ?? null,
                       nomCible: cibleSoins?.nom || null,
                       multiplicateur: multSoins,
                       onChoisirCible: setCleSoins,
@@ -1754,10 +1744,10 @@ export function Characters({
                       utilisees: ressNb,
                       total: ressTotal,
                       epuise: ressEpuise,
-                      cibles: ciblesRess,
-                      cible: cibleRessEff,
-                      nomCible: ciblesRess.find((c) => c.id === cibleRessEff)?.nom || merc.nom,
-                      onChoisirCible: setCibleRess,
+                      cibles: ciblesSoins,
+                      cle: cibleSoins?.cle ?? null,
+                      nomCible: cibleSoins?.nom || merc.nom,
+                      onChoisirCible: setCleSoins,
                     }
                   : null
               }

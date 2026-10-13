@@ -753,25 +753,19 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
               terrain favori)
             </span>
           </p>
-          {ressourcement.cibles?.length > 0 && !ressourcement.epuise && (
+          {ressourcement.cibles?.length > 1 && !ressourcement.epuise && (
             <div className="energie-compteur-cible">
-              <p className="muted">Bénéficiaire des PV temporaires :</p>
+              <p className="muted">
+                Bénéficiaire des PV temporaires (sans effet sur les morts-vivants et les artificiels) :
+              </p>
               <div className="humain-choix">
-                <button
-                  type="button"
-                  className="wood-button"
-                  aria-pressed={!ressourcement.cible}
-                  onClick={() => ressourcement.onChoisirCible(null)}
-                >
-                  Moi-même
-                </button>
                 {ressourcement.cibles.map((c) => (
                   <button
                     type="button"
-                    key={c.id}
+                    key={c.cle}
                     className="wood-button"
-                    aria-pressed={ressourcement.cible === c.id}
-                    onClick={() => ressourcement.onChoisirCible(c.id)}
+                    aria-pressed={ressourcement.cle === c.cle}
+                    onClick={() => ressourcement.onChoisirCible(c.cle)}
                   >
                     {c.nom}
                   </button>

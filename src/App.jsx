@@ -2978,12 +2978,13 @@ export function App() {
     return {};
   }
   // Ressourcement (Druide du Cercle de la Terre) : une utilisation par instance et par terrain favori possédé.
-  async function utiliserRessourcement(mercenaireId, competenceId, montant, cibleId = null) {
+  async function utiliserRessourcement(mercenaireId, competenceId, montant, cible = null) {
     const { data, error } = await supabase.rpc("ressourcement_utiliser", {
       p_mercenaire: mercenaireId,
       p_competence: competenceId,
       p_montant: montant,
-      p_cible: cibleId && cibleId !== mercenaireId ? cibleId : null,
+      p_cible_type: cible?.type || "mercenaire",
+      p_cible: cible?.id || null,
     });
     if (error) return { error: error.message };
     await synchroniserPartage();
