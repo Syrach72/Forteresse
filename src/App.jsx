@@ -9,7 +9,7 @@ import { Journal } from "./Journal.jsx";
 import { Missions, MissionPopup } from "./Missions.jsx";
 import { effetsTemp } from "./effets.js";
 import { gemmesPortees, limiteGemmes } from "./gemmes.js";
-import { ChoixType, CONFIG_ENNEMI_JURE, CONFIG_TERRAIN_FAVORI, CONFIG_STYLE_COMBAT, VETERANCE_RANG } from "./ChoixType.jsx";
+import { ChoixType, CONFIG_ENNEMI_JURE, CONFIG_TERRAIN_FAVORI, CONFIG_STYLE_COMBAT, VETERANCE_RANG, VETERANCE_RANG_DRUIDE_TERRE } from "./ChoixType.jsx";
 import { Regles } from "./Regles.jsx";
 import { EMPTY_TREASURY, EMPTY_TREASURY_LIVE, buildTreasury, entretienCompagnie } from "./treasury-data.js";
 import { Training } from "./Training.jsx";
@@ -1268,15 +1268,21 @@ export function App() {
               }
             : null;
         // Explorateur-né (Rôdeur) : mêmes règles (1 / vétérance 4 / vétérance 8).
-        const aTerrain = (competencesMerc.get(m.id) || []).some(
-          (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "explorateur-né",
-        );
+        // Druide « Cercle de la Terre » : terrain favori sans compétence, aux vétérances 1 / 4 / 6 / 8 / 10.
+        const normTf = (t) => (t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+        const druideTerre = normTf(m.classe) === "druide" && normTf(m.sousClasse) === "cercle de la terre";
+        const rangsTf = druideTerre ? VETERANCE_RANG_DRUIDE_TERRE : VETERANCE_RANG;
+        const aTerrain =
+          druideTerre ||
+          (competencesMerc.get(m.id) || []).some(
+            (c) => c.type === "passive" && c.veterance <= vet && c.competence?.nom?.trim().toLowerCase() === "explorateur-né",
+          );
         const choisisTf = terrainsFavoris.get(m.id) || [];
-        const placesTf = aTerrain ? VETERANCE_RANG.filter((v) => vet >= v).length : 0;
+        const placesTf = aTerrain ? rangsTf.filter((v) => vet >= v).length : 0;
         const champsTf =
           aTerrain || choisisTf.length
             ? {
-                terrainsFavoris: choisisTf.filter((e) => vet >= VETERANCE_RANG[e.rang - 1]),
+                terrainsFavoris: choisisTf.filter((e) => vet >= rangsTf[e.rang - 1]),
                 terrainFavoriAChoisir: Math.max(0, placesTf - choisisTf.length),
                 aTerrainFavori: aTerrain,
               }

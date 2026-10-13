@@ -6,6 +6,8 @@ import { Modal } from "./Modal.jsx";
 // vétérance 8. Un type ne se choisit qu'une fois par mercenaire ; les choix restent valables si le mercenaire est
 // renvoyé (tant qu'il a la vétérance requise). Informations de fiche : aucun calcul n'en dépend.
 export const VETERANCE_RANG = [1, 4, 8];
+// Druide « Cercle de la Terre » : un terrain favori au recrutement, puis aux vétérances 4, 6, 8 et 10.
+export const VETERANCE_RANG_DRUIDE_TERRE = [1, 4, 6, 8, 10];
 export const majuscule = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 export const CONFIG_ENNEMI_JURE = {
