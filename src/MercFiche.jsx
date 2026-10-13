@@ -504,6 +504,12 @@ const PALIERS_RESTAURATION = [
   [7, 4],
   [10, 5],
 ];
+// Une compétence active coûte de l'énergie si sa description en parle, avec ou sans accent (« Energie » ou
+// « Énergie »), sauf si son coût affiché est 0 (« Coût : 0 Energie » : rien à dépenser).
+function coutEnergie(description) {
+  const d = description || "";
+  return /[eé]nerg/i.test(d) && !/co[uû]ts*:s*0s*[eé]nerg/i.test(d.replace(/[/?[a-z][^]]*]/gi, ""));
+}
 export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null, limiteQuete = null, formeSauvage = null, ressourcement = null }) {
   const { niveau, type, competence } = cellule;
   const atteinte = veterance >= niveau;
@@ -515,7 +521,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
   // La ligne « Dépenser de l’énergie » ne s’affiche que pour une compétence dont la description parle d’énergie
   // (les autres coûtent une Action en jeu, gérée à la table).
   const compteur =
-    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && (!!ressourcement || /énerg/i.test(competence.description || ""));
+    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && (!!ressourcement || coutEnergie(competence.description));
   // Conduit Divin (compétence CD) : utilisation sans énergie, après validation, limitée par instance.
   const [confirmerCd, setConfirmerCd] = useState(false);
   const [enCoursCd, setEnCoursCd] = useState(false);
