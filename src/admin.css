@@ -163,6 +163,10 @@
 .admin-form-grid .field {
   min-width: 0;
 }
+/* Champ à options longues : sa propre ligne, pour ne chevaucher aucun voisin. */
+.admin-form-grid .field-pleine-largeur {
+  grid-column: 1 / -1;
+}
 .admin-form-grid .input-wrap select {
   width: 100%;
   min-width: 0;

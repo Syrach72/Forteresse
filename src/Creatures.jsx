@@ -428,7 +428,7 @@ export function CreaturesSection({ kit }) {
             </select>
           </div>
         </div>
-        <div className="field">
+        <div className="field field-pleine-largeur">
           <label
             htmlFor="cr-compagnon"
             title="Rend cette fiche lisible par les joueurs : Rôdeurs Maîtres des Bêtes (faucon, chien, panthère) et Incantateurs (familier) pourront la choisir à la vétérance 3."
