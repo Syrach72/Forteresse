@@ -31,15 +31,15 @@ export function ChoixFormeSauvage({ merc, mental, onChoisir, onClose }) {
   useEffect(() => {
     supabase
       .from("creature")
-      .select("id, nom, compagnon")
-      .like("compagnon", "forme_sauvage_%")
+      .select("id, nom, forme_sauvage")
+      .not("forme_sauvage", "is", null)
       .order("nom")
       .then(({ data, error }) => {
         if (error) setErreur(error.message);
         setCreatures(data || []);
       });
   }, []);
-  const palierDe = (c) => Number(String(c.compagnon).split("_").pop());
+  const palierDe = (c) => Number(c.forme_sauvage);
   const betes = BETES_FORME_SAUVAGE.filter(([palier]) => palier <= vet).flatMap(([palier, noms]) =>
     noms.map((nom) => ({
       nom,

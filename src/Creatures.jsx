@@ -137,6 +137,7 @@ export function CreaturesSection({ kit }) {
       sous_type: c.sous_type || "",
       taille: c.taille || "",
       compagnon: c.compagnon || "",
+      forme_sauvage: c.forme_sauvage ? String(c.forme_sauvage) : "",
       sante_max: String(c.sante_max),
       energie_max: String(c.energie_max),
       vitesse: String(c.vitesse),
@@ -261,6 +262,7 @@ export function CreaturesSection({ kit }) {
         sous_type: form.sous_type.trim() || null,
         taille: form.taille || null,
         compagnon: form.compagnon || null,
+        forme_sauvage: form.forme_sauvage ? Number(form.forme_sauvage) : null,
         sante_max: entier(form.sante_max, 1, 9999),
         energie_max: entier(form.energie_max, 0, 999),
         vitesse: entier(form.vitesse, 0, 99),
@@ -442,9 +444,22 @@ export function CreaturesSection({ kit }) {
               <option value="chien">Chien</option>
               <option value="panthere">Panthère</option>
               <option value="familier">Familier</option>
-              <option value="forme_sauvage_2">Forme sauvage · vétérance 2</option>
-              <option value="forme_sauvage_5">Forme sauvage · vétérance 5</option>
-              <option value="forme_sauvage_8">Forme sauvage · vétérance 8</option>
+            </select>
+          </div>
+        </div>
+        <div className="field field-pleine-largeur">
+          <label
+            htmlFor="cr-forme-sauvage"
+            title="Indépendant du compagnon : la même fiche peut servir de compagnon à un joueur et de forme sauvage à un Druide. Vétérance minimale du Druide pour choisir cette bête."
+          >
+            Forme sauvage (Druide)
+          </label>
+          <div className="input-wrap">
+            <select id="cr-forme-sauvage" value={form.forme_sauvage} onChange={champ("forme_sauvage")}>
+              <option value="">Non</option>
+              <option value="2">Vétérance 2</option>
+              <option value="5">Vétérance 5</option>
+              <option value="8">Vétérance 8</option>
             </select>
           </div>
         </div>
