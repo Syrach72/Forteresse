@@ -222,21 +222,6 @@ export function Characters({
   );
   const [etatErreur, setEtatErreur] = useState("");
   const [popup, setPopup] = useState(null);
-  // Salut du mercenaire au moment où il vient d'être recruté (le portrait s'incline brièvement vers l'avant).
-  const recruteCourant = merc ? recrutes.includes(merc.id) : false;
-  const precedentRecrute = useRef({ id: null, recrute: false });
-  const [salut, setSalut] = useState(false);
-  useEffect(() => {
-    const avant = precedentRecrute.current;
-    precedentRecrute.current = { id: merc?.id ?? null, recrute: recruteCourant };
-    // Seulement si c'est le même mercenaire qui passe de « non recruté » à « recruté » sous nos yeux.
-    if (merc && avant.id === merc.id && !avant.recrute && recruteCourant) {
-      setSalut(true);
-      const t = setTimeout(() => setSalut(false), 1500);
-      return () => clearTimeout(t);
-    }
-    return undefined;
-  }, [recruteCourant, merc?.id]);
   const limitePG = popup?.type === "competence" && popup.cellule?.type === "active" ? limitePGPour(popup.cellule.competence) : null;
   // Bénéficiaires de Soins et du Ressourcement : le lanceur lui-même, un mercenaire allié de la même quête, ou le
   // compagnon / familier d'un de ces mercenaires (le sien compris).
@@ -569,7 +554,7 @@ export function Characters({
             <div className="merc-titre-rubrique">{titreMerc}</div>
             <div className="merc-colonne-gauche">
               <div className="merc-portrait-cadre">
-                <span className={`merc-portrait merc-portrait-grand${salut ? " merc-salut" : ""}`}>
+                <span className="merc-portrait merc-portrait-grand">
                   {merc.portrait ? (
                     <img src={merc.portrait} alt={`Portrait de ${merc.nom}`} />
                   ) : (
