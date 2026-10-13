@@ -2961,6 +2961,22 @@ export function App() {
     if (data?.soin > 0) notify(`Second Souffle : +${data.soin} PV.`);
     return {};
   }
+  // Soins : le serveur dépense l'énergie et rend les PV à un mercenaire allié de la quête, ou à un compagnon /
+  // familier (cible : { type: "mercenaire" | "compagnon", id }).
+  async function lancerSoins(mercenaireId, competenceId, montant, cible) {
+    if (!cible) return { error: "Choisissez qui vous soignez." };
+    const { data, error } = await supabase.rpc("soins_lancer", {
+      p_mercenaire: mercenaireId,
+      p_competence: competenceId,
+      p_montant: montant,
+      p_cible_type: cible.type,
+      p_cible: cible.id,
+    });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    notify(`Soins : +${data?.soin} PV pour ${data?.cible}.`);
+    return {};
+  }
   // Ressourcement (Druide du Cercle de la Terre) : une utilisation par instance et par terrain favori possédé.
   async function utiliserRessourcement(mercenaireId, competenceId, montant, cibleId = null) {
     const { data, error } = await supabase.rpc("ressourcement_utiliser", {
@@ -4427,6 +4443,7 @@ export function App() {
           onUtiliserConduitDivin={utiliserConduitDivin}
           ressourcement={ressourcementRows.filter((r) => r.instance_no === instanceNo)}
           onUtiliserRessourcement={utiliserRessourcement}
+          onLancerSoins={lancerSoins}
           usagesLimites={usagesLimites.filter((r) => r.numero === (r.periode === "instance" ? instanceNo : roundCourant))}
           onUtiliserUsageLimite={utiliserUsageLimite}
           onUtiliserCompetenceLimitee={utiliserCompetenceLimitee}

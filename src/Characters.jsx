@@ -155,6 +155,7 @@ export function Characters({
   onUtiliserRessourcement = async () => ({}),
   usagesLimites = [],
   onUtiliserUsageLimite = async () => ({}),
+  onLancerSoins = async () => ({}),
   onUtiliserCompetenceLimitee = async () => ({}),
   onClearError = () => {},
   onOuvrirArsenal = () => {},
@@ -233,6 +234,32 @@ export function Characters({
     : [];
   const cibleRessEff = ciblesRess.some((c) => c.id === cibleRess) ? cibleRess : null;
   useEffect(() => setCibleRess(null), [merc?.id, popup?.cellule?.competence?.id]);
+  // Soins : bénéficiaire = un mercenaire allié de la même quête (lanceur exclu), ou le compagnon / familier d'un
+  // mercenaire de cette quête (le sien compris).
+  const estSoins = (comp) => comp?.nom?.trim().toLowerCase() === "soins";
+  const [cleSoins, setCleSoins] = useState(null);
+  const engagesSoins = merc && ligneQuete
+    ? mercsEnQuete
+        .filter((e) => e.quete_id === ligneQuete.quete_id)
+        .map((e) => mercenaires.find((m) => m.id === e.mercenaire_id))
+        .filter(Boolean)
+    : [];
+  const ciblesSoins = [
+    ...engagesSoins
+      .filter((m) => m.id !== merc?.id)
+      .map((m) => ({ cle: "m:" + m.id, type: "mercenaire", id: m.id, nom: m.nom })),
+    ...engagesSoins
+      .filter((m) => m.compagnon)
+      .map((m) => ({
+        cle: "c:" + m.id,
+        type: "compagnon",
+        id: m.id,
+        nom: `${LIBELLE_ROLE[m.compagnon.role] || "Compagnon"} de ${m.nom}`,
+      })),
+  ];
+  const cibleSoins = ciblesSoins.find((c) => c.cle === cleSoins) || null;
+  const multSoins = (merc?.veterance ?? 1) >= 10 ? 4 : (merc?.veterance ?? 1) >= 6 ? 3 : (merc?.veterance ?? 1) >= 3 ? 2 : 1;
+  useEffect(() => setCleSoins(null), [merc?.id, popup?.cellule?.competence?.id]);
   // Retour depuis l'Arsenal (ouvert depuis ce sac à dos) : la fenêtre du sac se rouvre toute seule.
   useEffect(() => {
     if (sacARouvrir && merc && sacARouvrir === merc.id) {
@@ -1691,6 +1718,8 @@ export function Characters({
                 merc && peutModifier
                   ? limitePG
                     ? (n) => onUtiliserCompetenceLimitee(merc.id, popup.cellule.competence.id, n)
+                    : estSoins(popup.cellule?.competence) && popup.cellule?.type === "active"
+                      ? (n) => onLancerSoins(merc.id, popup.cellule.competence.id, n, cibleSoins)
                     : estRessourcement(popup.cellule?.competence) && popup.cellule?.type === "active"
                       ? (n) => onUtiliserRessourcement(merc.id, popup.cellule.competence.id, n, cibleRessEff)
                       : (n) => onDepenserEnergie(merc.id, n)
@@ -1705,6 +1734,17 @@ export function Characters({
                       onUtiliser: peutModifier
                         ? (n) => onUtiliserUsageLimite(merc.id, popup.cellule.competence.id, n)
                         : null,
+                    }
+                  : null
+              }
+              soins={
+                merc && popup.cellule?.type === "active" && estSoins(popup.cellule?.competence)
+                  ? {
+                      cibles: ciblesSoins,
+                      cle: cleSoins,
+                      nomCible: cibleSoins?.nom || null,
+                      multiplicateur: multSoins,
+                      onChoisirCible: setCleSoins,
                     }
                   : null
               }

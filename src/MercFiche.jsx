@@ -510,7 +510,7 @@ function coutEnergie(description) {
   const d = description || "";
   return /[eé]nerg/i.test(d) && !/co[uû]ts*:s*0s*[eé]nerg/i.test(d.replace(/[/?[a-z][^]]*]/gi, ""));
 }
-export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null, limiteQuete = null, formeSauvage = null, ressourcement = null, usageLimite = null }) {
+export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null, limiteQuete = null, formeSauvage = null, ressourcement = null, usageLimite = null, soins = null }) {
   const { niveau, type, competence } = cellule;
   const atteinte = veterance >= niveau;
   const [choix, setChoix] = useState(null);
@@ -521,7 +521,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
   // La ligne « Dépenser de l’énergie » ne s’affiche que pour une compétence dont la description parle d’énergie
   // (les autres coûtent une Action en jeu, gérée à la table).
   const compteur =
-    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && !usageLimite && (!!ressourcement || coutEnergie(competence.description));
+    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && !usageLimite && !(soins && soins.cibles.length === 0) && (!!ressourcement || coutEnergie(competence.description));
   // Conduit Divin (compétence CD) : utilisation sans énergie, après validation, limitée par instance.
   const [confirmerCd, setConfirmerCd] = useState(false);
   const [enCoursCd, setEnCoursCd] = useState(false);
@@ -642,6 +642,39 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
             <p className="error" role="alert">
               {erreurCd}
             </p>
+          )}
+        </div>
+      )}
+      {soins && atteinte && (
+        <div className="energie-compteur">
+          <p className="energie-compteur-titre">
+            Soins{" "}
+            <span className="muted">
+              (chaque énergie rend {soins.multiplicateur} PV ; sans effet sur les morts-vivants et les artificiels)
+            </span>
+          </p>
+          {soins.cibles.length === 0 ? (
+            <p className="comp-detail-non">
+              Aucun allié à soigner : le lanceur doit être engagé dans une quête avec d’autres mercenaires, ou avec un
+              compagnon ou un familier.
+            </p>
+          ) : (
+            <div className="energie-compteur-cible">
+              <p className="muted">Qui soignez-vous ?</p>
+              <div className="humain-choix">
+                {soins.cibles.map((c) => (
+                  <button
+                    type="button"
+                    key={c.cle}
+                    className="wood-button"
+                    aria-pressed={soins.cle === c.cle}
+                    onClick={() => soins.onChoisirCible(c.cle)}
+                  >
+                    {c.nom}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -839,7 +872,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
           {choix !== null && (
             <p className="energie-compteur-valider">
               <button type="button" className="wood-button" disabled={enCours} onClick={valider}>
-                Valider : dépenser {choix} énergie{choix > 1 ? "s" : ""}{ressourcement ? ` → ${choix} PV temporaire${choix > 1 ? "s" : ""} pour ${ressourcement.nomCible}` : ""}
+                Valider : dépenser {choix} énergie{choix > 1 ? "s" : ""}{ressourcement ? ` → ${choix} PV temporaire${choix > 1 ? "s" : ""} pour ${ressourcement.nomCible}` : ""}{soins ? ` → +${choix * soins.multiplicateur} PV${soins.nomCible ? " pour " + soins.nomCible : ""}` : ""}
               </button>{" "}
               <button type="button" className="text-button" disabled={enCours} onClick={() => setChoix(null)}>
                 Annuler
