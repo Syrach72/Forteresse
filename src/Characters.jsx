@@ -222,6 +222,17 @@ export function Characters({
   const [etatErreur, setEtatErreur] = useState("");
   const [popup, setPopup] = useState(null);
   const limitePG = popup?.type === "competence" && popup.cellule?.type === "active" ? limitePGPour(popup.cellule.competence) : null;
+  // Bénéficiaire des PV temporaires : le Druide lui-même ou un autre mercenaire engagé dans la même quête.
+  const [cibleRess, setCibleRess] = useState(null);
+  const ciblesRess = merc && ligneQuete
+    ? mercsEnQuete
+        .filter((e) => e.quete_id === ligneQuete.quete_id && e.mercenaire_id !== merc.id)
+        .map((e) => mercenaires.find((m) => m.id === e.mercenaire_id))
+        .filter(Boolean)
+        .map((m) => ({ id: m.id, nom: m.nom }))
+    : [];
+  const cibleRessEff = ciblesRess.some((c) => c.id === cibleRess) ? cibleRess : null;
+  useEffect(() => setCibleRess(null), [merc?.id, popup?.cellule?.competence?.id]);
   // Retour depuis l'Arsenal (ouvert depuis ce sac à dos) : la fenêtre du sac se rouvre toute seule.
   useEffect(() => {
     if (sacARouvrir && merc && sacARouvrir === merc.id) {
@@ -1681,7 +1692,7 @@ export function Characters({
                   ? limitePG
                     ? (n) => onUtiliserCompetenceLimitee(merc.id, popup.cellule.competence.id, n)
                     : estRessourcement(popup.cellule?.competence) && popup.cellule?.type === "active"
-                      ? (n) => onUtiliserRessourcement(merc.id, popup.cellule.competence.id, n)
+                      ? (n) => onUtiliserRessourcement(merc.id, popup.cellule.competence.id, n, cibleRessEff)
                       : (n) => onDepenserEnergie(merc.id, n)
                   : null
               }
@@ -1703,6 +1714,10 @@ export function Characters({
                       utilisees: ressNb,
                       total: ressTotal,
                       epuise: ressEpuise,
+                      cibles: ciblesRess,
+                      cible: cibleRessEff,
+                      nomCible: ciblesRess.find((c) => c.id === cibleRessEff)?.nom || merc.nom,
+                      onChoisirCible: setCibleRess,
                     }
                   : null
               }

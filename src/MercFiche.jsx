@@ -720,6 +720,32 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
               terrain favori)
             </span>
           </p>
+          {ressourcement.cibles?.length > 0 && !ressourcement.epuise && (
+            <div className="energie-compteur-cible">
+              <p className="muted">Bénéficiaire des PV temporaires :</p>
+              <div className="humain-choix">
+                <button
+                  type="button"
+                  className="wood-button"
+                  aria-pressed={!ressourcement.cible}
+                  onClick={() => ressourcement.onChoisirCible(null)}
+                >
+                  Moi-même
+                </button>
+                {ressourcement.cibles.map((c) => (
+                  <button
+                    type="button"
+                    key={c.id}
+                    className="wood-button"
+                    aria-pressed={ressourcement.cible === c.id}
+                    onClick={() => ressourcement.onChoisirCible(c.id)}
+                  >
+                    {c.nom}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {ressourcement.total === 0 ? (
             <p className="comp-detail-non">Aucun terrain favori choisi : aucune utilisation disponible.</p>
           ) : ressourcement.epuise ? (
@@ -813,7 +839,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
           {choix !== null && (
             <p className="energie-compteur-valider">
               <button type="button" className="wood-button" disabled={enCours} onClick={valider}>
-                Valider : dépenser {choix} énergie{choix > 1 ? "s" : ""}{ressourcement ? ` → ${choix} PV temporaire${choix > 1 ? "s" : ""}` : ""}
+                Valider : dépenser {choix} énergie{choix > 1 ? "s" : ""}{ressourcement ? ` → ${choix} PV temporaire${choix > 1 ? "s" : ""} pour ${ressourcement.nomCible}` : ""}
               </button>{" "}
               <button type="button" className="text-button" disabled={enCours} onClick={() => setChoix(null)}>
                 Annuler

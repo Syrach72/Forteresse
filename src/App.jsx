@@ -2962,15 +2962,16 @@ export function App() {
     return {};
   }
   // Ressourcement (Druide du Cercle de la Terre) : une utilisation par instance et par terrain favori possédé.
-  async function utiliserRessourcement(mercenaireId, competenceId, montant) {
+  async function utiliserRessourcement(mercenaireId, competenceId, montant, cibleId = null) {
     const { data, error } = await supabase.rpc("ressourcement_utiliser", {
       p_mercenaire: mercenaireId,
       p_competence: competenceId,
       p_montant: montant,
+      p_cible: cibleId && cibleId !== mercenaireId ? cibleId : null,
     });
     if (error) return { error: error.message };
     await synchroniserPartage();
-    notify(`Ressourcement : +${data?.pv_temp} PV temporaires (${data?.utilisees} / ${data?.total} cette instance).`);
+    notify(`Ressourcement : +${data?.pv_temp} PV temporaires pour ${data?.cible} (${data?.utilisees} / ${data?.total} cette instance).`);
     return {};
   }
   // Compétence active limitée par quête (Prêtre de Guerre : autant d'utilisations que la Puissance) : le serveur
