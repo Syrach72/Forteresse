@@ -4642,6 +4642,43 @@ a.merc-card:hover {
 img[src$="#miroir"] {
   transform: scaleX(-1);
 }
+/* Salut du mercenaire fraîchement recruté : le portrait se redresse, s'incline vers l'avant autour de sa base,
+   puis revient avec un petit rebond ; un halo doré l'accompagne. Sans effet si l'utilisateur réduit les animations. */
+@keyframes merc-salut {
+  0% {
+    transform: perspective(700px) rotateX(0deg) translateY(0) scale(1);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  }
+  16% {
+    transform: perspective(700px) rotateX(5deg) translateY(-4px) scale(1.015);
+    box-shadow: 0 0 22px rgba(214, 170, 70, 0.75);
+  }
+  50% {
+    transform: perspective(700px) rotateX(-22deg) translateY(3px) scale(0.985);
+    box-shadow: 0 0 26px rgba(214, 170, 70, 0.85);
+  }
+  64% {
+    transform: perspective(700px) rotateX(-22deg) translateY(3px) scale(0.985);
+    box-shadow: 0 0 22px rgba(214, 170, 70, 0.7);
+  }
+  84% {
+    transform: perspective(700px) rotateX(3deg) translateY(-2px) scale(1.008);
+    box-shadow: 0 0 14px rgba(214, 170, 70, 0.4);
+  }
+  100% {
+    transform: perspective(700px) rotateX(0deg) translateY(0) scale(1);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  }
+}
+.merc-portrait.merc-salut {
+  transform-origin: 50% 100%;
+  animation: merc-salut 1.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .merc-portrait.merc-salut {
+    animation: none;
+  }
+}
 .merc-portrait img {
   display: block;
   width: 100%;
