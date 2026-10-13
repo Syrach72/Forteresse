@@ -1930,9 +1930,17 @@ function PortraitCropper({
   function stopDrag() {
     dragRef.current = null;
   }
+  // Le zoom se fait autour du centre du cadre : l'image reste centrée au lieu de partir dans un coin.
   function changeZoom(z) {
+    const k = z / zoom;
     setZoom(z);
-    if (natural) setOffset((prev) => clampCropOffset(viewW, viewH, prev, natural, z));
+    if (natural) {
+      const cx = viewW / 2;
+      const cy = viewH / 2;
+      setOffset((prev) =>
+        clampCropOffset(viewW, viewH, { x: cx - (cx - prev.x) * k, y: cy - (cy - prev.y) * k }, natural, z),
+      );
+    }
   }
   function confirm() {
     if (!natural) return;
