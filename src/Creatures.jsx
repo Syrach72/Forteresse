@@ -442,9 +442,9 @@ export function CreaturesSection({ kit }) {
               <option value="chien">Chien</option>
               <option value="panthere">Panthère</option>
               <option value="familier">Familier</option>
-              <option value="forme_sauvage_2">Forme sauvage (Druide, vétérance 2)</option>
-              <option value="forme_sauvage_5">Forme sauvage (Druide, vétérance 5)</option>
-              <option value="forme_sauvage_8">Forme sauvage (Druide, vétérance 8)</option>
+              <option value="forme_sauvage_2">Forme sauvage · vétérance 2</option>
+              <option value="forme_sauvage_5">Forme sauvage · vétérance 5</option>
+              <option value="forme_sauvage_8">Forme sauvage · vétérance 8</option>
             </select>
           </div>
         </div>

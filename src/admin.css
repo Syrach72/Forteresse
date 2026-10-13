@@ -159,6 +159,15 @@
 .admin-form-grid .field-narrow {
   max-width: 100px;
 }
+/* Une liste déroulante aux options longues reste dans sa cellule (sinon elle déborde sur la voisine). */
+.admin-form-grid .field {
+  min-width: 0;
+}
+.admin-form-grid .input-wrap select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
 /* Bloc « Fabrication » : cellules ajustées à leur contenu (2 chiffres pour la
    vétérance, 5 caractères pour la protection, 1 lettre pour le type). */
 .admin-form-grid-compact {
