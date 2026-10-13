@@ -1088,6 +1088,8 @@ export function App() {
   const [etatsSup, setEtatsSup] = useState(() => new Map());
   // Conduit Divin : utilisations par instance (mercenaire, compétence, numéro d'instance) et instance en cours.
   const [conduitRows, setConduitRows] = useState([]);
+  // Ressourcement (Druide du Cercle de la Terre) : utilisations par instance (mercenaire, numéro d'instance).
+  const [ressourcementRows, setRessourcementRows] = useState([]);
   const [instanceNo, setInstanceNo] = useState(0);
   // Style de combat (compétence passive, choix à la vétérance 2) : même fonctionnement.
   const [stylesCombat, setStylesCombat] = useState(() => new Map());
@@ -2843,7 +2845,7 @@ export function App() {
   }
   // Missions : définitions communes, attributions de la session visibles par ce joueur, compteurs de progression.
   async function synchroniserMissions() {
-    const [m, a, c, eff, ej, tf, sc, cd, cp, ini, iniEtat, fsv] = await Promise.all([
+    const [m, a, c, eff, ej, tf, sc, cd, cp, ini, iniEtat, fsv, rsc] = await Promise.all([
       supabase
         .from("mission")
         .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, recompense_effet_stat, recompense_effet_valeur, recompense_effet_quetes, ordre")
@@ -2862,7 +2864,9 @@ export function App() {
       supabase.from("initiative").select("mercenaire_id, de, velocite, total, departage, rang").eq("kind", "mercenaire"),
       supabase.from("initiative_etat").select("quete_id").limit(1),
       supabase.from("mercenaire_forme_sauvage").select("*"),
+      supabase.from("mercenaire_ressourcement").select("mercenaire_id, instance_no"),
     ]);
+    if (!rsc.error) setRessourcementRows(rsc.data || []);
     if (!fsv.error) setFormesSauvages(new Map((fsv.data || []).map((x) => [x.mercenaire_id, x])));
     if (!ini.error) setInitiatives(new Map((ini.data || []).map((x) => [x.mercenaire_id, x])));
     if (!iniEtat.error) setInitiativeLancee((iniEtat.data || []).length > 0);
@@ -2938,6 +2942,14 @@ export function App() {
     if (error) return { error: error.message };
     await synchroniserPartage();
     notify(`Conduit Divin utilisé : ${data?.utilisees} / ${data?.total} cette instance.`);
+    return {};
+  }
+  // Ressourcement (Druide du Cercle de la Terre) : une utilisation par instance et par terrain favori possédé.
+  async function utiliserRessourcement(mercenaireId, competenceId) {
+    const { data, error } = await supabase.rpc("ressourcement_utiliser", { p_mercenaire: mercenaireId, p_competence: competenceId });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    notify(`Ressourcement utilisé : ${data?.utilisees} / ${data?.total} cette instance.`);
     return {};
   }
   // Compétence active limitée par quête (Prêtre de Guerre : autant d'utilisations que la Puissance) : le serveur
@@ -3193,6 +3205,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_conduit_divin" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_compagnon" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_forme_sauvage" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_ressourcement" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "initiative" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "initiative_etat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
@@ -4389,6 +4402,8 @@ export function App() {
           onMajFormeSauvage={majFormeSauvage}
           conduitDivin={conduitRows.filter((r) => r.instance_no === instanceNo)}
           onUtiliserConduitDivin={utiliserConduitDivin}
+          ressourcement={ressourcementRows.filter((r) => r.instance_no === instanceNo)}
+          onUtiliserRessourcement={utiliserRessourcement}
           onUtiliserCompetenceLimitee={utiliserCompetenceLimitee}
           onDepenserPoint={depenserPointCarac}
           onOuvrirArsenal={ouvrirArsenalDepuisSac}

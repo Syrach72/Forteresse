@@ -151,6 +151,8 @@ export function Characters({
   onMajFormeSauvage = async () => {},
   conduitDivin = [],
   onUtiliserConduitDivin = async () => ({}),
+  ressourcement = [],
+  onUtiliserRessourcement = async () => ({}),
   onUtiliserCompetenceLimitee = async () => ({}),
   onClearError = () => {},
   onOuvrirArsenal = () => {},
@@ -172,6 +174,11 @@ export function Characters({
   const cdTotal = merc ? 1 + ((merc.veterance ?? 1) >= 4 ? 1 : 0) + ((merc.veterance ?? 1) >= 8 ? 1 : 0) : 0;
   const cdNb = conduitDivin.filter((r) => r.mercenaire_id === merc?.id).length;
   const cdEpuise = cdNb >= cdTotal;
+  // Ressourcement (Druide du Cercle de la Terre) : une utilisation par instance et par terrain favori différent.
+  const estRessourcement = (comp) => !!comp?.nom && /ressourcement/i.test(comp.nom);
+  const ressTotal = merc?.terrainsFavoris?.length ?? 0;
+  const ressNb = ressourcement.filter((r) => r.mercenaire_id === merc?.id).length;
+  const ressEpuise = ressNb >= ressTotal;
   // Prêtre de Guerre (compétence active) : autant d'utilisations par quête et par mercenaire que sa Puissance.
   // Le décompte vit sur la ligne d'engagement dans la quête (il disparaît quand le mercenaire la quitte).
   const estPG = (comp) => !!comp?.nom && /pr[êe]tre de guerre/i.test(comp.nom);
@@ -1204,7 +1211,7 @@ export function Characters({
             <TableauCompetences
               cellules={competences.get(merc.id) || []}
               veterance={merc.veterance ?? 1}
-              griseCD={(comp) => estCD(comp) && cdEpuise}
+              griseCD={(comp) => (estCD(comp) && cdEpuise) || (estRessourcement(comp) && ressEpuise)}
               onCell={(c) =>
                 setPopup({
                   type: "competence",
@@ -1661,6 +1668,18 @@ export function Characters({
                   : null
               }
               limiteQuete={limitePG}
+              ressourcement={
+                merc && popup.cellule?.type === "active" && estRessourcement(popup.cellule?.competence)
+                  ? {
+                      utilisees: ressNb,
+                      total: ressTotal,
+                      epuise: ressEpuise,
+                      onUtiliser: peutModifier
+                        ? () => onUtiliserRessourcement(merc.id, popup.cellule.competence.id)
+                        : null,
+                    }
+                  : null
+              }
               formeSauvage={
                 merc && popup.cellule?.type === "active" && /(forme|force) sauvage/i.test(popup.cellule?.competence?.nom || "")
                   ? {

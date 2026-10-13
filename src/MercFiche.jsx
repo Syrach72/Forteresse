@@ -504,7 +504,7 @@ const PALIERS_RESTAURATION = [
   [7, 4],
   [10, 5],
 ];
-export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null, limiteQuete = null, formeSauvage = null }) {
+export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null, limiteQuete = null, formeSauvage = null, ressourcement = null }) {
   const { niveau, type, competence } = cellule;
   const atteinte = veterance >= niveau;
   const [choix, setChoix] = useState(null);
@@ -515,7 +515,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
   // La ligne « Dépenser de l’énergie » ne s’affiche que pour une compétence dont la description parle d’énergie
   // (les autres coûtent une Action en jeu, gérée à la table).
   const compteur =
-    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && /énerg/i.test(competence.description || "");
+    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && !ressourcement && /énerg/i.test(competence.description || "");
   // Conduit Divin (compétence CD) : utilisation sans énergie, après validation, limitée par instance.
   const [confirmerCd, setConfirmerCd] = useState(false);
   const [enCoursCd, setEnCoursCd] = useState(false);
@@ -526,6 +526,17 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
     setEnCoursCd(false);
     setConfirmerCd(false);
     setErreurCd(res?.error || "");
+  }
+  // Ressourcement (Druide du Cercle de la Terre) : utilisation sans énergie, après validation.
+  const [confirmerRess, setConfirmerRess] = useState(false);
+  const [enCoursRess, setEnCoursRess] = useState(false);
+  const [erreurRess, setErreurRess] = useState("");
+  async function utiliserRess() {
+    setEnCoursRess(true);
+    const res = await ressourcement.onUtiliser();
+    setEnCoursRess(false);
+    setConfirmerRess(false);
+    setErreurRess(res?.error || "");
   }
   // Restauration Arcanique : un seul palier utilisable, le plus haut atteint, et une fois par ouverture
   // de la fenêtre (le bouton reste grisé jusqu'à sa fermeture).
@@ -618,6 +629,43 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
           {erreurCd && (
             <p className="error" role="alert">
               {erreurCd}
+            </p>
+          )}
+        </div>
+      )}
+      {ressourcement && atteinte && (
+        <div className="energie-compteur">
+          <p className="energie-compteur-titre">
+            Ressourcement{" "}
+            <span className="muted">
+              (il vous reste {Math.max(0, ressourcement.total - ressourcement.utilisees)} utilisation
+              {ressourcement.total - ressourcement.utilisees > 1 ? "s" : ""} sur {ressourcement.total} cette instance : une par
+              terrain favori)
+            </span>
+          </p>
+          {ressourcement.total === 0 ? (
+            <p className="comp-detail-non">Aucun terrain favori choisi : aucune utilisation disponible.</p>
+          ) : ressourcement.epuise ? (
+            <p className="comp-detail-non">Toutes les utilisations de Ressourcement de cette instance sont dépensées.</p>
+          ) : ressourcement.onUtiliser ? (
+            confirmerRess ? (
+              <p className="energie-compteur-valider">
+                <button type="button" className="wood-button" disabled={enCoursRess} onClick={utiliserRess}>
+                  Valider : utiliser le Ressourcement
+                </button>{" "}
+                <button type="button" className="text-button" disabled={enCoursRess} onClick={() => setConfirmerRess(false)}>
+                  Annuler
+                </button>
+              </p>
+            ) : (
+              <button type="button" className="wood-button" onClick={() => setConfirmerRess(true)}>
+                Utiliser le Ressourcement
+              </button>
+            )
+          ) : null}
+          {erreurRess && (
+            <p className="error" role="alert">
+              {erreurRess}
             </p>
           )}
         </div>
