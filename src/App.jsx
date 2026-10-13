@@ -1082,6 +1082,8 @@ export function App() {
   const initiativeDejaOuverte = useRef(new Set());
   // Compagnon animal (Rôdeur Maître des Bêtes) / familier (Incantateur) : id du mercenaire -> ligne mercenaire_compagnon.
   const [compagnons, setCompagnons] = useState(() => new Map());
+  // Forme sauvage (Druide) : id du mercenaire -> ligne mercenaire_forme_sauvage (active ou non).
+  const [formesSauvages, setFormesSauvages] = useState(() => new Map());
   // États supplémentaires (2e et 3e) des mercenaires et compagnons : Map « mercenaire:<id> » / « compagnon:<id> » -> liste.
   const [etatsSup, setEtatsSup] = useState(() => new Map());
   // Conduit Divin : utilisations par instance (mercenaire, compétence, numéro d'instance) et instance en cours.
@@ -1307,18 +1309,28 @@ export function App() {
                 : null;
         const ligneCp = compagnons.get(m.id) || null;
         const champsCp = roleCp || ligneCp ? { compagnonRole: ligneCp?.role ?? roleCp, compagnon: ligneCp, compagnonPossible: !!roleCp } : null;
-        if (!eff && !champsEj && !champsTf && !champsSc && !champsCp) return base;
+        // Forme sauvage (Druide) : l'onglet n'existe que pendant la transformation ; les utilisations de l'instance
+        // en cours restent affichées même une fois la forme quittée.
+        const ligneFs = formesSauvages.get(m.id) || null;
+        const champsFs = ligneFs
+          ? {
+              formeSauvage: ligneFs.actif ? ligneFs : null,
+              formeSauvageUsages: ligneFs.instance_no === instanceNo ? ligneFs.usages : 0,
+            }
+          : null;
+        if (!eff && !champsEj && !champsTf && !champsSc && !champsCp && !champsFs) return base;
         const actif = mercsEnQuete.some((e) => e.mercenaire_id === m.id);
         return {
           ...base,
           ...(champsCp || {}),
+          ...(champsFs || {}),
           ...(eff ? { temp: effetsTemp(eff, actif), effetsReserve: eff, effetsActifs: actif } : {}),
           ...(champsEj || {}),
           ...(champsTf || {}),
           ...(champsSc || {}),
         };
       }),
-    [mercenairesBase, competencesMerc, effetsMerc, mercsEnQuete, ennemisJures, terrainsFavoris, stylesCombat, compagnons],
+    [mercenairesBase, competencesMerc, effetsMerc, mercsEnQuete, ennemisJures, terrainsFavoris, stylesCombat, compagnons, formesSauvages, instanceNo],
   );
   // Effectif embauché (Collecte des Ressources), partagé comme l'arsenal.
   const [employesRoster, setEmployesRoster] = useState([]);
@@ -2825,7 +2837,7 @@ export function App() {
   }
   // Missions : définitions communes, attributions de la session visibles par ce joueur, compteurs de progression.
   async function synchroniserMissions() {
-    const [m, a, c, eff, ej, tf, sc, cd, cp, ini, iniEtat] = await Promise.all([
+    const [m, a, c, eff, ej, tf, sc, cd, cp, ini, iniEtat, fsv] = await Promise.all([
       supabase
         .from("mission")
         .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, recompense_effet_stat, recompense_effet_valeur, recompense_effet_quetes, ordre")
@@ -2843,7 +2855,9 @@ export function App() {
       supabase.from("mercenaire_compagnon").select("*"),
       supabase.from("initiative").select("mercenaire_id, de, velocite, total, departage, rang").eq("kind", "mercenaire"),
       supabase.from("initiative_etat").select("quete_id").limit(1),
+      supabase.from("mercenaire_forme_sauvage").select("*"),
     ]);
+    if (!fsv.error) setFormesSauvages(new Map((fsv.data || []).map((x) => [x.mercenaire_id, x])));
     if (!ini.error) setInitiatives(new Map((ini.data || []).map((x) => [x.mercenaire_id, x])));
     if (!iniEtat.error) setInitiativeLancee((iniEtat.data || []).length > 0);
     if (!cp.error) setCompagnons(new Map((cp.data || []).map((x) => [x.mercenaire_id, x])));
@@ -2963,6 +2977,33 @@ export function App() {
       notify(error.message);
       await synchroniserPartage();
     }
+  }
+  // Forme sauvage (Druide) : prendre la forme d'une bête (le serveur dépense 2 énergies et compte l'utilisation),
+  // la quitter, et tenir à jour la fiche de la bête (à 0 PV le serveur met fin à la forme).
+  async function activerFormeSauvage(mercenaireId, competenceId, creatureId) {
+    const { error } = await supabase.rpc("forme_sauvage_activer", {
+      p_mercenaire: mercenaireId,
+      p_competence: competenceId,
+      p_creature: creatureId,
+    });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    return {};
+  }
+  async function terminerFormeSauvage(mercenaireId) {
+    const { error } = await supabase.rpc("forme_sauvage_terminer", { p_mercenaire: mercenaireId });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    return {};
+  }
+  async function majFormeSauvage(mercenaireId, patch) {
+    setFormesSauvages((prev) => {
+      const l = prev.get(mercenaireId);
+      return l ? new Map(prev).set(mercenaireId, { ...l, ...patch }) : prev;
+    });
+    const { error } = await supabase.rpc("forme_sauvage_etat_maj", { p_mercenaire: mercenaireId, p_patch: patch });
+    if (error) notify(error.message);
+    await synchroniserPartage();
   }
   // PV temporaires : le joueur (ou le MJ) en retire quand le mercenaire encaisse des dégâts.
   async function depenserPvTemp(mercenaireId, montant) {
@@ -3145,6 +3186,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_style_combat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_conduit_divin" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_compagnon" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_forme_sauvage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "initiative" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "initiative_etat" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
@@ -4336,6 +4378,9 @@ export function App() {
           initiativeRangs={initRangs}
           onChoisirCompagnon={choisirCompagnon}
           onMajCompagnon={majCompagnon}
+          onActiverFormeSauvage={activerFormeSauvage}
+          onTerminerFormeSauvage={terminerFormeSauvage}
+          onMajFormeSauvage={majFormeSauvage}
           conduitDivin={conduitRows.filter((r) => r.instance_no === instanceNo)}
           onUtiliserConduitDivin={utiliserConduitDivin}
           onUtiliserCompetenceLimitee={utiliserCompetenceLimitee}

@@ -45,7 +45,7 @@ function useFicheCreature(creatureId) {
   return donnees;
 }
 
-function FicheLue({ creatureId, ligne, sauver, apercu = false, reactionActive = false, reactionPeutRendre = false, reactionDesactivee = false, etatsSup = [], sauverSup = null }) {
+export function FicheLue({ creatureId, ligne, sauver, apercu = false, reactionActive = false, reactionPeutRendre = false, reactionDesactivee = false, etatsSup = [], sauverSup = null, mentalForce = null }) {
   const d = useFicheCreature(creatureId);
   const [fenetre, setFenetre] = useState(null);
   if (d === undefined) return <p>Chargement de la fiche…</p>;
@@ -68,6 +68,7 @@ function FicheLue({ creatureId, ligne, sauver, apercu = false, reactionActive = 
         reactionDesactivee={reactionDesactivee}
         etatsSup={etatsSup}
         sauverSup={sauverSup}
+        mentalForce={mentalForce}
       />
       {fenetre && (
         <Modal title={fenetre.titre} onClose={() => setFenetre(null)}>

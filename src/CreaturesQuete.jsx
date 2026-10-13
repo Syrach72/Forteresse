@@ -271,9 +271,11 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
 }
 
 // `sansNomOnglet` : fiche d'un compagnon/familier (l'onglet porte un nom fixe, pas de champ de renommage).
-export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false, sansNomOnglet = false, rang = null, reactionActive = false, reactionPeutRendre = false, reactionAnneau = false, reactionDesactivee = false, etatsSup = [], sauverSup = null }) {
+export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauver, ouvrirIcone, apercu = false, sansNomOnglet = false, rang = null, reactionActive = false, reactionPeutRendre = false, reactionAnneau = false, reactionDesactivee = false, etatsSup = [], sauverSup = null, mentalForce = null }) {
   const santeMax = fiche.sante_max;
-  const energieMax = fiche.energie_max;
+  // Forme sauvage : le Mental de la bête est remplacé par celui du Druide (Énergie max = 2 × Mental).
+  const mental = mentalForce ?? fiche.mental;
+  const energieMax = mentalForce != null ? 2 * mentalForce : fiche.energie_max;
   const sante = ligne.sante_actuelle ?? santeMax;
   const energie = ligne.energie_actuelle ?? energieMax;
   const [santeSaisie, setSanteSaisie] = useState(String(sante));
@@ -447,7 +449,7 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
         </div>
         <div className="stat-line">
           <span>Mental</span>
-          <strong>{fiche.mental}</strong>
+          <strong>{mental}</strong>
         </div>
         {listeTexte("Vulnérabilités", fiche.vulnerabilites)}
         {listeTexte("Résistances", fiche.resistances)}

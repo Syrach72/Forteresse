@@ -13,6 +13,7 @@ import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meill
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
 import { listeEtats } from "./etats.js";
 import { ChoixCompagnon, OngletCompagnon, LIBELLE_ROLE } from "./Compagnon.jsx";
+import { ChoixFormeSauvage, OngletFormeSauvage } from "./FormeSauvage.jsx";
 import { BoutonReaction } from "./BoutonReaction.jsx";
 import { AlertePoint, PointCaracModal } from "./PointsCarac.jsx";
 // Caractéristiques affichées par une icône plutôt que par leur nom (le nom reste en texte alternatif).
@@ -145,6 +146,9 @@ export function Characters({
   initiativeRangs = new Map(),
   onChoisirCompagnon = async () => ({}),
   onMajCompagnon = async () => {},
+  onActiverFormeSauvage = async () => ({}),
+  onTerminerFormeSauvage = async () => ({}),
+  onMajFormeSauvage = async () => {},
   conduitDivin = [],
   onUtiliserConduitDivin = async () => ({}),
   onUtiliserCompetenceLimitee = async () => ({}),
@@ -259,6 +263,12 @@ export function Characters({
   const [onglet, setOnglet] = useState("general");
   // Fenêtre de choix du compagnon animal / familier.
   const [choixCompagnon, setChoixCompagnon] = useState(false);
+  // Fenêtre de choix de la bête (Forme Sauvage du Druide) : id de la compétence en cours d'utilisation.
+  const [choixFormeSauvage, setChoixFormeSauvage] = useState(null);
+  // L'onglet « Forme sauvage » disparaît avec la transformation : retour à la rubrique Général.
+  useEffect(() => {
+    if (onglet === "forme-sauvage" && !merc?.formeSauvage) setOnglet("general");
+  }, [onglet, merc?.formeSauvage]);
   // Nom du mercenaire (avec le nom du joueur), répété en haut de chaque rubrique de la fiche : le
   // laurier de vétérance est incrusté dans l'anneau (médaillon rond, centré par flexbox) à gauche
   // du nom ; sous le nom, une fine lame s'étire automatiquement pour dépasser un peu le texte.
@@ -474,6 +484,8 @@ export function Characters({
               ["competences", "Compétences"],
               // Compagnon animal / familier validé : un onglet de plus, à la suite des rubriques.
               ...(merc.compagnon ? [[merc.compagnon.role, LIBELLE_ROLE[merc.compagnon.role]]] : []),
+              // Forme sauvage (Druide) : seulement pendant la transformation.
+              ...(merc.formeSauvage ? [["forme-sauvage", "Forme sauvage"]] : []),
             ].map(([id, libelle]) => (
               <button
                 key={id}
@@ -1103,6 +1115,31 @@ export function Characters({
           {merc.compagnon && onglet === merc.compagnon.role && (
             <OngletCompagnon merc={merc} titreMerc={titreMerc} peutModifier={peutModifier} onMaj={onMajCompagnon} enQuete={enQuete} estAdmin={estAdmin} etatsSup={etatsSup.get("compagnon:" + merc.id) || []} onMajEtatsSup={onMajEtatsSup} />
           )}
+          {merc.formeSauvage && onglet === "forme-sauvage" && (
+            <OngletFormeSauvage
+              merc={merc}
+              mental={(merc.mental ?? 0) + (merc.bonusMental ?? 0) + (tmp.mental ?? 0)}
+              titreMerc={titreMerc}
+              peutModifier={peutModifier}
+              onMaj={onMajFormeSauvage}
+              onTerminer={onTerminerFormeSauvage}
+            />
+          )}
+          {choixFormeSauvage && merc && !merc.formeSauvage && (
+            <ChoixFormeSauvage
+              merc={merc}
+              mental={(merc.mental ?? 0) + (merc.bonusMental ?? 0) + (tmp.mental ?? 0)}
+              onChoisir={async (creatureId) => {
+                const r = await onActiverFormeSauvage(merc.id, choixFormeSauvage, creatureId);
+                if (!r?.error) {
+                  setPopup(null);
+                  setOnglet("forme-sauvage");
+                }
+                return r;
+              }}
+              onClose={() => setChoixFormeSauvage(null)}
+            />
+          )}
           {choixCompagnon && merc.compagnonPossible && !merc.compagnon && (
             <ChoixCompagnon merc={merc} onChoisir={onChoisirCompagnon} onClose={() => setChoixCompagnon(false)} />
           )}
@@ -1624,6 +1661,16 @@ export function Characters({
                   : null
               }
               limiteQuete={limitePG}
+              formeSauvage={
+                merc && popup.cellule?.type === "active" && /(forme|force) sauvage/i.test(popup.cellule?.competence?.nom || "")
+                  ? {
+                      utilisees: merc.formeSauvageUsages ?? 0,
+                      total: 2,
+                      actif: !!merc.formeSauvage,
+                      onPrendre: peutModifier ? () => setChoixFormeSauvage(popup.cellule.competence.id) : null,
+                    }
+                  : null
+              }
               onRestaurer={merc && peutModifier ? () => onRestaurerEnergie(merc.id) : null}
               cd={
                 merc && popup.cellule?.type === "active" && estCD(popup.cellule?.competence)

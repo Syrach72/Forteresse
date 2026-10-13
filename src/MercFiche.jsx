@@ -504,7 +504,7 @@ const PALIERS_RESTAURATION = [
   [7, 4],
   [10, 5],
 ];
-export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null, limiteQuete = null }) {
+export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null, limiteQuete = null, formeSauvage = null }) {
   const { niveau, type, competence } = cellule;
   const atteinte = veterance >= niveau;
   const [choix, setChoix] = useState(null);
@@ -515,7 +515,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
   // La ligne « Dépenser de l’énergie » ne s’affiche que pour une compétence dont la description parle d’énergie
   // (les autres coûtent une Action en jeu, gérée à la table).
   const compteur =
-    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && /énerg/i.test(competence.description || "");
+    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && /énerg/i.test(competence.description || "");
   // Conduit Divin (compétence CD) : utilisation sans énergie, après validation, limitée par instance.
   const [confirmerCd, setConfirmerCd] = useState(false);
   const [enCoursCd, setEnCoursCd] = useState(false);
@@ -620,6 +620,25 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
               {erreurCd}
             </p>
           )}
+        </div>
+      )}
+      {formeSauvage && atteinte && (
+        <div className="energie-compteur">
+          <p className="energie-compteur-titre">
+            Forme sauvage{" "}
+            <span className="muted">
+              (utilisations cette instance : {formeSauvage.utilisees} / {formeSauvage.total} · coût 2 Énergies)
+            </span>
+          </p>
+          {formeSauvage.actif ? (
+            <p className="comp-detail-ok">Déjà sous forme sauvage : voir l’onglet « Forme sauvage ».</p>
+          ) : formeSauvage.utilisees >= formeSauvage.total ? (
+            <p className="comp-detail-non">Les utilisations de cette instance sont dépensées.</p>
+          ) : formeSauvage.onPrendre ? (
+            <button type="button" className="wood-button" onClick={formeSauvage.onPrendre}>
+              Choisir la bête et prendre la forme
+            </button>
+          ) : null}
         </div>
       )}
       {restauration && !!onRestaurer && (
