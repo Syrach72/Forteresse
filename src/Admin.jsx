@@ -1838,9 +1838,11 @@ function clampCropOffset(viewW, viewH, offset, natural, zoom) {
   const dispH = natural.h * scale;
   const minX = viewW - dispW;
   const minY = viewH - dispH;
+  // Zoom arrière (image plus petite que le cadre) : l'image se place librement dans le cadre, le reste est
+  // comblé par le fond sombre du portrait ; zoom avant : elle ne peut pas laisser de bande vide.
   return {
-    x: Math.min(0, Math.max(minX, offset.x)),
-    y: Math.min(0, Math.max(minY, offset.y)),
+    x: Math.min(Math.max(0, minX), Math.max(Math.min(0, minX), offset.x)),
+    y: Math.min(Math.max(0, minY), Math.max(Math.min(0, minY), offset.y)),
   };
 }
 
@@ -1939,9 +1941,11 @@ function PortraitCropper({
     canvas.height = outputH;
     const factor = outputW / viewW;
     const scale = cropBaseScale(viewW, viewH, natural.w, natural.h) * zoom * factor;
-    canvas
-      .getContext("2d")
-      .drawImage(imgRef.current, offset.x * factor, offset.y * factor, natural.w * scale, natural.h * scale);
+    const ctx = canvas.getContext("2d");
+    // Fond du cadre (visible seulement quand l'image est dézoomée sous la taille du cadre).
+    ctx.fillStyle = "#150f09";
+    ctx.fillRect(0, 0, outputW, outputH);
+    ctx.drawImage(imgRef.current, offset.x * factor, offset.y * factor, natural.w * scale, natural.h * scale);
     canvas.toBlob((blob) => blob && onConfirm(blob), "image/jpeg", 0.9);
   }
 
@@ -1995,14 +1999,14 @@ function PortraitCropper({
         <input
           id="crop-zoom"
           type="range"
-          min="1"
+          min="0.4"
           max="3"
           step="0.01"
           value={zoom}
           onChange={(e) => changeZoom(Number(e.target.value))}
         />
       </div>
-      <p className="crop-hint">Glissez l’image pour la repositionner.</p>
+      <p className="crop-hint">Glissez l’image pour la repositionner. Zoom vers la gauche : l’image rétrécit (moins de gros plan).</p>
       <div className="admin-form-actions">
         <button type="button" className="primary" onClick={confirm} disabled={!natural}>
           Valider le recadrage
