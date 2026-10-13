@@ -44,7 +44,12 @@ export function ChoixFormeSauvage({ merc, mental, onChoisir, onClose }) {
     noms.map((nom) => ({
       nom,
       palier,
-      creature: (creatures || []).find((c) => norm(c.nom) === norm(nom) && palierDe(c) <= vet) || null,
+      // Le nom d'une fiche est unique : une bête déjà prise comme compagnon (Panthère) s'écrit par exemple
+      // « Panthère (forme sauvage) » ; on accepte le nom exact ou le nom suivi d'un complément.
+      creature:
+        (creatures || []).find(
+          (c) => (norm(c.nom) === norm(nom) || norm(c.nom).startsWith(norm(nom) + " ")) && palierDe(c) <= vet,
+        ) || null,
     })),
   );
   const choisie = betes.find((b) => b.nom === nomChoisi) || null;
