@@ -12,6 +12,7 @@ import { gemmesPortees, limiteGemmes } from "./gemmes.js";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
 import { listeEtats } from "./etats.js";
+import { ETATS_JEU } from "./creatures-data.js";
 import { ChoixCompagnon, OngletCompagnon, LIBELLE_ROLE } from "./Compagnon.jsx";
 import { ChoixFormeSauvage, OngletFormeSauvage } from "./FormeSauvage.jsx";
 import { BoutonReaction } from "./BoutonReaction.jsx";
@@ -156,6 +157,7 @@ export function Characters({
   usagesLimites = [],
   onUtiliserUsageLimite = async () => ({}),
   onLancerSoins = async () => ({}),
+  onRestaurationPartielle = async () => ({}),
   onUtiliserCompetenceLimitee = async () => ({}),
   onClearError = () => {},
   onOuvrirArsenal = () => {},
@@ -250,6 +252,18 @@ export function Characters({
   const cibleSoins = ciblesSoins.find((c) => c.cle === cleSoins) || ciblesSoins[0] || null;
   const multSoins = (merc?.veterance ?? 1) >= 10 ? 4 : (merc?.veterance ?? 1) >= 6 ? 3 : (merc?.veterance ?? 1) >= 3 ? 2 : 1;
   useEffect(() => setCleSoins(null), [merc?.id, popup?.cellule?.competence?.id]);
+  // Restauration Partielle : met fin à Aveuglé, Assourdi, Paralysé ou Empoisonné sur la cible choisie.
+  const estRestaurationPartielle = (comp) => comp?.nom?.trim().toLowerCase() === "restauration partielle";
+  const ETATS_RETIRABLES = ["aveugle", "assourdi", "paralyse", "empoisonne"];
+  const etatsRetirablesDe = (c) => {
+    if (!c) return [];
+    const m = mercenaires.find((x) => x.id === c.id);
+    const premier = c.type === "compagnon" ? m?.compagnon?.etat : m?.etat;
+    const sup = etatsSup.get((c.type === "compagnon" ? "compagnon:" : "mercenaire:") + c.id) || [];
+    return [premier, ...sup.map((s) => s.etat)]
+      .filter((e, i, l) => ETATS_RETIRABLES.includes(e) && l.indexOf(e) === i)
+      .map((e) => ({ id: e, nom: ETATS_JEU.find((x) => x.id === e)?.nom || e }));
+  };
   // Retour depuis l'Arsenal (ouvert depuis ce sac à dos) : la fenêtre du sac se rouvre toute seule.
   useEffect(() => {
     if (sacARouvrir && merc && sacARouvrir === merc.id) {
@@ -1723,6 +1737,20 @@ export function Characters({
                       fait: usageLimiteFait(popup.cellule.competence),
                       onUtiliser: peutModifier
                         ? (n) => onUtiliserUsageLimite(merc.id, popup.cellule.competence.id, n)
+                        : null,
+                    }
+                  : null
+              }
+              restaurationPartielle={
+                merc && popup.cellule?.type === "active" && estRestaurationPartielle(popup.cellule?.competence)
+                  ? {
+                      cibles: ciblesSoins,
+                      cle: cibleSoins?.cle ?? null,
+                      nomCible: cibleSoins?.nom || null,
+                      etats: etatsRetirablesDe(cibleSoins),
+                      onChoisirCible: setCleSoins,
+                      onLancer: peutModifier
+                        ? (etat) => onRestaurationPartielle(merc.id, popup.cellule.competence.id, cibleSoins, etat)
                         : null,
                     }
                   : null

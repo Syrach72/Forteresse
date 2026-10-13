@@ -2979,6 +2979,21 @@ export function App() {
     notify(`Soins : +${data?.soin} PV pour ${data?.cible}.`);
     return {};
   }
+  // Restauration Partielle : le serveur dépense 2 énergies et met fin à l'état choisi de la cible.
+  async function lancerRestaurationPartielle(mercenaireId, competenceId, cible, etat) {
+    if (!cible) return { error: "Choisissez qui vous touchez." };
+    const { data, error } = await supabase.rpc("restauration_partielle_lancer", {
+      p_mercenaire: mercenaireId,
+      p_competence: competenceId,
+      p_cible_type: cible.type,
+      p_cible: cible.id,
+      p_etat: etat,
+    });
+    if (error) return { error: error.message };
+    await synchroniserPartage();
+    notify(`Restauration Partielle : l'état prend fin pour ${data?.cible}.`);
+    return {};
+  }
   // Ressourcement (Druide du Cercle de la Terre) : une utilisation par instance et par terrain favori possédé.
   async function utiliserRessourcement(mercenaireId, competenceId, montant, cible = null) {
     const { data, error } = await supabase.rpc("ressourcement_utiliser", {
@@ -4447,6 +4462,7 @@ export function App() {
           ressourcement={ressourcementRows.filter((r) => r.instance_no === instanceNo)}
           onUtiliserRessourcement={utiliserRessourcement}
           onLancerSoins={lancerSoins}
+          onRestaurationPartielle={lancerRestaurationPartielle}
           usagesLimites={usagesLimites.filter((r) => r.numero === (r.periode === "instance" ? instanceNo : roundCourant))}
           onUtiliserUsageLimite={utiliserUsageLimite}
           onUtiliserCompetenceLimitee={utiliserCompetenceLimitee}

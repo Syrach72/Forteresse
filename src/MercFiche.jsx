@@ -510,7 +510,7 @@ function coutEnergie(description) {
   const d = description || "";
   return /[eé]nerg/i.test(d) && !/co[uû]ts*:s*0s*[eé]nerg/i.test(d.replace(/[/?[a-z][^]]*]/gi, ""));
 }
-export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null, limiteQuete = null, formeSauvage = null, ressourcement = null, usageLimite = null, soins = null }) {
+export function DetailCompetence({ cellule, veterance, energie = null, onDepenser = null, onRestaurer = null, choix: choixMerc = null, cd = null, limiteQuete = null, formeSauvage = null, ressourcement = null, usageLimite = null, soins = null, restaurationPartielle = null }) {
   const { niveau, type, competence } = cellule;
   const atteinte = veterance >= niveau;
   const [choix, setChoix] = useState(null);
@@ -521,7 +521,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
   // La ligne « Dépenser de l’énergie » ne s’affiche que pour une compétence dont la description parle d’énergie
   // (les autres coûtent une Action en jeu, gérée à la table).
   const compteur =
-    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && !usageLimite && !(soins && soins.cibles.length === 0) && (!!ressourcement || coutEnergie(competence.description));
+    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && !usageLimite && !restaurationPartielle && !(soins && soins.cibles.length === 0) && (!!ressourcement || coutEnergie(competence.description));
   // Conduit Divin (compétence CD) : utilisation sans énergie, après validation, limitée par instance.
   const [confirmerCd, setConfirmerCd] = useState(false);
   const [enCoursCd, setEnCoursCd] = useState(false);
@@ -549,6 +549,21 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
     setErreurUl("");
     setChoixUl(null);
     setFaitUl(true);
+  }
+  // Restauration Partielle : cible, état à retirer, puis Valider / Annuler (2 énergies).
+  const [etatRp, setEtatRp] = useState(null);
+  const [enCoursRp, setEnCoursRp] = useState(false);
+  const [erreurRp, setErreurRp] = useState("");
+  async function lancerRp() {
+    setEnCoursRp(true);
+    const res = await restaurationPartielle.onLancer(etatRp);
+    setEnCoursRp(false);
+    if (res?.error) {
+      setErreurRp(res.error);
+      return;
+    }
+    setErreurRp("");
+    setEtatRp(null);
   }
   // Restauration Arcanique : un seul palier utilisable, le plus haut atteint, et une fois par ouverture
   // de la fenêtre (le bouton reste grisé jusqu'à sa fermeture).
@@ -641,6 +656,77 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
           {erreurCd && (
             <p className="error" role="alert">
               {erreurCd}
+            </p>
+          )}
+        </div>
+      )}
+      {restaurationPartielle && atteinte && (
+        <div className="energie-compteur">
+          <p className="energie-compteur-titre">
+            Restauration Partielle{" "}
+            <span className="muted">
+              (coût 2 énergies ; met fin à Aveuglé, Assourdi, Paralysé ou Empoisonné ; la Maladie se retire à la main)
+            </span>
+          </p>
+          {restaurationPartielle.cibles.length === 0 ? (
+            <p className="comp-detail-non">Le lanceur doit être engagé dans une quête pour toucher une créature.</p>
+          ) : (
+            <>
+              <p className="muted">Qui touchez-vous ?</p>
+              <div className="humain-choix">
+                {restaurationPartielle.cibles.map((c) => (
+                  <button
+                    type="button"
+                    key={c.cle}
+                    className="wood-button"
+                    aria-pressed={restaurationPartielle.cle === c.cle}
+                    onClick={() => {
+                      restaurationPartielle.onChoisirCible(c.cle);
+                      setEtatRp(null);
+                    }}
+                  >
+                    {c.nom}
+                  </button>
+                ))}
+              </div>
+              {restaurationPartielle.etats.length === 0 ? (
+                <p className="comp-detail-non">
+                  {restaurationPartielle.nomCible || "Cette créature"} n’a aucun de ces états : rien à retirer.
+                </p>
+              ) : (
+                <>
+                  <p className="muted">État à retirer :</p>
+                  <div className="humain-choix">
+                    {restaurationPartielle.etats.map((e) => (
+                      <button
+                        type="button"
+                        key={e.id}
+                        className="wood-button"
+                        aria-pressed={etatRp === e.id}
+                        disabled={enCoursRp}
+                        onClick={() => setEtatRp(e.id)}
+                      >
+                        {e.nom}
+                      </button>
+                    ))}
+                  </div>
+                  {etatRp && restaurationPartielle.onLancer && (
+                    <p className="energie-compteur-valider">
+                      <button type="button" className="wood-button" disabled={enCoursRp} onClick={lancerRp}>
+                        Valider : dépenser 2 énergies → retirer {restaurationPartielle.etats.find((e) => e.id === etatRp)?.nom}
+                      </button>{" "}
+                      <button type="button" className="text-button" disabled={enCoursRp} onClick={() => setEtatRp(null)}>
+                        Annuler
+                      </button>
+                    </p>
+                  )}
+                </>
+              )}
+            </>
+          )}
+          {erreurRp && (
+            <p className="error" role="alert">
+              {erreurRp}
             </p>
           )}
         </div>
