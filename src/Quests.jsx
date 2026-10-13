@@ -456,6 +456,21 @@ export function Quests({
               </div>
             );
           })()}
+          {/* Fiche du mercenaire : réservée à son recruteur (et au MJ), comme partout dans le site. */}
+          {(mesIds.has(choixMerc.mercId) || estAdmin) && personne(choixMerc.mercId) && (
+            <p>
+              <a
+                className="wood-button"
+                href={`#personnages/${(personne(choixMerc.mercId).role || "")
+                  .normalize("NFD")
+                  .replace(/[̀-ͯ]/g, "")
+                  .trim()
+                  .toLowerCase()}/${choixMerc.mercId}`}
+              >
+                Ouvrir la fiche
+              </a>
+            </p>
+          )}
           {mesIds.has(choixMerc.mercId) || estAdmin ? (
             <button
               type="button"
