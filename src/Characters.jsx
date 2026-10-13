@@ -1667,7 +1667,14 @@ export function Characters({
                       utilisees: merc.formeSauvageUsages ?? 0,
                       total: 2,
                       actif: !!merc.formeSauvage,
-                      onPrendre: peutModifier ? () => setChoixFormeSauvage(popup.cellule.competence.id) : null,
+                      // La fenêtre de la compétence se ferme : une seule fenêtre à la fois.
+                      onPrendre: peutModifier
+                        ? () => {
+                            const id = popup.cellule.competence.id;
+                            setPopup(null);
+                            setChoixFormeSauvage(id);
+                          }
+                        : null,
                     }
                   : null
               }

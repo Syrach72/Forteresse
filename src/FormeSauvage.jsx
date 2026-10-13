@@ -52,7 +52,8 @@ export function ChoixFormeSauvage({ merc, mental, onChoisir, onClose }) {
         ) || null,
     })),
   );
-  const choisie = betes.find((b) => b.nom === nomChoisi) || null;
+  // Sans choix explicite, la première bête dont la fiche existe est affichée d'emblée : pas d'écran d'attente.
+  const choisie = betes.find((b) => b.nom === nomChoisi) || betes.find((b) => b.creature) || null;
   async function valider() {
     if (!choisie?.creature || busy) return;
     setBusy(true);
@@ -77,7 +78,7 @@ export function ChoixFormeSauvage({ merc, mental, onChoisir, onClose }) {
                 type="button"
                 key={b.nom}
                 className="wood-button"
-                aria-pressed={nomChoisi === b.nom}
+                aria-pressed={choisie?.nom === b.nom}
                 title={b.creature ? `Vétérance ${b.palier}` : "Fiche pas encore créée"}
                 onClick={() => {
                   setNomChoisi(b.nom);
