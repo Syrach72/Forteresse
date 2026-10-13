@@ -515,7 +515,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
   // La ligne « Dépenser de l’énergie » ne s’affiche que pour une compétence dont la description parle d’énergie
   // (les autres coûtent une Action en jeu, gérée à la table).
   const compteur =
-    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && !ressourcement && /énerg/i.test(competence.description || "");
+    !!competence && type !== "passive" && atteinte && !!onDepenser && !restauration && !cd && !formeSauvage && (!!ressourcement || /énerg/i.test(competence.description || ""));
   // Conduit Divin (compétence CD) : utilisation sans énergie, après validation, limitée par instance.
   const [confirmerCd, setConfirmerCd] = useState(false);
   const [enCoursCd, setEnCoursCd] = useState(false);
@@ -526,17 +526,6 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
     setEnCoursCd(false);
     setConfirmerCd(false);
     setErreurCd(res?.error || "");
-  }
-  // Ressourcement (Druide du Cercle de la Terre) : utilisation sans énergie, après validation.
-  const [confirmerRess, setConfirmerRess] = useState(false);
-  const [enCoursRess, setEnCoursRess] = useState(false);
-  const [erreurRess, setErreurRess] = useState("");
-  async function utiliserRess() {
-    setEnCoursRess(true);
-    const res = await ressourcement.onUtiliser();
-    setEnCoursRess(false);
-    setConfirmerRess(false);
-    setErreurRess(res?.error || "");
   }
   // Restauration Arcanique : un seul palier utilisable, le plus haut atteint, et une fois par ouverture
   // de la fenêtre (le bouton reste grisé jusqu'à sa fermeture).
@@ -647,27 +636,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
             <p className="comp-detail-non">Aucun terrain favori choisi : aucune utilisation disponible.</p>
           ) : ressourcement.epuise ? (
             <p className="comp-detail-non">Toutes les utilisations de Ressourcement de cette instance sont dépensées.</p>
-          ) : ressourcement.onUtiliser ? (
-            confirmerRess ? (
-              <p className="energie-compteur-valider">
-                <button type="button" className="wood-button" disabled={enCoursRess} onClick={utiliserRess}>
-                  Valider : utiliser le Ressourcement
-                </button>{" "}
-                <button type="button" className="text-button" disabled={enCoursRess} onClick={() => setConfirmerRess(false)}>
-                  Annuler
-                </button>
-              </p>
-            ) : (
-              <button type="button" className="wood-button" onClick={() => setConfirmerRess(true)}>
-                Utiliser le Ressourcement
-              </button>
-            )
           ) : null}
-          {erreurRess && (
-            <p className="error" role="alert">
-              {erreurRess}
-            </p>
-          )}
         </div>
       )}
       {formeSauvage && atteinte && (
@@ -730,7 +699,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
       {compteur && limiteQuete?.epuise && (
         <p className="comp-detail-non">Toutes les utilisations de cette quête sont dépensées.</p>
       )}
-      {compteur && !limiteQuete?.epuise && (
+      {compteur && !limiteQuete?.epuise && !ressourcement?.epuise && (
         <div className="energie-compteur">
           <p className="energie-compteur-titre">
             Dépenser de l’énergie <span className="muted">(disponible : {energie ?? "—"})</span>
@@ -756,7 +725,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
           {choix !== null && (
             <p className="energie-compteur-valider">
               <button type="button" className="wood-button" disabled={enCours} onClick={valider}>
-                Valider : dépenser {choix} énergie{choix > 1 ? "s" : ""}
+                Valider : dépenser {choix} énergie{choix > 1 ? "s" : ""}{ressourcement ? ` → ${choix} PV temporaire${choix > 1 ? "s" : ""}` : ""}
               </button>{" "}
               <button type="button" className="text-button" disabled={enCours} onClick={() => setChoix(null)}>
                 Annuler
@@ -765,7 +734,7 @@ export function DetailCompetence({ cellule, veterance, energie = null, onDepense
           )}
           {depense !== null && (
             <p className="comp-detail-ok" role="status">
-              {depense} énergie{depense > 1 ? "s" : ""} dépensée{depense > 1 ? "s" : ""}.
+              {depense} énergie{depense > 1 ? "s" : ""} dépensée{depense > 1 ? "s" : ""}{ressourcement ? ` : +${depense} PV temporaire${depense > 1 ? "s" : ""}` : ""}.
             </p>
           )}
           {erreur && (

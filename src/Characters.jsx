@@ -1664,7 +1664,9 @@ export function Characters({
                 merc && peutModifier
                   ? limitePG
                     ? (n) => onUtiliserCompetenceLimitee(merc.id, popup.cellule.competence.id, n)
-                    : (n) => onDepenserEnergie(merc.id, n)
+                    : estRessourcement(popup.cellule?.competence) && popup.cellule?.type === "active"
+                      ? (n) => onUtiliserRessourcement(merc.id, popup.cellule.competence.id, n)
+                      : (n) => onDepenserEnergie(merc.id, n)
                   : null
               }
               limiteQuete={limitePG}
@@ -1674,9 +1676,6 @@ export function Characters({
                       utilisees: ressNb,
                       total: ressTotal,
                       epuise: ressEpuise,
-                      onUtiliser: peutModifier
-                        ? () => onUtiliserRessourcement(merc.id, popup.cellule.competence.id)
-                        : null,
                     }
                   : null
               }
