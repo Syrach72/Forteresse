@@ -1797,6 +1797,7 @@ function emptyMercenaire(classeId = "") {
     classe_id: classeId,
     sous_classe: "",
     portrait: "",
+    portrait_miroir: false,
     veterance: "1",
     attaque: "",
     defense: "",
@@ -2358,6 +2359,7 @@ function MercenairesSection() {
       classe_id: m.classe_id || "",
       sous_classe: m.sous_classe || "",
       portrait: m.portrait || "",
+      portrait_miroir: !!m.portrait_miroir,
       veterance: vetEff(m) ?? "",
       attaque: m.attaque ?? "",
       defense: m.defense ?? "",
@@ -2396,6 +2398,7 @@ function MercenairesSection() {
       classe_id: form.classe_id || null,
       sous_classe: form.sous_classe.trim() || null,
       portrait,
+      portrait_miroir: !!form.portrait_miroir,
       // Aucun mercenaire n'a moins de 1 de vétérance.
       veterance: Math.max(1, toIntOrNull(form.veterance) ?? 1),
       attaque: toIntOrNull(form.attaque),
@@ -2513,7 +2516,7 @@ function MercenairesSection() {
             <label htmlFor="merc-portrait" className="portrait-frame">
               {portraitFile || form.portrait ? (
                 <img
-                  src={portraitFile ? URL.createObjectURL(portraitFile) : form.portrait}
+                  src={portraitFile ? URL.createObjectURL(portraitFile) : form.portrait_miroir ? form.portrait + "#miroir" : form.portrait}
                   alt=""
                 />
               ) : (
@@ -2544,6 +2547,14 @@ function MercenairesSection() {
                 <button type="button" className="text-button" onClick={recropCurrent}>
                   Recadrer
                 </button>
+                <label className="admin-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={!!form.portrait_miroir}
+                    onChange={(e) => setForm({ ...form, portrait_miroir: e.target.checked })}
+                  />
+                  Portrait en miroir
+                </label>
                 <button
                   type="button"
                   className="text-button portrait-remove"
@@ -2639,7 +2650,7 @@ function MercenairesSection() {
                 <tr className={editing === m.id ? "editing" : ""}>
                   <td>
                     {m.portrait ? (
-                      <img className="admin-icon" src={m.portrait} alt="" loading="lazy" decoding="async" />
+                      <img className="admin-icon" src={m.portrait_miroir ? m.portrait + "#miroir" : m.portrait} alt="" loading="lazy" decoding="async" />
                     ) : (
                       "—"
                     )}

@@ -1666,7 +1666,9 @@ export function App() {
           nom: m.nom,
           classe: nomClasse.get(m.classe_id) || "",
           sousClasse: m.sous_classe || "",
-          portrait: m.portrait || null,
+          // Portrait en miroir : le marqueur #miroir (ignoré par le navigateur pour charger l'image) est repéré
+          // par la règle CSS img[src$="#miroir"], donc le retournement vaut pour tous les affichages.
+          portrait: m.portrait ? (m.portrait_miroir ? m.portrait + "#miroir" : m.portrait) : null,
           veterance: m.veterance ?? 1,
           xp: m.xp ?? 0,
           // Caractéristiques de la fiche (colonnes du catalogue, renommées à l'écran).

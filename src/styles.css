@@ -4638,6 +4638,10 @@ a.merc-card:hover {
   background: #2b2418;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
 }
+/* Portrait en miroir (case à cocher dans l'administration) : le marqueur #miroir est ajouté à l'URL de l'image. */
+img[src$="#miroir"] {
+  transform: scaleX(-1);
+}
 .merc-portrait img {
   display: block;
   width: 100%;
