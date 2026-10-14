@@ -6181,7 +6181,10 @@ img[src$="#miroir"] {
   white-space: nowrap;
 }
 .merc-sous-classe-inline {
-  display: inline-block;
+  /* Toujours sur sa propre ligne, alignée à droite : la ligne « Classe » reste calée à droite comme « Race »,
+     quelle que soit la largeur de l’écran (mobile ou PC). */
+  display: block;
+  text-align: right;
 }
 /* Puissance, Vélocité, Mental : chiffres au même niveau que ceux des orbes d'énergie et de santé. */
 .merc-trio .merc-carac-valeur {
