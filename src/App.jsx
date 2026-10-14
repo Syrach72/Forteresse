@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { ASSETS, LOCATIONS, CLASSES, ITEMS } from "./data";
 import { initialGame, transact, RESOURCE_ALIASES, materialQuantity, ingredientQuantity, sellableValue } from "./game";
 import { Market } from "./Market.jsx";
-import { Quests, CampaignInventory } from "./Quests.jsx";
+import { Quests, CampaignInventory, prechargerQuetes } from "./Quests.jsx";
 import { Treasury } from "./Treasury.jsx";
 import { Journal } from "./Journal.jsx";
 import { Missions, MissionPopup } from "./Missions.jsx";
@@ -1629,6 +1629,10 @@ export function App() {
   // Sessions de jeu (équipes indépendantes) : session choisie, écrans d'attente,
   // lancement par le MJ au premier « +1 Instance ».
   const sess = useSessions(session?.user?.id, estAdmin);
+  // Les quêtes sont chargées dès la connexion : la page s'ouvre avec ses données déjà là.
+  useEffect(() => {
+    if (session?.user?.id) prechargerQuetes();
+  }, [session?.user?.id]);
   // Mobile : le décor (image ou vidéo) des lieux est collé à l'écran ; on lui indique où se termine le menu du
   // haut (variable CSS --entete-bas) pour qu'il commence juste en dessous au lieu de passer derrière.
   useEffect(() => {

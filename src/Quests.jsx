@@ -48,50 +48,75 @@ function JaugeDifficulte({ somme, fp }) {
 // icônes/noms des récompenses), puis se tient à jour en direct : la sélection
 // d'une quête par un joueur, ou sa résolution par l'administrateur au +1
 // Instance, doit se refléter chez tout le monde sans recharger la page.
+//
+// Affichage immédiat : les dernières données chargées sont gardées en mémoire (`cacheBase`) et réutilisées
+// d'emblée au retour sur la page ; elles sont préchargées dès la connexion (`prechargerQuetes`) et rafraîchies
+// en arrière-plan. Les données propres au MJ arrivent ensuite, en parallèle, sans retarder l'affichage.
+let cacheBase = null;
+
+async function chargerBase() {
+  const [q, r, o, e] = await Promise.all([
+    chargerQuetes(),
+    supabase.from("quete_recompense").select("*"),
+    supabase.from("objet_catalogue").select("id, nom, icone, description"),
+    supabase.from("quete_mercenaire").select("quete_id, position, mercenaire_id"),
+  ]);
+  const err = q.error || r.error || o.error || e.error;
+  if (err) return { error: err.message };
+  return { quetes: q.data, recompenses: r.data, objets: o.data, engages: e.data };
+}
+
+// Préchargement à la connexion : la page Quêtes s'ouvre avec ses données déjà là.
+export function prechargerQuetes() {
+  chargerBase().then((b) => {
+    if (!b.error) cacheBase = b;
+  });
+}
+
 function useQuetes(estAdmin) {
   const [scenarios, setScenarios] = useState([]);
   // Créatures en jeu (MJ seul) : onglet + santé, pour le résumé de la quête en cours.
   const [creaturesJeu, setCreaturesJeu] = useState([]);
   // Créatures prévues par quête (catalogue) : visibles du MJ même avant le choix de la quête.
   const [creaturesPrevues, setCreaturesPrevues] = useState([]);
-  const [quetes, setQuetes] = useState(null);
-  const [recompenses, setRecompenses] = useState(null);
-  const [objets, setObjets] = useState(null);
-  const [engages, setEngages] = useState([]);
+  const [quetes, setQuetes] = useState(cacheBase ? cacheBase.quetes : null);
+  const [recompenses, setRecompenses] = useState(cacheBase ? cacheBase.recompenses : null);
+  const [objets, setObjets] = useState(cacheBase ? cacheBase.objets : null);
+  const [engages, setEngages] = useState(cacheBase ? cacheBase.engages : []);
   const [error, setError] = useState("");
   async function reload() {
-    const [q, r, o, e] = await Promise.all([
-      chargerQuetes(),
-      supabase.from("quete_recompense").select("*"),
-      supabase.from("objet_catalogue").select("id, nom, icone, description"),
-      supabase.from("quete_mercenaire").select("quete_id, position, mercenaire_id"),
-    ]);
-    const err = q.error || r.error || o.error || e.error;
-    if (err) {
-      setError(err.message);
+    // Données propres au MJ : demandées en parallèle de la base (et non l'une après l'autre).
+    const admin = estAdmin
+      ? Promise.all([
+          supabase.from("quete_scenario").select("quete_id, texte"),
+          supabase
+            .from("creature_quete")
+            .select("id, quete_id, nom_onglet, sante_actuelle, ordre, creature:creature_id(sante_max)")
+            .order("ordre"),
+          supabase.from("quete_creature").select("quete_id, quantite, creature:creature_id(nom)"),
+        ])
+      : null;
+    const b = await chargerBase();
+    if (b.error) {
+      setError(b.error);
       return;
     }
     setError("");
-    // Scénarios (MJ) : table réservée à l'administrateur, jamais demandée pour un joueur.
-    if (estAdmin) {
-      const s = await supabase.from("quete_scenario").select("quete_id, texte");
+    cacheBase = b;
+    setQuetes(b.quetes);
+    setRecompenses(b.recompenses);
+    setObjets(b.objets);
+    setEngages(b.engages);
+    if (admin) {
+      const [s, c, p] = await admin;
       if (!s.error) setScenarios(s.data);
-      const c = await supabase
-        .from("creature_quete")
-        .select("id, quete_id, nom_onglet, sante_actuelle, ordre, creature:creature_id(sante_max)")
-        .order("ordre");
       if (!c.error) setCreaturesJeu(c.data);
-      const p = await supabase.from("quete_creature").select("quete_id, quantite, creature:creature_id(nom)");
       if (!p.error) setCreaturesPrevues(p.data);
     } else {
       setScenarios([]);
       setCreaturesJeu([]);
       setCreaturesPrevues([]);
     }
-    setQuetes(q.data);
-    setRecompenses(r.data);
-    setObjets(o.data);
-    setEngages(e.data);
   }
   useEffect(() => {
     reload();
