@@ -2882,7 +2882,10 @@ export function App() {
         : null,
     });
   }
+  // Heure de la dernière lecture complète de l'état partagé (voir l'effet sur « route » plus bas).
+  const dernierSyncPartage = useRef(0);
   async function synchroniserPartage() {
+    dernierSyncPartage.current = Date.now();
     // Retour des mercenaires prêtés à la fin d'une radiation, puis liste de ceux qui attendent un joueur.
     const att = await supabase.rpc("radiations_etat");
     if (!att.error && Array.isArray(att.data)) {
@@ -3336,8 +3339,21 @@ export function App() {
       supabase.removeChannel(canal);
     };
   }, [session?.user?.id]);
+  // Le temps réel tient déjà les données à jour : changer de page ne relit tout (une cinquantaine de requêtes)
+  // que si la dernière lecture date de plus de 45 secondes. Même règle au retour sur l'onglet (téléphone en
+  // veille : la connexion en direct a pu se couper).
   useEffect(() => {
-    if (session?.user && !auth) synchroniserPartage();
+    if (!(session?.user && !auth)) return undefined;
+    const PEREMPTION = 45000;
+    const siPerime = () => {
+      if (Date.now() - dernierSyncPartage.current >= PEREMPTION) synchroniserPartage();
+    };
+    siPerime();
+    const auRetour = () => {
+      if (document.visibilityState === "visible") siPerime();
+    };
+    document.addEventListener("visibilitychange", auRetour);
+    return () => document.removeEventListener("visibilitychange", auRetour);
   }, [route, session?.user?.id]);
   // Le bouton « Retour aux quêtes » du Dortoir ne vaut que le temps du parcours
   // Quêtes > Dortoir > fiche du mercenaire.
