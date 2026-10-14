@@ -8010,3 +8010,17 @@ img[src$="#miroir"] {
     font-size: clamp(19px, 6vw, 24px) !important;
   }
 }
+
+/* Lignes Race / Classe de la fiche mercenaire : un seul bloc de texte aligné à droite. Le libellé reste collé aux
+   mots qui suivent (« Classe : Druide »), la sous-classe passe en dessous, à droite, sur PC comme sur mobile. */
+.merc-colonne-droite .stat-line {
+  display: block;
+  text-align: right;
+}
+.merc-colonne-droite .stat-line > span {
+  display: inline;
+  margin-right: 0.45em;
+}
+.merc-colonne-droite .stat-line > strong {
+  display: inline;
+}
