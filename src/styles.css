@@ -8000,3 +8000,13 @@ img[src$="#miroir"] {
   width: 112px;
   margin: 0;
 }
+
+/* Fiche mercenaire sur téléphone : les lignes Race / Classe passent à une taille qui tient dans la colonne, pour
+   que « Classe : Druide » puis « (Cercle de la Lune) » restent calés à droite comme « Race ». */
+@media (max-width: 560px) {
+  .merc-colonne-droite .stat-line,
+  .merc-colonne-droite .stat-line span,
+  .merc-colonne-droite .stat-line strong {
+    font-size: clamp(19px, 6vw, 24px) !important;
+  }
+}
