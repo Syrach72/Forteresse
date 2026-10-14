@@ -5244,6 +5244,11 @@ img[src$="#miroir"] {
 }
 
 /* Sessions : bandeau du haut et écrans d'attente / de choix. */
+/* Au-dessus des vidéos de fond des lieux (plein écran, fixes) : sans cela la bande de session disparaissait derrière elles. */
+.session-bar {
+  position: relative;
+  z-index: 3;
+}
 .session-bar {
   display: flex;
   align-items: center;
