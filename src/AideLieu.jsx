@@ -100,7 +100,7 @@ export const AIDES = {
     rubriques: [
       [
         "À quoi ça sert",
-        "Un instructeur forme des élèves de sa classe : chaque instance fait gagner un niveau de vétérance à l’élève.",
+        "Un instructeur forme des élèves de sa classe : à chaque instance, l’élève gagne de l’expérience et finit par gagner des niveaux de vétérance, jusqu’à celui de son instructeur.",
       ],
       [
         "L’instructeur",
