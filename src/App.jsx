@@ -1638,6 +1638,9 @@ export function App() {
       const h = document.querySelector(".game-header");
       const bas = h ? Math.max(0, Math.round(h.getBoundingClientRect().bottom)) : 0;
       document.documentElement.style.setProperty("--entete-bas", bas + "px");
+      // Hauteur totale de l'en-tête (bande de session + menu), indépendante du défilement : sert à ajuster la
+      // hauteur des pages-décor pour qu'elles tiennent dans l'écran.
+      document.documentElement.style.setProperty("--haut-page", (h ? Math.round(h.getBoundingClientRect().bottom + window.scrollY) : 0) + "px");
     };
     const planifier = () => {
       if (!raf) raf = requestAnimationFrame(maj);

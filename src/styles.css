@@ -8042,3 +8042,17 @@ img[src$="#miroir"] {
     height: calc(100dvh - var(--entete-bas, 0px)) !important;
   }
 }
+
+/* PC, Marché : la page tient dans l'écran avec l'en-tête réel (bande de session comprise) ; les six boutons,
+   posés en bas de la page, sont donc visibles sans défiler. Le décor est rogné par le bas. */
+@media (min-width: 681px) {
+  main.interior.marche {
+    min-height: calc(100dvh - var(--haut-page, 114px));
+  }
+  main.interior.marche > .interior-backdrop {
+    background-position: center top !important;
+  }
+  main.interior.marche > video.interior-backdrop {
+    object-position: center top !important;
+  }
+}
