@@ -464,6 +464,11 @@ function ItemActionPanel({
   // Composants, armes, armures et objets divers peuvent rejoindre le sac à dos
   // d'un mercenaire (règle de Bruno) ; revérifié côté serveur dans tous les cas.
   const versSac = ["Composants", "Produits Alchimiques", "Armes", "Armures", "Objet divers"].includes(own.categorie);
+  // Vétérance requise pour équiper (armes et armures) : le mercenaire peut quand même l'avoir dans son sac ;
+  // on indique seulement combien de niveaux lui manquent.
+  const vetRequise = ["Armes", "Armures"].includes(own.categorie) ? Number(own.veteranceRequise) || 0 : 0;
+  const niveauxManquants = (m) => (vetRequise > 0 && m ? Math.max(0, vetRequise - (m.veterance ?? 1)) : 0);
+  const cibleChoisie = mercenairesRecrutes.find((m) => m.id === mercenaireCible) || null;
   return (
     <>
       {/* Fiche complète de l'objet : image, description et statistiques de sa rubrique. */}
@@ -564,10 +569,12 @@ function ItemActionPanel({
               {mercenairesRecrutes.map((m) => {
                 const plus = own.gemmes?.length || 0;
                 const depasse = plus > 0 && (m.gemmes?.portees ?? 0) + plus > (m.gemmes?.limite ?? 0);
+                const manque = niveauxManquants(m);
                 return (
-                  <option key={m.id} value={m.id} disabled={depasse}>
+                  <option key={m.id} value={m.id} disabled={depasse} style={manque > 0 ? { color: "#b3261e" } : undefined}>
                     {m.label}
                     {plus > 0 ? ` — gemmes portées : ${m.gemmes?.portees ?? 0} / ${m.gemmes?.limite ?? 0}${depasse ? " (limite atteinte)" : ""}` : ""}
+                    {manque > 0 ? ` — il manque ${manque} niveau${manque > 1 ? "x" : ""} de vétérance` : ""}
                   </option>
                 );
               })}
@@ -581,6 +588,13 @@ function ItemActionPanel({
               Envoyer ×{qty}
             </button>
           </div>
+          {cibleChoisie && niveauxManquants(cibleChoisie) > 0 && (
+            <p className="error" role="status">
+              Il manque {niveauxManquants(cibleChoisie)} niveau{niveauxManquants(cibleChoisie) > 1 ? "x" : ""} de vétérance à{" "}
+              {cibleChoisie.nom} pour équiper cet objet (vétérance requise : {own.veteranceRequise}, actuelle :{" "}
+              {cibleChoisie.veterance}). Il peut quand même le garder dans son sac à dos.
+            </p>
+          )}
         </div>
       )}
       <p className="muted">
@@ -1366,6 +1380,8 @@ export function App() {
         .map((m) => ({
           id: m.id,
           label: joueurs.get(m.id) ? `${m.nom} (${joueurs.get(m.id)})` : m.nom,
+          nom: m.nom,
+          veterance: m.veterance ?? 1,
           // Gemmes serties déjà portées (équipement + sac) et limite (Mental), pour prévenir avant un envoi.
           gemmes: { portees: gemmesPortees(equipements.get(m.id), sacsDos.get(m.id)), limite: limiteGemmes(m) },
         })),
