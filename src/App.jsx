@@ -1629,6 +1629,36 @@ export function App() {
   // Sessions de jeu (équipes indépendantes) : session choisie, écrans d'attente,
   // lancement par le MJ au premier « +1 Instance ».
   const sess = useSessions(session?.user?.id, estAdmin);
+  // Mobile : le décor (image ou vidéo) des lieux est collé à l'écran ; on lui indique où se termine le menu du
+  // haut (variable CSS --entete-bas) pour qu'il commence juste en dessous au lieu de passer derrière.
+  useEffect(() => {
+    let raf = 0;
+    const maj = () => {
+      raf = 0;
+      const h = document.querySelector(".game-header");
+      const bas = h ? Math.max(0, Math.round(h.getBoundingClientRect().bottom)) : 0;
+      document.documentElement.style.setProperty("--entete-bas", bas + "px");
+    };
+    const planifier = () => {
+      if (!raf) raf = requestAnimationFrame(maj);
+    };
+    maj();
+    const t = setTimeout(maj, 400);
+    window.addEventListener("scroll", planifier, { passive: true });
+    window.addEventListener("resize", planifier);
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(planifier) : null;
+    if (ro) {
+      const h = document.querySelector(".game-header");
+      if (h) ro.observe(h);
+    }
+    return () => {
+      clearTimeout(t);
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", planifier);
+      window.removeEventListener("resize", planifier);
+      if (ro) ro.disconnect();
+    };
+  }, [route, !!session?.user]);
   // Recharge les mercenaires à la connexion, puis à chaque ouverture d'une page
   // Personnages (pour refléter une création faite entre-temps). Les recrutements
   // et les lits du Dortoir, eux, arrivent par synchroniserPartage().

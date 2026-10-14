@@ -8029,3 +8029,16 @@ img[src$="#miroir"] {
 .merc-colonne-droite .stat-line > strong {
   display: inline;
 }
+
+/* Mobile : le décor commence juste sous le menu du haut (et non derrière lui) ; --entete-bas suit le défilement. */
+@media (max-width: 680px) {
+  main.interior > .interior-backdrop,
+  main.interior > video.interior-backdrop,
+  main.interior > video.interior-backdrop-boxed,
+  main.employes-page > .interior-backdrop,
+  main.employes-page > video.interior-backdrop {
+    top: var(--entete-bas, 0px) !important;
+    bottom: auto !important;
+    height: calc(100dvh - var(--entete-bas, 0px)) !important;
+  }
+}
