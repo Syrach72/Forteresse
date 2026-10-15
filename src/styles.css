@@ -8056,3 +8056,9 @@ img[src$="#miroir"] {
     object-position: center top !important;
   }
 }
+
+/* Esquive impossible en armure lourde : croix rouge à la place de la valeur. */
+.merc-croix-rouge {
+  color: #d41f1f;
+  font-weight: 900;
+}

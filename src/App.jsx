@@ -2613,6 +2613,15 @@ export function App() {
       }
       return false;
     };
+    // Armure lourde : la catégorie de l'objet ou l'un de ses ancêtres s'appelle « Armure lourde ».
+    const estLourdeCat = (categorieId) => {
+      let cur = cache.categories.find((c) => c.id === categorieId);
+      while (cur) {
+        if ((cur.nom || "").trim().toLowerCase() === "armure lourde") return true;
+        cur = cache.categories.find((c) => c.id === cur.parent_id);
+      }
+      return false;
+    };
     const sacs = new Map();
     for (const s of sacsParInventaire) {
       const items = lignesSacs
@@ -2662,6 +2671,7 @@ export function App() {
         badgeF: !!e.badge_f,
         categorie: o.categorie_id ? racine(o.categorie_id) : null,
         estBouclier: o.categorie_id ? estBouclierCat(o.categorie_id) : false,
+        estLourde: o.categorie_id ? estLourdeCat(o.categorie_id) : false,
         veteranceRequise: o.veterance_requise ?? null,
         gemmes,
         gemmesIcones: gemmes.map((g) => cache.objets.get(g)?.icone).filter(Boolean),

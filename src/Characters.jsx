@@ -629,13 +629,19 @@ export function Characters({
                   const bonusDefense = merc.styleCombat === "défense" ? 1 : 0;
                   const esquive = Number.isFinite(velocite) ? Math.max(1, Math.floor(velocite / 3)) + bonusDefense : "—";
                   const armure = equip?.armure?.[0];
-                  const v = (x) => (x === null || x === undefined || String(x).trim() === "" ? "—" : x);
+                  // Armure lourde portée : l'Esquive est impossible, la valeur est remplacée par une croix rouge.
+                  const esquiveImpossible = !!armure?.estLourde;
+                  const v =(x) => (x === null || x === undefined || String(x).trim() === "" ? "—" : x);
                   // Protection de la fiche armure, déjà au format P/T/K (Perforant / Tranchant / Contondant).
                   const valeurArmure = v(armure?.protection);
                   const lignes = [
                     [
                       "Esquive",
-                      bonusDefense && esquive !== "—" ? (
+                      esquiveImpossible ? (
+                        <span className="merc-croix-rouge" role="img" aria-label="Esquive impossible en armure lourde" title="Armure lourde : Esquive impossible">
+                          ✖
+                        </span>
+                      ) : bonusDefense && esquive !== "—" ? (
                         <>
                           {esquive}
                           <span className="merc-carac-bonus merc-carac-temp" title="Style de combat Défense : +1🎲 à l’Esquive (compris dans la valeur)">
@@ -654,7 +660,7 @@ export function Characters({
                   const estMoine = (merc.classe || "").trim().toLowerCase() === "moine";
                   const vetMoine = Number(merc.veterance) || 1;
                   const bonusMainsNues = vetMoine >= 10 ? 3 : vetMoine >= 5 ? 2 : 1;
-                  const esquiveMainsNues = typeof esquive === "number" ? esquive + bonusMainsNues : null;
+                  const esquiveMainsNues = typeof esquive === "number" && !esquiveImpossible ? esquive + bonusMainsNues : null;
                   return (
                     <div className="merc-defense">
                       <button
