@@ -42,7 +42,7 @@ const REGLES = [
   ],
   [
     "Critiques (💥)",
-    "Certaines armes ou effets permettent de remplacer ou d’ajouter un 🎲💥. Un 💥 ne peut en général pas être annulé. Son effet ajoute +1 Pt d’Impact. À partir de 5 🎲 ordinaires lancés en attaque (ou sort), toujours remplacer l’un d’eux par un 🎲💥 (qui s’ajoute éventuellement à un autre 🎲💥 dû à une autre cause ; en tout état de cause, le nombre de 🎲💥 est plafonné à 2 pour un même lancer). Si au moins un de ces 🎲💥 obtient « 6 » et que n’importe quel autre dé obtient aussi « 6 », le coup est un critique (si 2 🎲💥 obtiennent 6, ils se « vérifient » l’un l’autre et sont tous les deux des Critiques), y compris si ce « 6 » de validation a été annulé par la défense.",
+    "Certaines armes ou effets permettent de remplacer ou d’ajouter un 🎲💥. Un 💥 ne peut en général pas être annulé. Son effet ajoute +1 Pt d’Impact. À partir de 2 🎲 ordinaires lancés en attaque (ou sort), toujours remplacer l’un d’eux par un 🎲💥 (qui s’ajoute éventuellement à un autre 🎲💥 dû à une autre cause ; en tout état de cause, le nombre de 🎲💥 est plafonné à 2 pour un même lancer). Si au moins un de ces 🎲💥 obtient « 6 » et que n’importe quel autre dé obtient aussi « 6 », le coup est un critique (si 2 🎲💥 obtiennent 6, ils se « vérifient » l’un l’autre et sont tous les deux des Critiques), y compris si ce « 6 » de validation a été annulé par la défense.",
   ],
   [
     "Maladresses",
