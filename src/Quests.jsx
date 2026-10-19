@@ -153,6 +153,7 @@ export function Quests({
 }) {
   const { quetes, recompenses, objets, engages, scenarios, creaturesJeu, creaturesPrevues, error, reload } = useQuetes(estAdmin);
   const [busy, setBusy] = useState(false);
+  const [onglet, setOnglet] = useState("disponibles");
   // Objet dont la fiche (icône, nom, descriptif) est affichée après un clic
   // sur son emplacement de récompense ; null = aucune fiche ouverte.
   const [ficheObjet, setFicheObjet] = useState(null);
@@ -213,8 +214,24 @@ export function Quests({
     }
   }
 
-  const visibles = (quetes || []).filter((q) => !q.terminee_le && q.actif !== false);
-  const uneEnCours = visibles.some((q) => q.en_cours);
+  // `quetes` arrive déjà classée (FP croissant) ; les deux onglets gardent cet ordre.
+  const actives = (quetes || []).filter((q) => !q.terminee_le && q.actif !== false);
+  const terminees = (quetes || []).filter((q) => q.terminee_le && q.actif !== false);
+  const visibles = onglet === "terminees" ? terminees : actives;
+  const uneEnCours = actives.some((q) => q.en_cours);
+
+  // Réservé au MJ : la quête redevient disponible dans cette session (son état « terminée » est effacé).
+  async function reactiver(id) {
+    if (busy) return;
+    setBusy(true);
+    const { error } = await supabase.from("quete_etat").delete().eq("quete_id", id);
+    setBusy(false);
+    if (error) notify(error.message);
+    else {
+      await reload();
+      onChanged();
+    }
+  }
 
   return (
     <section className="quests-workspace">
@@ -222,6 +239,28 @@ export function Quests({
         <p className="error" role="alert">
           {error}
         </p>
+      )}
+      {quetes && (
+        <div className="quest-onglets" role="tablist" aria-label="Quêtes">
+          {[
+            ["disponibles", "Quêtes", actives.length],
+            ["terminees", "Quêtes terminées", terminees.length],
+          ].map(([id, libelle, nombre]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={onglet === id}
+              className={`quest-onglet${onglet === id ? " actif" : ""}`}
+              onClick={() => setOnglet(id)}
+            >
+              {libelle} ({nombre})
+            </button>
+          ))}
+        </div>
+      )}
+      {quetes && onglet === "terminees" && !terminees.length && (
+        <p className="quest-vide">Aucune quête terminée pour l’instant.</p>
       )}
       {!quetes ? (
         <p>Chargement…</p>
@@ -424,7 +463,15 @@ export function Quests({
                     </button>
                   </div>
                 )}
-                {q.en_cours ? (
+                {q.terminee_le ? (
+                  estAdmin ? (
+                    <button type="button" className="wood-button quest-choix" onClick={() => reactiver(q.id)} disabled={busy}>
+                      Réactiver
+                    </button>
+                  ) : (
+                    <p className="muted quest-terminee-note">Quête accomplie.</p>
+                  )
+                ) : q.en_cours ? (
                   <button type="button" className="wood-button quest-choix" onClick={annuler} disabled={busy}>
                     Annuler le choix
                   </button>

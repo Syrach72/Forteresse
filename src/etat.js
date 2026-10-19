@@ -80,6 +80,14 @@ export async function chargerVeterances() {
   return { data: new Map(data.map((m) => [m.id, m.veterance ?? 1])) };
 }
 
+// Classement par défaut des quêtes (joueurs et admin) : facteur de puissance croissant, puis ordre alphabétique.
+export function comparerQuetes(a, b) {
+  return (
+    (Number(a.facteur_puissance) || 1) - (Number(b.facteur_puissance) || 1) ||
+    String(a.nom).localeCompare(String(b.nom), "fr")
+  );
+}
+
 // Quêtes du catalogue avec leur état dans la session : en_cours, instances_restantes, terminee_le.
 export async function chargerQuetes() {
   const [q, e] = await Promise.all([
@@ -89,15 +97,17 @@ export async function chargerQuetes() {
   if (q.error) return { error: q.error };
   const parId = new Map((e.data || []).map((x) => [x.quete_id, x]));
   return {
-    data: q.data.map((x) => {
-      const s = parId.get(x.id);
-      return {
-        ...x,
-        en_cours: !!s?.en_cours,
-        instances_restantes: s?.instances_restantes ?? null,
-        terminee_le: s?.terminee_le ?? null,
-      };
-    }),
+    data: q.data
+      .map((x) => {
+        const s = parId.get(x.id);
+        return {
+          ...x,
+          en_cours: !!s?.en_cours,
+          instances_restantes: s?.instances_restantes ?? null,
+          terminee_le: s?.terminee_le ?? null,
+        };
+      })
+      .sort(comparerQuetes),
   };
 }
 

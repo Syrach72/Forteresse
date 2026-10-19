@@ -6,6 +6,7 @@ import { useSessions } from "./Sessions.jsx";
 import { TableauCompetences, ICONE_ARME_PAR_DEFAUT } from "./MercFiche.jsx";
 import { RichTextarea } from "./RichText.jsx";
 import { CreaturesSection } from "./Creatures.jsx";
+import { comparerQuetes } from "./etat.js";
 
 // Atelier de fabrication d'un objet, déduit de la rubrique racine de sa
 // catégorie (vérifié sur les recettes existantes : aucune exception). Il n'y
@@ -3643,7 +3644,7 @@ function QuetesSection() {
             </tr>
           </thead>
           <tbody>
-            {quetes.rows.map((q) => (
+            {[...quetes.rows].sort(comparerQuetes).map((q) => (
               <Fragment key={q.id}>
                 <tr className={editing === q.id ? "editing" : ""}>
                   <td>
@@ -3677,7 +3678,7 @@ function QuetesSection() {
                     </button>
                     {etatDe(q.id)?.terminee_le && (
                       <button type="button" className="text-button" onClick={() => remettreDisponible(q.id)}>
-                        Remettre disponible
+                        Réactiver
                       </button>
                     )}
                     <DeleteButton

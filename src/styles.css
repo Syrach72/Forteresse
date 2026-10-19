@@ -8062,3 +8062,12 @@ img[src$="#miroir"] {
   color: #d41f1f;
   font-weight: 900;
 }
+
+/* Page Quêtes : onglets « Quêtes » / « Quêtes terminées » */
+.quest-onglets { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 18px 14px; }
+.quest-onglet { padding: 8px 16px; border: 1px solid rgba(60, 40, 20, 0.6); border-bottom: 0; background: rgba(60, 40, 20, 0.55); color: #f3e7cb; font: 700 18px "Cormorant Garamond", Georgia, serif; border-radius: 6px 6px 0 0; cursor: pointer; }
+.quest-onglet:hover { background: rgba(122, 59, 29, 0.8); }
+.quest-onglet.actif { background: #f3e7cb; color: #3a2614; cursor: default; }
+.quest-onglet:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.quest-vide { margin: 12px 18px; color: #f3e7cb; }
+.quest-terminee-note { margin: 12px 0 0; text-align: center; }
