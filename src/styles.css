@@ -8476,3 +8476,6 @@ img[src$="#miroir"] {
 
 /* Barre d'initiative sous le menu (à la place de l'ancien bandeau « ‹ Caserne »), puis figée en haut au défilement. */
 .barre-ini { border-top: 2px solid #b8923f; }
+
+/* Sceau « En quête » : fond violet. */
+.merc-sceau span { background: linear-gradient(180deg, #7a47ad 0%, #5a3187 55%, #43246a 100%); }
