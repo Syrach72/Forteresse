@@ -133,6 +133,13 @@ function useQuetes(estAdmin) {
   return { quetes, recompenses, objets, engages, scenarios, creaturesJeu, creaturesPrevues, error, reload };
 }
 
+// Quête lancée : de nouveaux mercenaires ne la rejoignent qu'aux instances suivantes d'une quête à plusieurs instances.
+function fermeeAuxNouveaux(q) {
+  if (!q.lancee) return false;
+  const total = q.instances_requises ?? 1;
+  return total <= 1 || (q.instances_restantes ?? total) >= total;
+}
+
 // Une case libre de « Mercenaires engagés » ouvre le Dortoir (`onChoisirMercenaire`) :
 // on y choisit un mercenaire, puis le bouton « Quête » de sa fiche l'engage.
 // `personnes` : tous les mercenaires recrutés, pour afficher ceux qui sont engagés. `mesIds` : ceux que le joueur
@@ -415,12 +422,12 @@ export function Quests({
                         type="button"
                         key={i}
                         className={`quest-merc-slot${e ? " quest-merc-pris" : ""}`}
-                        disabled={indisponible || (!e && q.lancee && !estAdmin && (q.instances_requises ?? 1) <= 1)}
+                        disabled={indisponible || (!e && fermeeAuxNouveaux(q) && !estAdmin)}
                         title={
                           indisponible
                             ? "Une autre quête est en cours : annulez-la d’abord."
-                            : !e && q.lancee && !estAdmin && (q.instances_requises ?? 1) <= 1
-                              ? "La quête est lancée : plus aucun mercenaire ne peut la rejoindre."
+                            : !e && fermeeAuxNouveaux(q) && !estAdmin
+                              ? "La quête est lancée : de nouveaux mercenaires ne pourront la rejoindre qu’aux instances suivantes (quête de plusieurs instances)."
                               : e || q.en_cours
                               ? undefined
                               : "Choisit cette quête et ouvre la caserne."
@@ -471,7 +478,7 @@ export function Quests({
                 {q.en_cours && q.lancee && (
                   <p className="quest-lancee-note" role="status">
                     ⚔ Quête lancée : les mercenaires engagés sont absents de la forteresse et ne peuvent plus être retirés
-                    {(q.instances_requises ?? 1) > 1 ? " (des mercenaires peuvent encore la rejoindre)" : ""} jusqu’à la réussite ou l’échec.
+                    {(q.instances_requises ?? 1) > 1 ? " (d’autres pourront la rejoindre aux instances suivantes, dans la limite des 6 places)" : ""} jusqu’à la réussite ou l’échec.
                   </p>
                 )}
                 {q.en_cours && estAdmin && !q.lancee && (
@@ -572,8 +579,9 @@ export function Quests({
             Lancer « {confirmerLancement.nom} » ? Les mercenaires engagés ne pourront plus être retirés et n’auront
             plus aucune interaction avec la forteresse jusqu’à ce que vous cliquiez sur Réussite ou Échec.
             {(confirmerLancement.instances_requises ?? 1) > 1
-              ? " La quête compte plusieurs instances : les joueurs pourront encore y ajouter des mercenaires, mais pas retirer ceux déjà présents."
-              : " Plus aucun mercenaire ne pourra la rejoindre."}
+              ? " La quête compte plusieurs instances : d’autres mercenaires pourront la rejoindre aux instances suivantes, dans la limite des 6 places, mais ceux déjà présents ne pourront pas la quitter."
+              : " Cette quête n’a qu’une instance : plus aucun mercenaire ne pourra la rejoindre."}{" "}
+            Un mercenaire tué (mort sur le champ de bataille) est retiré de la quête et envoyé directement au cimetière.
           </p>
           <button type="button" className="primary" disabled={busy} onClick={() => lancer(confirmerLancement)}>
             Confirmer le lancement
