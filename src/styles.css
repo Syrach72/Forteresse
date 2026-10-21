@@ -8649,3 +8649,10 @@ img[src$="#miroir"] {
 @media (max-width: 680px) {
   .characters-page.character-detail { padding-left: 4px; padding-right: 4px; }
 }
+
+/* Rubrique Équipement : le nom laisse la place au sac à dos (angle supérieur droit) et se réduit sur mobile. */
+.merc-bloc .merc-nom-cadre { padding-right: 84px; box-sizing: border-box; }
+@media (max-width: 680px) {
+  .merc-bloc .merc-nom { font-size: clamp(20px, 6.2vw, 26px); }
+  .merc-bloc .merc-nom-cadre { padding-right: 70px; }
+}
