@@ -2237,7 +2237,11 @@ export function App() {
             ? [`L’énergie de ${gains.energie.length} mercenaire(s) revient au maximum.`]
             : []),
           ...gains.entrainement.map((g) =>
-            g.gradue
+            g.instructeur
+              ? g.a > g.de
+                ? `${nom(g.mercenaire_id)} passe à la vétérance ${g.a} (instructeur, +${g.xp_gain ?? 0} XP).`
+                : `${nom(g.mercenaire_id)} gagne +${g.xp_gain ?? 0} XP en instruisant.`
+              : g.gradue
               ? `${nom(g.mercenaire_id)} a rejoint son instructeur (vétérance ${g.a}) et retourne à la caserne.`
               : g.a > g.de
                 ? `${nom(g.mercenaire_id)} passe à la vétérance ${g.a}.`

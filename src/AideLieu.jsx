@@ -112,7 +112,7 @@ export const AIDES = {
       ],
       [
         "La progression",
-        "À chaque « +1 Instance » du maître du jeu, l’élève gagne de l’expérience (la barre sous son portrait) : plus l’écart avec son instructeur est grand, plus il apprend vite. À 3 niveaux d’écart ou plus, 1 instance suffit pour gagner un niveau ; à 2 niveaux d’écart il en faut 2 ; à 1 niveau d’écart, 3. Dès qu’il atteint la vétérance de son instructeur, il retourne à la Caserne. S’il est renvoyé avant, il garde le niveau et l’expérience déjà acquis.",
+        "À chaque « +1 Instance » du maître du jeu, l’élève gagne de l’expérience (la barre sous son portrait) : plus l’écart avec son instructeur est grand, plus il apprend vite. À 3 niveaux d’écart ou plus, 1 instance suffit pour gagner un niveau ; à 2 niveaux d’écart il en faut 2 ; à 1 niveau d’écart, 3. Dès qu’il atteint la vétérance de son instructeur, il retourne à la Caserne. S’il est renvoyé avant, il garde le niveau et l’expérience déjà acquis. L’instructeur gagne aussi de l’expérience : la moitié de celle gagnée par son premier élève, un tiers de celle du deuxième et un quart de celle du troisième (arrondi à l’inférieur).",
       ],
       [
         "Bon à savoir",
