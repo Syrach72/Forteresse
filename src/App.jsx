@@ -4522,9 +4522,15 @@ export function App() {
       ) : route.startsWith("personnages/") ? (
         <div className="personnages-cadre">
         {/* Fond des pages Guerrier, Roublard… : le même fond animé que la page Connexion. */}
-        <div className="persos-fond" aria-hidden="true" style={{ backgroundImage: `url(${ASSETS.login})` }}>
-          <BackdropVideo src={AUTH_VIDEO} baseClass="auth-video" />
-        </div>
+        {/* Fiche d'un mercenaire en quête : fond gris anthracite uni, sans la vidéo, pour ne pas distraire pendant la partie. */}
+        {(() => {
+          const enQuete = mercsEnQuete.some((e) => e.mercenaire_id === route.split("/")[2]);
+          return (
+            <div className={`persos-fond${enQuete ? " persos-fond-quete" : ""}`} aria-hidden="true" style={enQuete ? undefined : { backgroundImage: `url(${ASSETS.login})` }}>
+              {!enQuete && <BackdropVideo src={AUTH_VIDEO} baseClass="auth-video" />}
+            </div>
+          );
+        })()}
         <Characters
           route={route}
           pseudoSession={estAdmin ? "" : sess.monPseudo || ""}
