@@ -8521,3 +8521,6 @@ img[src$="#miroir"] {
 .creature-onglet.actif { background: #f3e7cb; color: #1f150b; border-color: #e1bc55; }
 .creature-fleche { border-color: #b8923f; background: #4a3019; }
 .merc-fiche > .merc-onglets .merc-onglet { border-color: #b8923f; }
+
+/* Page des créatures du MJ : le fond de toute la page est le gris anthracite (le fond beige de .app est masqué). */
+.app.app-creatures { background: #1f2427; }

@@ -4346,7 +4346,7 @@ export function App() {
     null;
   return (
     <TourContext.Provider value={{ rows: tourRows, estAdmin, nomsCreatures, finTour: finTourInitiative, passerTour: passerTourCreature, retarder: retarderAction }}>
-    <div className={`app${tourRows.length ? " app-avec-ini" : ""}${route === "forteresse" ? " app-fullwidth" : ""}${route.startsWith("personnages/") ? " app-persos" : ""}${route === "regles" ? " app-regles" : ""}`}>
+    <div className={`app${tourRows.length ? " app-avec-ini" : ""}${route === "creatures" || route.startsWith("creatures/") ? " app-creatures" : ""}${route === "forteresse" ? " app-fullwidth" : ""}${route.startsWith("personnages/") ? " app-persos" : ""}${route === "regles" ? " app-regles" : ""}`}>
       <a className="skip" href="#main">
         Aller au contenu
       </a>
