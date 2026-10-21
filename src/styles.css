@@ -8744,3 +8744,26 @@ img[src$="#miroir"] {
   .merc-sac-equipement { top: 10px; right: 6px; width: 60px; height: 60px; padding: 5px; }
   .merc-bloc .merc-nom-cadre { padding-right: 70px; }
 }
+
+/* Lame sous le nom : centrée sous le nom, pointe de flèche aux deux bouts, dégradé du centre (foncé) vers l'extérieur (clair),
+   avec les mêmes teintes qu'avant. */
+.merc-nom-lame {
+  width: calc(100% - 12px);
+  margin-left: 6px;
+  margin-right: 6px;
+  background: linear-gradient(90deg, #caa24a 0%, #8a6a35 28%, #4a3a1c 50%, #8a6a35 72%, #caa24a 100%);
+}
+.merc-nom-lame::before,
+.merc-nom-lame::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translateY(-50%) rotate(45deg);
+  background: #caa24a;
+  box-shadow: inset 0 1px 0 rgba(255, 224, 168, 0.4), 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.merc-nom-lame::before { left: -6px; right: auto; }
+.merc-nom-lame::after { right: -6px; left: auto; }
+@media (max-width: 680px) { .merc-nom-lame { width: calc(100% - 12px); } }
