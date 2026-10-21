@@ -8424,3 +8424,10 @@ img[src$="#miroir"] {
 .ib-tuile.creature { width: 66px; }
 .ib-tuile.creature .ib-titre { font-size: 11px; }
 @media (max-width: 680px) { .ib-tuile.creature { width: 56px; } .ib-tuile.creature .ib-titre { font-size: 10px; } }
+
+/* Avec la barre « En quête » : les onglets verticaux commencent sous elle (face à la fiche) et se figent plus bas, pour ne pas la toucher. */
+.merc-fiche-avec-nav > .merc-onglets {
+  grid-row: 2;
+  padding-top: 8px;
+  top: calc(var(--barre-ini-h, 0px) + 52px);
+}
