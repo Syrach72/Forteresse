@@ -8644,3 +8644,8 @@ img[src$="#miroir"] {
   .merc-bloc .comp-legendes, .merc-bloc .comp-ligne { gap: 3px; }
   .merc-bloc .comp-legende { font-size: 17px; }
 }
+
+/* Mobile : fiche mercenaire presque pleine largeur (marges de la page réduites) pour gagner de la place. */
+@media (max-width: 680px) {
+  .characters-page.character-detail { padding-left: 4px; padding-right: 4px; }
+}
