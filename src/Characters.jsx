@@ -742,6 +742,25 @@ export function Characters({
               </div>
             </div>
             <div className="merc-colonne-droite">
+              {recrutes.includes(merc.id) && (
+                <div className="merc-quete-zone">
+                  <button
+                    className="merc-quete-bouton"
+                    type="button"
+                    disabled={!!absences[merc.id] || !queteEnCours || queteComplete}
+                    title={
+                      !queteEnCours
+                        ? "Choisissez d’abord une quête sur la page Quêtes."
+                        : queteComplete
+                          ? "Les 6 places de la quête sont prises."
+                          : `Engager dans « ${queteEnCours.nom} »`
+                    }
+                    onClick={() => onQuete(merc.id)}
+                  >
+                    Participer à la quête
+                  </button>
+                </div>
+              )}
               <div className="stat-line">
                 <span>Race :</span>
                 <strong>{merc.race || "—"}</strong>
@@ -1083,21 +1102,6 @@ export function Characters({
                         Soigner
                       </button>
                       <button
-                        className="wood-button merc-recruit"
-                        type="button"
-                        disabled={!!absences[merc.id] || !queteEnCours || queteComplete}
-                        title={
-                          !queteEnCours
-                            ? "Choisissez d’abord une quête sur la page Quêtes."
-                            : queteComplete
-                              ? "Les 6 places de la quête sont prises."
-                              : `Engager dans « ${queteEnCours.nom} »`
-                        }
-                        onClick={() => onQuete(merc.id)}
-                      >
-                        Quête
-                      </button>
-                      <button
                         className="wood-button merc-recruit merc-renvoyer"
                         type="button"
                         onClick={() => setPopup({ type: "renvoi" })}
@@ -1118,7 +1122,7 @@ export function Characters({
                   <p className="merc-recrute-note">
                     {absences[merc.id]
                       ? `${merc.nom} n’est pas à la caserne (${absences[merc.id].toLowerCase()}) : il garde son lit.`
-                      : `« Instructeur » l’envoie former des élèves de sa classe${instructeurEnPlace ? " (un instructeur est déjà en place)" : ""} ; « Soigner » l’envoie à l’infirmerie (${instancesDeSoins(merc)} instance${instancesDeSoins(merc) > 1 ? "s" : ""} selon sa santé perdue)${infirmerieComplete ? " (aucun lit libre pour le moment)" : ""}${!soignable ? ` (impossible : ${raisonNonSoignable.charAt(0).toLowerCase()}${raisonNonSoignable.slice(1)})` : ""} ; « Quête » l’engage dans la quête en cours${queteEnCours ? ` (${queteEnCours.nom})` : " (aucune quête choisie pour le moment)"}.`}
+                      : `« Instructeur » l’envoie former des élèves de sa classe${instructeurEnPlace ? " (un instructeur est déjà en place)" : ""} ; « Soigner » l’envoie à l’infirmerie (${instancesDeSoins(merc)} instance${instancesDeSoins(merc) > 1 ? "s" : ""} selon sa santé perdue)${infirmerieComplete ? " (aucun lit libre pour le moment)" : ""}${!soignable ? ` (impossible : ${raisonNonSoignable.charAt(0).toLowerCase()}${raisonNonSoignable.slice(1)})` : ""} ; « Participer à la quête » (en haut à droite) l’engage dans la quête en cours${queteEnCours ? ` (${queteEnCours.nom})` : " (aucune quête choisie pour le moment)"}.`}
                   </p>
                   <p className="merc-recrute-note">
                     {merc.nom} a sa place à la Caserne. Le renvoyer efface le nom

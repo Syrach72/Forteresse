@@ -8080,3 +8080,59 @@ img[src$="#miroir"] {
   .class-nav.class-nav > button { font-size: clamp(7px, 2.15cqw, 13px); overflow: hidden; }
   .class-nav.nav-avec-admin.class-nav > a { font-size: clamp(7px, 1.6cqw, 13px); }
 }
+
+/* « Participer à la quête » : en haut à droite de la fiche, sur un cadre de cuir et d'or aux ornements médiévaux-fantastiques
+   (double filet doré, clous aux coins, losanges de part et d'autre du texte). */
+.merc-quete-zone { display: flex; justify-content: flex-end; margin: 0 0 14px; }
+.merc-quete-bouton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 34px;
+  border: 3px double #d8b96a;
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 7px 7px, #f3d27a 0 2px, #8a6a35 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 7px) 7px, #f3d27a 0 2px, #8a6a35 3px, transparent 4px),
+    radial-gradient(circle at 7px calc(100% - 7px), #f3d27a 0 2px, #8a6a35 3px, transparent 4px),
+    radial-gradient(circle at calc(100% - 7px) calc(100% - 7px), #f3d27a 0 2px, #8a6a35 3px, transparent 4px),
+    linear-gradient(180deg, #7a5530 0%, #5c3d1f 55%, #3d2712 100%);
+  box-shadow:
+    inset 0 0 0 3px #3a2410,
+    inset 0 0 0 4px #b8923f,
+    inset 0 2px 8px rgba(0, 0, 0, 0.55),
+    0 3px 8px rgba(0, 0, 0, 0.5);
+  color: #fff0cc;
+  text-shadow: 0 1px 2px #000;
+  font: 700 17px Chiffres, Aniron, Georgia, serif;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: filter 140ms ease, box-shadow 140ms ease;
+}
+.merc-quete-bouton::before,
+.merc-quete-bouton::after {
+  content: "❖";
+  color: #e1bc55;
+  font-size: 14px;
+  text-shadow: 0 1px 2px #000;
+}
+.merc-quete-bouton:hover:not(:disabled) {
+  filter: brightness(1.12);
+  border-color: #f3d27a;
+  box-shadow:
+    inset 0 0 0 3px #3a2410,
+    inset 0 0 0 4px #e1bc55,
+    inset 0 2px 8px rgba(0, 0, 0, 0.55),
+    0 0 12px rgba(225, 188, 85, 0.55),
+    0 3px 8px rgba(0, 0, 0, 0.5);
+}
+.merc-quete-bouton:focus-visible { outline: 3px solid #fff0cc; outline-offset: 3px; }
+.merc-quete-bouton:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (max-width: 680px) {
+  .merc-quete-zone { justify-content: center; }
+  .merc-quete-bouton { font-size: 15px; padding: 9px 22px; }
+}
+/* Les trois plaques restantes : « Renvoyer » occupe toute la seconde ligne. */
+.merc-actions .wood-button.merc-renvoyer { grid-column: 1 / -1; }
