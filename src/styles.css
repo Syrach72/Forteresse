@@ -8767,3 +8767,8 @@ img[src$="#miroir"] {
 .merc-nom-lame::before { left: -6px; right: auto; }
 .merc-nom-lame::after { right: -6px; left: auto; }
 @media (max-width: 680px) { .merc-nom-lame { width: calc(100% - 12px); } }
+
+/* Rubriques Équipement / Compétences (PC et tablette) : le nom peut passer à la ligne au lieu de déborder sous le sac à dos. */
+@media (min-width: 681px) {
+  .merc-bloc .merc-nom-cadre .merc-nom { white-space: normal; font-size: 30px; }
+}
