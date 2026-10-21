@@ -1318,7 +1318,7 @@ export function Characters({
           {onglet === "competences" && (
           <section className="merc-bloc parchment" id="merc-rubrique-competences" role="tabpanel" aria-labelledby="merc-onglet-competences">
             {titreMerc}
-            <h2 id="merc-competences-titre">Compétences</h2>
+            <h2 id="merc-competences-titre" className="sr-only">Compétences</h2>
             {/* Mercenaire en quête : on gagne la place de cette explication. */}
             {!enQuete && (
               <p className="muted">
