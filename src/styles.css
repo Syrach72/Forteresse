@@ -8587,3 +8587,23 @@ img[src$="#miroir"] {
 }
 .merc-colonne-droite .stat-line + .stat-line { border-top: 0; }
 .merc-colonne-droite .merc-quete-zone + .stat-line, .merc-colonne-droite > .stat-line:first-of-type { margin-top: 6px; }
+
+/* Encart Vitesse (bottes + nombre + « ? ») : aussi sur PC et tablette, même présentation et même largeur que l'encart de défense. */
+.merc-vitesse-aide { display: block; }
+.merc-sheet .merc-sous-portrait { align-items: stretch; width: 100%; }
+.merc-sheet .merc-carac-bottes {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 0;
+  padding: 14px 40px 14px 16px;
+  justify-content: flex-start;
+  border: 2px solid #a89067;
+  border-radius: 8px;
+  background: #f3e8cc99;
+  box-shadow: inset 0 0 0 1px #fff6;
+}
+.merc-sheet .merc-carac-bottes .merc-bottes-icone { width: 44px; height: 44px; }
+.merc-sheet .merc-carac-bottes .merc-carac-valeur { margin-left: auto; font-size: 26px; }
+.merc-sheet .merc-sous-portrait .merc-defense,
+.merc-sheet .merc-sous-portrait .merc-protections { width: 100%; min-width: 0; max-width: none; box-sizing: border-box; }
