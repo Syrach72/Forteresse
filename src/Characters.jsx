@@ -427,7 +427,7 @@ export function Characters({
           </a>
         </div>
       )}
-      <nav className="mobile-class-nav" aria-label="Classes de personnages">
+      <nav className={`mobile-class-nav${enQuete ? " mobile-class-nav-masque" : ""}`} aria-label="Classes de personnages">
         {CHARACTER_CLASSES.map(([id, label]) => (
           <a
             key={id}

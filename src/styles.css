@@ -8530,3 +8530,6 @@ img[src$="#miroir"] {
   .merc-colonne-droite .orbe-colonne .creature-sante-boutons { grid-column: 2; justify-self: center; justify-content: center; }
   .merc-colonne-droite .orbe-colonne > button.wood-button { grid-column: 2; justify-self: center; }
 }
+
+/* Mercenaire en quete : la barre des classes (mobile) est masquee, le menu y donne acces. */
+.mobile-class-nav.mobile-class-nav-masque { display: none !important; }
