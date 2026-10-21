@@ -522,7 +522,6 @@ export function Characters({
           {/* Un joueur qui a engagé plusieurs mercenaires dans la quête passe de l'un à l'autre d'un clic. */}
           {enQuete && mesEngages.length > 1 && (
             <nav className="merc-quete-onglets" aria-label="Mes mercenaires en quête">
-              <span className="merc-quete-onglets-titre">En quête :</span>
               {mesEngages.map((m) => (
                 <a
                   key={m.id}
