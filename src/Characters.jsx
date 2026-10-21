@@ -1078,7 +1078,8 @@ export function Characters({
             </div>
             {/* Zone pleine largeur, sous le portrait : actions, recrutement. */}
             <div className="merc-pleine-largeur">
-              {recrutes.includes(merc.id) ? (
+              {/* Mercenaire en quête : ni plaque d'actions, ni « Annuler cet ordre », ni notes de recrutement. */}
+              {enQuete ? null : recrutes.includes(merc.id) ? (
                 <div className="merc-recruit-form">
                   <div className="merc-actions-plaque">
                     <div className="merc-actions">
