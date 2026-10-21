@@ -8579,3 +8579,11 @@ img[src$="#miroir"] {
   .merc-quete-zone, .merc-quete-zone.avec-sceau { padding-right: 0; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
   .merc-quete-zone .fin-tour, .merc-quete-zone .actions-tour { width: 100%; max-width: 280px; box-sizing: border-box; }
 }
+
+/* Lignes Race / Classe de la fiche mercenaire (mobile et PC) : serrées, alignées à droite, un seul filet entre les deux. */
+.merc-colonne-droite .stat-line {
+  margin: 0;
+  padding: 5px 0;
+}
+.merc-colonne-droite .stat-line + .stat-line { border-top: 0; }
+.merc-colonne-droite .merc-quete-zone + .stat-line, .merc-colonne-droite > .stat-line:first-of-type { margin-top: 6px; }
