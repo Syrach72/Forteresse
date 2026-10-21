@@ -8524,3 +8524,9 @@ img[src$="#miroir"] {
 
 /* Page des créatures du MJ : le fond de toute la page est le gris anthracite (le fond beige de .app est masqué). */
 .app.app-creatures { background: #1f2427; }
+
+/* Mobile : les boutons −1 / +1 de santé restent sous la jauge de Santé (colonne de droite) ; l'Énergie, non modifiable, n'en a pas. */
+@media (max-width: 680px) {
+  .merc-colonne-droite .orbe-colonne .creature-sante-boutons { grid-column: 2; justify-self: center; justify-content: center; }
+  .merc-colonne-droite .orbe-colonne > button.wood-button { grid-column: 2; justify-self: center; }
+}
