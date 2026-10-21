@@ -8620,3 +8620,14 @@ img[src$="#miroir"] {
 .merc-colonne-droite .stat-line,
 .merc-colonne-droite .stat-line strong,
 .merc-sous-classe-inline { text-align: left; justify-content: flex-start; }
+
+/* Classe et sous-classe sur la même ligne (« Classe : Incantateur (Nécromancien) ») : police un peu réduite pour que ça tienne. */
+.merc-sous-classe-inline { display: inline !important; margin-left: 0.2em; }
+.merc-colonne-droite .stat-line,
+.merc-colonne-droite .stat-line span,
+.merc-colonne-droite .stat-line strong { font-size: 22px !important; }
+@media (max-width: 680px) {
+  .merc-colonne-droite .stat-line,
+  .merc-colonne-droite .stat-line span,
+  .merc-colonne-droite .stat-line strong { font-size: clamp(14px, 4.4vw, 19px) !important; }
+}
