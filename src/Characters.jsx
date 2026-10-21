@@ -12,6 +12,7 @@ import { gemmesPortees, limiteGemmes } from "./gemmes.js";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
 import { listeEtats, reductionVitesse } from "./etats.js";
+import { BoutonFinTour } from "./InitiativeTour.jsx";
 import { ETATS_JEU } from "./creatures-data.js";
 import { ChoixCompagnon, OngletCompagnon, LIBELLE_ROLE } from "./Compagnon.jsx";
 import { ChoixFormeSauvage, OngletFormeSauvage } from "./FormeSauvage.jsx";
@@ -745,7 +746,10 @@ export function Characters({
               {recrutes.includes(merc.id) && (
                 <div className="merc-quete-zone">
                   {enQuete ? (
-                    <span className="merc-quete-statut" role="status">En quête</span>
+                    <>
+                      <span className="merc-quete-statut" role="status">En quête</span>
+                      <BoutonFinTour kind="mercenaire" id={merc.id} disabled={!peutModifier} />
+                    </>
                   ) : (
                   <button
                     className="merc-quete-bouton"

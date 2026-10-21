@@ -20,6 +20,7 @@ import {
   trainingIds,
 } from "./training-data.js";
 import { Characters, classeRoute } from "./Characters.jsx";
+import { BarreInitiative, TourContext } from "./InitiativeTour.jsx";
 import { caserne } from "./texte.js";
 import { FicheObjet } from "./MercFiche.jsx";
 import { Infirmary } from "./Infirmary.jsx";
@@ -1092,6 +1093,8 @@ export function App() {
   // ouvert par quelqu'un, fenêtre affichée.
   const [initiatives, setInitiatives] = useState(() => new Map());
   const [initiativeLancee, setInitiativeLancee] = useState(false);
+  // Ordre des tours (barre d'initiative fixe en haut de l'écran) : lignes de initiative_tour.
+  const [tourRows, setTourRows] = useState([]);
   const [initiativeOuverte, setInitiativeOuverte] = useState(false);
   const initiativeDejaOuverte = useRef(new Set());
   // Compagnon animal (Rôdeur Maître des Bêtes) / familier (Incantateur) : id du mercenaire -> ligne mercenaire_compagnon.
@@ -1602,6 +1605,14 @@ export function App() {
   useEffect(() => {
     if (!queteEnCours) setInitiativeOuverte(false);
   }, [queteEnCours?.id]);
+  async function finTourInitiative(kind, id) {
+    const { error } = await supabase.rpc("initiative_fin_tour", { p_kind: kind, p_id: id });
+    if (error) {
+      notify(error.message);
+      return;
+    }
+    await synchroniserPartage();
+  }
   async function lancerInitiative(mercenaireId) {
     const { data, error } = await supabase.rpc("initiative_lancer", { p_mercenaire: mercenaireId });
     if (error) return { error: error.message };
@@ -2935,7 +2946,7 @@ export function App() {
   }
   // Missions : définitions communes, attributions de la session visibles par ce joueur, compteurs de progression.
   async function synchroniserMissions() {
-    const [m, a, c, eff, ej, tf, sc, cd, cp, ini, iniEtat, fsv, rsc, ul] = await Promise.all([
+    const [m, a, c, eff, ej, tf, sc, cd, cp, ini, iniEtat, fsv, rsc, ul, tour] = await Promise.all([
       supabase
         .from("mission")
         .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, recompense_effet_stat, recompense_effet_valeur, recompense_effet_quetes, ordre")
@@ -2956,7 +2967,9 @@ export function App() {
       supabase.from("mercenaire_forme_sauvage").select("*"),
       supabase.from("mercenaire_ressourcement").select("mercenaire_id, instance_no"),
       supabase.from("mercenaire_competence_limitee").select("mercenaire_id, competence_id, periode, numero"),
+      supabase.from("initiative_tour").select("id, kind, mercenaire_id, creature_quete_id, label, rang, joue_ordre"),
     ]);
+    if (!tour.error) setTourRows(tour.data || []);
     if (!rsc.error) setRessourcementRows(rsc.data || []);
     if (!ul.error) setUsagesLimites(ul.data || []);
     if (!fsv.error) setFormesSauvages(new Map((fsv.data || []).map((x) => [x.mercenaire_id, x])));
@@ -3351,6 +3364,7 @@ export function App() {
       .on("postgres_changes", { event: "*", schema: "public", table: "mercenaire_competence_limitee" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "initiative" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "initiative_etat" }, rafraichir)
+      .on("postgres_changes", { event: "*", schema: "public", table: "initiative_tour" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "forge_sertissage" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "employe" }, rafraichir)
       .on("postgres_changes", { event: "*", schema: "public", table: "quete" }, rafraichir)
@@ -4311,7 +4325,9 @@ export function App() {
     missionsPourMoi.find((a) => missionsNouvelles.includes(a.id) && !missionsVues.has(a.id)) ||
     null;
   return (
-    <div className={`app${route === "forteresse" ? " app-fullwidth" : ""}${route.startsWith("personnages/") ? " app-persos" : ""}${route === "regles" ? " app-regles" : ""}`}>
+    <TourContext.Provider value={{ rows: tourRows, finTour: finTourInitiative }}>
+    <div className={`app${tourRows.length ? " app-avec-ini" : ""}${route === "forteresse" ? " app-fullwidth" : ""}${route.startsWith("personnages/") ? " app-persos" : ""}${route === "regles" ? " app-regles" : ""}`}>
+      <BarreInitiative rows={tourRows} mercenaires={mercenaires} />
       <a className="skip" href="#main">
         Aller au contenu
       </a>
@@ -6361,6 +6377,7 @@ export function App() {
         </Modal>
       )}
     </div>
+    </TourContext.Provider>
   );
 }
 function Catalog({ items, game, busy, onBuy, onSelect }) {
