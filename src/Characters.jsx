@@ -1880,14 +1880,14 @@ export function Characters({
                   "Parade",
                   "",
                   <>
-                    <strong>Conditions :</strong> nécessite de tenir un bouclier ou une arme de Parade, de ne pas Esquiver, et l’attaquant utilise une arme infligeant des dégâts PTK (y compris attaques à distance). La Parade se décide avant le lancer de dés de l’attaquant. Le défenseur dépense une Réaction pour ajouter 1 à 3🎲 à sa défense d’armure (Nb défini par le niveau de parade de l’objet utilisé I à III, sans cumul arme de Parade + Bouclier).
+                    <strong>Conditions :</strong> nécessite de tenir un bouclier ou une arme de Parade, de ne pas Esquiver, et l’attaquant utilise une arme infligeant des dégâts PTK (y compris attaques à distance). La Parade se décide avant le lancer de dés de l’attaquant. Le défenseur dépense une Réaction pour ajouter 1 à 3🎲 à sa défense d’armure (Nb défini par le niveau de parade de l’objet utilisé I à III, sans cumul arme de Parade + Bouclier). Comme pour l’armure, seuls les « 6 » de la Parade annulent un Impact.
                   </>,
                 ],
                 [
                   "Armure",
                   " (défense passive)",
                   <>
-                    Qu’une Parade ou Esquive soit utilisée ou non, le défenseur lance le nombre de dé correspondant à sa défense d’armure selon le type de dégâts (P/T/K) + dés de parade éventuels. Chaque « 6 » annule un Impact non-énergétique (ceux-ci sont appliqués après avoir tenu compte des Immunités ou RD éventuelles). Si le défenseur obtient davantage de « 1 » que d’autres chiffres contre une arme de Destruction, son Bouclier, son arme de Parade ou son Armure est Fragilisé (dans cet ordre ; Brisé s’il était déjà Fragilisé<sup>2</sup>).
+                    Qu’une Parade ou Esquive soit utilisée ou non, le défenseur lance le nombre de dé correspondant à sa défense d’armure selon le type de dégâts (P/T/K) + dés de parade éventuels. Chaque « 6 » annule un Impact non-énergétique et non💥 (ceux-ci sont appliqués après avoir tenu compte des Immunités ou RD éventuelles). Si le défenseur obtient davantage de « 1 » que d’autres chiffres contre une arme de Destruction, son Bouclier, son arme de Parade ou son Armure est Fragilisé (dans cet ordre ; Brisé s’il était déjà Fragilisé<sup>2</sup>).
                     <small className="aide-defense-note">
                       <sup>2</sup> Une arme ou un bouclier brisé est perdu ; s’il est fragilisé, l’objet peut être réparé chez le Forgeron (arme) ou l’Armurier (Bouclier) au prix d’une instance, ou avec un kit de bricolage entre deux instances d’une même quête.
                     </small>
