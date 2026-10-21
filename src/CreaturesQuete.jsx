@@ -228,7 +228,6 @@ export function CreaturesQuete({ estAdmin, roundCourant, route = "creatures", no
               className={`creature-onglet${l.id === courante.id ? " actif" : ""}${sante === 0 ? " detruite" : ""}`}
               href={base + l.id}
             >
-              {rangs?.get(l.id) && <span className="initiative-rang" title="Ordre de jeu (initiative)">{rangs.get(l.id)}</span>}
               {l.nom_onglet} <small className="creature-onglet-pv">{sante ?? "?"}/{f?.sante_max ?? "?"}</small>
             </a>
           );
@@ -337,7 +336,6 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
       <header className="creature-fiche-tete">
         <div>
           <h3>
-            {rang ? <span className="initiative-rang" title="Ordre de jeu (initiative)">{rang}</span> : null}
             {fiche.nom}
           </h3>
           <p className="muted">

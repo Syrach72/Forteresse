@@ -339,12 +339,6 @@ export function Characters({
     <div className="merc-nom-cadre">
       <span className="merc-nom-anneau" aria-hidden="true">
         <VetBadge className="merc-vet-nom" value={merc.veterance} />
-        {/* Ordre de jeu (initiative de la quête en cours) : 1 = le premier à jouer. */}
-        {initiativeRangs.get(merc.id) && (
-          <span className="merc-initiative" title="Ordre de jeu dans la quête (initiative)" aria-label={`Ordre de jeu : ${initiativeRangs.get(merc.id)}`}>
-            {initiativeRangs.get(merc.id)}
-          </span>
-        )}
       </span>
       <div className="merc-nom-texte">
         <h1 className="merc-nom" tabIndex="-1" ref={title}>
