@@ -8514,3 +8514,10 @@ img[src$="#miroir"] {
 /* Fond anthracite uni (fiches de mercenaires en quête et fiches de créatures du MJ) : aucune image ni vidéo derrière. */
 .persos-fond-quete { background: #1f2427; }
 .creatures-cadre::before { content: ""; position: fixed; inset: 0; z-index: -1; background: #1f2427; pointer-events: none; }
+
+/* Contraste sur le fond anthracite : titre de la page des créatures clair, onglets de créatures et onglets verticaux plus nets. */
+.creatures-cadre .creature-titre-page, .creatures-cadre h2 { color: #fff0cc; text-shadow: 0 1px 3px #000; }
+.creature-onglet { border-color: #b8923f; background: linear-gradient(#6a4727, #4a3019); color: #f6e7c1; }
+.creature-onglet.actif { background: #f3e7cb; color: #1f150b; border-color: #e1bc55; }
+.creature-fleche { border-color: #b8923f; background: #4a3019; }
+.merc-fiche > .merc-onglets .merc-onglet { border-color: #b8923f; }
