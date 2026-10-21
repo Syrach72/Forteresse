@@ -343,7 +343,7 @@ export function Characters({
       <div className="merc-nom-texte">
         <h1 className="merc-nom" tabIndex="-1" ref={title}>
           {merc.nom}
-          {nomsJoueur[merc.id] ? ` (${nomsJoueur[merc.id]})` : ""}
+          {!enQuete && nomsJoueur[merc.id] ? ` (${nomsJoueur[merc.id]})` : ""}
         </h1>
         <span className="merc-nom-lame" aria-hidden="true" />
       </div>

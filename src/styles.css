@@ -8690,3 +8690,6 @@ img[src$="#miroir"] {
 #merc-rubrique-equipement .equip-grille { margin-top: 6px; gap: 10px; }
 #merc-rubrique-equipement .equip-groupe h3 { margin: 0 0 4px; line-height: 1.1; }
 #merc-rubrique-equipement .equip-groupe { margin-top: 6px; }
+
+/* Nom du mercenaire : interligne plus ouvert pour que les capitales (Aniron) des lignes successives ne s'emmêlent pas. */
+.merc-nom-cadre .merc-nom, .merc-nom { line-height: 1.3; }
