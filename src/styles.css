@@ -8078,5 +8078,5 @@ img[src$="#miroir"] {
   .class-nav.class-nav { container-type: inline-size; }
   .class-nav.class-nav > a,
   .class-nav.class-nav > button { font-size: clamp(7px, 2.15cqw, 13px); overflow: hidden; }
-  .class-nav.nav-avec-admin.class-nav > a { font-size: clamp(7px, 1.8cqw, 13px); }
+  .class-nav.nav-avec-admin.class-nav > a { font-size: clamp(7px, 1.6cqw, 13px); }
 }
