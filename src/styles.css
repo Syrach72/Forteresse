@@ -8697,3 +8697,9 @@ img[src$="#miroir"] {
 /* Nom sur deux lignes : la seconde ligne est décalée pour commencer sous la deuxième lettre de la première (indentation
    suspendue), ce qui évite que les capitales Aniron des deux lignes se touchent. Sans effet sur une seule ligne. */
 .merc-nom, .merc-nom-cadre .merc-nom { padding-left: 0.7em; text-indent: -0.7em; line-height: 1.35; }
+
+/* Sac à dos (Équipement) : l'icône seule, sans le libellé (le bouton garde son nom pour les lecteurs d'écran et l'info-bulle). */
+.merc-sac-equipement span { display: none; }
+.merc-sac-equipement { padding: 4px; }
+.merc-sac-equipement img { width: 46px; height: 46px; }
+@media (max-width: 680px) { .merc-sac-equipement img { width: 38px; height: 38px; } }
