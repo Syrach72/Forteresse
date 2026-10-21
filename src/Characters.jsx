@@ -1257,11 +1257,14 @@ export function Characters({
                   </button>
                 )}
               </div>
-              <p className="muted">
-                {tousRecrutes.includes(merc.id)
-                  ? "3 armes, 1 armure, 1 bouclier et 3 objets. On équipe depuis le sac à dos ; déséquiper renvoie l’objet au sac."
-                  : `Équipement de base de ${merc.nom} : il arrive avec lui s’il est recruté.`}
-              </p>
+              {/* Mercenaire en quête : on gagne la place de cette phrase. */}
+              {!enQuete && (
+                <p className="muted">
+                  {tousRecrutes.includes(merc.id)
+                    ? "3 armes, 1 armure, 1 bouclier et 3 objets. On équipe depuis le sac à dos ; déséquiper renvoie l’objet au sac."
+                    : `Équipement de base de ${merc.nom} : il arrive avec lui s’il est recruté.`}
+                </p>
+              )}
               {erreur && (
                 <p className="error" role="alert">
                   {erreur}
