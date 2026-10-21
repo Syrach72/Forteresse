@@ -8631,3 +8631,16 @@ img[src$="#miroir"] {
   .merc-colonne-droite .stat-line span,
   .merc-colonne-droite .stat-line strong { font-size: clamp(14px, 4.4vw, 19px) !important; }
 }
+
+/* Mobile, rubrique Compétences : marges beiges réduites pour agrandir les cases du tableau. */
+@media (max-width: 680px) {
+  .merc-bloc { padding: 10px 6px; }
+  .merc-bloc .comp-table {
+    --comp-cell: min(64px, calc((100cqw - 24px) / 8.35));
+    --comp-gap: calc(var(--comp-cell) * 0.35);
+    gap: 3px;
+    margin-top: 8px;
+  }
+  .merc-bloc .comp-legendes, .merc-bloc .comp-ligne { gap: 3px; }
+  .merc-bloc .comp-legende { font-size: 17px; }
+}
