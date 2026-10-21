@@ -1623,6 +1623,22 @@ export function App() {
         : mesRecrutes,
     [estAdmin, tousRecrutes, joueurs, mesRecrutes],
   );
+  // Quête lancée par le MJ : chez chaque joueur concerné (téléphone, tablette…), l'écran passe tout de suite sur la fiche
+  // d'un de ses mercenaires engagés (la barre « En quête » permet d'aller aux autres). Seulement au moment du lancement :
+  // un rechargement de la page pendant la quête ne redirige pas.
+  const queteLanceeAvant = useRef(null);
+  useEffect(() => {
+    const lancee = !!queteEnCours?.lancee;
+    const avant = queteLanceeAvant.current;
+    queteLanceeAvant.current = queteEnCours ? lancee : null;
+    if (avant !== false || !lancee || estAdmin) return;
+    const miens = mercenaires.filter(
+      (m) => mesMercs.has(m.id) && mercsEnQuete.some((e) => e.mercenaire_id === m.id),
+    );
+    if (!miens.length) return;
+    location.hash = `personnages/${classeRoute(miens[0].classe)}/${miens[0].id}`;
+    notify(`La quête « ${queteEnCours.nom} » est lancée : voici la fiche de ${miens[0].nom}.`);
+  }, [queteEnCours?.lancee, queteEnCours?.id]);
   const warriors = useMemo(
     () =>
       mercenaires
