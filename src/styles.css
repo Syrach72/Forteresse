@@ -8681,3 +8681,12 @@ img[src$="#miroir"] {
 }
 .merc-portrait-etat.positif { background: #2e7d32; border-color: #1b4d1f; }
 .merc-portrait-etat.bleu { background: #1f55a8; border-color: #123468; }
+
+/* Rubrique Équipement : lignes resserrées (titre, gemmes portées, groupes). */
+#merc-rubrique-equipement .merc-bloc-entete { margin: 0; }
+#merc-rubrique-equipement h2 { margin: 0 0 2px; line-height: 1.1; }
+#merc-rubrique-equipement > .muted { margin: 2px 0; line-height: 1.25; }
+#merc-rubrique-equipement .gemmes-portees { margin: 2px 0 4px; line-height: 1.2; }
+#merc-rubrique-equipement .equip-grille { margin-top: 6px; gap: 10px; }
+#merc-rubrique-equipement .equip-groupe h3 { margin: 0 0 4px; line-height: 1.1; }
+#merc-rubrique-equipement .equip-groupe { margin-top: 6px; }
