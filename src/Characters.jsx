@@ -521,7 +521,7 @@ export function Characters({
         )
       ) : merc ? (
         accesFiche(merc.id) ? (
-          <div className={`merc-fiche${morts.includes(merc.id) || merc.mortChamp ? " merc-fiche-morte" : ""}`} data-onglet={onglet}>
+          <div className={`merc-fiche${morts.includes(merc.id) || merc.mortChamp ? " merc-fiche-morte" : ""}${enQuete && mesEngages.length > 1 ? " merc-fiche-avec-nav" : ""}`} data-onglet={onglet}>
           {/* Un joueur qui a engagé plusieurs mercenaires dans la quête passe de l'un à l'autre d'un clic. */}
           {enQuete && mesEngages.length > 1 && (
             <nav className="merc-quete-onglets" aria-label="Mes mercenaires en quête">
