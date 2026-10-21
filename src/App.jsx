@@ -1095,6 +1095,8 @@ export function App() {
   const [initiativeLancee, setInitiativeLancee] = useState(false);
   // Ordre des tours (barre d'initiative fixe en haut de l'écran) : lignes de initiative_tour.
   const [tourRows, setTourRows] = useState([]);
+  // MJ : noms (titres d'onglet) des créatures de la quête, pour la barre d'initiative (les joueurs voient « ? »).
+  const [nomsCreatures, setNomsCreatures] = useState(() => new Map());
   const [initiativeOuverte, setInitiativeOuverte] = useState(false);
   const initiativeDejaOuverte = useRef(new Set());
   // Compagnon animal (Rôdeur Maître des Bêtes) / familier (Incantateur) : id du mercenaire -> ligne mercenaire_compagnon.
@@ -1607,6 +1609,22 @@ export function App() {
   }, [queteEnCours?.id]);
   async function finTourInitiative(kind, id) {
     const { error } = await supabase.rpc("initiative_fin_tour", { p_kind: kind, p_id: id });
+    if (error) {
+      notify(error.message);
+      return;
+    }
+    await synchroniserPartage();
+  }
+  async function passerTourCreature(id) {
+    const { error } = await supabase.rpc("initiative_passer_tour", { p_id: id });
+    if (error) {
+      notify(error.message);
+      return;
+    }
+    await synchroniserPartage();
+  }
+  async function retarderAction(kind, id, crans) {
+    const { error } = await supabase.rpc("initiative_retarder", { p_kind: kind, p_id: id, p_crans: crans });
     if (error) {
       notify(error.message);
       return;
@@ -2946,7 +2964,7 @@ export function App() {
   }
   // Missions : définitions communes, attributions de la session visibles par ce joueur, compteurs de progression.
   async function synchroniserMissions() {
-    const [m, a, c, eff, ej, tf, sc, cd, cp, ini, iniEtat, fsv, rsc, ul, tour] = await Promise.all([
+    const [m, a, c, eff, ej, tf, sc, cd, cp, ini, iniEtat, fsv, rsc, ul, tour, noms] = await Promise.all([
       supabase
         .from("mission")
         .select("id, rubrique, nom, description, evenement, seuil, recompense_or, recompense_objet_id, recompense_quantite, recompense_cachee, recompense_effet_stat, recompense_effet_valeur, recompense_effet_quetes, ordre")
@@ -2967,9 +2985,11 @@ export function App() {
       supabase.from("mercenaire_forme_sauvage").select("*"),
       supabase.from("mercenaire_ressourcement").select("mercenaire_id, instance_no"),
       supabase.from("mercenaire_competence_limitee").select("mercenaire_id, competence_id, periode, numero"),
-      supabase.from("initiative_tour").select("id, kind, mercenaire_id, creature_quete_id, label, rang, joue_ordre"),
+      supabase.from("initiative_tour").select("id, kind, mercenaire_id, creature_quete_id, label, rang, ordre, joue_ordre, retarde, revele"),
+      estAdmin ? supabase.from("creature_quete").select("id, nom_onglet") : Promise.resolve({ data: [] }),
     ]);
     if (!tour.error) setTourRows(tour.data || []);
+    if (!noms.error) setNomsCreatures(new Map((noms.data || []).map((x) => [x.id, x.nom_onglet])));
     if (!rsc.error) setRessourcementRows(rsc.data || []);
     if (!ul.error) setUsagesLimites(ul.data || []);
     if (!fsv.error) setFormesSauvages(new Map((fsv.data || []).map((x) => [x.mercenaire_id, x])));
@@ -4325,7 +4345,7 @@ export function App() {
     missionsPourMoi.find((a) => missionsNouvelles.includes(a.id) && !missionsVues.has(a.id)) ||
     null;
   return (
-    <TourContext.Provider value={{ rows: tourRows, finTour: finTourInitiative }}>
+    <TourContext.Provider value={{ rows: tourRows, estAdmin, nomsCreatures, finTour: finTourInitiative, passerTour: passerTourCreature, retarder: retarderAction }}>
     <div className={`app${tourRows.length ? " app-avec-ini" : ""}${route === "forteresse" ? " app-fullwidth" : ""}${route.startsWith("personnages/") ? " app-persos" : ""}${route === "regles" ? " app-regles" : ""}`}>
       <a className="skip" href="#main">
         Aller au contenu
@@ -4496,7 +4516,7 @@ export function App() {
         </div>
       </header>
       {/* Barre d'initiative : sous le menu, puis figée en haut de l'écran quand on défile. */}
-      <BarreInitiative rows={tourRows} mercenaires={mercenaires} />
+      <BarreInitiative rows={tourRows} mercenaires={mercenaires} nomsCreatures={nomsCreatures} estAdmin={estAdmin} />
       {sess.ecran ? (
         <EcranSession sess={sess} estAdmin={estAdmin} />
       ) : route.startsWith("personnages/") ? (

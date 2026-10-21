@@ -4,7 +4,7 @@ import { RichText } from "./RichText.jsx";
 import { Modal } from "./Modal.jsx";
 import { Orbe } from "./MercFiche.jsx";
 import { BoutonReaction } from "./BoutonReaction.jsx";
-import { BoutonFinTour } from "./InitiativeTour.jsx";
+import { ActionsTour } from "./InitiativeTour.jsx";
 import { basculerEtat, decouper, definirNiveau, definirRounds, listeEtats, reductionVitesse } from "./etats.js";
 import { CATEGORIES_CAPACITES, DETAIL_ETATS, ETATS_JEU, TAILLES_CREATURE, TYPES_VOL, entier, nomEtat } from "./creatures-data.js";
 
@@ -361,7 +361,7 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
             />
           </label>
         )}
-        <BoutonFinTour kind="creature" id={ligne.id} />
+        <ActionsTour kind="creature" id={ligne.id} />
       </header>
 
       <div className="creature-haut">

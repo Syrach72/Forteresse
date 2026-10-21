@@ -12,7 +12,7 @@ import { gemmesPortees, limiteGemmes } from "./gemmes.js";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
 import { listeEtats, reductionVitesse } from "./etats.js";
-import { BoutonFinTour } from "./InitiativeTour.jsx";
+import { ActionsTour } from "./InitiativeTour.jsx";
 import { ETATS_JEU } from "./creatures-data.js";
 import { ChoixCompagnon, OngletCompagnon, LIBELLE_ROLE } from "./Compagnon.jsx";
 import { ChoixFormeSauvage, OngletFormeSauvage } from "./FormeSauvage.jsx";
@@ -751,7 +751,7 @@ export function Characters({
                         disabled={!peutModifier || (!!merc.reactionUtilisee && !estAdmin)}
                         onClick={() => onReaction(merc.id, !merc.reactionUtilisee)}
                       />
-                      <BoutonFinTour kind="mercenaire" id={merc.id} disabled={!peutModifier} />
+                      <ActionsTour kind="mercenaire" id={merc.id} disabled={!peutModifier} />
                     </>
                   ) : (
                   <button
