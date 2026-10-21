@@ -1292,10 +1292,13 @@ export function Characters({
           <section className="merc-bloc parchment" id="merc-rubrique-competences" role="tabpanel" aria-labelledby="merc-onglet-competences">
             {titreMerc}
             <h2 id="merc-competences-titre">Compétences</h2>
-            <p className="muted">
-              Une ligne par niveau de vétérance ; les compétences d’une ligne se débloquent quand la vétérance de {merc.nom}{" "}
-              ({merc.veterance ?? 1}) l’atteint.
-            </p>
+            {/* Mercenaire en quête : on gagne la place de cette explication. */}
+            {!enQuete && (
+              <p className="muted">
+                Une ligne par niveau de vétérance ; les compétences d’une ligne se débloquent quand la vétérance de {merc.nom}{" "}
+                ({merc.veterance ?? 1}) l’atteint.
+              </p>
+            )}
             <TableauCompetences
               cellules={competences.get(merc.id) || []}
               veterance={merc.veterance ?? 1}
