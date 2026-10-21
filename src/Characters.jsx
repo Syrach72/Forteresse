@@ -627,6 +627,15 @@ export function Characters({
                         }
                       />
                       <strong className="merc-carac-valeur">{deplacement}<span className="merc-carac-unite">c</span></strong>
+                      <button
+                        type="button"
+                        className="merc-defense-aide merc-vitesse-aide"
+                        aria-label="Explication de la vitesse"
+                        title="Explication"
+                        onClick={() => setPopup({ type: "aide-vitesse", title: "La vitesse" })}
+                      >
+                        ?
+                      </button>
                       {tmp.mouvement > 0 && (
                         <span className="merc-carac-bonus merc-carac-temp" title="Bonus temporaire (mission), actif pendant la quête">+{tmp.mouvement} temp.</span>
                       )}
@@ -1861,6 +1870,20 @@ export function Characters({
                 En dépensant 3 Énergies (limité à une fois par 24h), le Guerrier
                 peut prendre une Action supplémentaire.
               </p>
+            </div>
+          ) : popup.type === "aide-vitesse" ? (
+            <div className="aide-defense">
+              <section className="aide-defense-rubrique">
+                <h3>
+                  <img src={ICONES_STATS.Mouvement} alt="" />
+                  La vitesse
+                </h3>
+                <p>La vitesse dépend de la race et de divers facteurs. Elle est automatiquement réduite par certains effets.</p>
+                <p>En Terrain Difficile, cette vitesse est divisée par deux.</p>
+                <p>Lorsque les 2/3 ou plus de cette vitesse sont utilisés, la créature ne peut effectuer qu’une seule attaque.</p>
+                <p>La vitesse de course double cette vitesse de base, mais aucune attaque ne peut s’en suivre.</p>
+                <p>La vitesse de Nage et d’Escalade divise la vitesse de base par 4, sauf mention particulière.</p>
+              </section>
             </div>
           ) : popup.type === "aide-caracs" ? (
             <div className="aide-defense">
