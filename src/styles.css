@@ -8473,3 +8473,6 @@ img[src$="#miroir"] {
   .merc-sceau span { top: 22px; right: -40px; width: 160px; font-size: 13px; padding: 4px 0 3px; }
   .merc-quete-zone.avec-sceau { padding-right: 48px; }
 }
+
+/* Barre d'initiative sous le menu (à la place de l'ancien bandeau « ‹ Caserne »), puis figée en haut au défilement. */
+.barre-ini { border-top: 2px solid #b8923f; }

@@ -4327,7 +4327,6 @@ export function App() {
   return (
     <TourContext.Provider value={{ rows: tourRows, finTour: finTourInitiative }}>
     <div className={`app${tourRows.length ? " app-avec-ini" : ""}${route === "forteresse" ? " app-fullwidth" : ""}${route.startsWith("personnages/") ? " app-persos" : ""}${route === "regles" ? " app-regles" : ""}`}>
-      <BarreInitiative rows={tourRows} mercenaires={mercenaires} />
       <a className="skip" href="#main">
         Aller au contenu
       </a>
@@ -4496,6 +4495,8 @@ export function App() {
         </div>
         </div>
       </header>
+      {/* Barre d'initiative : sous le menu, puis figée en haut de l'écran quand on défile. */}
+      <BarreInitiative rows={tourRows} mercenaires={mercenaires} />
       {sess.ecran ? (
         <EcranSession sess={sess} estAdmin={estAdmin} />
       ) : route.startsWith("personnages/") ? (

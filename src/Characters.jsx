@@ -405,32 +405,34 @@ export function Characters({
       id="main"
       className={`characters-page ${hero || merc ? "character-detail" : "character-gallery"}`}
     >
-      <div className="characters-heading">
-        <div>
-          {!merc && (
-            <h1 tabIndex="-1" ref={title}>
-              {hero ? hero.name : `${cls?.[1] || "Personnages"} : choisis un mercenaire disponible`}
-            </h1>
-          )}
+      {!merc && (
+        <div className="characters-heading">
+          <div>
+            {!merc && (
+              <h1 tabIndex="-1" ref={title}>
+                {hero ? hero.name : `${cls?.[1] || "Personnages"} : choisis un mercenaire disponible`}
+              </h1>
+            )}
+          </div>
+          <a
+            href={
+              merc && tousRecrutes.includes(merc.id)
+                ? "#dortoirs"
+                : hero || merc
+                  ? `#personnages/${classId}`
+                  : "#forteresse"
+            }
+          >
+            {merc
+              ? tousRecrutes.includes(merc.id)
+                ? "‹ Caserne"
+                : `‹ ${cls?.[1] || "Personnages"}`
+              : hero
+                ? "‹ Tous les guerriers"
+                : "‹ Forteresse"}
+          </a>
         </div>
-        <a
-          href={
-            merc && tousRecrutes.includes(merc.id)
-              ? "#dortoirs"
-              : hero || merc
-                ? `#personnages/${classId}`
-                : "#forteresse"
-          }
-        >
-          {merc
-            ? tousRecrutes.includes(merc.id)
-              ? "‹ Caserne"
-              : `‹ ${cls?.[1] || "Personnages"}`
-            : hero
-              ? "‹ Tous les guerriers"
-              : "‹ Forteresse"}
-        </a>
-      </div>
+      )}
       <nav className="mobile-class-nav" aria-label="Classes de personnages">
         {CHARACTER_CLASSES.map(([id, label]) => (
           <a
