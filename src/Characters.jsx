@@ -566,6 +566,11 @@ export function Characters({
           </div>
           {onglet === "general" && (
           <section className="merc-sheet parchment" id="merc-rubrique-general" role="tabpanel" aria-labelledby="merc-onglet-general">
+            {enQuete && (
+              <div className="merc-sceau" role="status" aria-label="En quête">
+                <span>En quête</span>
+              </div>
+            )}
             <div className="merc-titre-rubrique">{titreMerc}</div>
             <div className="merc-colonne-gauche">
               <div className="merc-portrait-cadre">
@@ -730,24 +735,20 @@ export function Characters({
                     </div>
                   );
                 })()}
-                {/* Réaction du round (mercenaire engagé dans une quête) : vert tant qu'elle est disponible, grisée
-                    une fois dépensée ; le MJ la rend en cliquant sur Rd. */}
-                {enQuete && (
-                  <BoutonReaction
-                    anneau
-                    utilisee={!!merc.reactionUtilisee}
-                    disabled={!peutModifier || (!!merc.reactionUtilisee && !estAdmin)}
-                    onClick={() => onReaction(merc.id, !merc.reactionUtilisee)}
-                  />
-                )}
               </div>
             </div>
             <div className="merc-colonne-droite">
               {recrutes.includes(merc.id) && (
-                <div className="merc-quete-zone">
+                <div className={`merc-quete-zone${enQuete ? " avec-sceau" : ""}`}>
                   {enQuete ? (
                     <>
-                      <span className="merc-quete-statut" role="status">En quête</span>
+                      {/* Réaction du round : verte tant qu'elle est disponible, grisée une fois dépensée ; le MJ la rend en cliquant sur Rd. */}
+                      <BoutonReaction
+                        plaque
+                        utilisee={!!merc.reactionUtilisee}
+                        disabled={!peutModifier || (!!merc.reactionUtilisee && !estAdmin)}
+                        onClick={() => onReaction(merc.id, !merc.reactionUtilisee)}
+                      />
                       <BoutonFinTour kind="mercenaire" id={merc.id} disabled={!peutModifier} />
                     </>
                   ) : (

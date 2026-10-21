@@ -2,7 +2,26 @@
 // dépensée. Elle redevient disponible quand le MJ clique sur Rd (règle appliquée côté serveur).
 // `anneau` : le bouton est serti dans l'anneau de bronze (mercenaires, compagnons et familiers) ; les fiches de
 // créatures du MJ gardent un simple bouton rond.
-export function BoutonReaction({ utilisee, onClick, disabled = false, taille = "grand", anneau = false }) {
+export function BoutonReaction({ utilisee, onClick, disabled = false, taille = "grand", anneau = false, plaque = false }) {
+  // Variante « plaque » (fiche mercenaire) : même cadre doré que « Fin de tour », fond vert ; grisée une fois dépensée.
+  if (plaque) {
+    return (
+      <button
+        type="button"
+        className={`fin-tour reaction-plaque${utilisee ? " fait" : ""}`}
+        onClick={onClick}
+        disabled={disabled}
+        aria-pressed={!!utilisee}
+        title={
+          utilisee
+            ? "Réaction dépensée : elle redevient disponible au prochain Rd"
+            : "Réaction disponible : cliquez pour la dépenser"
+        }
+      >
+        {utilisee ? "Réaction dépensée" : "Réaction"}
+      </button>
+    );
+  }
   const bouton = (
     <button
       type="button"
