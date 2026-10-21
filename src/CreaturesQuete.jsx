@@ -361,7 +361,22 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
             />
           </label>
         )}
-        <ActionsTour kind="creature" id={ligne.id} />
+        <div className="creature-tete-actions">
+          {reactionActive && !apercu && (
+            <div className="creature-reaction-tete">
+              <BoutonReaction
+                plaque
+                utilisee={!!ligne.reaction_utilisee}
+                disabled={reactionDesactivee || (!!ligne.reaction_utilisee && !reactionPeutRendre)}
+                onClick={() => sauver({ reaction_utilisee: !ligne.reaction_utilisee })}
+              />
+              {reactionDesactivee && (
+                <p className="muted">Disponible quand le mercenaire est engagé dans une quête.</p>
+              )}
+            </div>
+          )}
+          <ActionsTour kind="creature" id={ligne.id} />
+        </div>
       </header>
 
       <div className="creature-haut">
@@ -457,20 +472,6 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
 
       <h4 className="creature-section">État</h4>
       <div className="creature-etat-zone">
-        {reactionActive && !apercu && (
-          <div className="creature-reaction">
-            <BoutonReaction
-              taille="petit"
-              anneau={reactionAnneau}
-              utilisee={!!ligne.reaction_utilisee}
-              disabled={reactionDesactivee || (!!ligne.reaction_utilisee && !reactionPeutRendre)}
-              onClick={() => sauver({ reaction_utilisee: !ligne.reaction_utilisee })}
-            />
-            {reactionDesactivee && (
-              <p className="muted">Disponible quand le mercenaire est engagé dans une quête.</p>
-            )}
-          </div>
-        )}
         <div className="creature-etat-zone-etats">
           <EtatsBoutons etats={listeCourante} onChange={changerEtats} masques={etatsImmunises} />
         </div>

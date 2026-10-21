@@ -8502,3 +8502,7 @@ img[src$="#miroir"] {
 .retarder-choix select { padding: 4px 6px; border-radius: 4px; font: inherit; }
 .ib-titre.inconnue { font-size: 26px; line-height: 1; color: #e1bc55; }
 .merc-quete-zone { align-items: flex-start; }
+
+/* Fiche créature : Réaction à gauche des boutons de tour (Fin de tour / Passer le tour / Retarder son action). */
+.creature-tete-actions { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+.creature-reaction-tete { display: flex; flex-direction: column; gap: 4px; max-width: 220px; }
