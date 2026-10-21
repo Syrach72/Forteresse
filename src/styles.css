@@ -8506,3 +8506,7 @@ img[src$="#miroir"] {
 /* Fiche créature : Réaction à gauche des boutons de tour (Fin de tour / Passer le tour / Retarder son action). */
 .creature-tete-actions { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
 .creature-reaction-tete { display: flex; flex-direction: column; gap: 4px; max-width: 220px; }
+
+/* Fiche créature : caractéristiques et vitesse en icônes (comme sur les fiches mercenaires). */
+.creature-stats .stat-line > span { display: flex; align-items: center; }
+.stat-icone { width: 30px; height: 30px; object-fit: contain; display: block; }

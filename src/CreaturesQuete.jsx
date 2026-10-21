@@ -382,6 +382,7 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
       <div className="creature-haut">
       <div className="creature-haut-gauche">
       <div className="creature-jauges">
+        <Orbe type="energie" libelle="Énergie" id="creature-energie" max={energieMax} actuelle={energie} />
         <div className="creature-sante">
           <Orbe
             type="sante"
@@ -400,7 +401,6 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
           </div>
           {sante === 0 && <p className="creature-detruite-texte">Détruite (0 PV)</p>}
         </div>
-        <Orbe type="energie" libelle="Énergie" id="creature-energie" max={energieMax} actuelle={energie} />
       </div>
 
       </div>
@@ -425,7 +425,7 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
           <strong>{fiche.fp}</strong>
         </div>
         <div className="stat-line">
-          <span>Vitesse</span>
+          <span><img className="stat-icone" src="/assets/mercenaire-fiche/bottes.webp" alt="Vitesse" title="Vitesse" /></span>
           <strong>{vit(fiche.vitesse)} case(s){noteVit}</strong>
         </div>
         {fiche.vitesse_escalade > 0 && (
@@ -450,15 +450,15 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
           </div>
         )}
         <div className="stat-line">
-          <span>Puissance</span>
+          <span><img className="stat-icone" src="/assets/icons/puissance.webp" alt="Puissance" title="Puissance" /></span>
           <strong>{fiche.puissance}</strong>
         </div>
         <div className="stat-line">
-          <span>Vélocité</span>
+          <span><img className="stat-icone" src="/assets/icons/velocite.webp" alt="Vélocité" title="Vélocité" /></span>
           <strong>{fiche.velocite}</strong>
         </div>
         <div className="stat-line">
-          <span>Mental</span>
+          <span><img className="stat-icone" src="/assets/icons/mental.webp" alt="Mental" title="Mental" /></span>
           <strong>{mental}</strong>
         </div>
         {listeTexte("Vulnérabilités", fiche.vulnerabilites)}
