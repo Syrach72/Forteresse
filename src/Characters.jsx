@@ -1266,7 +1266,7 @@ export function Characters({
             <section className="merc-bloc parchment" id="merc-rubrique-equipement" role="tabpanel" aria-labelledby="merc-onglet-equipement">
               {titreMerc}
               <div className="merc-bloc-entete">
-                <h2 id="merc-equipement-titre">Équipement</h2>
+                <h2 id="merc-equipement-titre" className="sr-only">Équipement</h2>
                 {/* Sac à dos (inventaire) : dans la rubrique Équipement. */}
                 {peutModifier && tousRecrutes.includes(merc.id) && (
                   <button
