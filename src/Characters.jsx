@@ -1571,21 +1571,22 @@ export function Characters({
           ) : popup.type === "sac" ? (
             <>
               {/* Accès direct à l'Arsenal ; un bouton « Retour » y ramène à ce sac à dos. */}
-              <button
-                type="button"
-                className="sac-arsenal-lien"
-                onClick={() => onOuvrirArsenal(merc)}
-                title="Ouvrir l’Arsenal"
-                aria-label="Ouvrir l’Arsenal"
-              >
-                <img src="/assets/icons/stock.webp" alt="" />
-                <span>Arsenal</span>
-              </button>
+              {!enQuete && (
+                <button
+                  type="button"
+                  className="sac-arsenal-lien"
+                  onClick={() => onOuvrirArsenal(merc)}
+                  title="Ouvrir l’Arsenal"
+                  aria-label="Ouvrir l’Arsenal"
+                >
+                  <img src="/assets/icons/stock.webp" alt="" />
+                  <span>Arsenal</span>
+                </button>
+              )}
               <p className="muted">
-                {sacCapacite} emplacements, jusqu’à 3 par objet. Envoyé depuis l’Arsenal
-                (composants et produits alchimiques, armes, armures et objets divers) ;
-                rendu à l’arsenal ci-dessous, sans restriction. Armes, armures
-                et objets peuvent être équipés (bouton « Équiper »).
+                {enQuete
+                  ? `${sacCapacite} emplacements, jusqu’à 3 par objet. Pendant la quête, le sac est coupé de l’arsenal : on peut seulement équiper ou utiliser ce qu’il contient.`
+                  : `${sacCapacite} emplacements, jusqu’à 3 par objet. Envoyé depuis l’Arsenal (composants et produits alchimiques, armes, armures et objets divers) ; rendu à l’arsenal ci-dessous, sans restriction. Armes, armures et objets peuvent être équipés (bouton « Équiper »).`}
               </p>
               {erreur && (
                 <p className="error" role="alert">
@@ -1624,13 +1625,15 @@ export function Characters({
                             Équiper
                           </button>
                         )}
-                        <button
-                          type="button"
-                          className="text-button"
-                          onClick={() => onRendreArsenal(merc.id, item.objetId, item.quantite, item.gemmes)}
-                        >
-                          Rendre à l’arsenal
-                        </button>
+                        {!enQuete && (
+                          <button
+                            type="button"
+                            className="text-button"
+                            onClick={() => onRendreArsenal(merc.id, item.objetId, item.quantite, item.gemmes)}
+                          >
+                            Rendre à l’arsenal
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="sac-dos-slot sac-dos-slot-vide" key={`vide-${i}`} aria-hidden="true" />
