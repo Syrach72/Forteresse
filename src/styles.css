@@ -8071,3 +8071,12 @@ img[src$="#miroir"] {
 .quest-onglet:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
 .quest-vide { margin: 12px 18px; color: #f3e7cb; }
 .quest-terminee-note { margin: 12px 0 0; text-align: center; }
+
+/* Menu du haut sur tablette : la taille du texte suit la largeur réelle de la barre (au lieu de rester à 13px
+   dans des cases qui rétrécissent), pour que « Déconnect. », « Règles »… ne débordent plus. 13px maximum. */
+@media (min-width: 681px) {
+  .class-nav.class-nav { container-type: inline-size; }
+  .class-nav.class-nav > a,
+  .class-nav.class-nav > button { font-size: clamp(7px, 2.15cqw, 13px); overflow: hidden; }
+  .class-nav.nav-avec-admin.class-nav > a { font-size: clamp(7px, 1.8cqw, 13px); }
+}
