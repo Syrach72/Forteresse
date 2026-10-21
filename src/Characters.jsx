@@ -538,7 +538,7 @@ export function Characters({
               ))}
             </nav>
           )}
-          {/* Onglets de parapheur, en haut à droite : Général, Équipement (mercenaire recruté), Compétences. */}
+          {/* Onglets de parapheur, à gauche du portrait, figés : Général, Équipement (mercenaire recruté), Compétences. */}
           <div className="merc-onglets" role="tablist" aria-label="Rubriques de la fiche">
             {[
               ["general", "Général"],
@@ -744,6 +744,9 @@ export function Characters({
             <div className="merc-colonne-droite">
               {recrutes.includes(merc.id) && (
                 <div className="merc-quete-zone">
+                  {enQuete ? (
+                    <span className="merc-quete-statut" role="status">En quête</span>
+                  ) : (
                   <button
                     className="merc-quete-bouton"
                     type="button"
@@ -759,6 +762,7 @@ export function Characters({
                   >
                     Participer à la quête
                   </button>
+                  )}
                 </div>
               )}
               <div className="stat-line">

@@ -8137,49 +8137,108 @@ img[src$="#miroir"] {
 /* Les trois plaques restantes : « Renvoyer » occupe toute la seconde ligne. */
 .merc-actions .wood-button.merc-renvoyer { grid-column: 1 / -1; }
 
-/* Onglets de la fiche mercenaire (Général, Équipement, Compétences) figés en haut de l'écran : ils ne défilent plus
-   avec la fiche. */
-.merc-onglets { position: sticky; top: 0; z-index: 30; }
-
-/* Barre d'onglets de la fiche mercenaire : bandeau de bois sombre à filet doré (lisible sur n'importe quel décor, y compris
-   quand la fiche défile dessous), onglets inactifs en cuir au texte clair, onglet actif en parchemin sous un liseré d'or. */
-.merc-onglets {
+/* Onglets de la fiche mercenaire : parapheur à gauche du portrait. Onglets verticaux (texte lu de bas en haut), en cuir au
+   texte clair ; l'onglet actif est en parchemin, relié à la fiche, sous un liseré d'or. Ils restent figés à l'écran
+   pendant le défilement (sticky). */
+.merc-fiche { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+.merc-fiche > .merc-onglets { grid-column: 1; grid-row: 1; }
+.merc-fiche > :not(.merc-onglets) { grid-column: 2; grid-row: 1; min-width: 0; }
+.merc-fiche > .merc-onglets {
+  position: sticky;
+  top: 14px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
   gap: 6px;
-  padding: 8px 18px 0;
-  background: linear-gradient(180deg, rgba(34, 22, 11, 0.94), rgba(52, 34, 17, 0.9));
-  border-bottom: 3px solid #b8923f;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  padding: 20px 0 0;
+  margin: 0 -1px 0 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
-.merc-onglets .merc-onglet {
-  margin-top: 0;
-  padding: 9px 26px 8px;
+.merc-fiche > .merc-onglets .merc-onglet {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  margin: 0;
+  padding: 18px 9px;
   border: 1px solid #8a6a35;
-  border-bottom: 0;
-  border-radius: 9px 9px 0 0;
-  background: linear-gradient(#6a4727, #4a3019);
+  border-left: 0;
+  border-radius: 0 10px 10px 0;
+  background: linear-gradient(90deg, #6a4727, #4a3019);
   color: #f6e7c1;
   text-shadow: 0 1px 2px #000;
-  box-shadow: inset 0 1px 0 rgba(255, 224, 168, 0.3);
+  font: 700 19px "Cormorant Garamond", Chiffres, Georgia, serif;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  box-shadow: 3px 3px 7px rgba(0, 0, 0, 0.45);
   transition: background 140ms ease, color 140ms ease;
 }
-.merc-onglets .merc-onglet:hover:not([aria-selected="true"]) {
-  background: linear-gradient(#80582f, #5c3d1f);
+.merc-fiche > .merc-onglets .merc-onglet:hover:not([aria-selected="true"]) {
+  background: linear-gradient(90deg, #80582f, #5c3d1f);
   color: #fff6dc;
 }
-.merc-onglets .merc-onglet[aria-selected="true"] {
-  margin-bottom: -3px;
-  padding: 11px 28px 11px;
+.merc-fiche > .merc-onglets .merc-onglet[aria-selected="true"] {
+  padding: 18px 13px;
+  margin-left: 0;
   border-color: #d8b96a;
-  border-top: 3px solid #e1bc55;
+  border-right: 4px solid #e1bc55;
   background: rgb(240, 232, 213);
   color: #1f150b;
   text-shadow: none;
-  box-shadow: 0 -2px 8px rgba(225, 188, 85, 0.35);
+  box-shadow: none;
 }
 @media (max-width: 680px) {
-  .merc-onglets { padding: 6px 6px 0; gap: 4px; }
-  .merc-onglets .merc-onglet { padding: 9px 4px 8px; }
-  .merc-onglets .merc-onglet[aria-selected="true"] { padding: 10px 4px 11px; }
+  .merc-fiche > .merc-onglets { top: 8px; gap: 5px; padding-top: 14px; }
+  .merc-fiche > .merc-onglets .merc-onglet { padding: 12px 6px; font-size: 15px; flex: none; overflow: visible; text-overflow: clip; }
+  .merc-fiche > .merc-onglets .merc-onglet[aria-selected="true"] { padding: 12px 8px; }
 }
+
+/* Plaque Instructeur / Soigner / Renvoyer : centrée sous les états (colonne de droite), pas sous toute la fiche. */
+@media (min-width: 681px) {
+  .merc-recruit-form .merc-actions-plaque {
+    align-self: flex-start;
+    width: min(600px, calc(100% - 268px));
+    max-width: none;
+    margin-left: calc(268px + max(0px, (100% - 268px - 600px) / 2));
+  }
+}
+
+/* Mobile : sous la barre d'XP, l'Énergie et la Santé passent avant la vitesse et le reste. */
+@media (max-width: 680px) {
+  .merc-sheet > .merc-colonne-gauche,
+  .merc-sheet > .merc-colonne-droite { display: contents; }
+  .merc-sheet > .merc-colonne-gauche > *,
+  .merc-sheet > .merc-colonne-droite > * { order: 5; }
+  .merc-sheet > .merc-colonne-gauche > * { justify-self: center; }
+  .merc-sheet > .merc-titre-rubrique { order: 0; }
+  .merc-sheet > .merc-colonne-gauche > .merc-portrait-cadre { order: 1; }
+  .merc-sheet > .merc-colonne-gauche > .barre-xp { order: 2; width: 100%; max-width: 260px; }
+  .merc-sheet > .merc-colonne-droite > .merc-actuel-form,
+  .merc-sheet > .merc-colonne-droite > .orbes { order: 3; }
+  .merc-sheet > .merc-colonne-gauche > .merc-sous-portrait { order: 4; }
+  .merc-sheet > .merc-pleine-largeur { order: 6; }
+}
+
+/* Mercenaire déjà engagé : le bouton devient une simple information « En quête » (cadre doré, non cliquable). */
+.merc-quete-statut {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 30px;
+  border: 3px double #d8b96a;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #2f5a37 0%, #1f3f27 100%);
+  box-shadow: inset 0 0 0 3px #16301c, inset 0 0 0 4px #b8923f, 0 3px 8px rgba(0, 0, 0, 0.4);
+  color: #fff0cc;
+  text-shadow: 0 1px 2px #000;
+  font: 700 17px Chiffres, Aniron, Georgia, serif;
+  letter-spacing: 0.04em;
+  cursor: default;
+  user-select: none;
+}
+.merc-quete-statut::before,
+.merc-quete-statut::after { content: "⚔"; color: #e1bc55; font-size: 14px; }
