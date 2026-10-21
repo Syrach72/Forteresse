@@ -8421,3 +8421,6 @@ img[src$="#miroir"] {
   color: #b9b2a2;
   cursor: not-allowed;
 }
+.ib-tuile.creature { width: 66px; }
+.ib-tuile.creature .ib-titre { font-size: 11px; }
+@media (max-width: 680px) { .ib-tuile.creature { width: 56px; } .ib-tuile.creature .ib-titre { font-size: 10px; } }
