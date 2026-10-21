@@ -8615,3 +8615,8 @@ img[src$="#miroir"] {
   .merc-sheet > .merc-colonne-droite > .merc-actuel-form,
   .merc-sheet > .merc-colonne-droite > .orbes { margin-top: 0; margin-bottom: 0; }
 }
+
+/* Race / Classe : alignées à gauche (mobile) et, sur PC, collées juste à droite du portrait (justifiées à gauche). */
+.merc-colonne-droite .stat-line,
+.merc-colonne-droite .stat-line strong,
+.merc-sous-classe-inline { text-align: left; justify-content: flex-start; }
