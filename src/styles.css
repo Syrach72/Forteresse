@@ -8607,3 +8607,11 @@ img[src$="#miroir"] {
 .merc-sheet .merc-carac-bottes .merc-carac-valeur { margin-left: auto; font-size: 26px; }
 .merc-sheet .merc-sous-portrait .merc-defense,
 .merc-sheet .merc-sous-portrait .merc-protections { width: 100%; min-width: 0; max-width: none; box-sizing: border-box; }
+
+/* Mobile : moins d'espace entre la barre d'XP et les globes Énergie / Santé. */
+@media (max-width: 680px) {
+  .merc-sheet { row-gap: 8px; }
+  .merc-colonne-droite .orbes { margin-top: 0; }
+  .merc-sheet > .merc-colonne-droite > .merc-actuel-form,
+  .merc-sheet > .merc-colonne-droite > .orbes { margin-top: 0; margin-bottom: 0; }
+}
