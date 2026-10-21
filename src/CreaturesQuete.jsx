@@ -372,21 +372,10 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
             id="creature-sante"
             max={santeMax}
             actuelle={sante}
-            editable
-            valeur={santeSaisie}
-            onChange={setSanteSaisie}
           />
           <div className="creature-sante-boutons">
             <button type="button" className="wood-button" onClick={() => validerSante(sante - 1)} aria-label="Retirer 1 de santé">
               −1
-            </button>
-            <button
-              type="button"
-              className="wood-button"
-              onClick={() => validerSante(santeSaisie)}
-              disabled={Number(santeSaisie) === sante}
-            >
-              Valider
             </button>
             <button type="button" className="wood-button" onClick={() => validerSante(sante + 1)} aria-label="Ajouter 1 de santé">
               +1

@@ -959,8 +959,7 @@ export function Characters({
                   return Number.isInteger(n) && n >= 0 && n <= 999 ? { ok: true, n } : { ok: false };
                 };
                 // L'énergie ne se saisit plus ici : elle se dépense depuis les compétences actives.
-                const inchange = santeAct === String(merc.santeActuelle ?? (santeMax != null ? santeMax + pvTemp : ""));
-                // −1 / +1 enregistrent aussitôt (0 à 999, jamais de valeur négative) ; « Valider » enregistre la saisie.
+                // −1 / +1 enregistrent aussitôt (0 à 999, jamais de valeur négative) : plus de saisie à la main.
                 const santeCourante = merc.santeActuelle ?? (santeMax ?? 0) + pvTemp;
                 const enregistrerSante = async (n) => {
                   const v = Math.max(0, Math.min(999, n));
@@ -978,9 +977,6 @@ export function Characters({
                       aria-label="Retirer 1 de santé"
                     >
                       −1
-                    </button>
-                    <button className="wood-button" type="submit" disabled={inchange}>
-                      Valider Santé
                     </button>
                     <button
                       type="button"
@@ -1009,9 +1005,6 @@ export function Characters({
                         max={santeMax}
                         supplement={pvTemp}
                         actuelle={merc.santeActuelle ?? (santeMax != null ? santeMax + pvTemp : null)}
-                        editable={peutModifier}
-                        valeur={santeAct}
-                        onChange={setSanteAct}
                       />
                       {boutonsSante}
                       {pvTemp > 0 && peutModifier && (
