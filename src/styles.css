@@ -8136,3 +8136,7 @@ img[src$="#miroir"] {
 }
 /* Les trois plaques restantes : « Renvoyer » occupe toute la seconde ligne. */
 .merc-actions .wood-button.merc-renvoyer { grid-column: 1 / -1; }
+
+/* Onglets de la fiche mercenaire (Général, Équipement, Compétences) figés en haut de l'écran : ils ne défilent plus
+   avec la fiche. */
+.merc-onglets { position: sticky; top: 0; z-index: 30; }
