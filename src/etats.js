@@ -38,3 +38,9 @@ export function definirRounds(liste, id, rounds) {
 export function decouper(liste) {
   return { principal: liste[0] ?? null, supplementaires: liste.slice(1, MAX_ETATS) };
 }
+
+// Cases perdues par l'état « Vitesse réduite » (0 si la cible ne l'a pas). Retranché de chaque vitesse affichée.
+export function reductionVitesse(liste) {
+  const e = (liste || []).find((x) => x.etat === "vitesse_reduite");
+  return e ? Math.max(0, Number(e.niveau) || 0) : 0;
+}

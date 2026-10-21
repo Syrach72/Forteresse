@@ -122,6 +122,8 @@ export const ETATS_JEU = [
   { id: "petrifie", nom: "Pétrifié" },
   { id: "possede", nom: "Possédé" },
   { id: "suffocation", nom: "Suffocation" },
+  // Le « niveau » enregistré est le nombre de cases perdues (1 à 9), retranché de la vitesse pendant la durée en Rd.
+  { id: "vitesse_reduite", nom: "Vitesse réduite", cases: true },
 ];
 // Immunités d'une créature en plus des états du jeu (liste « Immunités aux états » de sa fiche).
 export const IMMUNITES_SUPPLEMENTAIRES = [
@@ -354,6 +356,8 @@ export const DETAIL_ETATS = {
     "Lenteur : Vitesse 1/2, Adversaire Avantagé à ses attaques utilisant Vélocité, créature Désavantagée à sa propre Vélocité, pas de Réaction, une seule Action ou Action Bonus, une seule attaque par tour. ",
   muet: "Muet : Sorts à composante Vocale impossibles à lancer, communication limitée aux gestes, écriture, ou télépathie.",
   nauseeux: "Nauséeux, Fiévreux, Ivre, Engourdi... : Tous jets sont Désavantagés et Mouvement 1/2.",
+  vitesse_reduite:
+    "Vitesse réduite : la vitesse perd le nombre de cases choisi (minimum 0), automatiquement, jusqu'à la fin des Rd prescrits.",
   paralyse:
     "Paralysé : Ne peut ni bouger ni parler. Échecs automatiques aux Sauvegardes Puissance et Vélocité. Attaques contre la créature Avantagées et Critique automatique si attaquant à 1c ou moins.",
   petrifie:

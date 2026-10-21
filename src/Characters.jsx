@@ -11,7 +11,7 @@ import { libelleEffet } from "./effets.js";
 import { gemmesPortees, limiteGemmes } from "./gemmes.js";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
-import { listeEtats } from "./etats.js";
+import { listeEtats, reductionVitesse } from "./etats.js";
 import { ETATS_JEU } from "./creatures-data.js";
 import { ChoixCompagnon, OngletCompagnon, LIBELLE_ROLE } from "./Compagnon.jsx";
 import { ChoixFormeSauvage, OngletFormeSauvage } from "./FormeSauvage.jsx";
@@ -599,7 +599,16 @@ export function Characters({
                   // Déplacement Sans Armure : bonus de vétérance seulement si aucune armure n'est portée.
                   const sansArmure = !equipDe(merc.id)?.armure?.[0];
                   const bonusMouvement = sansArmure ? merc.bonusMouvementSansArmure ?? 0 : 0;
-                  const deplacement = Math.max(0, merc.mouvement + malusArmure + bonusMouvement + (tmp.mouvement ?? 0));
+                  // État « Vitesse réduite » (en quête) : cases perdues, retranchées jusqu'à la fin des Rd prescrits.
+                  const vitesseReduite = enQuete
+                    ? reductionVitesse(
+                        listeEtats(
+                          { etat: merc.etat ?? null, niveau: merc.etatNiveau ?? 1, rounds: merc.etatRounds ?? 0 },
+                          etatsSup.get("mercenaire:" + merc.id) || [],
+                        ),
+                      )
+                    : 0;
+                  const deplacement = Math.max(0, merc.mouvement + malusArmure + bonusMouvement + (tmp.mouvement ?? 0) - vitesseReduite);
                   return (
                     <div className="merc-carac merc-carac-bottes">
                       <img
@@ -607,7 +616,9 @@ export function Characters({
                         src={ICONES_STATS.Mouvement}
                         alt="Mouvement"
                         title={
-                          malusArmure < 0
+                          vitesseReduite > 0
+                            ? `Mouvement : ${merc.mouvement} cases, réduit de ${vitesseReduite} (Vitesse réduite)`
+                            : malusArmure < 0
                             ? `Mouvement : ${merc.mouvement} cases, réduit de ${-malusArmure} par l’armure`
                             : bonusMouvement > 0
                               ? `Mouvement : ${merc.mouvement} cases, +${bonusMouvement} (Déplacement Sans Armure)`

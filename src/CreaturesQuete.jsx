@@ -4,7 +4,7 @@ import { RichText } from "./RichText.jsx";
 import { Modal } from "./Modal.jsx";
 import { Orbe } from "./MercFiche.jsx";
 import { BoutonReaction } from "./BoutonReaction.jsx";
-import { basculerEtat, decouper, definirNiveau, definirRounds, listeEtats } from "./etats.js";
+import { basculerEtat, decouper, definirNiveau, definirRounds, listeEtats, reductionVitesse } from "./etats.js";
 import { CATEGORIES_CAPACITES, DETAIL_ETATS, ETATS_JEU, TAILLES_CREATURE, TYPES_VOL, entier, nomEtat } from "./creatures-data.js";
 
 // Page MJ des créatures en jeu (route #creatures), visible et modifiable du MJ seul. Une fiche par
@@ -300,6 +300,10 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
   const etatsImmunises = new Set(
     ETATS_JEU.filter((e) => (fiche.immunites_etats || []).includes(e.nom)).map((e) => e.id),
   );
+  // « Vitesse réduite » : les cases perdues sont retranchées de chaque vitesse, jusqu'à la fin des Rd.
+  const reduction = reductionVitesse(listeCourante);
+  const vit = (v) => (reduction ? Math.max(0, Number(v) - reduction) : v);
+  const noteVit = reduction ? `  (−${reduction})` : "";
   const changerEtats = (liste) => {
     const { principal, supplementaires } = decouper(liste);
     sauver(
@@ -416,25 +420,25 @@ export function FicheCreatureJeu({ ligne, fiche, liens, armes = [], capDe, sauve
         </div>
         <div className="stat-line">
           <span>Vitesse</span>
-          <strong>{fiche.vitesse} case(s)</strong>
+          <strong>{vit(fiche.vitesse)} case(s){noteVit}</strong>
         </div>
         {fiche.vitesse_escalade > 0 && (
           <div className="stat-line">
             <span>Escalade</span>
-            <strong>{fiche.vitesse_escalade} case(s)</strong>
+            <strong>{vit(fiche.vitesse_escalade)} case(s){noteVit}</strong>
           </div>
         )}
         {fiche.vitesse_nage > 0 && (
           <div className="stat-line">
             <span>Nage</span>
-            <strong>{fiche.vitesse_nage} case(s)</strong>
+            <strong>{vit(fiche.vitesse_nage)} case(s){noteVit}</strong>
           </div>
         )}
         {fiche.vitesse_vol > 0 && (
           <div className="stat-line">
             <span>Vol</span>
             <strong>
-              {fiche.vitesse_vol} case(s)
+              {vit(fiche.vitesse_vol)} case(s){noteVit}
               {fiche.vol_type ? ` (${TYPES_VOL.find(([c]) => c === fiche.vol_type)?.[1] || fiche.vol_type})` : ""}
             </strong>
           </div>
@@ -603,6 +607,7 @@ export function EtatsBoutons({ etats = [], onChange, desactive = false, masques 
               >
                 {e.nom}
                 {e.id === "epuise" && on ? ` ${courant.niveau}` : ""}
+                {e.cases && on ? ` −${courant.niveau} c` : ""}
               </button>
             </span>
           );
@@ -618,7 +623,25 @@ export function EtatsBoutons({ etats = [], onChange, desactive = false, masques 
           <strong className="creature-etat-ligne-nom">
             {nomEtat(x.etat)}
             {x.etat === "epuise" ? ` — niveau ${x.niveau}` : ""}
+            {x.etat === "vitesse_reduite" ? ` — −${x.niveau} case${x.niveau > 1 ? "s" : ""}` : ""}
           </strong>
+          {x.etat === "vitesse_reduite" && (
+            <label className="creature-rounds">
+              Cases perdues — {nomEtat(x.etat)}
+              <select
+                value={x.niveau}
+                disabled={desactive}
+                onChange={(e) => onChange(definirNiveau(etats, x.etat, Number(e.target.value)))}
+                aria-label="Nombre de cases de vitesse perdues"
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {x.etat === "epuise" && (
             <div className="creature-etat-niveaux" role="group" aria-label="Niveau d’épuisement">
               {[1, 2, 3].map((n) => (
