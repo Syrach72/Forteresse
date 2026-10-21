@@ -8709,3 +8709,20 @@ img[src$="#miroir"] {
   .merc-sac-equipement img { width: 84px; height: 84px; }
   .merc-bloc .merc-nom-cadre { padding-right: 116px; }
 }
+
+/* Mobile : le nom (une ou deux lignes) tient dans la hauteur du macaron de vétérance et se centre entre le macaron et
+   l'icône du sac à dos, sans mordre sur eux. */
+@media (max-width: 680px) {
+  .merc-nom-cadre { width: 100%; max-width: 100%; }
+  .merc-nom-cadre .merc-nom-texte { flex: 1 1 0; min-width: 0; width: auto; max-width: none; }
+  .merc-nom-cadre .merc-nom, .merc-nom {
+    margin: 0 0 0 6px;
+    padding: 0;
+    text-indent: 0;
+    text-align: center;
+    white-space: normal;
+    font-size: clamp(15px, 4.8vw, 19px);
+    line-height: 1.12;
+    overflow-wrap: anywhere;
+  }
+}
