@@ -8703,3 +8703,9 @@ img[src$="#miroir"] {
 .merc-sac-equipement { padding: 4px; }
 .merc-sac-equipement img { width: 46px; height: 46px; }
 @media (max-width: 680px) { .merc-sac-equipement img { width: 38px; height: 38px; } }
+
+/* PC et tablette : l'icône du sac à dos a la taille des icônes d'armure/objet de la rubrique (84 px). */
+@media (min-width: 681px) {
+  .merc-sac-equipement img { width: 84px; height: 84px; }
+  .merc-bloc .merc-nom-cadre { padding-right: 116px; }
+}
