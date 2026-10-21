@@ -160,6 +160,8 @@ export function Quests({
   // Fenêtre d'un mercenaire déjà engagé : { queteId, position, mercId } (bouton
   // « Retirer de la quête » = annuler l'ordre).
   const [choixMerc, setChoixMerc] = useState(null);
+  // Confirmation du « Lancer la quête » (MJ) : quête concernée, ou null.
+  const [confirmerLancement, setConfirmerLancement] = useState(null);
 
   function objet(id) {
     return objets?.find((o) => o.id === id);
@@ -200,6 +202,19 @@ export function Quests({
   }
   function personne(id) {
     return personnes.find((p) => p.id === id);
+  }
+  async function lancer(q) {
+    if (busy) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("quete_lancer");
+    setBusy(false);
+    setConfirmerLancement(null);
+    if (error) notify(error.message);
+    else {
+      notify(`La quête « ${q.nom} » est lancée.`);
+      await reload();
+      onChanged();
+    }
   }
   async function retirer(mercId) {
     if (busy) return;
@@ -400,11 +415,13 @@ export function Quests({
                         type="button"
                         key={i}
                         className={`quest-merc-slot${e ? " quest-merc-pris" : ""}`}
-                        disabled={indisponible}
+                        disabled={indisponible || (!e && q.lancee && !estAdmin && (q.instances_requises ?? 1) <= 1)}
                         title={
                           indisponible
                             ? "Une autre quête est en cours : annulez-la d’abord."
-                            : e || q.en_cours
+                            : !e && q.lancee && !estAdmin && (q.instances_requises ?? 1) <= 1
+                              ? "La quête est lancée : plus aucun mercenaire ne peut la rejoindre."
+                              : e || q.en_cours
                               ? undefined
                               : "Choisit cette quête et ouvre la caserne."
                         }
@@ -451,6 +468,23 @@ export function Quests({
                     somme={engagesQuete.reduce((t, e) => t + (personne(e.mercenaire_id)?.veterancy ?? 0), 0)}
                   />
                 )}
+                {q.en_cours && q.lancee && (
+                  <p className="quest-lancee-note" role="status">
+                    ⚔ Quête lancée : les mercenaires engagés sont absents de la forteresse et ne peuvent plus être retirés
+                    {(q.instances_requises ?? 1) > 1 ? " (des mercenaires peuvent encore la rejoindre)" : ""} jusqu’à la réussite ou l’échec.
+                  </p>
+                )}
+                {q.en_cours && estAdmin && !q.lancee && (
+                  <button
+                    type="button"
+                    className="wood-button quest-lancer"
+                    onClick={() => setConfirmerLancement(q)}
+                    disabled={busy || engagesQuete.length === 0}
+                    title={engagesQuete.length === 0 ? "Engagez au moins un mercenaire avant de lancer la quête." : "Verrouille les mercenaires engagés dans la quête."}
+                  >
+                    Lancer la quête
+                  </button>
+                )}
                 {q.en_cours && estAdmin && (
                   <div className="quest-issue" role="group" aria-label="Issue de la quête (MJ)">
                     <button type="button" className="quest-issue-btn quest-issue-echec" onClick={() => onIssue("echec")} disabled={busy || issueBloquee}
@@ -472,9 +506,11 @@ export function Quests({
                     <p className="muted quest-terminee-note">Quête accomplie.</p>
                   )
                 ) : q.en_cours ? (
-                  <button type="button" className="wood-button quest-choix" onClick={annuler} disabled={busy}>
-                    Annuler le choix
-                  </button>
+                  q.lancee && !estAdmin ? null : (
+                    <button type="button" className="wood-button quest-choix" onClick={annuler} disabled={busy}>
+                      Annuler le choix
+                    </button>
+                  )
                 ) : (
                   <button
                     type="button"
@@ -514,7 +550,9 @@ export function Quests({
               </a>
             </p>
           )}
-          {mesIds.has(choixMerc.mercId) || estAdmin ? (
+          {quetes?.find((x) => x.id === choixMerc.queteId)?.lancee && !estAdmin ? (
+            <p className="muted">La quête est lancée : ce mercenaire ne peut plus la quitter avant sa réussite ou son échec.</p>
+          ) : mesIds.has(choixMerc.mercId) || estAdmin ? (
             <button
               type="button"
               className="primary"
@@ -526,6 +564,23 @@ export function Quests({
           ) : (
             <p className="muted">Seul son recruteur peut le retirer de la quête.</p>
           )}
+        </Modal>
+      )}
+      {confirmerLancement && (
+        <Modal title="Lancer la quête ?" onClose={() => setConfirmerLancement(null)}>
+          <p>
+            Lancer « {confirmerLancement.nom} » ? Les mercenaires engagés ne pourront plus être retirés et n’auront
+            plus aucune interaction avec la forteresse jusqu’à ce que vous cliquiez sur Réussite ou Échec.
+            {(confirmerLancement.instances_requises ?? 1) > 1
+              ? " La quête compte plusieurs instances : les joueurs pourront encore y ajouter des mercenaires, mais pas retirer ceux déjà présents."
+              : " Plus aucun mercenaire ne pourra la rejoindre."}
+          </p>
+          <button type="button" className="primary" disabled={busy} onClick={() => lancer(confirmerLancement)}>
+            Confirmer le lancement
+          </button>{" "}
+          <button type="button" className="wood-button" onClick={() => setConfirmerLancement(null)}>
+            Annuler
+          </button>
         </Modal>
       )}
       {ficheObjet && (

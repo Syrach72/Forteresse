@@ -1101,6 +1101,8 @@ export function Characters({
                       <button
                         className="wood-button merc-recruit merc-renvoyer"
                         type="button"
+                        disabled={enQuete && !!queteEnCours?.lancee && !estAdmin}
+                        title={enQuete && queteEnCours?.lancee && !estAdmin ? "La quête est lancée : ce mercenaire est absent de la forteresse." : undefined}
                         onClick={() => setPopup({ type: "renvoi" })}
                       >
                         Renvoyer
@@ -1111,6 +1113,8 @@ export function Characters({
                     <button
                       className="wood-button merc-annuler"
                       type="button"
+                      disabled={enQuete && !!queteEnCours?.lancee && !estAdmin}
+                      title={enQuete && queteEnCours?.lancee && !estAdmin ? "La quête est lancée : ce mercenaire ne peut plus la quitter avant sa réussite ou son échec." : undefined}
                       onClick={() => onRappel(merc.id)}
                     >
                       Annuler cet ordre : retour à la caserne

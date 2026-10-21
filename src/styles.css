@@ -8242,3 +8242,15 @@ img[src$="#miroir"] {
 }
 .merc-quete-statut::before,
 .merc-quete-statut::after { content: "⚔"; color: #e1bc55; font-size: 14px; }
+
+/* Quête lancée (MJ) : bouton de lancement et mention visible de tous. */
+.quest-lancer { margin: 10px 0 4px; width: 100%; }
+.quest-lancee-note {
+  margin: 10px 0 6px;
+  padding: 8px 12px;
+  border: 1px solid #b8923f;
+  border-radius: 6px;
+  background: rgba(30, 60, 35, 0.55);
+  color: #fff0cc;
+  font-weight: 600;
+}

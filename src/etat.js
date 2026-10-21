@@ -92,7 +92,7 @@ export function comparerQuetes(a, b) {
 export async function chargerQuetes() {
   const [q, e] = await Promise.all([
     supabase.from("quete").select("*").order("nom"),
-    supabase.from("quete_etat").select("quete_id, en_cours, instances_restantes, terminee_le"),
+    supabase.from("quete_etat").select("quete_id, en_cours, instances_restantes, terminee_le, lancee"),
   ]);
   if (q.error) return { error: q.error };
   const parId = new Map((e.data || []).map((x) => [x.quete_id, x]));
@@ -105,6 +105,7 @@ export async function chargerQuetes() {
           en_cours: !!s?.en_cours,
           instances_restantes: s?.instances_restantes ?? null,
           terminee_le: s?.terminee_le ?? null,
+          lancee: !!s?.lancee,
         };
       })
       .sort(comparerQuetes),
@@ -124,6 +125,7 @@ export async function chargerQueteEnCours() {
           en_cours: true,
           instances_requises: q.instances_requises,
           instances_restantes: q.instances_restantes,
+          lancee: !!q.lancee,
         }
       : null,
   };
