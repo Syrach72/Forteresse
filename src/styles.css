@@ -8533,3 +8533,22 @@ img[src$="#miroir"] {
 
 /* Mercenaire en quete : la barre des classes (mobile) est masquee, le menu y donne acces. */
 .mobile-class-nav.mobile-class-nav-masque { display: none !important; }
+
+/* Sac à dos (rubrique Équipement) : petit encart dans l'angle supérieur droit, à la hauteur du nom (aussi sur mobile). */
+.merc-bloc { position: relative; }
+.merc-sac-equipement {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 3;
+  gap: 0;
+  padding: 4px 8px 3px;
+  font-size: 12px;
+  line-height: 1.1;
+  border-width: 2px;
+}
+.merc-sac-equipement img { width: 42px; height: 42px; }
+@media (max-width: 680px) {
+  .merc-sac-equipement { top: 10px; right: 10px; padding: 3px 6px 2px; font-size: 11px; }
+  .merc-sac-equipement img { width: 34px; height: 34px; }
+}
