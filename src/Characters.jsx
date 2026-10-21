@@ -578,6 +578,30 @@ export function Characters({
                   {merc.mortChamp && <img className="merc-tombe" src="/assets/icons/cimetiere.webp" alt="Mort sur le champ de bataille" />}
                   {recrutes.includes(merc.id) && (merc.pointsCarac ?? 0) > 0 && <AlertePoint />}
                   <TachesSang niveau={niveauSang(merc)} seed={merc.id} />
+                  {/* États cochés (mercenaire en quête) : rappel en information, en bas du portrait. */}
+                  {enQuete &&
+                    (() => {
+                      const actifs = listeEtats(
+                        { etat: merc.etat ?? null, niveau: merc.etatNiveau ?? 1, rounds: merc.etatRounds ?? 0 },
+                        etatsSup.get("mercenaire:" + merc.id) || [],
+                      );
+                      if (!actifs.length) return null;
+                      return (
+                        <div className="merc-portrait-etats" aria-label="États actifs">
+                          {actifs.map((x) => {
+                            const def = ETATS_JEU.find((e) => e.id === x.etat);
+                            const nom = def?.nom || x.etat;
+                            const suite = x.etat === "epuise" ? ` ${x.niveau}` : x.etat === "vitesse_reduite" ? ` −${x.niveau} c` : "";
+                            return (
+                              <span key={x.etat} className={`merc-portrait-etat${def?.positif ? " positif" : ""}${def?.bleu ? " bleu" : ""}`}>
+                                {nom}
+                                {suite}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                 </span>
                 {/* Inconscient : compte à rebours avant la mort définitive (1 Rd retiré à chaque clic sur Rd). */}
                 {merc.etat === "inconscient" && merc.inconscientRounds != null && (

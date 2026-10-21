@@ -8656,3 +8656,28 @@ img[src$="#miroir"] {
   .merc-bloc .merc-nom { font-size: clamp(20px, 6.2vw, 26px); }
   .merc-bloc .merc-nom-cadre { padding-right: 70px; }
 }
+
+/* États actifs rappelés en information (mêmes couleurs que les boutons d'état) en bas du portrait du mercenaire. */
+.merc-portrait-etats {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  pointer-events: none;
+}
+.merc-portrait-etat {
+  padding: 3px 8px;
+  border: 1px solid #7a1812;
+  background: #b3261e;
+  color: #fff;
+  font: 700 13px "Cormorant Garamond", Georgia, serif;
+  line-height: 1.15;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.merc-portrait-etat.positif { background: #2e7d32; border-color: #1b4d1f; }
+.merc-portrait-etat.bleu { background: #1f55a8; border-color: #123468; }
