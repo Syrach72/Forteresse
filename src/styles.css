@@ -8693,3 +8693,7 @@ img[src$="#miroir"] {
 
 /* Nom du mercenaire : interligne plus ouvert pour que les capitales (Aniron) des lignes successives ne s'emmêlent pas. */
 .merc-nom-cadre .merc-nom, .merc-nom { line-height: 1.3; }
+
+/* Nom sur deux lignes : la seconde ligne est décalée pour commencer sous la deuxième lettre de la première (indentation
+   suspendue), ce qui évite que les capitales Aniron des deux lignes se touchent. Sans effet sur une seule ligne. */
+.merc-nom, .merc-nom-cadre .merc-nom { padding-left: 0.7em; text-indent: -0.7em; line-height: 1.35; }
