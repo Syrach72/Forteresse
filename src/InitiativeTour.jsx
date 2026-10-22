@@ -34,7 +34,26 @@ export const entreeTour = (rows, kind, id) =>
 
 // Actions de tour d'une fiche (mercenaire ou créature) : « Fin de tour », « Passer le tour » (MJ, créature),
 // « Retarder son action » (à son tour, une fois par Rd).
-export function ActionsTour({ kind, id, disabled = false }) {
+// Fiche mercenaire : « Fin de tour » en carré rouge, au-dessus des onglets verticaux (qui restent figés à l'écran).
+export function FinTourCarre({ id, disabled = false }) {
+  const { rows, finTour } = useTour();
+  const e = entreeTour(rows, "mercenaire", id);
+  if (!e) return null;
+  const joue = e.joue_ordre != null;
+  return (
+    <button
+      type="button"
+      className={`fin-tour fin-tour-carre${joue ? " fait" : ""}`}
+      disabled={joue || disabled}
+      onClick={() => finTour("mercenaire", id)}
+      title={joue ? "Tour terminé : le MJ clique sur Rd pour le tour suivant." : "Termine votre tour : votre icône passe à droite de la barre d'initiative."}
+    >
+      {joue ? "Tour fini" : "Fin de tour"}
+    </button>
+  );
+}
+
+export function ActionsTour({ kind, id, disabled = false, sansFin = false }) {
   const { rows, estAdmin, finTour, passerTour, retarder } = useTour();
   const [ouvert, setOuvert] = useState(false);
   const [crans, setCrans] = useState(1);
@@ -56,15 +75,17 @@ export function ActionsTour({ kind, id, disabled = false }) {
           : "Repositionnez-vous plus loin dans l'ordre d'initiative (une fois par Rd).";
   return (
     <div className="actions-tour">
-      <button
-        type="button"
-        className={`fin-tour${joue ? " fait" : ""}`}
-        disabled={joue || disabled}
-        onClick={() => finTour(kind, id)}
-        title={joue ? "Tour terminé : le MJ clique sur Rd pour le tour suivant." : "Termine votre tour : votre icône passe à droite de la barre d'initiative."}
-      >
-        {joue ? "Tour terminé" : "Fin de tour"}
-      </button>
+      {!sansFin && (
+        <button
+          type="button"
+          className={`fin-tour${joue ? " fait" : ""}`}
+          disabled={joue || disabled}
+          onClick={() => finTour(kind, id)}
+          title={joue ? "Tour terminé : le MJ clique sur Rd pour le tour suivant." : "Termine votre tour : votre icône passe à droite de la barre d'initiative."}
+        >
+          {joue ? "Tour terminé" : "Fin de tour"}
+        </button>
+      )}
       {kind === "creature" && estAdmin && (
         <button
           type="button"

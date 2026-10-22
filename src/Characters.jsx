@@ -12,7 +12,7 @@ import { gemmesPortees, limiteGemmes } from "./gemmes.js";
 import { TableauCompetences, EquipementMercenaire, DetailCompetence, Orbe, meilleureParade, FicheObjet } from "./MercFiche.jsx";
 import { EtatsBoutons } from "./CreaturesQuete.jsx";
 import { listeEtats, reductionVitesse } from "./etats.js";
-import { ActionsTour } from "./InitiativeTour.jsx";
+import { ActionsTour, FinTourCarre } from "./InitiativeTour.jsx";
 import { ETATS_JEU } from "./creatures-data.js";
 import { ChoixCompagnon, OngletCompagnon, LIBELLE_ROLE } from "./Compagnon.jsx";
 import { ChoixFormeSauvage, OngletFormeSauvage } from "./FormeSauvage.jsx";
@@ -536,6 +536,7 @@ export function Characters({
           )}
           {/* Onglets de parapheur, à gauche du portrait, figés : Général, Équipement (mercenaire recruté), Compétences. */}
           <div className="merc-onglets" role="tablist" aria-label="Rubriques de la fiche">
+            {enQuete && recrutes.includes(merc.id) && <FinTourCarre id={merc.id} disabled={!peutModifier} />}
             {[
               ["general", "Général"],
               ["equipement", "Équipement"],
@@ -777,7 +778,7 @@ export function Characters({
                         disabled={!peutModifier || (!!merc.reactionUtilisee && !estAdmin)}
                         onClick={() => onReaction(merc.id, !merc.reactionUtilisee)}
                       />
-                      <ActionsTour kind="mercenaire" id={merc.id} disabled={!peutModifier} />
+                      <ActionsTour kind="mercenaire" id={merc.id} disabled={!peutModifier} sansFin />
                     </>
                   ) : (
                   <button
