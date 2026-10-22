@@ -8506,7 +8506,7 @@ img[src$="#miroir"] {
 /* Fiche mercenaire en quête : Réaction et Retarder son action, même hauteur, centrés entre la photo et le bord droit. */
 @media (min-width: 681px) {
   .merc-quete-zone.avec-sceau { justify-content: center; padding-right: 0; }
-  .merc-quete-zone.avec-sceau .fin-tour { min-height: 48px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
+  .merc-quete-zone.avec-sceau .fin-tour { height: 50px; min-height: 0; padding-top: 0; padding-bottom: 0; line-height: 1; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
 }
 
 /* Fiche mercenaire : « Fin de tour » en carré rouge vif, en haut de la colonne d'onglets (figée), au-dessus de « Général ». */
