@@ -1506,6 +1506,8 @@ export function App() {
   // ne la quitte pas (voir partie_annuler, côté serveur). Vidée dès que la fiche se
   // ferme, change d'objet ou que la page change.
   const [undoStack, setUndoStack] = useState([]);
+  // Achat / fabrication en attente de validation dans la fiche du catalogue : { type: "achat" | "fabrication", item }.
+  const [ordreAValider, setOrdreAValider] = useState(null);
   // Dernière opération annulable (vente, congédiement) : { journalId, texte, rpc, bouton } ; la bannière disparaît d'elle-même après 30 s.
   const [derniereVente, setDerniereVente] = useState(null);
   useEffect(() => {
@@ -2068,6 +2070,7 @@ export function App() {
   // rend définitifs les achats et fabrications qui y ont été faits.
   useEffect(() => {
     setUndoStack([]);
+    setOrdreAValider(null);
   }, [modal?.type, modal?.detailId, modal?.atelier, modal?.cle, route]);
   function sendToForge(objetId, atelier) {
     const targetRoute = ATELIER_ROUTE[atelier];
@@ -6187,21 +6190,50 @@ export function App() {
                                 ? "Envoyer à l’armurerie"
                                 : "Fabriquer"
                           }
-                          onBuy={async (a) => {
-                            // Achat réussi : la fiche se ferme et on revient à l'arsenal.
-                            if (!(await actBuyCatalogue(a))) return;
-                            setModal(null);
-                            location.hash = "stock";
-                          }}
-                          onCraft={async (a) => {
-                            // Fabrication lancée : la fiche se ferme et on revient à l'atelier.
-                            if (!(await actCatalogue(a, atelierItem))) return;
-                            setModal(null);
-                            if (routeItem) location.hash = routeItem;
-                          }}
+                          onBuy={(a) => setOrdreAValider({ type: "achat", item: a })}
+                          onCraft={(a) => setOrdreAValider({ type: "fabrication", item: a })}
                           undo={undoStack[undoStack.length - 1] || null}
                           onUndo={undoCatalogue}
                         />
+                      );
+                    })()}
+                    {ordreAValider && ordreAValider.item.id === detailItem.id && (() => {
+                      // Validation obligatoire de l'ordre : rien n'est dépensé avant « Confirmer ».
+                      const atelierItem = modal.cle?.endsWith(":objets")
+                        ? modal.atelier
+                        : detailItem.atelier ||
+                          (modal.global || modal.market ? null : modal.atelier);
+                      const routeItem = ATELIER_ROUTE[atelierItem];
+                      const achat = ordreAValider.type === "achat";
+                      const lieu = atelierItem === "forge" ? "à la forge" : atelierItem === "armurerie" ? "à l’armurerie" : "en fabrication";
+                      return (
+                        <div className="humain-choix" role="alertdialog" aria-label="Valider l’ordre">
+                          <p>
+                            {achat
+                              ? `Acheter ${detailItem.nom} pour ${detailItem.cout_achat_or} Po ?`
+                              : `Envoyer ${detailItem.nom} ${lieu} ? Les ressources de la recette seront prélevées dans l’arsenal.`}
+                          </p>
+                          <button
+                            type="button"
+                            className="wood-button"
+                            disabled={busy}
+                            onClick={async () => {
+                              const ok = achat
+                                ? await actBuyCatalogue(detailItem)
+                                : await actCatalogue(detailItem, atelierItem);
+                              setOrdreAValider(null);
+                              if (!ok) return;
+                              // Ordre réussi : la fiche se ferme et on revient à l'arsenal ou à l'atelier.
+                              setModal(null);
+                              location.hash = achat ? "stock" : routeItem || location.hash.slice(1);
+                            }}
+                          >
+                            Confirmer
+                          </button>
+                          <button type="button" className="text-button" onClick={() => setOrdreAValider(null)}>
+                            Annuler
+                          </button>
+                        </div>
                       );
                     })()}
                     {actionError && (
