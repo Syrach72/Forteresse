@@ -3748,6 +3748,7 @@ export function App() {
       { kind: "craft", journalId: data.journal_id, message: data.message },
     ]);
     notify(data.message);
+    return true;
   }
   // Annule la dernière opération (achat ou fabrication) faite sur la fiche
   // ouverte : opération inverse journalisée par le serveur, refusée si l'objet
@@ -3951,6 +3952,7 @@ export function App() {
       { kind: "buy", journalId: data.journal_id, message: "" },
     ]);
     notify(`${arme.nom} acheté : −${arme.cout_achat_or} Po.`);
+    return true;
   }
   // Achat d'un matériau (Bois/Fer/Cuir) par lots de 10, 10 Po le lot (règle
   // de Bruno) : jamais à l'unité, contrairement au reste du catalogue.
@@ -6185,8 +6187,18 @@ export function App() {
                                 ? "Envoyer à l’armurerie"
                                 : "Fabriquer"
                           }
-                          onBuy={actBuyCatalogue}
-                          onCraft={(a) => actCatalogue(a, atelierItem)}
+                          onBuy={async (a) => {
+                            // Achat réussi : la fiche se ferme et on revient à l'arsenal.
+                            if (!(await actBuyCatalogue(a))) return;
+                            setModal(null);
+                            location.hash = "stock";
+                          }}
+                          onCraft={async (a) => {
+                            // Fabrication lancée : la fiche se ferme et on revient à l'atelier.
+                            if (!(await actCatalogue(a, atelierItem))) return;
+                            setModal(null);
+                            if (routeItem) location.hash = routeItem;
+                          }}
                           undo={undoStack[undoStack.length - 1] || null}
                           onUndo={undoCatalogue}
                         />
