@@ -2391,9 +2391,10 @@ export function App() {
   }
   // Round suivant (MJ) : +1 au compteur et +1 énergie actuelle à chaque mercenaire recruté, dans la
   // limite de son énergie max ; tout est fait et revérifié côté serveur.
-  async function avancerRound() {
+  async function avancerRound(auto = false) {
     if (!estAdmin || roundBusy) return;
     setRoundBusy(true);
+    if (auto === true) rdAutoBloque.current = true;
     const { data, error } = await supabase.rpc("round_avancer");
     if (error) {
       setRoundBusy(false);
@@ -2403,10 +2404,25 @@ export function App() {
     setRoundUndo({ gains: data?.gains || [] });
     await synchroniserPartage();
     setRoundBusy(false);
-    notify(`Round ${data?.round} : +1 énergie pour ${data?.gains?.length || 0} mercenaire(s).`);
+    notify(`${auto === true ? "Tous les tours terminés : " : ""}Round ${data?.round} : +1 énergie pour ${data?.gains?.length || 0} mercenaire(s).`);
   }
+  // Rd automatique (MJ) : quand tout le monde a cliqué « Fin de tour » (créatures comprises, via « Passer le tour »),
+  // le round suivant se lance seul. Une fois lancé, ou après « Annuler » / remise à zéro (qui rendent aux participants
+  // leur état « tour terminé »), il ne se relance pas avant que quelqu'un ait de nouveau un tour à jouer.
+  const rdAutoBloque = useRef(false);
+  useEffect(() => {
+    if (!estAdmin || !tourRows.length) return;
+    const tousFini = tourRows.every((r) => r.joue_ordre != null);
+    if (!tousFini) {
+      rdAutoBloque.current = false;
+      return;
+    }
+    if (rdAutoBloque.current || roundBusy || roundCourant >= 99) return;
+    avancerRound(true);
+  }, [estAdmin, tourRows, roundBusy, roundCourant]);
   async function annulerRound() {
     if (!estAdmin || roundBusy || !roundUndo) return;
+    rdAutoBloque.current = true;
     setRoundBusy(true);
     const { error } = await supabase.rpc("round_annuler", { p_gains: roundUndo.gains });
     if (error) {
@@ -2421,6 +2437,7 @@ export function App() {
   }
   async function reinitialiserRound() {
     if (!estAdmin || roundBusy || roundCourant === 0) return;
+    rdAutoBloque.current = true;
     setRoundConfirm(false);
     setRoundBusy(true);
     const { error } = await supabase.rpc("round_reinitialiser");
@@ -4450,7 +4467,7 @@ export function App() {
             <button
               type="button"
               className="round-button"
-              onClick={avancerRound}
+              onClick={() => avancerRound()}
               disabled={roundBusy || roundCourant >= 99}
               aria-label={`Round ${roundCourant} · passer au round suivant (+1 énergie aux mercenaires)`}
               title={`Round ${roundCourant} · +1 énergie actuelle à chaque mercenaire recruté (jusqu'à son maximum)`}
