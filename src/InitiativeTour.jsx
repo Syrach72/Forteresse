@@ -18,8 +18,9 @@ export const useTour = () => useContext(TourContext);
 
 // Ordre d'affichage : ceux qui n'ont pas joué (par position, décalée par « Retarder »), puis ceux qui ont fini leur tour
 // (dans l'ordre de fin).
+// Un participant à 0 PV (`ko`) sort de la barre jusqu'à ce qu'il récupère au moins 1 PV.
 export function trierTour(rows) {
-  return [...rows].sort((a, b) => {
+  return rows.filter((r) => !r.ko).sort((a, b) => {
     const ja = a.joue_ordre != null;
     const jb = b.joue_ordre != null;
     if (ja !== jb) return ja ? 1 : -1;
@@ -40,15 +41,16 @@ export function FinTourCarre({ id, disabled = false }) {
   const e = entreeTour(rows, "mercenaire", id);
   if (!e) return null;
   const joue = e.joue_ordre != null;
+  const ko = !!e.ko;
   return (
     <button
       type="button"
-      className={`fin-tour fin-tour-carre${joue ? " fait" : ""}`}
-      disabled={joue || disabled}
+      className={`fin-tour fin-tour-carre${joue || ko ? " fait" : ""}`}
+      disabled={joue || ko || disabled}
       onClick={() => finTour("mercenaire", id)}
-      title={joue ? "Tour terminé : le MJ clique sur Rd pour le tour suivant." : "Termine votre tour : votre icône passe à droite de la barre d'initiative."}
+      title={ko ? "À 0 PV : pas de tour avant d'avoir récupéré au moins 1 PV." : joue ? "Tour terminé : le MJ clique sur Rd pour le tour suivant." : "Termine votre tour : votre icône passe à droite de la barre d'initiative."}
     >
-      {joue ? "Tour fini" : "Fin de tour"}
+      {ko ? "À 0 PV" : joue ? "Tour fini" : "Fin de tour"}
     </button>
   );
 }
@@ -59,12 +61,15 @@ export function ActionsTour({ kind, id, disabled = false, sansFin = false }) {
   const [crans, setCrans] = useState(1);
   const e = entreeTour(rows, kind, id);
   if (!e) return null;
-  const joue = e.joue_ordre != null;
+  const ko = !!e.ko;
+  const joue = e.joue_ordre != null || ko;
   const restants = trierTour(rows).filter((r) => r.joue_ordre == null);
   const sonTour = restants[0]?.id === e.id;
   const derriere = restants.length - 1;
   const peutRetarder = !joue && sonTour && !e.retarde && derriere >= 1 && !disabled;
-  const raisonRetard = joue
+  const raisonRetard = ko
+    ? "À 0 PV : pas de tour."
+    : joue
     ? "Tour terminé."
     : e.retarde
       ? "Action déjà retardée ce Rd."
@@ -83,7 +88,7 @@ export function ActionsTour({ kind, id, disabled = false, sansFin = false }) {
           onClick={() => finTour(kind, id)}
           title={joue ? "Tour terminé : le MJ clique sur Rd pour le tour suivant." : "Termine votre tour : votre icône passe à droite de la barre d'initiative."}
         >
-          {joue ? "Tour terminé" : "Fin de tour"}
+          {ko ? "À 0 PV" : joue ? "Tour terminé" : "Fin de tour"}
         </button>
       )}
       {kind === "creature" && estAdmin && (

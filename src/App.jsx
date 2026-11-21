@@ -2414,8 +2414,10 @@ export function App() {
   // leur état « tour terminé »), il ne se relance pas avant que quelqu'un ait de nouveau un tour à jouer.
   const rdAutoBloque = useRef(false);
   useEffect(() => {
-    if (!estAdmin || !tourRows.length) return;
-    const tousFini = tourRows.every((r) => r.joue_ordre != null);
+    // Les participants à 0 PV (`ko`) ne comptent pas : ils n'ont pas de tour à finir.
+    const actifs = tourRows.filter((r) => !r.ko);
+    if (!estAdmin || !actifs.length) return;
+    const tousFini = actifs.every((r) => r.joue_ordre != null);
     if (!tousFini) {
       rdAutoBloque.current = false;
       return;
@@ -3005,7 +3007,7 @@ export function App() {
       supabase.from("mercenaire_forme_sauvage").select("*"),
       supabase.from("mercenaire_ressourcement").select("mercenaire_id, instance_no"),
       supabase.from("mercenaire_competence_limitee").select("mercenaire_id, competence_id, periode, numero"),
-      supabase.from("initiative_tour").select("id, kind, mercenaire_id, creature_quete_id, label, rang, ordre, joue_ordre, retarde, revele"),
+      supabase.from("initiative_tour").select("id, kind, mercenaire_id, creature_quete_id, label, rang, ordre, joue_ordre, retarde, revele, ko"),
       estAdmin ? supabase.from("creature_quete").select("id, nom_onglet") : Promise.resolve({ data: [] }),
     ]);
     if (!tour.error) setTourRows(tour.data || []);
